@@ -1,0 +1,121 @@
+:root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+
+    color-scheme: dark light;
+    color: rgba(255, 255, 255, 0.87);
+    background-color: #242424;
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    display: flex;
+    place-items: center;
+    min-width: 320px;
+    min-height: 100vh;
+}
+
+#app {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem;
+    text-align: center;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #646cff, #42b883);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.start-button {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(45deg, #646cff, #42b883);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.start-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(100, 108, 255, 0.3);
+}
+
+.start-button:active {
+    transform: translateY(0);
+}
+
+.start-button.recording {
+    background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 107, 107, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+    }
+}
+
+.status {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 1rem;
+}
+
+.status.recording {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
+.status.processing {
+    color: #ffa726;
+    font-weight: 600;
+}
+
+.audio-visualizer {
+    width: 200px;
+    height: 60px;
+    display: flex;
+    align-items: end;
+    justify-content: center;
+    gap: 2px;
+    margin: 1rem 0;
+}
+
+.audio-bar {
+    width: 4px;
+    background: linear-gradient(to top, #646cff, #42b883);
+    border-radius: 2px;
+    transition: height 0.1s ease;
+}
