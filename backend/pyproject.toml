@@ -5,6 +5,7 @@ description = "Dungeon Master AI Scenario Helper"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "uvicorn==0.35.0",
-    "fastapi==0.116.0"
+    "uvicorn[standard]==0.35.0",
+    "fastapi==0.116.0",
+    "openai-whisper==20250625"
 ]

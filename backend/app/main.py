@@ -3,12 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 import logging
 import uvicorn
+import base64
+from app.services.audio_processor import AudioProcessor
+from app.services.transcription import WhisperTranscriptionService
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="D&D AI Character Backend")
+
+# Initialize services
+audio_processor = AudioProcessor()
+transcription_service = WhisperTranscriptionService(model_size="base")
 
 # Add CORS middleware to allow frontend connections
 app.add_middleware(
@@ -28,6 +35,9 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     logger.info("WebSocket connection established")
     
+    # Buffer for audio chunks during recording
+    audio_chunks = []
+    
     try:
         while True:
             # Receive message from frontend
@@ -37,37 +47,62 @@ async def websocket_endpoint(websocket: WebSocket):
             logger.info(f"Received message type: {message.get('type')}")
             
             if message["type"] == "audio_chunk":
-                # For now, just acknowledge receipt of audio chunk
-                logger.info("Received audio chunk")
-                # In the future, this will be sent to Whisper for transcription
+                # Store audio chunk for processing
+                audio_data = base64.b64decode(message["audio"])
+                audio_chunks.append(audio_data)
+                logger.info(f"Received audio chunk ({len(audio_data)} bytes)")
                 
             elif message["type"] == "end_recording":
                 logger.info("Recording ended, processing audio...")
                 
-                # Send mock transcription
-                await websocket.send_text(json.dumps({
-                    "type": "transcription",
-                    "text": "Hello, I heard your message!"
-                }))
+                webm_path = None
+                wav_path = None
                 
-                # Send mock audio response chunks
-                # In the future, this will come from xttx v2
-                mock_audio_chunks = [
-                    "mock_audio_chunk_1_base64",
-                    "mock_audio_chunk_2_base64", 
-                    "mock_audio_chunk_3_base64"
-                ]
-                
-                for chunk in mock_audio_chunks:
+                try:
+                    # Save audio chunks to temporary WebM file
+                    webm_path = audio_processor.save_webm_chunks(audio_chunks)
+                    
+                    # Convert WebM to WAV using system ffmpeg
+                    wav_path = audio_processor.convert_webm_to_wav(webm_path)
+                    
+                    # Transcribe with Whisper
+                    transcription = await transcription_service.transcribe_audio(wav_path)
+                    
+                    # Send transcription back to frontend
                     await websocket.send_text(json.dumps({
-                        "type": "audio_chunk",
-                        "audio": chunk
+                        "type": "transcription",
+                        "text": transcription
                     }))
-                
-                # Signal processing complete
-                await websocket.send_text(json.dumps({
-                    "type": "response_complete"
-                }))
+                    
+                    # Send mock audio response chunks (will be replaced with xttx v2 later)
+                    mock_audio_chunks = [
+                        "mock_audio_chunk_1_base64",
+                        "mock_audio_chunk_2_base64", 
+                        "mock_audio_chunk_3_base64"
+                    ]
+                    
+                    for chunk in mock_audio_chunks:
+                        await websocket.send_text(json.dumps({
+                            "type": "audio_chunk",
+                            "audio": chunk
+                        }))
+                    
+                    # Signal processing complete
+                    await websocket.send_text(json.dumps({
+                        "type": "response_complete"
+                    }))
+                    
+                except Exception as e:
+                    logger.error(f"Audio processing failed: {e}")
+                    await websocket.send_text(json.dumps({
+                        "type": "error",
+                        "message": f"Audio processing failed: {str(e)}"
+                    }))
+                    
+                finally:
+                    # Clean up temporary files
+                    audio_processor.cleanup_files(webm_path, wav_path)
+                    audio_chunks.clear()
                 
     except WebSocketDisconnect:
         logger.info("WebSocket connection closed")
