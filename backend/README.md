@@ -8,6 +8,12 @@ Install [UV](https://docs.astral.sh/uv/getting-started/installation/) then setup
 uv venv
 ```
 
+Install system level dependencies
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
 Sync project dependencies
 
 ```bash

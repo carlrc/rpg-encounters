@@ -5,6 +5,7 @@ import uvicorn
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
+from app.services.llm import OllamaService
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -15,6 +16,7 @@ app = FastAPI(title="D&D AI Character Backend")
 audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
+llm_service = OllamaService(model_name="mistral")
 
 # Add CORS middleware to allow frontend connections
 app.add_middleware(
@@ -72,9 +74,10 @@ async def websocket_endpoint(websocket: WebSocket):
             transcription = await transcription_service.transcribe_audio(wav_path)
             logger.debug(f"Transcribed audio text: {transcription}")
             
-            # For now, echo back the transcription as TTS
-            # TODO: Add OpenAI API call here to generate AI response
-            response_text = f"I heard you say: {transcription}"
+            # Generate AI response using local Ollama LLM
+            system_prompt = llm_service.get_dnd_character_system_prompt()
+            response_text = await llm_service.generate_response(transcription, system_prompt)
+            logger.debug(f"Generated LLM response: {response_text}")
             
             # Stream TTS audio chunks back to frontend
             logger.info("Starting TTS streaming...")
