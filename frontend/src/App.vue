@@ -38,8 +38,7 @@ export default {
     const audioContext = ref(null)
     const analyser = ref(null)
     const audioLevels = ref(Array(20).fill('4px'))
-    const audioQueue = ref([])
-    const isPlaying = ref(false)
+    const audioChunks = ref([])
 
     const buttonText = computed(() => {
       if (isProcessing.value) return 'Processing...'
@@ -61,18 +60,24 @@ export default {
       }
       
       websocket.value.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        
-        if (data.type === 'audio_chunk') {
-          // Receive audio response chunks and queue them for playback
-          audioQueue.value.push(data.audio)
-          if (!isPlaying.value) {
-            playNextAudioChunk()
+        if (event.data instanceof Blob) {
+          // Received binary audio chunk
+          console.log('Received audio chunk:', event.data.size, 'bytes')
+          processAudioChunk(event.data)
+        } else if (typeof event.data === 'string') {
+          // Received text message
+          if (event.data === 'AUDIO_COMPLETE') {
+            console.log('Audio streaming complete')
+            playAccumulatedAudio()
+            isProcessing.value = false
+            // Close WebSocket after receiving completion signal
+            if (websocket.value) {
+              websocket.value.close()
+              websocket.value = null
+            }
+          } else {
+            console.log('Received text message:', event.data)
           }
-        } else if (data.type === 'transcription') {
-          console.log('Transcription:', data.text)
-        } else if (data.type === 'response_complete') {
-          isProcessing.value = false
         }
       }
       
@@ -85,31 +90,48 @@ export default {
       }
     }
 
-    const playNextAudioChunk = async () => {
-      if (audioQueue.value.length === 0) {
-        isPlaying.value = false
+    const processAudioChunk = (audioBlob) => {
+      // Simply collect audio chunks
+      audioChunks.value.push(audioBlob)
+      console.log('Collected audio chunk:', audioBlob.size, 'bytes')
+    }
+
+    const playAccumulatedAudio = () => {
+      if (audioChunks.value.length === 0) {
+        console.log('No audio chunks to play')
         return
       }
       
-      isPlaying.value = true
-      const audioData = audioQueue.value.shift()
-      
       try {
-        // Convert base64 audio data to blob and play
-        const audioBlob = new Blob([Uint8Array.from(atob(audioData), c => c.charCodeAt(0))], { type: 'audio/wav' })
+        // Combine all chunks into single blob
+        const audioBlob = new Blob(audioChunks.value, { type: 'audio/mpeg' })
+        console.log('Playing combined audio:', audioBlob.size, 'bytes')
+        
+        // Create object URL and play with Audio element
         const audioUrl = URL.createObjectURL(audioBlob)
         const audio = new Audio(audioUrl)
         
         audio.onended = () => {
           URL.revokeObjectURL(audioUrl)
-          playNextAudioChunk()
+          console.log('Audio playback completed')
         }
         
-        await audio.play()
+        audio.onerror = (error) => {
+          console.error('Audio playback error:', error)
+          URL.revokeObjectURL(audioUrl)
+        }
+        
+        audio.play().catch(error => {
+          console.error('Failed to play audio:', error)
+          URL.revokeObjectURL(audioUrl)
+        })
+        
       } catch (error) {
-        console.error('Error playing audio:', error)
-        playNextAudioChunk()
+        console.error('Error creating audio blob:', error)
       }
+      
+      // Clear chunks for next response
+      audioChunks.value = []
     }
 
     const startRecording = async () => {
@@ -186,16 +208,9 @@ export default {
       isRecording.value = false
       isProcessing.value = true
       
-      // Send END signal to backend before closing WebSocket
+      // Let the backend close it after streaming is complete
       if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
         websocket.value.send("END")
-        // Give a small delay to ensure the message is sent before closing
-        setTimeout(() => {
-          if (websocket.value) {
-            websocket.value.close()
-            websocket.value = null
-          }
-        }, 100)
       }
     }
 
@@ -225,6 +240,8 @@ export default {
       if (audioContext.value) {
         audioContext.value.close()
       }
+      // Clear any remaining audio chunks
+      audioChunks.value = []
     })
 
     return {

@@ -23,7 +23,6 @@ class WhisperTranscriptionService:
         try:
             logger.debug(f"Loading Whisper model: {self.model_size}")
             self.model = whisper.load_model(self.model_size)
-            logger.info(f"Whisper model {self.model_size} loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load Whisper model {self.model_size}: {e}")
             raise

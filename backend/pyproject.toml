@@ -3,9 +3,11 @@ name = "dnd-ai"
 version = "0.1.0"
 description = "Dungeon Master AI Scenario Helper"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "==3.11.13"
 dependencies = [
     "uvicorn[standard]==0.35.0",
     "fastapi==0.116.0",
-    "openai-whisper==20250625"
+    "openai-whisper==20250625",
+    "elevenlabs==2.7.1",
+    "python-dotenv==1.1.1"
 ]

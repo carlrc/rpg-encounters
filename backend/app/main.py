@@ -4,8 +4,9 @@ import logging
 import uvicorn
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
+from app.services.tts import ElevenLabsTTS
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="D&D AI Character Backend")
@@ -13,6 +14,7 @@ app = FastAPI(title="D&D AI Character Backend")
 # Initialize services
 audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
+tts_service = ElevenLabsTTS()
 
 # Add CORS middleware to allow frontend connections
 app.add_middleware(
@@ -30,7 +32,7 @@ async def root():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    logger.info("WebSocket connection established")
+    logger.debug("WebSocket connection established...")
     
     # Buffer for audio chunks during recording
     audio_chunks = []
@@ -44,40 +46,50 @@ async def websocket_endpoint(websocket: WebSocket):
                 # Binary audio data
                 audio_data = message["bytes"]
                 audio_chunks.append(audio_data)
-                logger.info(f"Received binary audio chunk ({len(audio_data)} bytes)")
                 
             elif "text" in message:
                 # Text control signal
                 if message["text"] == "END":
-                    logger.info("Received END signal, processing accumulated audio...")
+                    logger.debug("Received END signal, processing accumulated audio...")
                     break
                 else:
-                    logger.info(f"Received text message: {message['text']}")
+                    logger.warning(f"Received unexpected socket message: {message['text']}")
                 
     except WebSocketDisconnect:
-        logger.error("WebSocket connection closed unexpectedly")
+        logger.error("WebSocket connection closed by client...")
         raise
 
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
-        await websocket.close()
         raise
     
     # Process accumulated audio chunks
-    if audio_chunks:
-        wav_path = None
-        
+    if audio_chunks:        
         try:
             # Save audio chunks directly to WAV file using ffmpeg
             wav_path = audio_processor.save_chunks_to_wav(audio_chunks)
             
             transcription = await transcription_service.transcribe_audio(wav_path)
-            logger.info(f"Transcription: {transcription}")
+            logger.debug(f"Transcribed audio text: {transcription}")
             
-            # TODO: In a real implementation, you would:
-            # 1. Generate text response using OpenAI API
-            # 2. Generate audio response using xttx v2
-            # 3. Send response back via a new WebSocket connection or other mechanism
+            # For now, echo back the transcription as TTS
+            # TODO: Add OpenAI API call here to generate AI response
+            response_text = f"I heard you say: {transcription}"
+            
+            # Stream TTS audio chunks back to frontend
+            logger.info("Starting TTS streaming...")
+            for audio_chunk in tts_service.text_to_speech_stream(response_text):
+                try:
+                    await websocket.send_bytes(audio_chunk)
+                except Exception as e:
+                    logger.error(f"Failed to send audio chunk: {e}")
+                    break
+            
+            # Send completion signal
+            try:
+                await websocket.send_text("AUDIO_COMPLETE")
+            except Exception as e:
+                logger.error(f"Failed to send completion signal: {e}")
             
         except Exception as e:
             logger.error(f"Audio processing failed: {e}")
@@ -86,7 +98,8 @@ async def websocket_endpoint(websocket: WebSocket):
             # Clean up temporary files
             audio_processor.cleanup_files(wav_path)
     
-    await websocket.close()
+    # WebSocket will be closed automatically by FastAPI
+    logger.debug("Closing websocket connection...")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
