@@ -1,13 +1,10 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import json
 import logging
 import uvicorn
-import base64
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -74,7 +71,6 @@ async def websocket_endpoint(websocket: WebSocket):
             # Save audio chunks directly to WAV file using ffmpeg
             wav_path = audio_processor.save_chunks_to_wav(audio_chunks)
             
-            # Transcribe with Whisper
             transcription = await transcription_service.transcribe_audio(wav_path)
             logger.info(f"Transcription: {transcription}")
             
