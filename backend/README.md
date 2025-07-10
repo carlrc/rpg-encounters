@@ -1,6 +1,6 @@
 # Backend
 
-## Install
+## Usage
 
 Install [UV](https://docs.astral.sh/uv/getting-started/installation/) then setup the virtual environment
 
@@ -18,4 +18,10 @@ Activate `venv`
 
 ```bash
 source .venv/bin/activate
+```
+
+Run backend
+
+```bash
+python -m app.main
 ```

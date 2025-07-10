@@ -8,7 +8,7 @@ This project provides a real-time, voice-based AI character interaction system f
 - FastAPI backend
 - Whisper.cpp for transcribing
 - OpenAI 4o API for text response generation
-- xttx v2 for audio response
+- ElevanLab for TTS
 
 ## Architecture
 
@@ -25,4 +25,4 @@ This project provides a real-time, voice-based AI character interaction system f
 - Websocket to accept audio chunks
 - Transcription layer (Whisper)
 - Text response generation layer (OpenAI API)
-- Audio response generation layer (xttx v2)
+- Audio response generation layer (ElevanLab)
