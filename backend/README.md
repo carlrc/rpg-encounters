@@ -19,3 +19,9 @@ Activate `venv`
 ```bash
 source .venv/bin/activate
 ```
+
+Run backend
+
+```bash
+python -m app.main
+```

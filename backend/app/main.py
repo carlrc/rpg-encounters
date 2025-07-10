@@ -40,75 +40,61 @@ async def websocket_endpoint(websocket: WebSocket):
     
     try:
         while True:
-            # Receive message from frontend
-            data = await websocket.receive_text()
-            message = json.loads(data)
+            # Receive message (can be text or binary)
+            message = await websocket.receive()
             
-            logger.info(f"Received message type: {message.get('type')}")
-            
-            if message["type"] == "audio_chunk":
-                # Store audio chunk for processing
-                audio_data = base64.b64decode(message["audio"])
+            if "bytes" in message:
+                # Binary audio data
+                audio_data = message["bytes"]
                 audio_chunks.append(audio_data)
-                logger.info(f"Received audio chunk ({len(audio_data)} bytes)")
+                logger.info(f"Received binary audio chunk ({len(audio_data)} bytes)")
                 
-            elif message["type"] == "end_recording":
-                logger.info("Recording ended, processing audio...")
-                
-                webm_path = None
-                wav_path = None
-                
-                try:
-                    # Save audio chunks to temporary WebM file
-                    webm_path = audio_processor.save_webm_chunks(audio_chunks)
-                    
-                    # Convert WebM to WAV using system ffmpeg
-                    wav_path = audio_processor.convert_webm_to_wav(webm_path)
-                    
-                    # Transcribe with Whisper
-                    transcription = await transcription_service.transcribe_audio(wav_path)
-                    
-                    # Send transcription back to frontend
-                    await websocket.send_text(json.dumps({
-                        "type": "transcription",
-                        "text": transcription
-                    }))
-                    
-                    # Send mock audio response chunks (will be replaced with xttx v2 later)
-                    mock_audio_chunks = [
-                        "mock_audio_chunk_1_base64",
-                        "mock_audio_chunk_2_base64", 
-                        "mock_audio_chunk_3_base64"
-                    ]
-                    
-                    for chunk in mock_audio_chunks:
-                        await websocket.send_text(json.dumps({
-                            "type": "audio_chunk",
-                            "audio": chunk
-                        }))
-                    
-                    # Signal processing complete
-                    await websocket.send_text(json.dumps({
-                        "type": "response_complete"
-                    }))
-                    
-                except Exception as e:
-                    logger.error(f"Audio processing failed: {e}")
-                    await websocket.send_text(json.dumps({
-                        "type": "error",
-                        "message": f"Audio processing failed: {str(e)}"
-                    }))
-                    
-                finally:
-                    # Clean up temporary files
-                    audio_processor.cleanup_files(webm_path, wav_path)
-                    audio_chunks.clear()
+            elif "text" in message:
+                # Text control signal
+                if message["text"] == "END":
+                    logger.info("Received END signal, processing accumulated audio...")
+                    break
+                else:
+                    logger.info(f"Received text message: {message['text']}")
                 
     except WebSocketDisconnect:
-        logger.info("WebSocket connection closed")
+        logger.error("WebSocket connection closed unexpectedly")
+        raise
+
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
         await websocket.close()
+        raise
+    
+    # Process accumulated audio chunks
+    if audio_chunks:
+        webm_path = None
+        wav_path = None
+        
+        try:
+            # Save audio chunks to temporary WebM file
+            webm_path = audio_processor.save_webm_chunks(audio_chunks)
+            
+            # Convert WebM to WAV using system ffmpeg
+            wav_path = audio_processor.convert_webm_to_wav(webm_path)
+            
+            # Transcribe with Whisper
+            transcription = await transcription_service.transcribe_audio(wav_path)
+            logger.info(f"Transcription: {transcription}")
+            
+            # TODO: In a real implementation, you would:
+            # 1. Generate text response using OpenAI API
+            # 2. Generate audio response using xttx v2
+            # 3. Send response back via a new WebSocket connection or other mechanism
+            
+        except Exception as e:
+            logger.error(f"Audio processing failed: {e}")
+            
+        finally:
+            # Clean up temporary files
+            audio_processor.cleanup_files(webm_path, wav_path)
+    
+    await websocket.close()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -158,16 +158,8 @@ export default {
         
         mediaRecorder.value.ondataavailable = (event) => {
           if (event.data.size > 0 && websocket.value?.readyState === WebSocket.OPEN) {
-            // Convert audio chunk to base64 and send via websocket
-            const reader = new FileReader()
-            reader.onload = () => {
-              const base64Audio = reader.result.split(',')[1]
-              websocket.value.send(JSON.stringify({
-                type: 'audio_chunk',
-                audio: base64Audio
-              }))
-            }
-            reader.readAsDataURL(event.data)
+            // Send raw binary audio data directly
+            websocket.value.send(event.data)
           }
         }
         
@@ -194,11 +186,16 @@ export default {
       isRecording.value = false
       isProcessing.value = true
       
-      // Send end recording signal
-      if (websocket.value?.readyState === WebSocket.OPEN) {
-        websocket.value.send(JSON.stringify({
-          type: 'end_recording'
-        }))
+      // Send END signal to backend before closing WebSocket
+      if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
+        websocket.value.send("END")
+        // Give a small delay to ensure the message is sent before closing
+        setTimeout(() => {
+          if (websocket.value) {
+            websocket.value.close()
+            websocket.value = null
+          }
+        }, 100)
       }
     }
 
@@ -206,6 +203,10 @@ export default {
       if (isRecording.value) {
         stopRecording()
       } else {
+        // Connect WebSocket before starting recording
+        if (!websocket.value) {
+          connectWebSocket()
+        }
         startRecording()
       }
     }
