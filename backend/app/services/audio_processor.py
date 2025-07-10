@@ -8,21 +8,16 @@ logger = logging.getLogger(__name__)
 
 class AudioProcessor:
     @staticmethod
-    def save_webm_chunks(chunks: List[bytes]) -> str:
-        """Save audio chunks to temporary WebM file"""
-        with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as f:
-            for chunk in chunks:
-                f.write(chunk)
-            logger.info(f"Saved {len(chunks)} audio chunks to {f.name}")
-            return f.name
-    
-    @staticmethod
-    def convert_webm_to_wav(webm_path: str) -> str:
-        """Convert WebM to WAV using system ffmpeg"""
-        wav_path = webm_path.replace('.webm', '.wav')
+    def save_chunks_to_wav(chunks: List[bytes]) -> str:
+        """Save audio chunks directly to WAV file using ffmpeg"""
+        # Create temporary WAV file
+        with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
+            wav_path = f.name
         
         cmd = [
-            'ffmpeg', '-i', webm_path,
+            'ffmpeg',
+            '-f', 'webm',    # Input format (WebM from MediaRecorder)
+            '-i', 'pipe:0',  # Read from stdin
             '-ar', '16000',  # 16kHz sample rate (optimal for Whisper)
             '-ac', '1',      # Mono channel
             '-c:a', 'pcm_s16le',  # PCM 16-bit encoding
@@ -30,14 +25,24 @@ class AudioProcessor:
             wav_path
         ]
         
-        logger.info(f"Converting {webm_path} to {wav_path}")
+        logger.info(f"Converting {len(chunks)} audio chunks directly to WAV: {wav_path}")
         
         try:
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-            logger.info(f"FFmpeg conversion successful: {wav_path}")
+            # Combine all chunks into a single bytes object
+            audio_data = b''.join(chunks)
+            
+            # Run ffmpeg with audio data piped to stdin
+            subprocess.run(
+                cmd, 
+                input=audio_data,
+                check=True, 
+                capture_output=True
+            )
+            
+            logger.info(f"Direct WAV conversion successful: {wav_path}")
             return wav_path
         except subprocess.CalledProcessError as e:
-            logger.error(f"FFmpeg conversion failed: {e.stderr}")
+            logger.error(f"FFmpeg direct conversion failed: {e.stderr}")
             raise
     
     @staticmethod

@@ -68,15 +68,11 @@ async def websocket_endpoint(websocket: WebSocket):
     
     # Process accumulated audio chunks
     if audio_chunks:
-        webm_path = None
         wav_path = None
         
         try:
-            # Save audio chunks to temporary WebM file
-            webm_path = audio_processor.save_webm_chunks(audio_chunks)
-            
-            # Convert WebM to WAV using system ffmpeg
-            wav_path = audio_processor.convert_webm_to_wav(webm_path)
+            # Save audio chunks directly to WAV file using ffmpeg
+            wav_path = audio_processor.save_chunks_to_wav(audio_chunks)
             
             # Transcribe with Whisper
             transcription = await transcription_service.transcribe_audio(wav_path)
@@ -92,7 +88,7 @@ async def websocket_endpoint(websocket: WebSocket):
             
         finally:
             # Clean up temporary files
-            audio_processor.cleanup_files(webm_path, wav_path)
+            audio_processor.cleanup_files(wav_path)
     
     await websocket.close()
 
