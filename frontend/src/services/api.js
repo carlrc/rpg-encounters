@@ -1,0 +1,63 @@
+const API_BASE_URL = 'http://localhost:8000/api';
+
+class ApiService {
+    async request(endpoint, options = {}) {
+        const url = `${API_BASE_URL}${endpoint}`;
+        const config = {
+            headers: {
+                'Content-Type': 'application/json',
+                ...options.headers,
+            },
+            ...options,
+        };
+
+        try {
+            const response = await fetch(url, config);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Handle 204 No Content responses
+            if (response.status === 204) {
+                return null;
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API request failed:', error);
+            throw error;
+        }
+    }
+
+    // Player CRUD operations
+    async getPlayers() {
+        return this.request('/players');
+    }
+
+    async getPlayer(id) {
+        return this.request(`/players/${id}`);
+    }
+
+    async createPlayer(playerData) {
+        return this.request('/players', {
+            method: 'POST',
+            body: JSON.stringify(playerData),
+        });
+    }
+
+    async updatePlayer(id, playerData) {
+        return this.request(`/players/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(playerData),
+        });
+    }
+
+    async deletePlayer(id) {
+        return this.request(`/players/${id}`, {
+            method: 'DELETE',
+        });
+    }
+}
+
+export default new ApiService();

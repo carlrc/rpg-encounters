@@ -1,257 +1,139 @@
 <template>
-  <div class="container">
-    <h1 class="title">D&D AI Character</h1>
-    
-    <div class="audio-visualizer" v-if="isRecording">
-      <div 
-        v-for="i in 20" 
-        :key="i" 
-        class="audio-bar" 
-        :style="{ height: audioLevels[i] || '4px' }"
-      ></div>
-    </div>
-    
-    <button 
-      @click="toggleRecording" 
-      :class="['start-button', { recording: isRecording }]"
-      :disabled="isProcessing"
-    >
-      {{ buttonText }}
-    </button>
-    
-    <div :class="['status', { recording: isRecording, processing: isProcessing }]">
-      {{ statusText }}
+  <div class="app-container">
+    <!-- Page Header -->
+    <header class="page-header">
+      <h1 class="page-title">Player page</h1>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- Left Sidebar Navigation -->
+      <nav class="sidebar">
+        <button 
+          v-for="tab in navigationTabs" 
+          :key="tab.id"
+          :class="['nav-button', { active: activeTab === tab.id }]"
+          @click="setActiveTab(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      </nav>
+
+      <!-- Main Content Area -->
+      <main class="content-area">
+        <div v-if="loading" class="loading">Loading players...</div>
+        <div v-else-if="error" class="error">{{ error }}</div>
+        <div v-else class="player-cards-grid">
+          <PlayerCard
+            v-for="player in players"
+            :key="player.id"
+            :player="player"
+            @update="updatePlayer"
+            @delete="deletePlayer"
+          />
+        </div>
+      </main>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import PlayerCard from './components/PlayerCard.vue'
+import apiService from './services/api.js'
 
 export default {
   name: 'App',
+  components: {
+    PlayerCard
+  },
   setup() {
-    const isRecording = ref(false)
-    const isProcessing = ref(false)
-    const websocket = ref(null)
-    const mediaRecorder = ref(null)
-    const audioContext = ref(null)
-    const analyser = ref(null)
-    const audioLevels = ref(Array(20).fill('4px'))
-    const audioChunks = ref([])
+    const activeTab = ref('players')
+    const players = ref([])
+    const loading = ref(false)
+    const error = ref('')
+    
+    const navigationTabs = [
+      { id: 'players', label: 'Players' },
+      { id: 'characters', label: 'Characters' },
+      { id: 'lorebooks', label: 'Lorebooks' },
+      { id: 'encounters', label: 'Encounters' }
+    ]
 
-    const buttonText = computed(() => {
-      if (isProcessing.value) return 'Processing...'
-      return isRecording.value ? 'Stop' : 'Start'
-    })
-
-    const statusText = computed(() => {
-      if (isProcessing.value) return 'Processing your message...'
-      if (isRecording.value) return 'Listening... Click Stop when done'
-      return 'Click Start to begin conversation'
-    })
-
-    const connectWebSocket = () => {
-      // Connect to backend websocket (adjust URL as needed)
-      websocket.value = new WebSocket('ws://localhost:8000/ws')
-      
-      websocket.value.onopen = () => {
-        console.log('WebSocket connected')
-      }
-      
-      websocket.value.onmessage = (event) => {
-        if (event.data instanceof Blob) {
-          // Received binary audio chunk
-          console.log('Received audio chunk:', event.data.size, 'bytes')
-          processAudioChunk(event.data)
-        } else if (typeof event.data === 'string') {
-          // Received text message
-          if (event.data === 'AUDIO_COMPLETE') {
-            console.log('Audio streaming complete')
-            playAccumulatedAudio()
-            isProcessing.value = false
-            // Close WebSocket after receiving completion signal
-            if (websocket.value) {
-              websocket.value.close()
-              websocket.value = null
-            }
-          } else {
-            console.log('Received text message:', event.data)
-          }
-        }
-      }
-      
-      websocket.value.onerror = (error) => {
-        console.error('WebSocket error:', error)
-      }
-      
-      websocket.value.onclose = () => {
-        console.log('WebSocket disconnected')
-      }
+    const setActiveTab = (tabId) => {
+      activeTab.value = tabId
     }
 
-    const processAudioChunk = (audioBlob) => {
-      // Simply collect audio chunks
-      audioChunks.value.push(audioBlob)
-      console.log('Collected audio chunk:', audioBlob.size, 'bytes')
-    }
-
-    const playAccumulatedAudio = () => {
-      if (audioChunks.value.length === 0) {
-        console.log('No audio chunks to play')
-        return
-      }
-      
+    const loadPlayers = async () => {
+      loading.value = true
+      error.value = ''
       try {
-        // Combine all chunks into single blob
-        const audioBlob = new Blob(audioChunks.value, { type: 'audio/mpeg' })
-        console.log('Playing combined audio:', audioBlob.size, 'bytes')
-        
-        // Create object URL and play with Audio element
-        const audioUrl = URL.createObjectURL(audioBlob)
-        const audio = new Audio(audioUrl)
-        
-        audio.onended = () => {
-          URL.revokeObjectURL(audioUrl)
-          console.log('Audio playback completed')
-        }
-        
-        audio.onerror = (error) => {
-          console.error('Audio playback error:', error)
-          URL.revokeObjectURL(audioUrl)
-        }
-        
-        audio.play().catch(error => {
-          console.error('Failed to play audio:', error)
-          URL.revokeObjectURL(audioUrl)
-        })
-        
-      } catch (error) {
-        console.error('Error creating audio blob:', error)
+        players.value = await apiService.getPlayers()
+      } catch (err) {
+        error.value = 'Failed to load players. Make sure the backend is running.'
+        console.error('Error loading players:', err)
+      } finally {
+        loading.value = false
       }
-      
-      // Clear chunks for next response
-      audioChunks.value = []
     }
 
-    const startRecording = async () => {
+    const updatePlayer = async (playerId, playerData) => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            sampleRate: 16000,
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true
-          } 
-        })
-        
-        // Set up audio visualization
-        audioContext.value = new (window.AudioContext || window.webkitAudioContext)()
-        analyser.value = audioContext.value.createAnalyser()
-        const source = audioContext.value.createMediaStreamSource(stream)
-        source.connect(analyser.value)
-        
-        analyser.value.fftSize = 64
-        const bufferLength = analyser.value.frequencyBinCount
-        const dataArray = new Uint8Array(bufferLength)
-        
-        const updateVisualization = () => {
-          if (!isRecording.value) return
-          
-          analyser.value.getByteFrequencyData(dataArray)
-          const levels = []
-          
-          for (let i = 0; i < 20; i++) {
-            const value = dataArray[Math.floor(i * bufferLength / 20)]
-            const height = Math.max(4, (value / 255) * 60)
-            levels.push(`${height}px`)
-          }
-          
-          audioLevels.value = levels
-          requestAnimationFrame(updateVisualization)
+        const updatedPlayer = await apiService.updatePlayer(playerId, playerData)
+        const index = players.value.findIndex(p => p.id === playerId)
+        if (index !== -1) {
+          players.value[index] = updatedPlayer
         }
-        
-        updateVisualization()
-        
-        // Set up media recorder to send audio chunks
-        mediaRecorder.value = new MediaRecorder(stream, {
-          mimeType: 'audio/webm;codecs=opus'
-        })
-        
-        mediaRecorder.value.ondataavailable = (event) => {
-          if (event.data.size > 0 && websocket.value?.readyState === WebSocket.OPEN) {
-            // Send raw binary audio data directly
-            websocket.value.send(event.data)
-          }
-        }
-        
-        // Send audio chunks every 250ms for real-time processing
-        mediaRecorder.value.start(250)
-        isRecording.value = true
-        
-      } catch (error) {
-        console.error('Error starting recording:', error)
-        alert('Could not access microphone. Please check permissions.')
+      } catch (err) {
+        error.value = 'Failed to update player'
+        console.error('Error updating player:', err)
       }
     }
 
-    const stopRecording = () => {
-      if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
-        mediaRecorder.value.stop()
-        mediaRecorder.value.stream.getTracks().forEach(track => track.stop())
-      }
-      
-      if (audioContext.value) {
-        audioContext.value.close()
-      }
-      
-      isRecording.value = false
-      isProcessing.value = true
-      
-      // Let the backend close it after streaming is complete
-      if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
-        websocket.value.send("END")
-      }
-    }
-
-    const toggleRecording = () => {
-      if (isRecording.value) {
-        stopRecording()
-      } else {
-        // Connect WebSocket before starting recording
-        if (!websocket.value) {
-          connectWebSocket()
-        }
-        startRecording()
+    const deletePlayer = async (playerId) => {
+      try {
+        await apiService.deletePlayer(playerId)
+        players.value = players.value.filter(p => p.id !== playerId)
+      } catch (err) {
+        error.value = 'Failed to delete player'
+        console.error('Error deleting player:', err)
       }
     }
 
     onMounted(() => {
-      connectWebSocket()
-    })
-
-    onUnmounted(() => {
-      if (websocket.value) {
-        websocket.value.close()
-      }
-      if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
-        mediaRecorder.value.stop()
-      }
-      if (audioContext.value) {
-        audioContext.value.close()
-      }
-      // Clear any remaining audio chunks
-      audioChunks.value = []
+      loadPlayers()
     })
 
     return {
-      isRecording,
-      isProcessing,
-      buttonText,
-      statusText,
-      audioLevels,
-      toggleRecording
+      activeTab,
+      navigationTabs,
+      players,
+      loading,
+      error,
+      setActiveTab,
+      updatePlayer,
+      deletePlayer
     }
   }
 }
 </script>
+
+<style scoped>
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-size: 1.1em;
+}
+
+.error {
+  text-align: center;
+  padding: 40px;
+  color: #dc3545;
+  font-size: 1.1em;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  margin: 20px;
+}
+</style>
