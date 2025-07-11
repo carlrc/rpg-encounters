@@ -31,6 +31,31 @@
             @update="updatePlayer"
             @delete="deletePlayer"
           />
+          
+          <!-- Create Player Card -->
+          <div class="player-card">
+            <div v-if="!showCreateForm" class="create-player-button" @click="startCreate">
+              <div class="plus-icon">+</div>
+              <p class="create-text">Add New Player</p>
+            </div>
+            
+            <div v-else class="player-edit-form">
+              <input 
+                v-model="createForm.name" 
+                placeholder="Player name"
+                class="edit-input"
+              />
+              <textarea 
+                v-model="createForm.description" 
+                placeholder="Player description"
+                class="edit-textarea"
+              ></textarea>
+              <div class="edit-actions">
+                <button @click="cancelCreate" class="cancel-btn">Cancel</button>
+                <button @click="saveCreate" class="save-btn">Save</button>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>
@@ -38,7 +63,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import PlayerCard from './components/PlayerCard.vue'
 import apiService from './services/api.js'
 
@@ -52,6 +77,11 @@ export default {
     const players = ref([])
     const loading = ref(false)
     const error = ref('')
+    const showCreateForm = ref(false)
+    const createForm = reactive({
+      name: '',
+      description: ''
+    })
     
     const navigationTabs = [
       { id: 'players', label: 'Players' },
@@ -100,6 +130,32 @@ export default {
       }
     }
 
+    const startCreate = () => {
+      showCreateForm.value = true
+    }
+
+    const cancelCreate = () => {
+      showCreateForm.value = false
+      createForm.name = ''
+      createForm.description = ''
+    }
+
+    const saveCreate = async () => {
+      if (createForm.name.trim() && createForm.description.trim()) {
+        try {
+          const newPlayer = await apiService.createPlayer({
+            name: createForm.name.trim(),
+            description: createForm.description.trim()
+          })
+          players.value.push(newPlayer)
+          cancelCreate() // Reset form and hide it
+        } catch (err) {
+          error.value = 'Failed to create player'
+          console.error('Error creating player:', err)
+        }
+      }
+    }
+
     onMounted(() => {
       loadPlayers()
     })
@@ -110,9 +166,14 @@ export default {
       players,
       loading,
       error,
+      showCreateForm,
+      createForm,
       setActiveTab,
       updatePlayer,
-      deletePlayer
+      deletePlayer,
+      startCreate,
+      cancelCreate,
+      saveCreate
     }
   }
 }
@@ -135,5 +196,84 @@ export default {
   border: 1px solid #f5c6cb;
   border-radius: 4px;
   margin: 20px;
+}
+
+/* Create Player Card Styles */
+.create-player-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s;
+}
+
+.create-player-button:hover {
+  color: #007bff;
+}
+
+.plus-icon {
+  font-size: 3em;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.create-text {
+  margin: 0;
+  font-size: 0.9em;
+}
+
+/* Reuse PlayerCard styles for consistency */
+.player-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.edit-input, .edit-textarea {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.edit-textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn, .delete-btn, .save-btn, .cancel-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s;
+}
+
+.save-btn {
+  background-color: #28a745;
+  color: white;
+}
+
+.save-btn:hover {
+  background-color: #218838;
+}
+
+.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
 }
 </style>
