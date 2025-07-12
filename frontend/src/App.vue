@@ -490,4 +490,35 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
 }
+
+.player-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+}
+
+/* Ensure all cards in grid have consistent alignment */
+.player-cards-grid > * {
+  align-self: start;
+}
+
+/* Create card styling only - PlayerCard component handles its own styling */
+.player-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e9ea;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.player-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
 </style>

@@ -232,6 +232,9 @@ export default {
   border: 1px solid #e8e9ea;
   transition: all 0.3s ease;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .player-card:hover {
@@ -240,6 +243,10 @@ export default {
 }
 
 .player-name {
+  height: 68px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
   margin: 0 0 20px 0;
   color: #1a1a1a;
   font-size: 1.5em;
@@ -247,6 +254,7 @@ export default {
   border-bottom: 3px solid #007bff;
   padding-bottom: 8px;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .player-field {
