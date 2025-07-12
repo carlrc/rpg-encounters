@@ -45,14 +45,49 @@
                 placeholder="Player name"
                 class="edit-input"
               />
-              <textarea 
-                v-model="createForm.description" 
-                placeholder="Player description"
-                class="edit-textarea"
-              ></textarea>
+              <div class="appearance-field">
+                <textarea 
+                  v-model="createForm.appearance" 
+                  placeholder="Player appearance"
+                  class="edit-textarea"
+                  @input="updateCreateWordCount"
+                ></textarea>
+                <div class="word-counter" :class="{ 'over-limit': createWordCount > 40 }">
+                  {{ createWordCount }}/40 words
+                </div>
+              </div>
+              <select v-model="createForm.race" class="edit-select">
+                <option value="">Select Race</option>
+                <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
+              </select>
+              <select v-model="createForm.class_name" class="edit-select">
+                <option value="">Select Class</option>
+                <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
+              </select>
+              <div class="groups-field">
+                <div class="groups-input-container">
+                  <input 
+                    v-model="newCreateGroupInput"
+                    placeholder="Add group"
+                    class="edit-input group-input"
+                    @keyup.enter="addCreateGroup"
+                  />
+                  <button @click="addCreateGroup" class="add-group-btn" type="button">Add</button>
+                </div>
+                <div class="groups-edit-display">
+                  <span 
+                    v-for="(group, index) in createForm.groups" 
+                    :key="index" 
+                    class="group-bubble editable"
+                  >
+                    {{ group }}
+                    <button @click="removeCreateGroup(index)" class="remove-group-btn" type="button">×</button>
+                  </span>
+                </div>
+              </div>
               <div class="edit-actions">
                 <button @click="cancelCreate" class="cancel-btn">Cancel</button>
-                <button @click="saveCreate" class="save-btn">Save</button>
+                <button @click="saveCreate" class="save-btn" :disabled="!isCreateFormValid">Save</button>
               </div>
             </div>
           </div>
@@ -63,7 +98,7 @@
 </template>
 
 <script>
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed } from 'vue'
 import PlayerCard from './components/PlayerCard.vue'
 import apiService from './services/api.js'
 
@@ -78,10 +113,27 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const showCreateForm = ref(false)
+    const newCreateGroupInput = ref('')
+    const createWordCount = ref(0)
+    
     const createForm = reactive({
       name: '',
-      description: ''
+      appearance: '',
+      race: '',
+      class_name: '',
+      groups: []
     })
+
+    const races = [
+      'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
+      'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
+    ]
+
+    const classes = [
+      'Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 
+      'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 
+      'Warlock', 'Wizard'
+    ]
     
     const navigationTabs = [
       { id: 'players', label: 'Players' },
@@ -89,6 +141,14 @@ export default {
       { id: 'lorebooks', label: 'Lorebooks' },
       { id: 'encounters', label: 'Encounters' }
     ]
+
+    const isCreateFormValid = computed(() => {
+      return createForm.name.trim() && 
+             createForm.appearance.trim() && 
+             createForm.race && 
+             createForm.class_name &&
+             createWordCount.value <= 40
+    })
 
     const setActiveTab = (tabId) => {
       activeTab.value = tabId
@@ -134,18 +194,49 @@ export default {
       showCreateForm.value = true
     }
 
+    const updateCreateWordCount = () => {
+      createWordCount.value = createForm.appearance.trim() ? createForm.appearance.trim().split(/\s+/).length : 0
+    }
+
+    const convertToKebabCase = (text) => {
+      const kebab = text.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-')
+      return kebab.startsWith('#') ? kebab : `#${kebab}`
+    }
+
+    const addCreateGroup = () => {
+      if (newCreateGroupInput.value.trim()) {
+        const formattedGroup = convertToKebabCase(newCreateGroupInput.value.trim())
+        if (!createForm.groups.includes(formattedGroup)) {
+          createForm.groups.push(formattedGroup)
+        }
+        newCreateGroupInput.value = ''
+      }
+    }
+
+    const removeCreateGroup = (index) => {
+      createForm.groups.splice(index, 1)
+    }
+
     const cancelCreate = () => {
       showCreateForm.value = false
       createForm.name = ''
-      createForm.description = ''
+      createForm.appearance = ''
+      createForm.race = ''
+      createForm.class_name = ''
+      createForm.groups = []
+      newCreateGroupInput.value = ''
+      createWordCount.value = 0
     }
 
     const saveCreate = async () => {
-      if (createForm.name.trim() && createForm.description.trim()) {
+      if (isCreateFormValid.value) {
         try {
           const newPlayer = await apiService.createPlayer({
             name: createForm.name.trim(),
-            description: createForm.description.trim()
+            appearance: createForm.appearance.trim(),
+            race: createForm.race,
+            class_name: createForm.class_name,
+            groups: createForm.groups
           })
           players.value.push(newPlayer)
           cancelCreate() // Reset form and hide it
@@ -168,10 +259,18 @@ export default {
       error,
       showCreateForm,
       createForm,
+      newCreateGroupInput,
+      createWordCount,
+      races,
+      classes,
+      isCreateFormValid,
       setActiveTab,
       updatePlayer,
       deletePlayer,
       startCreate,
+      updateCreateWordCount,
+      addCreateGroup,
+      removeCreateGroup,
       cancelCreate,
       saveCreate
     }
@@ -233,16 +332,115 @@ export default {
   gap: 10px;
 }
 
-.edit-input, .edit-textarea {
+.edit-input, .edit-textarea, .edit-select {
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1em;
+  transition: border-color 0.2s;
+}
+
+.edit-input:focus, .edit-textarea:focus, .edit-select:focus {
+  outline: none;
+  border-color: #007bff;
 }
 
 .edit-textarea {
   min-height: 60px;
   resize: vertical;
+}
+
+.appearance-field {
+  position: relative;
+}
+
+.word-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 0.8em;
+  color: #666;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.word-counter.over-limit {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.groups-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groups-input-container {
+  display: flex;
+  gap: 8px;
+}
+
+.group-input {
+  flex: 1;
+}
+
+.add-group-btn {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s;
+}
+
+.add-group-btn:hover {
+  background-color: #218838;
+}
+
+.groups-edit-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 30px;
+  align-items: flex-start;
+}
+
+.group-bubble {
+  background-color: #007bff;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.group-bubble.editable {
+  background-color: #6c757d;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.remove-group-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.remove-group-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .edit-actions {
@@ -260,20 +458,36 @@ export default {
 }
 
 .save-btn {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #28a745, #218838);
   color: white;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+  font-weight: 600;
 }
 
-.save-btn:hover {
-  background-color: #218838;
+.save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+}
+
+.save-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
 }
 
 .cancel-btn {
-  background-color: #6c757d;
+  background: linear-gradient(135deg, #6c757d, #5a6268);
   color: white;
+  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+  font-weight: 600;
 }
 
 .cancel-btn:hover {
-  background-color: #5a6268;
+  background: linear-gradient(135deg, #5a6268, #495057);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
 }
 </style>
