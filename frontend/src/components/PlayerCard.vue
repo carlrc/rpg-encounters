@@ -19,17 +19,27 @@
       </div>
       
       <div class="player-field">
-        <label class="field-label">Groups</label>
-        <div class="groups-display">
+        <label class="field-label">Size</label>
+        <p class="field-value">{{ player.size }}</p>
+      </div>
+      
+      <div class="player-field">
+        <label class="field-label">Alignment</label>
+        <p class="field-value">{{ player.alignment }}</p>
+      </div>
+      
+      <div class="player-field">
+        <label class="field-label">Tags</label>
+        <div class="tags-display">
           <span 
-            v-for="group in player.groups" 
-            :key="group" 
-            class="group-bubble"
+            v-for="tag in player.tags" 
+            :key="tag" 
+            class="tag-bubble"
           >
-            {{ group }}
+            {{ tag }}
           </span>
-          <span v-if="!player.groups || player.groups.length === 0" class="no-groups">
-            No groups assigned
+          <span v-if="!player.tags || player.tags.length === 0" class="no-tags">
+            No tags assigned
           </span>
         </div>
       </div>
@@ -69,24 +79,34 @@
         <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
       </select>
       
-      <div class="groups-field">
-        <div class="groups-input-container">
+      <select v-model="editForm.size" class="edit-select">
+        <option value="">Select Size</option>
+        <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
+      </select>
+      
+      <select v-model="editForm.alignment" class="edit-select">
+        <option value="">Select Alignment</option>
+        <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
+      </select>
+      
+      <div class="tags-field">
+        <div class="tags-input-container">
           <input 
-            v-model="newGroupInput"
-            placeholder="Add group"
-            class="edit-input group-input"
-            @keyup.enter="addGroup"
+            v-model="newTagInput"
+            placeholder="Add tag"
+            class="edit-input tag-input"
+            @keyup.enter="addTag"
           />
-          <button @click="addGroup" class="add-group-btn" type="button">Add</button>
+          <button @click="addTag" class="add-tag-btn" type="button">Add</button>
         </div>
-        <div class="groups-edit-display">
+        <div class="tags-edit-display">
           <span 
-            v-for="(group, index) in editForm.groups" 
+            v-for="(tag, index) in editForm.tags" 
             :key="index" 
-            class="group-bubble editable"
+            class="tag-bubble editable"
           >
-            {{ group }}
-            <button @click="removeGroup(index)" class="remove-group-btn" type="button">×</button>
+            {{ tag }}
+            <button @click="removeTag(index)" class="remove-tag-btn" type="button">×</button>
           </span>
         </div>
       </div>
@@ -113,7 +133,7 @@ export default {
   emits: ['update', 'delete'],
   setup(props, { emit }) {
     const isEditing = ref(false)
-    const newGroupInput = ref('')
+    const newTagInput = ref('')
     const wordCount = ref(0)
     
     const editForm = reactive({
@@ -121,7 +141,9 @@ export default {
       appearance: '',
       race: '',
       class_name: '',
-      groups: []
+      size: '',
+      alignment: '',
+      tags: []
     })
 
     const races = [
@@ -135,11 +157,23 @@ export default {
       'Warlock', 'Wizard'
     ]
 
+    const sizes = [
+      'Small', 'Medium'
+    ]
+
+    const alignments = [
+      'Lawful Good', 'Neutral Good', 'Chaotic Good',
+      'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
+      'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
+    ]
+
     const isFormValid = computed(() => {
       return editForm.name.trim() && 
              editForm.appearance.trim() && 
              editForm.race && 
              editForm.class_name &&
+             editForm.size &&
+             editForm.alignment &&
              wordCount.value <= 40
     })
 
@@ -152,18 +186,18 @@ export default {
       return kebab.startsWith('#') ? kebab : `#${kebab}`
     }
 
-    const addGroup = () => {
-      if (newGroupInput.value.trim()) {
-        const formattedGroup = convertToKebabCase(newGroupInput.value.trim())
-        if (!editForm.groups.includes(formattedGroup)) {
-          editForm.groups.push(formattedGroup)
+    const addTag = () => {
+      if (newTagInput.value.trim()) {
+        const formattedTag = convertToKebabCase(newTagInput.value.trim())
+        if (!editForm.tags.includes(formattedTag)) {
+          editForm.tags.push(formattedTag)
         }
-        newGroupInput.value = ''
+        newTagInput.value = ''
       }
     }
 
-    const removeGroup = (index) => {
-      editForm.groups.splice(index, 1)
+    const removeTag = (index) => {
+      editForm.tags.splice(index, 1)
     }
 
     const startEdit = () => {
@@ -171,14 +205,16 @@ export default {
       editForm.appearance = props.player.appearance || ''
       editForm.race = props.player.race || ''
       editForm.class_name = props.player.class_name || ''
-      editForm.groups = [...(props.player.groups || [])]
+      editForm.size = props.player.size || ''
+      editForm.alignment = props.player.alignment || ''
+      editForm.tags = [...(props.player.tags || [])]
       updateWordCount()
       isEditing.value = true
     }
 
     const cancelEdit = () => {
       isEditing.value = false
-      newGroupInput.value = ''
+      newTagInput.value = ''
       wordCount.value = 0
     }
 
@@ -189,10 +225,12 @@ export default {
           appearance: editForm.appearance.trim(),
           race: editForm.race,
           class_name: editForm.class_name,
-          groups: editForm.groups
+          size: editForm.size,
+          alignment: editForm.alignment,
+          tags: editForm.tags
         })
         isEditing.value = false
-        newGroupInput.value = ''
+        newTagInput.value = ''
         wordCount.value = 0
       }
     }
@@ -206,14 +244,16 @@ export default {
     return {
       isEditing,
       editForm,
-      newGroupInput,
+      newTagInput,
       wordCount,
       races,
       classes,
+      sizes,
+      alignments,
       isFormValid,
       updateWordCount,
-      addGroup,
-      removeGroup,
+      addTag,
+      removeTag,
       startEdit,
       cancelEdit,
       saveEdit,
@@ -289,7 +329,7 @@ export default {
   text-align: center;
 }
 
-.groups-display {
+.tags-display {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -298,7 +338,7 @@ export default {
   justify-content: center;
 }
 
-.group-bubble {
+.tag-bubble {
   background: linear-gradient(135deg, #007bff, #0056b3);
   color: white;
   padding: 6px 14px;
@@ -309,12 +349,12 @@ export default {
   transition: all 0.2s ease;
 }
 
-.group-bubble:hover {
+.tag-bubble:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
 }
 
-.group-bubble.editable {
+.tag-bubble.editable {
   background: linear-gradient(135deg, #6c757d, #5a6268);
   display: flex;
   align-items: center;
@@ -322,7 +362,7 @@ export default {
   padding-right: 8px;
 }
 
-.remove-group-btn {
+.remove-tag-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
@@ -338,12 +378,12 @@ export default {
   transition: all 0.2s ease;
 }
 
-.remove-group-btn:hover {
+.remove-tag-btn:hover {
   background: rgba(255, 255, 255, 0.4);
   transform: scale(1.1);
 }
 
-.no-groups {
+.no-tags {
   color: #6c757d;
   font-style: italic;
   font-size: 0.9em;
@@ -499,22 +539,22 @@ export default {
   border-color: #dc3545;
 }
 
-.groups-field {
+.tags-field {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.groups-input-container {
+.tags-input-container {
   display: flex;
   gap: 10px;
 }
 
-.group-input {
+.tag-input {
   flex: 1;
 }
 
-.add-group-btn {
+.add-tag-btn {
   padding: 12px 18px;
   background: linear-gradient(135deg, #28a745, #218838);
   color: white;
@@ -527,17 +567,17 @@ export default {
   box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
 }
 
-.add-group-btn:hover {
+.add-tag-btn:hover {
   background: linear-gradient(135deg, #218838, #1e7e34);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
 }
 
-.add-group-btn:active {
+.add-tag-btn:active {
   transform: translateY(0);
 }
 
-.groups-edit-display {
+.tags-edit-display {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;

@@ -2,7 +2,26 @@
   <div class="app-container">
     <!-- Page Header -->
     <header class="page-header">
-      <h1 class="page-title">Player page</h1>
+      <div class="header-content">
+        <h1 class="page-title">Player page</h1>
+        <div class="header-actions">
+          <input 
+            ref="fileInput"
+            type="file" 
+            accept=".md,.markdown" 
+            @change="handleImportFile"
+            style="display: none"
+          />
+          <button 
+            @click="$refs.fileInput.click()" 
+            class="import-btn"
+            :disabled="importing"
+          >
+            <span v-if="importing">Importing...</span>
+            <span v-else>Import Players</span>
+          </button>
+        </div>
+      </div>
     </header>
 
     <!-- Main Layout -->
@@ -21,6 +40,11 @@
 
       <!-- Main Content Area -->
       <main class="content-area">
+        <!-- Success Toast -->
+        <div v-if="successMessage" class="success-toast">
+          {{ successMessage }}
+        </div>
+        
         <div v-if="loading" class="loading">Loading players...</div>
         <div v-else-if="error" class="error">{{ error }}</div>
         <div v-else class="player-cards-grid">
@@ -64,24 +88,32 @@
                 <option value="">Select Class</option>
                 <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
               </select>
-              <div class="groups-field">
-                <div class="groups-input-container">
+              <select v-model="createForm.size" class="edit-select">
+                <option value="">Select Size</option>
+                <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
+              </select>
+              <select v-model="createForm.alignment" class="edit-select">
+                <option value="">Select Alignment</option>
+                <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
+              </select>
+              <div class="tags-field">
+                <div class="tags-input-container">
                   <input 
-                    v-model="newCreateGroupInput"
-                    placeholder="Add group"
-                    class="edit-input group-input"
-                    @keyup.enter="addCreateGroup"
+                    v-model="newCreateTagInput"
+                    placeholder="Add tag"
+                    class="edit-input tag-input"
+                    @keyup.enter="addCreateTag"
                   />
-                  <button @click="addCreateGroup" class="add-group-btn" type="button">Add</button>
+                  <button @click="addCreateTag" class="add-tag-btn" type="button">Add</button>
                 </div>
-                <div class="groups-edit-display">
+                <div class="tags-edit-display">
                   <span 
-                    v-for="(group, index) in createForm.groups" 
+                    v-for="(tag, index) in createForm.tags" 
                     :key="index" 
-                    class="group-bubble editable"
+                    class="tag-bubble editable"
                   >
-                    {{ group }}
-                    <button @click="removeCreateGroup(index)" class="remove-group-btn" type="button">×</button>
+                    {{ tag }}
+                    <button @click="removeCreateTag(index)" class="remove-tag-btn" type="button">×</button>
                   </span>
                 </div>
               </div>
@@ -113,15 +145,19 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const showCreateForm = ref(false)
-    const newCreateGroupInput = ref('')
+    const newCreateTagInput = ref('')
     const createWordCount = ref(0)
+    const importing = ref(false)
+    const successMessage = ref('')
     
     const createForm = reactive({
       name: '',
       appearance: '',
       race: '',
       class_name: '',
-      groups: []
+      size: '',
+      alignment: '',
+      tags: []
     })
 
     const races = [
@@ -133,6 +169,16 @@ export default {
       'Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 
       'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 
       'Warlock', 'Wizard'
+    ]
+
+    const sizes = [
+      'Small', 'Medium'
+    ]
+
+    const alignments = [
+      'Lawful Good', 'Neutral Good', 'Chaotic Good',
+      'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
+      'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
     ]
     
     const navigationTabs = [
@@ -147,6 +193,8 @@ export default {
              createForm.appearance.trim() && 
              createForm.race && 
              createForm.class_name &&
+             createForm.size &&
+             createForm.alignment &&
              createWordCount.value <= 40
     })
 
@@ -203,18 +251,18 @@ export default {
       return kebab.startsWith('#') ? kebab : `#${kebab}`
     }
 
-    const addCreateGroup = () => {
-      if (newCreateGroupInput.value.trim()) {
-        const formattedGroup = convertToKebabCase(newCreateGroupInput.value.trim())
-        if (!createForm.groups.includes(formattedGroup)) {
-          createForm.groups.push(formattedGroup)
+    const addCreateTag = () => {
+      if (newCreateTagInput.value.trim()) {
+        const formattedTag = convertToKebabCase(newCreateTagInput.value.trim())
+        if (!createForm.tags.includes(formattedTag)) {
+          createForm.tags.push(formattedTag)
         }
-        newCreateGroupInput.value = ''
+        newCreateTagInput.value = ''
       }
     }
 
-    const removeCreateGroup = (index) => {
-      createForm.groups.splice(index, 1)
+    const removeCreateTag = (index) => {
+      createForm.tags.splice(index, 1)
     }
 
     const cancelCreate = () => {
@@ -223,8 +271,10 @@ export default {
       createForm.appearance = ''
       createForm.race = ''
       createForm.class_name = ''
-      createForm.groups = []
-      newCreateGroupInput.value = ''
+      createForm.size = ''
+      createForm.alignment = ''
+      createForm.tags = []
+      newCreateTagInput.value = ''
       createWordCount.value = 0
     }
 
@@ -236,7 +286,9 @@ export default {
             appearance: createForm.appearance.trim(),
             race: createForm.race,
             class_name: createForm.class_name,
-            groups: createForm.groups
+            size: createForm.size,
+            alignment: createForm.alignment,
+            tags: createForm.tags
           })
           players.value.push(newPlayer)
           cancelCreate() // Reset form and hide it
@@ -244,6 +296,208 @@ export default {
           error.value = 'Failed to create player'
           console.error('Error creating player:', err)
         }
+      }
+    }
+
+    // Import functionality
+    const handleImportFile = async (event) => {
+      const file = event.target.files[0]
+      if (!file) return
+
+      try {
+        importing.value = true
+        error.value = ''
+        
+        const content = await readFileContent(file)
+        const parsedPlayers = parseMarkdownPlayers(content)
+        
+        if (parsedPlayers.length === 0) {
+          error.value = 'No valid players found in the markdown file'
+          return
+        }
+
+        await importPlayersFromMarkdown(parsedPlayers)
+        
+        // Reset file input
+        event.target.value = ''
+        
+      } catch (err) {
+        error.value = `Import failed: ${err.message}`
+        console.error('Import error:', err)
+      } finally {
+        importing.value = false
+      }
+    }
+
+    const readFileContent = (file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => resolve(e.target.result)
+        reader.onerror = (e) => reject(new Error('Failed to read file'))
+        reader.readAsText(file)
+      })
+    }
+
+    const parseMarkdownPlayers = (content) => {
+      const players = []
+      
+      // Split by main headers (# or ## followed by any text)
+      const sections = content.split(/^#\s+/m).filter(section => section.trim())
+      
+      for (const section of sections) {
+        try {
+          const player = parsePlayerSection(section)
+          if (player) {
+            players.push(player)
+          }
+        } catch (err) {
+          console.warn('Failed to parse player section:', err.message)
+        }
+      }
+      
+      return players
+    }
+
+    const parsePlayerSection = (section) => {
+      const lines = section.split('\n')
+      const player = {
+        name: '',
+        appearance: '',
+        race: '',
+        class_name: '',
+        size: '',
+        alignment: '',
+        tags: []
+      }
+
+      let currentField = null
+      let currentContent = []
+
+      for (const line of lines) {
+        const trimmedLine = line.trim()
+        
+        // Check for field headers
+        if (trimmedLine.match(/^##\s*name/i)) {
+          currentField = 'name'
+          currentContent = []
+        } else if (trimmedLine.match(/^##\s*appearance/i)) {
+          currentField = 'appearance'
+          currentContent = []
+        } else if (trimmedLine.match(/^##\s*race/i)) {
+          currentField = 'race'
+          currentContent = []
+        } else if (trimmedLine.match(/^##\s*class/i)) {
+          currentField = 'class_name'
+          currentContent = []
+        } else if (trimmedLine.match(/^##\s*size/i)) {
+          currentField = 'size'
+          currentContent = []
+        } else if (trimmedLine.match(/^##\s*alignment/i)) {
+          currentField = 'alignment'
+          currentContent = []
+        } else if (trimmedLine.match(/^##\s*(tags|groups)/i)) {
+          currentField = 'tags'
+          currentContent = []
+        } else if (trimmedLine.startsWith('##')) {
+          // Unknown field, stop processing current field
+          currentField = null
+          currentContent = []
+        } else if (currentField && trimmedLine) {
+          // Add content to current field
+          if (currentField === 'tags') {
+            // Parse bullet points for tags
+            if (trimmedLine.match(/^[-*]\s+(.+)/)) {
+              const tagName = trimmedLine.replace(/^[-*]\s+/, '').trim()
+              if (tagName) {
+                currentContent.push(tagName)
+              }
+            }
+          } else {
+            currentContent.push(trimmedLine)
+          }
+        } else if (currentField && currentContent.length > 0) {
+          // End of field content, save it
+          if (currentField === 'tags') {
+            player[currentField] = currentContent
+          } else {
+            player[currentField] = currentContent.join(' ').trim()
+          }
+          currentField = null
+          currentContent = []
+        }
+      }
+
+      // Handle any remaining content
+      if (currentField && currentContent.length > 0) {
+        if (currentField === 'tags') {
+          player[currentField] = currentContent
+        } else {
+          player[currentField] = currentContent.join(' ').trim()
+        }
+      }
+
+      // Validate required fields - size and alignment are now required
+      if (!player.name || !player.appearance || !player.race || !player.class_name || !player.size || !player.alignment) {
+        throw new Error(`Missing required fields for player: ${player.name || 'Unknown'}`)
+      }
+
+      return player
+    }
+
+    const importPlayersFromMarkdown = async (parsedPlayers) => {
+      let successCount = 0
+      const errors = []
+
+      for (const playerData of parsedPlayers) {
+        try {
+          const newPlayer = await apiService.createPlayer(playerData)
+          players.value.push(newPlayer)
+          successCount++
+        } catch (err) {
+          // Extract more detailed error information
+          let errorMessage = `Failed to create ${playerData.name || 'Unknown Player'}`
+          
+          if (err.response && err.response.data) {
+            // Handle API validation errors
+            if (err.response.data.detail) {
+              if (Array.isArray(err.response.data.detail)) {
+                // Pydantic validation errors
+                const validationErrors = err.response.data.detail.map(detail => {
+                  const field = detail.loc ? detail.loc.join('.') : 'unknown field'
+                  return `${field}: ${detail.msg}`
+                }).join(', ')
+                errorMessage += ` - Validation errors: ${validationErrors}`
+              } else {
+                errorMessage += ` - ${err.response.data.detail}`
+              }
+            } else {
+              errorMessage += ` - ${JSON.stringify(err.response.data)}`
+            }
+          } else if (err.message) {
+            errorMessage += ` - ${err.message}`
+          } else {
+            errorMessage += ' - Unknown error occurred'
+          }
+          
+          errors.push(errorMessage)
+          console.error(`Failed to create player ${playerData.name}:`, err)
+        }
+      }
+
+      // Show results with detailed error information
+      if (successCount > 0) {
+        const message = `Successfully imported ${successCount} player${successCount > 1 ? 's' : ''}`
+        if (errors.length > 0) {
+          error.value = `${message}. However, ${errors.length} player${errors.length > 1 ? 's' : ''} failed to import:\n\n${errors.join('\n\n')}`
+        } else {
+          // Show success toast briefly then clear
+          successMessage.value = message
+          setTimeout(() => {
+            successMessage.value = ''
+          }, 1500)
+        }
+      } else {
+        error.value = `Import failed - no players were successfully imported:\n\n${errors.join('\n\n')}`
       }
     }
 
@@ -257,28 +511,101 @@ export default {
       players,
       loading,
       error,
+      successMessage,
       showCreateForm,
       createForm,
-      newCreateGroupInput,
+      newCreateTagInput,
       createWordCount,
+      importing,
       races,
       classes,
+      sizes,
+      alignments,
       isCreateFormValid,
       setActiveTab,
       updatePlayer,
       deletePlayer,
       startCreate,
       updateCreateWordCount,
-      addCreateGroup,
-      removeCreateGroup,
+      addCreateTag,
+      removeCreateTag,
       cancelCreate,
-      saveCreate
+      saveCreate,
+      handleImportFile
     }
   }
 }
 </script>
 
 <style scoped>
+/* Header Styles */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.import-btn {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+  min-width: 140px;
+}
+
+.import-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+}
+
+.import-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+.success-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  font-size: 0.9em;
+  font-weight: 600;
+  z-index: 1000;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
 .loading {
   text-align: center;
   padding: 40px;
@@ -287,14 +614,19 @@ export default {
 }
 
 .error {
-  text-align: center;
-  padding: 40px;
+  text-align: left;
+  padding: 20px;
   color: #dc3545;
-  font-size: 1.1em;
+  font-size: 0.95em;
   background-color: #f8d7da;
   border: 1px solid #f5c6cb;
-  border-radius: 4px;
+  border-radius: 8px;
   margin: 20px;
+  white-space: pre-line;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.5;
 }
 
 /* Create Player Card Styles */

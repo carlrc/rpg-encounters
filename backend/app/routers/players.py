@@ -12,7 +12,9 @@ players_db = [
         "appearance": "Tall ranger with weathered features, keen grey eyes, and dark hair",
         "race": "Human",
         "class_name": "Ranger",
-        "groups": ["#fellowship", "#rangers-of-the-north"]
+        "size": "Medium",
+        "alignment": "Lawful Good",
+        "tags": ["#fellowship", "#rangers-of-the-north"]
     },
     {
         "id": 2, 
@@ -20,7 +22,9 @@ players_db = [
         "appearance": "Graceful elf with golden hair, bright blue eyes, and elegant features",
         "race": "Elf",
         "class_name": "Ranger",
-        "groups": ["#fellowship", "#woodland-realm"]
+        "size": "Medium",
+        "alignment": "Chaotic Good",
+        "tags": ["#fellowship", "#woodland-realm"]
     },
     {
         "id": 3, 
@@ -28,7 +32,9 @@ players_db = [
         "appearance": "Stout dwarf with braided red beard, chainmail armor, and fierce eyes",
         "race": "Dwarf",
         "class_name": "Fighter",
-        "groups": ["#fellowship", "#erebor"]
+        "size": "Medium",
+        "alignment": "Lawful Good",
+        "tags": ["#fellowship", "#erebor"]
     },
     {
         "id": 4, 
@@ -36,7 +42,9 @@ players_db = [
         "appearance": "Tall wizard in grey robes with long white beard and piercing eyes",
         "race": "Human",
         "class_name": "Wizard",
-        "groups": ["#fellowship", "#istari"]
+        "size": "Medium",
+        "alignment": "Neutral Good",
+        "tags": ["#fellowship", "#istari"]
     }
 ]
 next_id = 5
@@ -64,7 +72,9 @@ async def create_player(player: PlayerCreate):
         "appearance": player.appearance,
         "race": player.race,
         "class_name": player.class_name,
-        "groups": player.groups
+        "size": player.size,
+        "alignment": player.alignment,
+        "tags": player.tags
     }
     players_db.append(new_player)
     next_id += 1
@@ -86,8 +96,12 @@ async def update_player(player_id: int, player_update: PlayerUpdate):
         player["race"] = player_update.race
     if player_update.class_name is not None:
         player["class_name"] = player_update.class_name
-    if player_update.groups is not None:
-        player["groups"] = player_update.groups
+    if player_update.size is not None:
+        player["size"] = player_update.size
+    if player_update.alignment is not None:
+        player["alignment"] = player_update.alignment
+    if player_update.tags is not None:
+        player["tags"] = player_update.tags
     
     return player
 
