@@ -128,135 +128,166 @@
         </div>
         
         <!-- Characters Tab Content -->
-        <div v-else-if="activeTab === 'characters'" class="character-cards-grid">
-          <CharacterCard
-            v-for="character in characters"
-            :key="character.id"
-            :character="character"
-            @update="updateCharacter"
-            @delete="deleteCharacter"
-          />
-          
-          <!-- Create Character Card -->
-          <div class="character-card">
-            <div v-if="!showCreateCharacterForm" class="create-character-button" @click="startCreateCharacter">
-              <div class="plus-icon">+</div>
-              <p class="create-text">Add New Character</p>
+        <div v-else-if="activeTab === 'characters'" class="characters-split-view">
+          <!-- Left Pane - Character List -->
+          <div class="character-list-pane">
+            <div class="character-list-header">
+              <h3>Characters</h3>
             </div>
             
-            <div v-else class="character-edit-form">
-              <!-- Avatar Upload -->
-              <div class="avatar-edit-section">
-                <div class="avatar-container">
-                  <img v-if="createCharacterForm.avatar" :src="createCharacterForm.avatar" :alt="createCharacterForm.name" class="avatar-image" />
-                  <div v-else class="avatar-placeholder">
-                    <span class="avatar-initials">{{ getInitials(createCharacterForm.name) }}</span>
-                  </div>
-                </div>
-                <input 
-                  ref="avatarInput"
-                  type="file" 
-                  accept="image/*" 
-                  @change="handleAvatarUpload"
-                  style="display: none"
-                />
-                <button @click="$refs.avatarInput.click()" class="avatar-upload-btn">
-                  {{ createCharacterForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
-                </button>
-                <button v-if="createCharacterForm.avatar" @click="removeAvatar" class="avatar-remove-btn">
-                  Remove
-                </button>
+            <div class="character-list-content">
+              <div 
+                v-for="character in characters" 
+                :key="character.id"
+                :class="['character-list-item', { active: selectedCharacterId === character.id }]"
+                @click="selectCharacter(character.id)"
+              >
+                {{ character.name }}
               </div>
               
-              <!-- Name -->
-              <input 
-                v-model="createCharacterForm.name" 
-                placeholder="Character name"
-                class="edit-input name-input"
-              />
-              
-              <!-- Two Column Layout for Create -->
-              <div class="edit-columns">
-                <!-- Left Column -->
-                <div class="edit-column">
-                  <select v-model="createCharacterForm.race" class="edit-select">
-                    <option value="">Select Race</option>
-                    <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
-                  </select>
+              <div v-if="characters.length === 0" class="empty-state">
+                No characters yet
+              </div>
+            </div>
+            
+            <div class="character-list-footer">
+              <button @click="startCreateCharacter" class="add-character-btn">
+                <span class="plus-icon">+</span>
+                Add Character
+              </button>
+            </div>
+          </div>
+          
+          <!-- Right Pane - Character Detail -->
+          <div class="character-detail-pane">
+            <div v-if="!selectedCharacter && !showCreateCharacterForm" class="empty-detail-state">
+              <div class="empty-icon">👤</div>
+              <h3>No Character Selected</h3>
+              <p>Select a character from the list to view details, or create a new one.</p>
+            </div>
+            
+            <div v-else-if="showCreateCharacterForm" class="character-card">
+              <div class="character-edit-form">
+                <!-- Avatar Upload -->
+                <div class="avatar-edit-section">
+                  <div class="avatar-container">
+                    <img v-if="createCharacterForm.avatar" :src="createCharacterForm.avatar" :alt="createCharacterForm.name" class="avatar-image" />
+                    <div v-else class="avatar-placeholder">
+                      <span class="avatar-initials">{{ getInitials(createCharacterForm.name) }}</span>
+                    </div>
+                  </div>
+                  <input 
+                    ref="avatarInput"
+                    type="file" 
+                    accept="image/*" 
+                    @change="handleAvatarUpload"
+                    style="display: none"
+                  />
+                  <button @click="$refs.avatarInput.click()" class="avatar-upload-btn">
+                    {{ createCharacterForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
+                  </button>
+                  <button v-if="createCharacterForm.avatar" @click="removeAvatar" class="avatar-remove-btn">
+                    Remove
+                  </button>
+                </div>
+                
+                <!-- Name -->
+                <input 
+                  v-model="createCharacterForm.name" 
+                  placeholder="Character name"
+                  class="edit-input name-input"
+                />
+                
+                <!-- Two Column Layout for Create -->
+                <div class="edit-columns">
+                  <!-- Left Column -->
+                  <div class="edit-column">
+                    <select v-model="createCharacterForm.race" class="edit-select">
+                      <option value="">Select Race</option>
+                      <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
+                    </select>
+                    
+                    <select v-model="createCharacterForm.alignment" class="edit-select">
+                      <option value="">Select Alignment</option>
+                      <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
+                    </select>
+                    
+                    <div class="background-field">
+                      <textarea 
+                        v-model="createCharacterForm.background" 
+                        placeholder="Character background (max 80 words)"
+                        class="edit-textarea"
+                        @input="updateCreateBackgroundWordCount"
+                      ></textarea>
+                      <div class="word-counter" :class="{ 'over-limit': createBackgroundWordCount > 80 }">
+                        {{ createBackgroundWordCount }}/80 words
+                      </div>
+                    </div>
+                  </div>
                   
-                  <select v-model="createCharacterForm.alignment" class="edit-select">
-                    <option value="">Select Alignment</option>
-                    <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
-                  </select>
-                  
-                  <div class="background-field">
-                    <textarea 
-                      v-model="createCharacterForm.background" 
-                      placeholder="Character background (max 80 words)"
-                      class="edit-textarea"
-                      @input="updateCreateBackgroundWordCount"
-                    ></textarea>
-                    <div class="word-counter" :class="{ 'over-limit': createBackgroundWordCount > 80 }">
-                      {{ createBackgroundWordCount }}/80 words
+                  <!-- Right Column -->
+                  <div class="edit-column">
+                    <select v-model="createCharacterForm.size" class="edit-select">
+                      <option value="">Select Size</option>
+                      <option v-for="size in characterSizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                    
+                    <input 
+                      v-model="createCharacterForm.profession" 
+                      placeholder="Profession"
+                      class="edit-input"
+                    />
+                    
+                    <div class="communication-field">
+                      <textarea 
+                        v-model="createCharacterForm.communication_style" 
+                        placeholder="Communication style (max 30 words)"
+                        class="edit-textarea"
+                        @input="updateCreateCommunicationWordCount"
+                      ></textarea>
+                      <div class="word-counter" :class="{ 'over-limit': createCommunicationWordCount > 30 }">
+                        {{ createCommunicationWordCount }}/30 words
+                      </div>
                     </div>
                   </div>
                 </div>
                 
-                <!-- Right Column -->
-                <div class="edit-column">
-                  <select v-model="createCharacterForm.size" class="edit-select">
-                    <option value="">Select Size</option>
-                    <option v-for="size in characterSizes" :key="size" :value="size">{{ size }}</option>
-                  </select>
-                  
-                  <input 
-                    v-model="createCharacterForm.profession" 
-                    placeholder="Profession"
-                    class="edit-input"
-                  />
-                  
-                  <div class="communication-field">
-                    <textarea 
-                      v-model="createCharacterForm.communication_style" 
-                      placeholder="Communication style (max 30 words)"
-                      class="edit-textarea"
-                      @input="updateCreateCommunicationWordCount"
-                    ></textarea>
-                    <div class="word-counter" :class="{ 'over-limit': createCommunicationWordCount > 30 }">
-                      {{ createCommunicationWordCount }}/30 words
-                    </div>
+                <!-- Tags Section -->
+                <div class="tags-field">
+                  <div class="tags-input-container">
+                    <input 
+                      v-model="newCreateCharacterTagInput"
+                      placeholder="Add tag"
+                      class="edit-input tag-input"
+                      @keyup.enter="addCreateCharacterTag"
+                    />
+                    <button @click="addCreateCharacterTag" class="add-tag-btn" type="button">Add</button>
+                  </div>
+                  <div class="tags-edit-display">
+                    <span 
+                      v-for="(tag, index) in createCharacterForm.tags" 
+                      :key="index" 
+                      class="tag-bubble editable"
+                    >
+                      {{ tag }}
+                      <button @click="removeCreateCharacterTag(index)" class="remove-tag-btn" type="button">×</button>
+                    </span>
                   </div>
                 </div>
-              </div>
-              
-              <!-- Tags Section -->
-              <div class="tags-field">
-                <div class="tags-input-container">
-                  <input 
-                    v-model="newCreateCharacterTagInput"
-                    placeholder="Add tag"
-                    class="edit-input tag-input"
-                    @keyup.enter="addCreateCharacterTag"
-                  />
-                  <button @click="addCreateCharacterTag" class="add-tag-btn" type="button">Add</button>
+                
+                <div class="edit-actions">
+                  <button @click="cancelCreateCharacter" class="cancel-btn">Cancel</button>
+                  <button @click="saveCreateCharacter" class="save-btn" :disabled="!isCreateCharacterFormValid">Save</button>
                 </div>
-                <div class="tags-edit-display">
-                  <span 
-                    v-for="(tag, index) in createCharacterForm.tags" 
-                    :key="index" 
-                    class="tag-bubble editable"
-                  >
-                    {{ tag }}
-                    <button @click="removeCreateCharacterTag(index)" class="remove-tag-btn" type="button">×</button>
-                  </span>
-                </div>
-              </div>
-              
-              <div class="edit-actions">
-                <button @click="cancelCreateCharacter" class="cancel-btn">Cancel</button>
-                <button @click="saveCreateCharacter" class="save-btn" :disabled="!isCreateCharacterFormValid">Save</button>
               </div>
             </div>
+            
+            <CharacterCard
+              v-else-if="selectedCharacter"
+              :character="selectedCharacter"
+              @update="updateCharacter"
+              @delete="deleteCharacter"
+            />
           </div>
         </div>
         
@@ -297,6 +328,7 @@ export default {
     const createCommunicationWordCount = ref(0)
     const importing = ref(false)
     const successMessage = ref('')
+    const selectedCharacterId = ref(null)
     
     const createForm = reactive({
       name: '',
@@ -791,6 +823,7 @@ export default {
             tags: createCharacterForm.tags
           })
           characters.value.push(newCharacter)
+          selectedCharacterId.value = newCharacter.id // Auto-select the new character
           cancelCreateCharacter() // Reset form and hide it
         } catch (err) {
           error.value = 'Failed to create character'
@@ -799,9 +832,47 @@ export default {
       }
     }
 
-    onMounted(() => {
-      loadPlayers()
-      loadCharacters()
+    // Character selection functionality
+    const selectedCharacter = computed(() => {
+      return characters.value.find(c => c.id === selectedCharacterId.value) || null
+    })
+
+    const selectCharacter = (characterId) => {
+      selectedCharacterId.value = characterId
+      showCreateCharacterForm.value = false // Hide create form when selecting a character
+    }
+
+    // Auto-select first character when characters load
+    const autoSelectFirstCharacter = () => {
+      if (characters.value.length > 0 && !selectedCharacterId.value) {
+        selectedCharacterId.value = characters.value[0].id
+      }
+    }
+
+    // Update delete character to handle selection
+    const deleteCharacterWithSelection = async (characterId) => {
+      try {
+        await apiService.deleteCharacter(characterId)
+        characters.value = characters.value.filter(c => c.id !== characterId)
+        
+        // If we deleted the selected character, select another one
+        if (selectedCharacterId.value === characterId) {
+          if (characters.value.length > 0) {
+            selectedCharacterId.value = characters.value[0].id
+          } else {
+            selectedCharacterId.value = null
+          }
+        }
+      } catch (err) {
+        error.value = 'Failed to delete character'
+        console.error('Error deleting character:', err)
+      }
+    }
+
+    onMounted(async () => {
+      await loadPlayers()
+      await loadCharacters()
+      autoSelectFirstCharacter()
     })
 
     return {
@@ -822,6 +893,8 @@ export default {
       createBackgroundWordCount,
       createCommunicationWordCount,
       importing,
+      selectedCharacterId,
+      selectedCharacter,
       races,
       classes,
       sizes,
@@ -834,7 +907,8 @@ export default {
       updatePlayer,
       deletePlayer,
       updateCharacter,
-      deleteCharacter,
+      deleteCharacter: deleteCharacterWithSelection,
+      selectCharacter,
       startCreate,
       startCreateCharacter,
       updateCreateWordCount,
@@ -1419,6 +1493,170 @@ export default {
   font-size: 1.1em;
 }
 
+/* Characters Split View Layout */
+.characters-split-view {
+  display: flex;
+  height: 100%;
+  gap: 0;
+}
+
+.character-list-pane {
+  width: 25%;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-right: 2px solid #e9ecef;
+}
+
+.character-list-header {
+  padding: 20px 16px 16px 16px;
+  border-bottom: 1px solid #e9ecef;
+  background: white;
+}
+
+.character-list-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.character-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.character-list-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  font-weight: 500;
+  color: #495057;
+  background: white;
+  margin: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.character-list-item:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+  border-color: #bbdefb;
+}
+
+.character-list-item.active {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border-left-color: #004085;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.character-list-item.active:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.empty-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 0.9em;
+}
+
+.character-list-footer {
+  padding: 16px;
+  border-top: 1px solid #e9ecef;
+  background: white;
+}
+
+.add-character-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.add-character-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+}
+
+.add-character-btn .plus-icon {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.character-detail-pane {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #ffffff;
+}
+
+.empty-detail-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #6c757d;
+  text-align: center;
+  padding: 40px;
+}
+
+.empty-detail-state .empty-icon {
+  font-size: 4em;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-detail-state h3 {
+  margin: 0 0 12px 0;
+  font-size: 1.5em;
+  color: #495057;
+}
+
+.empty-detail-state p {
+  margin: 0;
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+/* Scrollbar styling for character list */
+.character-list-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.character-list-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.character-list-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.character-list-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
 @media (max-width: 768px) {
   .edit-columns {
     grid-template-columns: 1fr;
@@ -1426,6 +1664,21 @@ export default {
   
   .character-cards-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .characters-split-view {
+    flex-direction: column;
+  }
+  
+  .character-list-pane {
+    width: 100%;
+    min-width: unset;
+    max-height: 200px;
+  }
+  
+  .character-detail-pane {
+    flex: 1;
+    padding: 16px;
   }
 }
 </style>
