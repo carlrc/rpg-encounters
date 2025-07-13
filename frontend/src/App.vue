@@ -392,13 +392,22 @@
 import { ref, onMounted, reactive, computed } from 'vue'
 import PlayerCard from './components/PlayerCard.vue'
 import CharacterCard from './components/CharacterCard.vue'
+import TagManager from './components/forms/TagManager.vue'
+import AvatarUpload from './components/base/AvatarUpload.vue'
+import BaseTextarea from './components/base/BaseTextarea.vue'
 import apiService from './services/api.js'
+import { RACES, CLASSES, SIZES, ALIGNMENTS, NAVIGATION_TABS } from './constants/gameData.js'
+import { WORD_LIMITS } from './constants/validation.js'
+import { useFormValidation } from './utils/useFormValidation.js'
 
 export default {
   name: 'App',
   components: {
     PlayerCard,
-    CharacterCard
+    CharacterCard,
+    TagManager,
+    AvatarUpload,
+    BaseTextarea
   },
   setup() {
     const activeTab = ref('players')
@@ -408,11 +417,6 @@ export default {
     const error = ref('')
     const showCreateForm = ref(false)
     const showCreateCharacterForm = ref(false)
-    const newCreateTagInput = ref('')
-    const newCreateCharacterTagInput = ref('')
-    const createWordCount = ref(0)
-    const createBackgroundWordCount = ref(0)
-    const createCommunicationWordCount = ref(0)
     const importing = ref(false)
     const successMessage = ref('')
     const selectedCharacterId = ref(null)
@@ -441,47 +445,8 @@ export default {
       tags: []
     })
 
-    const characterSizes = [
-      'Small', 'Medium', 'Large'
-    ]
-
-    const races = [
-      'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
-      'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
-    ]
-
-    const classes = [
-      'Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 
-      'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 
-      'Warlock', 'Wizard'
-    ]
-
-    const sizes = [
-      'Small', 'Medium'
-    ]
-
-    const alignments = [
-      'Lawful Good', 'Neutral Good', 'Chaotic Good',
-      'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-      'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
-    ]
-    
-    const navigationTabs = [
-      { id: 'players', label: 'Players' },
-      { id: 'characters', label: 'Characters' },
-      { id: 'lorebooks', label: 'Lorebooks' },
-      { id: 'encounters', label: 'Encounters' }
-    ]
-
-    const isCreateFormValid = computed(() => {
-      return createForm.name.trim() && 
-             createForm.appearance.trim() && 
-             createForm.race && 
-             createForm.class_name &&
-             createForm.size &&
-             createForm.alignment &&
-             createWordCount.value <= 40
-    })
+    const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'PLAYER')
+    const { isFormValid: isCreateCharacterFormValid } = useFormValidation(createCharacterForm, 'CHARACTER')
 
     const setActiveTab = (tabId) => {
       activeTab.value = tabId
@@ -803,18 +768,7 @@ export default {
       }
     }
 
-    // Character functionality
-    const isCreateCharacterFormValid = computed(() => {
-      return createCharacterForm.name.trim() && 
-             createCharacterForm.race && 
-             createCharacterForm.size &&
-             createCharacterForm.alignment &&
-             createCharacterForm.profession.trim() &&
-             createCharacterForm.background.trim() &&
-             createCharacterForm.communication_style.trim() &&
-             createBackgroundWordCount.value <= 80 &&
-             createCommunicationWordCount.value <= 30
-    })
+    // Character functionality - isCreateCharacterFormValid already defined above via useFormValidation
 
     const getInitials = (name) => {
       if (!name) return '?'
@@ -991,9 +945,16 @@ export default {
       autoSelectFirstCharacter()
     })
 
+    // Add missing reactive variables
+    const newCreateTagInput = ref('')
+    const newCreateCharacterTagInput = ref('')
+    const createWordCount = ref(0)
+    const createBackgroundWordCount = ref(0)
+    const createCommunicationWordCount = ref(0)
+
     return {
       activeTab,
-      navigationTabs,
+      navigationTabs: NAVIGATION_TABS,
       players,
       characters,
       loading,
@@ -1013,11 +974,11 @@ export default {
       selectedCharacter,
       selectedPlayerId,
       selectedPlayer,
-      races,
-      classes,
-      sizes,
-      characterSizes,
-      alignments,
+      races: RACES,
+      classes: CLASSES,
+      sizes: SIZES.PLAYER,
+      characterSizes: SIZES.CHARACTER,
+      alignments: ALIGNMENTS,
       isCreateFormValid,
       isCreateCharacterFormValid,
       getInitials,

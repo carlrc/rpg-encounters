@@ -74,27 +74,7 @@
     
     <div v-else class="shared-form">
       <!-- Avatar Upload -->
-      <div class="shared-avatar-edit-section">
-        <div class="shared-avatar-container">
-          <img v-if="editForm.avatar" :src="editForm.avatar" :alt="editForm.name" class="shared-avatar-image" />
-          <div v-else class="shared-avatar-placeholder">
-            <span class="shared-avatar-initials">{{ getInitials(editForm.name) }}</span>
-          </div>
-        </div>
-        <input 
-          ref="avatarInput"
-          type="file" 
-          accept="image/*" 
-          @change="handleAvatarUpload"
-          style="display: none"
-        />
-        <button @click="$refs.avatarInput.click()" class="shared-avatar-btn shared-avatar-upload-btn">
-          {{ editForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
-        </button>
-        <button v-if="editForm.avatar" @click="removeAvatar" class="shared-avatar-btn shared-avatar-remove-btn">
-          Remove
-        </button>
-      </div>
+      <AvatarUpload v-model="editForm.avatar" :name="editForm.name" />
       
       <!-- Name -->
       <input 
@@ -117,17 +97,11 @@
             <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
           </select>
           
-          <div class="shared-word-counter-field">
-            <textarea 
-              v-model="editForm.appearance" 
-              placeholder="Player appearance (max 40 words)"
-              class="shared-textarea"
-              @input="updateWordCount"
-            ></textarea>
-            <div class="shared-word-counter" :class="{ 'over-limit': wordCount > 40 }">
-              {{ wordCount }}/40 words
-            </div>
-          </div>
+          <BaseTextarea 
+            v-model="editForm.appearance"
+            placeholder="Player appearance (max 40 words)"
+            :max-words="appearanceWordLimit"
+          />
         </div>
         
         <!-- Right Column -->
@@ -145,27 +119,7 @@
       </div>
       
       <!-- Tags Section -->
-      <div class="shared-tags-field">
-        <div class="shared-tags-input-container">
-          <input 
-            v-model="newTagInput"
-            placeholder="Add tag"
-            class="shared-input shared-tag-input"
-            @keyup.enter="addTag"
-          />
-          <button @click="addTag" class="shared-btn shared-btn-success" type="button">Add</button>
-        </div>
-        <div class="shared-tags-edit-display">
-          <span 
-            v-for="(tag, index) in editForm.tags" 
-            :key="index" 
-            class="shared-tag-bubble editable"
-          >
-            {{ tag }}
-            <button @click="removeTag(index)" class="shared-tag-remove-btn" type="button">×</button>
-          </span>
-        </div>
-      </div>
+      <TagManager v-model="editForm.tags" />
       
       <div class="shared-actions">
         <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">Save</button>
@@ -176,10 +130,21 @@
 </template>
 
 <script>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
+import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
+import { WORD_LIMITS } from '../constants/validation.js'
+import { useFormValidation } from '../utils/useFormValidation.js'
+import TagManager from './forms/TagManager.vue'
+import AvatarUpload from './base/AvatarUpload.vue'
+import BaseTextarea from './base/BaseTextarea.vue'
 
 export default {
   name: 'PlayerCard',
+  components: {
+    TagManager,
+    AvatarUpload,
+    BaseTextarea
+  },
   props: {
     player: {
       type: Object,
@@ -189,8 +154,6 @@ export default {
   emits: ['update', 'delete'],
   setup(props, { emit }) {
     const isEditing = ref(false)
-    const newTagInput = ref('')
-    const wordCount = ref(0)
     
     const editForm = reactive({
       name: '',
@@ -203,78 +166,11 @@ export default {
       tags: []
     })
 
-    const races = [
-      'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
-      'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
-    ]
-
-    const classes = [
-      'Barbarian', 'Bard', 'Cleric', 'Druid', 'Fighter', 
-      'Monk', 'Paladin', 'Ranger', 'Rogue', 'Sorcerer', 
-      'Warlock', 'Wizard'
-    ]
-
-    const sizes = [
-      'Small', 'Medium'
-    ]
-
-    const alignments = [
-      'Lawful Good', 'Neutral Good', 'Chaotic Good',
-      'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-      'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
-    ]
-
-    const isFormValid = computed(() => {
-      return editForm.name.trim() && 
-             editForm.appearance.trim() && 
-             editForm.race && 
-             editForm.class_name &&
-             editForm.size &&
-             editForm.alignment &&
-             wordCount.value <= 40
-    })
-
-    const updateWordCount = () => {
-      wordCount.value = editForm.appearance.trim() ? editForm.appearance.trim().split(/\s+/).length : 0
-    }
-
-    const convertToKebabCase = (text) => {
-      const kebab = text.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-')
-      return kebab.startsWith('#') ? kebab : `#${kebab}`
-    }
-
-    const addTag = () => {
-      if (newTagInput.value.trim()) {
-        const formattedTag = convertToKebabCase(newTagInput.value.trim())
-        if (!editForm.tags.includes(formattedTag)) {
-          editForm.tags.push(formattedTag)
-        }
-        newTagInput.value = ''
-      }
-    }
-
-    const removeTag = (index) => {
-      editForm.tags.splice(index, 1)
-    }
+    const { isFormValid } = useFormValidation(editForm, 'PLAYER')
 
     const getInitials = (name) => {
       if (!name) return '?'
       return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
-
-    const handleAvatarUpload = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          editForm.avatar = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
-    }
-
-    const removeAvatar = () => {
-      editForm.avatar = null
     }
 
     const startEdit = () => {
@@ -286,14 +182,11 @@ export default {
       editForm.size = props.player.size || ''
       editForm.alignment = props.player.alignment || ''
       editForm.tags = [...(props.player.tags || [])]
-      updateWordCount()
       isEditing.value = true
     }
 
     const cancelEdit = () => {
       isEditing.value = false
-      newTagInput.value = ''
-      wordCount.value = 0
     }
 
     const saveEdit = () => {
@@ -309,8 +202,6 @@ export default {
           tags: editForm.tags
         })
         isEditing.value = false
-        newTagInput.value = ''
-        wordCount.value = 0
       }
     }
 
@@ -323,19 +214,13 @@ export default {
     return {
       isEditing,
       editForm,
-      newTagInput,
-      wordCount,
-      races,
-      classes,
-      sizes,
-      alignments,
+      races: RACES,
+      classes: CLASSES,
+      sizes: SIZES.PLAYER,
+      alignments: ALIGNMENTS,
+      appearanceWordLimit: WORD_LIMITS.PLAYER_APPEARANCE,
       isFormValid,
       getInitials,
-      updateWordCount,
-      addTag,
-      removeTag,
-      handleAvatarUpload,
-      removeAvatar,
       startEdit,
       cancelEdit,
       saveEdit,
