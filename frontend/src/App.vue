@@ -49,81 +49,146 @@
         <div v-else-if="error" class="error">{{ error }}</div>
         
         <!-- Players Tab Content -->
-        <div v-else-if="activeTab === 'players'" class="player-cards-grid">
-          <PlayerCard
-            v-for="player in players"
-            :key="player.id"
-            :player="player"
-            @update="updatePlayer"
-            @delete="deletePlayer"
-          />
-          
-          <!-- Create Player Card -->
-          <div class="player-card">
-            <div v-if="!showCreateForm" class="create-player-button" @click="startCreate">
-              <div class="plus-icon">+</div>
-              <p class="create-text">Add New Player</p>
+        <div v-else-if="activeTab === 'players'" class="players-split-view">
+          <!-- Left Pane - Player List -->
+          <div class="player-list-pane">
+            <div class="player-list-header">
+              <h3>Players</h3>
             </div>
             
-            <div v-else class="player-edit-form">
-              <input 
-                v-model="createForm.name" 
-                placeholder="Player name"
-                class="edit-input"
-              />
-              <div class="appearance-field">
-                <textarea 
-                  v-model="createForm.appearance" 
-                  placeholder="Player appearance"
-                  class="edit-textarea"
-                  @input="updateCreateWordCount"
-                ></textarea>
-                <div class="word-counter" :class="{ 'over-limit': createWordCount > 40 }">
-                  {{ createWordCount }}/40 words
-                </div>
+            <div class="player-list-content">
+              <div 
+                v-for="player in players" 
+                :key="player.id"
+                :class="['player-list-item', { active: selectedPlayerId === player.id }]"
+                @click="selectPlayer(player.id)"
+              >
+                {{ player.name }}
               </div>
-              <select v-model="createForm.race" class="edit-select">
-                <option value="">Select Race</option>
-                <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
-              </select>
-              <select v-model="createForm.class_name" class="edit-select">
-                <option value="">Select Class</option>
-                <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
-              </select>
-              <select v-model="createForm.size" class="edit-select">
-                <option value="">Select Size</option>
-                <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
-              </select>
-              <select v-model="createForm.alignment" class="edit-select">
-                <option value="">Select Alignment</option>
-                <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
-              </select>
-              <div class="tags-field">
-                <div class="tags-input-container">
-                  <input 
-                    v-model="newCreateTagInput"
-                    placeholder="Add tag"
-                    class="edit-input tag-input"
-                    @keyup.enter="addCreateTag"
-                  />
-                  <button @click="addCreateTag" class="add-tag-btn" type="button">Add</button>
-                </div>
-                <div class="tags-edit-display">
-                  <span 
-                    v-for="(tag, index) in createForm.tags" 
-                    :key="index" 
-                    class="tag-bubble editable"
-                  >
-                    {{ tag }}
-                    <button @click="removeCreateTag(index)" class="remove-tag-btn" type="button">×</button>
-                  </span>
-                </div>
-              </div>
-              <div class="edit-actions">
-                <button @click="cancelCreate" class="cancel-btn">Cancel</button>
-                <button @click="saveCreate" class="save-btn" :disabled="!isCreateFormValid">Save</button>
+              
+              <div v-if="players.length === 0" class="empty-state">
+                No players yet
               </div>
             </div>
+            
+            <div class="player-list-footer">
+              <button @click="startCreate" class="add-player-btn">
+                <span class="plus-icon">+</span>
+                Add Player
+              </button>
+              
+              <input 
+                ref="playerFileInput"
+                type="file" 
+                accept=".md,.markdown,.json" 
+                @change="handleImportFile"
+                style="display: none"
+              />
+              <button 
+                @click="$refs.playerFileInput.click()" 
+                class="import-players-btn"
+                :disabled="importing"
+              >
+                <span v-if="importing">Importing...</span>
+                <span v-else>Import Players</span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Right Pane - Player Detail -->
+          <div class="player-detail-pane">
+            <div v-if="!selectedPlayer && !showCreateForm" class="empty-detail-state">
+              <div class="empty-icon">👤</div>
+              <h3>No Player Selected</h3>
+              <p>Select a player from the list to view details, or create a new one.</p>
+            </div>
+            
+            <div v-else-if="showCreateForm" class="shared-card">
+              <div class="shared-form">
+                <!-- Name -->
+                <input 
+                  v-model="createForm.name" 
+                  placeholder="Player name"
+                  class="shared-input shared-input-name"
+                />
+                
+                <!-- Two Column Layout for Create -->
+                <div class="shared-field-columns">
+                  <!-- Left Column -->
+                  <div class="shared-field-column">
+                    <select v-model="createForm.race" class="shared-select">
+                      <option value="">Select Race</option>
+                      <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
+                    </select>
+                    
+                    <select v-model="createForm.class_name" class="shared-select">
+                      <option value="">Select Class</option>
+                      <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
+                    </select>
+                    
+                    <div class="shared-word-counter-field">
+                      <textarea 
+                        v-model="createForm.appearance" 
+                        placeholder="Player appearance (max 40 words)"
+                        class="shared-textarea"
+                        @input="updateCreateWordCount"
+                      ></textarea>
+                      <div class="shared-word-counter" :class="{ 'over-limit': createWordCount > 40 }">
+                        {{ createWordCount }}/40 words
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Right Column -->
+                  <div class="shared-field-column">
+                    <select v-model="createForm.size" class="shared-select">
+                      <option value="">Select Size</option>
+                      <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
+                    </select>
+                    
+                    <select v-model="createForm.alignment" class="shared-select">
+                      <option value="">Select Alignment</option>
+                      <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <!-- Tags Section -->
+                <div class="shared-tags-field">
+                  <div class="shared-tags-input-container">
+                    <input 
+                      v-model="newCreateTagInput"
+                      placeholder="Add tag"
+                      class="shared-input shared-tag-input"
+                      @keyup.enter="addCreateTag"
+                    />
+                    <button @click="addCreateTag" class="shared-btn shared-btn-success" type="button">Add</button>
+                  </div>
+                  <div class="shared-tags-edit-display">
+                    <span 
+                      v-for="(tag, index) in createForm.tags" 
+                      :key="index" 
+                      class="shared-tag-bubble editable"
+                    >
+                      {{ tag }}
+                      <button @click="removeCreateTag(index)" class="shared-tag-remove-btn" type="button">×</button>
+                    </span>
+                  </div>
+                </div>
+                
+                <div class="shared-actions">
+                  <button @click="saveCreate" class="shared-btn shared-btn-success" :disabled="!isCreateFormValid">Save</button>
+                  <button @click="cancelCreate" class="shared-btn shared-btn-secondary">Cancel</button>
+                </div>
+              </div>
+            </div>
+            
+            <PlayerCard
+              v-else-if="selectedPlayer"
+              :player="selectedPlayer"
+              @update="updatePlayer"
+              @delete="deletePlayer"
+            />
           </div>
         </div>
         
@@ -182,14 +247,14 @@
               <p>Select a character from the list to view details, or create a new one.</p>
             </div>
             
-            <div v-else-if="showCreateCharacterForm" class="character-card">
-              <div class="character-edit-form">
+            <div v-else-if="showCreateCharacterForm" class="shared-card">
+              <div class="shared-form">
                 <!-- Avatar Upload -->
-                <div class="avatar-edit-section">
-                  <div class="avatar-container">
-                    <img v-if="createCharacterForm.avatar" :src="createCharacterForm.avatar" :alt="createCharacterForm.name" class="avatar-image" />
-                    <div v-else class="avatar-placeholder">
-                      <span class="avatar-initials">{{ getInitials(createCharacterForm.name) }}</span>
+                <div class="shared-avatar-edit-section">
+                  <div class="shared-avatar-container">
+                    <img v-if="createCharacterForm.avatar" :src="createCharacterForm.avatar" :alt="createCharacterForm.name" class="shared-avatar-image" />
+                    <div v-else class="shared-avatar-placeholder">
+                      <span class="shared-avatar-initials">{{ getInitials(createCharacterForm.name) }}</span>
                     </div>
                   </div>
                   <input 
@@ -199,10 +264,10 @@
                     @change="handleAvatarUpload"
                     style="display: none"
                   />
-                  <button @click="$refs.avatarInput.click()" class="avatar-upload-btn">
+                  <button @click="$refs.avatarInput.click()" class="shared-avatar-btn shared-avatar-upload-btn">
                     {{ createCharacterForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
                   </button>
-                  <button v-if="createCharacterForm.avatar" @click="removeAvatar" class="avatar-remove-btn">
+                  <button v-if="createCharacterForm.avatar" @click="removeAvatar" class="shared-avatar-btn shared-avatar-remove-btn">
                     Remove
                   </button>
                 </div>
@@ -211,39 +276,39 @@
                 <input 
                   v-model="createCharacterForm.name" 
                   placeholder="Character name"
-                  class="edit-input name-input"
+                  class="shared-input shared-input-name"
                 />
                 
                 <!-- Two Column Layout for Create -->
-                <div class="edit-columns">
+                <div class="shared-field-columns">
                   <!-- Left Column -->
-                  <div class="edit-column">
-                    <select v-model="createCharacterForm.race" class="edit-select">
+                  <div class="shared-field-column">
+                    <select v-model="createCharacterForm.race" class="shared-select">
                       <option value="">Select Race</option>
                       <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
                     </select>
                     
-                    <select v-model="createCharacterForm.alignment" class="edit-select">
+                    <select v-model="createCharacterForm.alignment" class="shared-select">
                       <option value="">Select Alignment</option>
                       <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
                     </select>
                     
-                    <div class="background-field">
+                    <div class="shared-word-counter-field">
                       <textarea 
                         v-model="createCharacterForm.background" 
                         placeholder="Character background (max 80 words)"
-                        class="edit-textarea"
+                        class="shared-textarea"
                         @input="updateCreateBackgroundWordCount"
                       ></textarea>
-                      <div class="word-counter" :class="{ 'over-limit': createBackgroundWordCount > 80 }">
+                      <div class="shared-word-counter" :class="{ 'over-limit': createBackgroundWordCount > 80 }">
                         {{ createBackgroundWordCount }}/80 words
                       </div>
                     </div>
                   </div>
                   
                   <!-- Right Column -->
-                  <div class="edit-column">
-                    <select v-model="createCharacterForm.size" class="edit-select">
+                  <div class="shared-field-column">
+                    <select v-model="createCharacterForm.size" class="shared-select">
                       <option value="">Select Size</option>
                       <option v-for="size in characterSizes" :key="size" :value="size">{{ size }}</option>
                     </select>
@@ -251,17 +316,17 @@
                     <input 
                       v-model="createCharacterForm.profession" 
                       placeholder="Profession"
-                      class="edit-input"
+                      class="shared-input"
                     />
                     
-                    <div class="communication-field">
+                    <div class="shared-word-counter-field">
                       <textarea 
                         v-model="createCharacterForm.communication_style" 
                         placeholder="Communication style (max 30 words)"
-                        class="edit-textarea"
+                        class="shared-textarea"
                         @input="updateCreateCommunicationWordCount"
                       ></textarea>
-                      <div class="word-counter" :class="{ 'over-limit': createCommunicationWordCount > 30 }">
+                      <div class="shared-word-counter" :class="{ 'over-limit': createCommunicationWordCount > 30 }">
                         {{ createCommunicationWordCount }}/30 words
                       </div>
                     </div>
@@ -269,31 +334,31 @@
                 </div>
                 
                 <!-- Tags Section -->
-                <div class="tags-field">
-                  <div class="tags-input-container">
+                <div class="shared-tags-field">
+                  <div class="shared-tags-input-container">
                     <input 
                       v-model="newCreateCharacterTagInput"
                       placeholder="Add tag"
-                      class="edit-input tag-input"
+                      class="shared-input shared-tag-input"
                       @keyup.enter="addCreateCharacterTag"
                     />
-                    <button @click="addCreateCharacterTag" class="add-tag-btn" type="button">Add</button>
+                    <button @click="addCreateCharacterTag" class="shared-btn shared-btn-success" type="button">Add</button>
                   </div>
-                  <div class="tags-edit-display">
+                  <div class="shared-tags-edit-display">
                     <span 
                       v-for="(tag, index) in createCharacterForm.tags" 
                       :key="index" 
-                      class="tag-bubble editable"
+                      class="shared-tag-bubble editable"
                     >
                       {{ tag }}
-                      <button @click="removeCreateCharacterTag(index)" class="remove-tag-btn" type="button">×</button>
+                      <button @click="removeCreateCharacterTag(index)" class="shared-tag-remove-btn" type="button">×</button>
                     </span>
                   </div>
                 </div>
                 
-                <div class="edit-actions">
-                  <button @click="cancelCreateCharacter" class="cancel-btn">Cancel</button>
-                  <button @click="saveCreateCharacter" class="save-btn" :disabled="!isCreateCharacterFormValid">Save</button>
+                <div class="shared-actions">
+                  <button @click="saveCreateCharacter" class="shared-btn shared-btn-success" :disabled="!isCreateCharacterFormValid">Save</button>
+                  <button @click="cancelCreateCharacter" class="shared-btn shared-btn-secondary">Cancel</button>
                 </div>
               </div>
             </div>
@@ -330,7 +395,7 @@ export default {
     CharacterCard
   },
   setup() {
-    const activeTab = ref('characters')
+    const activeTab = ref('players')
     const players = ref([])
     const characters = ref([])
     const loading = ref(false)
@@ -345,6 +410,7 @@ export default {
     const importing = ref(false)
     const successMessage = ref('')
     const selectedCharacterId = ref(null)
+    const selectedPlayerId = ref(null)
     
     const createForm = reactive({
       name: '',
@@ -848,6 +914,16 @@ export default {
       }
     }
 
+    // Player selection functionality
+    const selectedPlayer = computed(() => {
+      return players.value.find(p => p.id === selectedPlayerId.value) || null
+    })
+
+    const selectPlayer = (playerId) => {
+      selectedPlayerId.value = playerId
+      showCreateForm.value = false // Hide create form when selecting a player
+    }
+
     // Character selection functionality
     const selectedCharacter = computed(() => {
       return characters.value.find(c => c.id === selectedCharacterId.value) || null
@@ -911,6 +987,8 @@ export default {
       importing,
       selectedCharacterId,
       selectedCharacter,
+      selectedPlayerId,
+      selectedPlayer,
       races,
       classes,
       sizes,
@@ -925,6 +1003,7 @@ export default {
       updateCharacter,
       deleteCharacter: deleteCharacterWithSelection,
       selectCharacter,
+      selectPlayer,
       startCreate,
       startCreateCharacter,
       updateCreateWordCount,
@@ -1066,171 +1145,7 @@ export default {
   font-size: 0.9em;
 }
 
-/* Reuse PlayerCard styles for consistency */
-.player-edit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.edit-input, .edit-textarea, .edit-select {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1em;
-  transition: border-color 0.2s;
-}
-
-.edit-input:focus, .edit-textarea:focus, .edit-select:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
-.edit-textarea {
-  min-height: 60px;
-  resize: vertical;
-}
-
-.appearance-field {
-  position: relative;
-}
-
-.word-counter {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  font-size: 0.8em;
-  color: #666;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 2px 6px;
-  border-radius: 3px;
-}
-
-.word-counter.over-limit {
-  color: #dc3545;
-  font-weight: bold;
-}
-
-.groups-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.groups-input-container {
-  display: flex;
-  gap: 8px;
-}
-
-.group-input {
-  flex: 1;
-}
-
-.add-group-btn {
-  padding: 8px 16px;
-  background-color: #28a745;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.2s;
-}
-
-.add-group-btn:hover {
-  background-color: #218838;
-}
-
-.groups-edit-display {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 30px;
-  align-items: flex-start;
-}
-
-.group-bubble {
-  background-color: #007bff;
-  color: white;
-  padding: 4px 10px;
-  border-radius: 15px;
-  font-size: 0.8em;
-  font-weight: 500;
-}
-
-.group-bubble.editable {
-  background-color: #6c757d;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.remove-group-btn {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.2em;
-  cursor: pointer;
-  padding: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-}
-
-.remove-group-btn:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.edit-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.edit-btn, .delete-btn, .save-btn, .cancel-btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.2s;
-}
-
-.save-btn {
-  background: linear-gradient(135deg, #28a745, #218838);
-  color: white;
-  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
-  font-weight: 600;
-}
-
-.save-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #218838, #1e7e34);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
-}
-
-.save-btn:disabled {
-  background: #6c757d;
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
-  box-shadow: none;
-}
-
-.cancel-btn {
-  background: linear-gradient(135deg, #6c757d, #5a6268);
-  color: white;
-  box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
-  font-weight: 600;
-}
-
-.cancel-btn:hover {
-  background: linear-gradient(135deg, #5a6268, #495057);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
-}
+/* App.vue now uses shared styles - minimal custom styles needed */
 
 .player-cards-grid {
   display: grid;
@@ -1507,6 +1422,144 @@ export default {
 .placeholder-content p {
   margin: 0;
   font-size: 1.1em;
+}
+
+/* Players Split View Layout */
+.players-split-view {
+  display: flex;
+  height: 100%;
+  gap: 0;
+}
+
+.player-list-pane {
+  width: 25%;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-right: 2px solid #e9ecef;
+}
+
+.player-list-header {
+  padding: 20px 16px 16px 16px;
+  border-bottom: 1px solid #e9ecef;
+  background: white;
+}
+
+.player-list-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.player-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.player-list-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  font-weight: 500;
+  color: #495057;
+  background: white;
+  margin: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.player-list-item:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+  border-color: #bbdefb;
+}
+
+.player-list-item.active {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border-left-color: #004085;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.player-list-item.active:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.player-list-footer {
+  padding: 16px;
+  border-top: 1px solid #e9ecef;
+  background: white;
+}
+
+.add-player-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.add-player-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+}
+
+.add-player-btn .plus-icon {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.import-players-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+  margin-top: 8px;
+}
+
+.import-players-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+}
+
+.import-players-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+.player-detail-pane {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #ffffff;
 }
 
 /* Characters Split View Layout */
