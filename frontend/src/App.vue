@@ -4,23 +4,6 @@
     <header class="page-header">
       <div class="header-content">
         <h1 class="page-title">{{ activeTab === 'characters' ? 'Characters' : 'Players' }}</h1>
-        <div class="header-actions" v-if="activeTab === 'players'">
-          <input 
-            ref="fileInput"
-            type="file" 
-            accept=".md,.markdown,.json" 
-            @change="handleImportFile"
-            style="display: none"
-          />
-          <button 
-            @click="$refs.fileInput.click()" 
-            class="import-btn"
-            :disabled="importing"
-          >
-            <span v-if="importing">Importing...</span>
-            <span v-else">Import Players</span>
-          </button>
-        </div>
       </div>
     </header>
 
@@ -105,6 +88,29 @@
             
             <div v-else-if="showCreateForm" class="shared-card">
               <div class="shared-form">
+                <!-- Avatar Upload -->
+                <div class="shared-avatar-edit-section">
+                  <div class="shared-avatar-container">
+                    <img v-if="createForm.avatar" :src="createForm.avatar" :alt="createForm.name" class="shared-avatar-image" />
+                    <div v-else class="shared-avatar-placeholder">
+                      <span class="shared-avatar-initials">{{ getInitials(createForm.name) }}</span>
+                    </div>
+                  </div>
+                  <input 
+                    ref="playerAvatarInput"
+                    type="file" 
+                    accept="image/*" 
+                    @change="handlePlayerAvatarUpload"
+                    style="display: none"
+                  />
+                  <button @click="$refs.playerAvatarInput.click()" class="shared-avatar-btn shared-avatar-upload-btn">
+                    {{ createForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
+                  </button>
+                  <button v-if="createForm.avatar" @click="removePlayerAvatar" class="shared-avatar-btn shared-avatar-remove-btn">
+                    Remove
+                  </button>
+                </div>
+                
                 <!-- Name -->
                 <input 
                   v-model="createForm.name" 
@@ -414,6 +420,7 @@ export default {
     
     const createForm = reactive({
       name: '',
+      avatar: null,
       appearance: '',
       race: '',
       class_name: '',
@@ -546,6 +553,7 @@ export default {
     const cancelCreate = () => {
       showCreateForm.value = false
       createForm.name = ''
+      createForm.avatar = null
       createForm.appearance = ''
       createForm.race = ''
       createForm.class_name = ''
@@ -556,11 +564,27 @@ export default {
       createWordCount.value = 0
     }
 
+    const handlePlayerAvatarUpload = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          createForm.avatar = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+
+    const removePlayerAvatar = () => {
+      createForm.avatar = null
+    }
+
     const saveCreate = async () => {
       if (isCreateFormValid.value) {
         try {
           const newPlayer = await apiService.createPlayer({
             name: createForm.name.trim(),
+            avatar: createForm.avatar,
             appearance: createForm.appearance.trim(),
             race: createForm.race,
             class_name: createForm.class_name,
@@ -1015,6 +1039,8 @@ export default {
       removeCreateCharacterTag,
       handleAvatarUpload,
       removeAvatar,
+      handlePlayerAvatarUpload,
+      removePlayerAvatar,
       cancelCreate,
       cancelCreateCharacter,
       saveCreate,

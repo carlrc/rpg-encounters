@@ -1,6 +1,16 @@
 <template>
   <div class="shared-card">
     <div v-if="!isEditing" class="player-content">
+      <!-- Avatar Section -->
+      <div class="shared-avatar-section">
+        <div class="shared-avatar-container">
+          <img v-if="player.avatar" :src="player.avatar" :alt="player.name" class="shared-avatar-image" />
+          <div v-else class="shared-avatar-placeholder">
+            <span class="shared-avatar-initials">{{ getInitials(player.name) }}</span>
+          </div>
+        </div>
+      </div>
+      
       <h3 class="shared-title">{{ player.name }}</h3>
       
       <!-- Two Column Layout -->
@@ -63,6 +73,29 @@
     </div>
     
     <div v-else class="shared-form">
+      <!-- Avatar Upload -->
+      <div class="shared-avatar-edit-section">
+        <div class="shared-avatar-container">
+          <img v-if="editForm.avatar" :src="editForm.avatar" :alt="editForm.name" class="shared-avatar-image" />
+          <div v-else class="shared-avatar-placeholder">
+            <span class="shared-avatar-initials">{{ getInitials(editForm.name) }}</span>
+          </div>
+        </div>
+        <input 
+          ref="avatarInput"
+          type="file" 
+          accept="image/*" 
+          @change="handleAvatarUpload"
+          style="display: none"
+        />
+        <button @click="$refs.avatarInput.click()" class="shared-avatar-btn shared-avatar-upload-btn">
+          {{ editForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
+        </button>
+        <button v-if="editForm.avatar" @click="removeAvatar" class="shared-avatar-btn shared-avatar-remove-btn">
+          Remove
+        </button>
+      </div>
+      
       <!-- Name -->
       <input 
         v-model="editForm.name" 
@@ -161,6 +194,7 @@ export default {
     
     const editForm = reactive({
       name: '',
+      avatar: null,
       appearance: '',
       race: '',
       class_name: '',
@@ -223,8 +257,29 @@ export default {
       editForm.tags.splice(index, 1)
     }
 
+    const getInitials = (name) => {
+      if (!name) return '?'
+      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+    }
+
+    const handleAvatarUpload = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          editForm.avatar = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+
+    const removeAvatar = () => {
+      editForm.avatar = null
+    }
+
     const startEdit = () => {
       editForm.name = props.player.name || ''
+      editForm.avatar = props.player.avatar || null
       editForm.appearance = props.player.appearance || ''
       editForm.race = props.player.race || ''
       editForm.class_name = props.player.class_name || ''
@@ -245,6 +300,7 @@ export default {
       if (isFormValid.value) {
         emit('update', props.player.id, {
           name: editForm.name.trim(),
+          avatar: editForm.avatar,
           appearance: editForm.appearance.trim(),
           race: editForm.race,
           class_name: editForm.class_name,
@@ -274,9 +330,12 @@ export default {
       sizes,
       alignments,
       isFormValid,
+      getInitials,
       updateWordCount,
       addTag,
       removeTag,
+      handleAvatarUpload,
+      removeAvatar,
       startEdit,
       cancelEdit,
       saveEdit,
