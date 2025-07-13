@@ -4,7 +4,7 @@
     <header class="page-header">
       <div class="header-content">
         <h1 class="page-title">{{ activeTab === 'characters' ? 'Characters' : 'Players' }}</h1>
-        <div class="header-actions">
+        <div class="header-actions" v-if="activeTab === 'players'">
           <input 
             ref="fileInput"
             type="file" 
@@ -18,7 +18,7 @@
             :disabled="importing"
           >
             <span v-if="importing">Importing...</span>
-            <span v-else>Import {{ activeTab === 'characters' ? 'Characters' : 'Players' }}</span>
+            <span v-else">Import Players</span>
           </button>
         </div>
       </div>
@@ -154,6 +154,22 @@
               <button @click="startCreateCharacter" class="add-character-btn">
                 <span class="plus-icon">+</span>
                 Add Character
+              </button>
+              
+              <input 
+                ref="characterFileInput"
+                type="file" 
+                accept=".md,.markdown,.json" 
+                @change="handleImportFile"
+                style="display: none"
+              />
+              <button 
+                @click="$refs.characterFileInput.click()" 
+                class="import-characters-btn"
+                :disabled="importing"
+              >
+                <span v-if="importing">Importing...</span>
+                <span v-else>Import Characters</span>
               </button>
             </div>
           </div>
@@ -1601,6 +1617,35 @@ export default {
 .add-character-btn .plus-icon {
   font-size: 1.2em;
   font-weight: bold;
+}
+
+.import-characters-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+  margin-top: 8px;
+}
+
+.import-characters-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
+}
+
+.import-characters-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
 }
 
 .character-detail-pane {

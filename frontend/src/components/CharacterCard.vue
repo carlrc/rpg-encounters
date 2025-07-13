@@ -399,9 +399,9 @@ export default {
 }
 
 .avatar-container {
-  width: 80px;
+  width: 100px;
   height: 80px;
-  border-radius: 50%;
+  border-radius: 8px;
   overflow: hidden;
   border: 3px solid #007bff;
   display: flex;
