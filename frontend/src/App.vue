@@ -3,12 +3,12 @@
     <!-- Page Header -->
     <header class="page-header">
       <div class="header-content">
-        <h1 class="page-title">Player page</h1>
+        <h1 class="page-title">{{ activeTab === 'characters' ? 'Characters' : 'Players' }}</h1>
         <div class="header-actions">
           <input 
             ref="fileInput"
             type="file" 
-            accept=".md,.markdown" 
+            accept=".md,.markdown,.json" 
             @change="handleImportFile"
             style="display: none"
           />
@@ -18,7 +18,7 @@
             :disabled="importing"
           >
             <span v-if="importing">Importing...</span>
-            <span v-else>Import Players</span>
+            <span v-else>Import {{ activeTab === 'characters' ? 'Characters' : 'Players' }}</span>
           </button>
         </div>
       </div>
@@ -45,9 +45,11 @@
           {{ successMessage }}
         </div>
         
-        <div v-if="loading" class="loading">Loading players...</div>
+        <div v-if="loading" class="loading">Loading {{ activeTab === 'characters' ? 'characters' : 'players' }}...</div>
         <div v-else-if="error" class="error">{{ error }}</div>
-        <div v-else class="player-cards-grid">
+        
+        <!-- Players Tab Content -->
+        <div v-else-if="activeTab === 'players'" class="player-cards-grid">
           <PlayerCard
             v-for="player in players"
             :key="player.id"
@@ -124,6 +126,145 @@
             </div>
           </div>
         </div>
+        
+        <!-- Characters Tab Content -->
+        <div v-else-if="activeTab === 'characters'" class="character-cards-grid">
+          <CharacterCard
+            v-for="character in characters"
+            :key="character.id"
+            :character="character"
+            @update="updateCharacter"
+            @delete="deleteCharacter"
+          />
+          
+          <!-- Create Character Card -->
+          <div class="character-card">
+            <div v-if="!showCreateCharacterForm" class="create-character-button" @click="startCreateCharacter">
+              <div class="plus-icon">+</div>
+              <p class="create-text">Add New Character</p>
+            </div>
+            
+            <div v-else class="character-edit-form">
+              <!-- Avatar Upload -->
+              <div class="avatar-edit-section">
+                <div class="avatar-container">
+                  <img v-if="createCharacterForm.avatar" :src="createCharacterForm.avatar" :alt="createCharacterForm.name" class="avatar-image" />
+                  <div v-else class="avatar-placeholder">
+                    <span class="avatar-initials">{{ getInitials(createCharacterForm.name) }}</span>
+                  </div>
+                </div>
+                <input 
+                  ref="avatarInput"
+                  type="file" 
+                  accept="image/*" 
+                  @change="handleAvatarUpload"
+                  style="display: none"
+                />
+                <button @click="$refs.avatarInput.click()" class="avatar-upload-btn">
+                  {{ createCharacterForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
+                </button>
+                <button v-if="createCharacterForm.avatar" @click="removeAvatar" class="avatar-remove-btn">
+                  Remove
+                </button>
+              </div>
+              
+              <!-- Name -->
+              <input 
+                v-model="createCharacterForm.name" 
+                placeholder="Character name"
+                class="edit-input name-input"
+              />
+              
+              <!-- Two Column Layout for Create -->
+              <div class="edit-columns">
+                <!-- Left Column -->
+                <div class="edit-column">
+                  <select v-model="createCharacterForm.race" class="edit-select">
+                    <option value="">Select Race</option>
+                    <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
+                  </select>
+                  
+                  <select v-model="createCharacterForm.alignment" class="edit-select">
+                    <option value="">Select Alignment</option>
+                    <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
+                  </select>
+                  
+                  <div class="background-field">
+                    <textarea 
+                      v-model="createCharacterForm.background" 
+                      placeholder="Character background (max 80 words)"
+                      class="edit-textarea"
+                      @input="updateCreateBackgroundWordCount"
+                    ></textarea>
+                    <div class="word-counter" :class="{ 'over-limit': createBackgroundWordCount > 80 }">
+                      {{ createBackgroundWordCount }}/80 words
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Right Column -->
+                <div class="edit-column">
+                  <select v-model="createCharacterForm.size" class="edit-select">
+                    <option value="">Select Size</option>
+                    <option v-for="size in characterSizes" :key="size" :value="size">{{ size }}</option>
+                  </select>
+                  
+                  <input 
+                    v-model="createCharacterForm.profession" 
+                    placeholder="Profession"
+                    class="edit-input"
+                  />
+                  
+                  <div class="communication-field">
+                    <textarea 
+                      v-model="createCharacterForm.communication_style" 
+                      placeholder="Communication style (max 30 words)"
+                      class="edit-textarea"
+                      @input="updateCreateCommunicationWordCount"
+                    ></textarea>
+                    <div class="word-counter" :class="{ 'over-limit': createCommunicationWordCount > 30 }">
+                      {{ createCommunicationWordCount }}/30 words
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Tags Section -->
+              <div class="tags-field">
+                <div class="tags-input-container">
+                  <input 
+                    v-model="newCreateCharacterTagInput"
+                    placeholder="Add tag"
+                    class="edit-input tag-input"
+                    @keyup.enter="addCreateCharacterTag"
+                  />
+                  <button @click="addCreateCharacterTag" class="add-tag-btn" type="button">Add</button>
+                </div>
+                <div class="tags-edit-display">
+                  <span 
+                    v-for="(tag, index) in createCharacterForm.tags" 
+                    :key="index" 
+                    class="tag-bubble editable"
+                  >
+                    {{ tag }}
+                    <button @click="removeCreateCharacterTag(index)" class="remove-tag-btn" type="button">×</button>
+                  </span>
+                </div>
+              </div>
+              
+              <div class="edit-actions">
+                <button @click="cancelCreateCharacter" class="cancel-btn">Cancel</button>
+                <button @click="saveCreateCharacter" class="save-btn" :disabled="!isCreateCharacterFormValid">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Other tabs placeholder -->
+        <div v-else class="placeholder-content">
+          <h2>{{ activeTab.charAt(0).toUpperCase() + activeTab.slice(1) }}</h2>
+          <p>This section is coming soon...</p>
+        </div>
       </main>
     </div>
   </div>
@@ -132,21 +273,28 @@
 <script>
 import { ref, onMounted, reactive, computed } from 'vue'
 import PlayerCard from './components/PlayerCard.vue'
+import CharacterCard from './components/CharacterCard.vue'
 import apiService from './services/api.js'
 
 export default {
   name: 'App',
   components: {
-    PlayerCard
+    PlayerCard,
+    CharacterCard
   },
   setup() {
-    const activeTab = ref('players')
+    const activeTab = ref('characters')
     const players = ref([])
+    const characters = ref([])
     const loading = ref(false)
     const error = ref('')
     const showCreateForm = ref(false)
+    const showCreateCharacterForm = ref(false)
     const newCreateTagInput = ref('')
+    const newCreateCharacterTagInput = ref('')
     const createWordCount = ref(0)
+    const createBackgroundWordCount = ref(0)
+    const createCommunicationWordCount = ref(0)
     const importing = ref(false)
     const successMessage = ref('')
     
@@ -159,6 +307,22 @@ export default {
       alignment: '',
       tags: []
     })
+
+    const createCharacterForm = reactive({
+      name: '',
+      avatar: null,
+      race: '',
+      size: '',
+      alignment: '',
+      profession: '',
+      background: '',
+      communication_style: '',
+      tags: []
+    })
+
+    const characterSizes = [
+      'Small', 'Medium', 'Large'
+    ]
 
     const races = [
       'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
@@ -501,36 +665,191 @@ export default {
       }
     }
 
+    // Character functionality
+    const isCreateCharacterFormValid = computed(() => {
+      return createCharacterForm.name.trim() && 
+             createCharacterForm.race && 
+             createCharacterForm.size &&
+             createCharacterForm.alignment &&
+             createCharacterForm.profession.trim() &&
+             createCharacterForm.background.trim() &&
+             createCharacterForm.communication_style.trim() &&
+             createBackgroundWordCount.value <= 80 &&
+             createCommunicationWordCount.value <= 30
+    })
+
+    const getInitials = (name) => {
+      if (!name) return '?'
+      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+    }
+
+    const loadCharacters = async () => {
+      loading.value = true
+      error.value = ''
+      try {
+        characters.value = await apiService.getCharacters()
+      } catch (err) {
+        error.value = 'Failed to load characters. Make sure the backend is running.'
+        console.error('Error loading characters:', err)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const updateCharacter = async (characterId, characterData) => {
+      try {
+        const updatedCharacter = await apiService.updateCharacter(characterId, characterData)
+        const index = characters.value.findIndex(c => c.id === characterId)
+        if (index !== -1) {
+          characters.value[index] = updatedCharacter
+        }
+      } catch (err) {
+        error.value = 'Failed to update character'
+        console.error('Error updating character:', err)
+      }
+    }
+
+    const deleteCharacter = async (characterId) => {
+      try {
+        await apiService.deleteCharacter(characterId)
+        characters.value = characters.value.filter(c => c.id !== characterId)
+      } catch (err) {
+        error.value = 'Failed to delete character'
+        console.error('Error deleting character:', err)
+      }
+    }
+
+    const startCreateCharacter = () => {
+      showCreateCharacterForm.value = true
+    }
+
+    const updateCreateBackgroundWordCount = () => {
+      createBackgroundWordCount.value = createCharacterForm.background.trim() ? createCharacterForm.background.trim().split(/\s+/).length : 0
+    }
+
+    const updateCreateCommunicationWordCount = () => {
+      createCommunicationWordCount.value = createCharacterForm.communication_style.trim() ? createCharacterForm.communication_style.trim().split(/\s+/).length : 0
+    }
+
+    const addCreateCharacterTag = () => {
+      if (newCreateCharacterTagInput.value.trim()) {
+        const formattedTag = convertToKebabCase(newCreateCharacterTagInput.value.trim())
+        if (!createCharacterForm.tags.includes(formattedTag)) {
+          createCharacterForm.tags.push(formattedTag)
+        }
+        newCreateCharacterTagInput.value = ''
+      }
+    }
+
+    const removeCreateCharacterTag = (index) => {
+      createCharacterForm.tags.splice(index, 1)
+    }
+
+    const handleAvatarUpload = (event) => {
+      const file = event.target.files[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          createCharacterForm.avatar = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    }
+
+    const removeAvatar = () => {
+      createCharacterForm.avatar = null
+    }
+
+    const cancelCreateCharacter = () => {
+      showCreateCharacterForm.value = false
+      createCharacterForm.name = ''
+      createCharacterForm.avatar = null
+      createCharacterForm.race = ''
+      createCharacterForm.size = ''
+      createCharacterForm.alignment = ''
+      createCharacterForm.profession = ''
+      createCharacterForm.background = ''
+      createCharacterForm.communication_style = ''
+      createCharacterForm.tags = []
+      newCreateCharacterTagInput.value = ''
+      createBackgroundWordCount.value = 0
+      createCommunicationWordCount.value = 0
+    }
+
+    const saveCreateCharacter = async () => {
+      if (isCreateCharacterFormValid.value) {
+        try {
+          const newCharacter = await apiService.createCharacter({
+            name: createCharacterForm.name.trim(),
+            avatar: createCharacterForm.avatar,
+            race: createCharacterForm.race,
+            size: createCharacterForm.size,
+            alignment: createCharacterForm.alignment,
+            profession: createCharacterForm.profession.trim(),
+            background: createCharacterForm.background.trim(),
+            communication_style: createCharacterForm.communication_style.trim(),
+            tags: createCharacterForm.tags
+          })
+          characters.value.push(newCharacter)
+          cancelCreateCharacter() // Reset form and hide it
+        } catch (err) {
+          error.value = 'Failed to create character'
+          console.error('Error creating character:', err)
+        }
+      }
+    }
+
     onMounted(() => {
       loadPlayers()
+      loadCharacters()
     })
 
     return {
       activeTab,
       navigationTabs,
       players,
+      characters,
       loading,
       error,
       successMessage,
       showCreateForm,
+      showCreateCharacterForm,
       createForm,
+      createCharacterForm,
       newCreateTagInput,
+      newCreateCharacterTagInput,
       createWordCount,
+      createBackgroundWordCount,
+      createCommunicationWordCount,
       importing,
       races,
       classes,
       sizes,
+      characterSizes,
       alignments,
       isCreateFormValid,
+      isCreateCharacterFormValid,
+      getInitials,
       setActiveTab,
       updatePlayer,
       deletePlayer,
+      updateCharacter,
+      deleteCharacter,
       startCreate,
+      startCreateCharacter,
       updateCreateWordCount,
+      updateCreateBackgroundWordCount,
+      updateCreateCommunicationWordCount,
       addCreateTag,
       removeCreateTag,
+      addCreateCharacterTag,
+      removeCreateCharacterTag,
+      handleAvatarUpload,
+      removeAvatar,
       cancelCreate,
+      cancelCreateCharacter,
       saveCreate,
+      saveCreateCharacter,
       handleImportFile
     }
   }
@@ -852,5 +1171,261 @@ export default {
 .player-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* Character Card Styles */
+.character-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+}
+
+.character-cards-grid > * {
+  align-self: start;
+}
+
+.character-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8e9ea;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.character-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.create-character-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 120px;
+  cursor: pointer;
+  color: #666;
+  transition: color 0.2s;
+}
+
+.create-character-button:hover {
+  color: #007bff;
+}
+
+.character-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.avatar-edit-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.avatar-container {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #007bff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-initials {
+  color: white;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.avatar-upload-btn, .avatar-remove-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.avatar-upload-btn {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+}
+
+.avatar-upload-btn:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.avatar-remove-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: white;
+}
+
+.avatar-remove-btn:hover {
+  background: linear-gradient(135deg, #c82333, #a71e2a);
+}
+
+.name-input {
+  text-align: center;
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.edit-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.edit-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.background-field, .communication-field {
+  position: relative;
+}
+
+.tags-field {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tags-input-container {
+  display: flex;
+  gap: 10px;
+}
+
+.tag-input {
+  flex: 1;
+}
+
+.add-tag-btn {
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.add-tag-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+}
+
+.tags-edit-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 40px;
+  align-items: flex-start;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
+}
+
+.tag-bubble {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 0.8em;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.tag-bubble.editable {
+  background: linear-gradient(135deg, #6c757d, #5a6268);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 6px;
+}
+
+.remove-tag-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1em;
+  cursor: pointer;
+  padding: 2px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.remove-tag-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #666;
+  text-align: center;
+}
+
+.placeholder-content h2 {
+  margin: 0 0 16px 0;
+  font-size: 2em;
+  color: #333;
+}
+
+.placeholder-content p {
+  margin: 0;
+  font-size: 1.1em;
+}
+
+@media (max-width: 768px) {
+  .edit-columns {
+    grid-template-columns: 1fr;
+  }
+  
+  .character-cards-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

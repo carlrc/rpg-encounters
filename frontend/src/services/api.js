@@ -58,6 +58,35 @@ class ApiService {
             method: 'DELETE',
         });
     }
+
+    // Character CRUD operations
+    async getCharacters() {
+        return this.request('/characters');
+    }
+
+    async getCharacter(id) {
+        return this.request(`/characters/${id}`);
+    }
+
+    async createCharacter(characterData) {
+        return this.request('/characters', {
+            method: 'POST',
+            body: JSON.stringify(characterData),
+        });
+    }
+
+    async updateCharacter(id, characterData) {
+        return this.request(`/characters/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(characterData),
+        });
+    }
+
+    async deleteCharacter(id) {
+        return this.request(`/characters/${id}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 export default new ApiService();
