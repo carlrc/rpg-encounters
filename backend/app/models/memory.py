@@ -7,7 +7,6 @@ class VisibilityType(str, Enum):
     KEYWORD = "keyword"
     PLAYER_RACE = "player_race"
     PLAYER_ALIGNMENT = "player_alignment"
-    TAGS = "tags"
 
 # Shared validation functions
 def validate_memory_text_length(memory_text, info):
@@ -63,7 +62,6 @@ class MemoryBase(BaseModel):
     keywords: List[str] = Field(default_factory=list, description="Keywords for keyword-based visibility")
     player_races: List[str] = Field(default_factory=list, description="Player races for race-based visibility")
     player_alignments: List[str] = Field(default_factory=list, description="Player alignments for alignment-based visibility")
-    player_tags: List[str] = Field(default_factory=list, description="Player tags for tag-based visibility")
     memory_text: str = Field(..., description="Memory content text")
     character_limit: int = Field(default=500, description="Character limit for memory text")
 
@@ -102,7 +100,6 @@ class MemoryUpdate(BaseModel):
     keywords: Optional[List[str]] = None
     player_races: Optional[List[str]] = None
     player_alignments: Optional[List[str]] = None
-    player_tags: Optional[List[str]] = None
     memory_text: Optional[str] = None
     character_limit: Optional[int] = None
 
