@@ -41,7 +41,7 @@
       
       <!-- Memory Text -->
       <div class="shared-field shared-field-full-width">
-        <div class="shared-field-label">Memory Text</div>
+        <div class="shared-field-label">Memory</div>
         <div class="shared-field-value">
           <div class="shared-text-display">{{ memory.memory_text }}</div>
           <div class="character-limit-info">
@@ -204,7 +204,7 @@
         
         <!-- Memory Text -->
         <div class="memory-text-field">
-          <label class="shared-field-label">Memory Text</label>
+          <label class="shared-field-label">Memory</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.memory_text"
             :placeholder="`Memory content (max ${editForm.character_limit} characters)`"
@@ -223,7 +223,7 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 import { RACES, ALIGNMENTS } from '../constants/gameData.js'
 
