@@ -43,7 +43,7 @@
       <div class="shared-field shared-field-full-width">
         <div class="shared-field-label">Memory Text</div>
         <div class="shared-field-value">
-          <div class="memory-text-display">{{ memory.memory_text }}</div>
+          <div class="shared-text-display">{{ memory.memory_text }}</div>
           <div class="character-limit-info">
             {{ memory.memory_text.length }}/{{ memory.character_limit }} characters
           </div>
@@ -486,15 +486,6 @@ export default {
 </script>
 
 <style scoped>
-.memory-text-display {
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  white-space: pre-wrap;
-  line-height: 1.5;
-  min-height: 60px;
-}
 
 .character-limit-info {
   font-size: 0.8em;

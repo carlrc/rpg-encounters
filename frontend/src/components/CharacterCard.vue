@@ -28,11 +28,6 @@
               <label class="shared-field-label">Alignment</label>
               <p class="shared-field-value">{{ character.alignment }}</p>
             </div>
-            
-            <div class="shared-field">
-              <label class="shared-field-label">Background</label>
-              <p class="shared-field-value shared-text-italic">{{ character.background }}</p>
-            </div>
           </div>
           
           <!-- Right Column -->
@@ -46,10 +41,27 @@
               <label class="shared-field-label">Profession</label>
               <p class="shared-field-value">{{ character.profession }}</p>
             </div>
-            
-            <div class="shared-field">
-              <label class="shared-field-label">Communication Style</label>
-              <p class="shared-field-value shared-text-italic">{{ character.communication_style }}</p>
+          </div>
+        </div>
+        
+        <!-- Background Section (Full Width) -->
+        <div class="shared-field shared-field-full-width">
+          <div class="shared-field-label">Background</div>
+          <div class="shared-field-value">
+            <div class="shared-text-display">{{ character.background }}</div>
+            <div class="character-limit-info">
+              {{ (character.background || '').length }}/{{ CHARACTER_LIMITS.CHARACTER_BACKGROUND }} characters
+            </div>
+          </div>
+        </div>
+        
+        <!-- Communication Style Section (Full Width) -->
+        <div class="shared-field shared-field-full-width">
+          <div class="shared-field-label">Communication Style</div>
+          <div class="shared-field-value">
+            <div class="shared-text-display">{{ character.communication_style }}</div>
+            <div class="character-limit-info">
+              {{ (character.communication_style || '').length }}/{{ CHARACTER_LIMITS.CHARACTER_COMMUNICATION }} characters
             </div>
           </div>
         </div>
@@ -102,12 +114,6 @@
             <option value="">Select Alignment</option>
             <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
           </select>
-          
-          <BaseTextarea 
-            v-model="editForm.background"
-            placeholder="Character background (max 80 words)"
-            :max-words="backgroundWordLimit"
-          />
         </div>
         
         <!-- Right Column -->
@@ -122,13 +128,27 @@
             placeholder="Profession"
             class="shared-input"
           />
-          
-          <BaseTextarea 
-            v-model="editForm.communication_style"
-            placeholder="Communication style (max 30 words)"
-            :max-words="communicationWordLimit"
-          />
         </div>
+      </div>
+      
+      <!-- Background Field (Full Width) -->
+      <div class="background-field">
+        <label class="shared-field-label">Background</label>
+        <BaseTextareaWithCharacterCounter
+          v-model="editForm.background"
+          :placeholder="`Character background (max ${backgroundCharacterLimit} characters)`"
+          :max-characters="backgroundCharacterLimit"
+        />
+      </div>
+      
+      <!-- Communication Style Field (Full Width) -->
+      <div class="communication-field">
+        <label class="shared-field-label">Communication Style</label>
+        <BaseTextareaWithCharacterCounter
+          v-model="editForm.communication_style"
+          :placeholder="`Communication style (max ${communicationCharacterLimit} characters)`"
+          :max-characters="communicationCharacterLimit"
+        />
       </div>
       
       <!-- Tags Section -->
@@ -145,18 +165,18 @@
 <script>
 import { ref, reactive } from 'vue'
 import { RACES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
-import { WORD_LIMITS } from '../constants/validation.js'
+import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
 import TagManager from './forms/TagManager.vue'
 import AvatarUpload from './base/AvatarUpload.vue'
-import BaseTextarea from './base/BaseTextarea.vue'
+import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
 export default {
   name: 'CharacterCard',
   components: {
     TagManager,
     AvatarUpload,
-    BaseTextarea
+    BaseTextareaWithCharacterCounter
   },
   props: {
     character: {
@@ -233,8 +253,9 @@ export default {
       races: RACES,
       sizes: SIZES.CHARACTER,
       alignments: ALIGNMENTS,
-      backgroundWordLimit: WORD_LIMITS.CHARACTER_BACKGROUND,
-      communicationWordLimit: WORD_LIMITS.CHARACTER_COMMUNICATION,
+      backgroundCharacterLimit: CHARACTER_LIMITS.CHARACTER_BACKGROUND,
+      communicationCharacterLimit: CHARACTER_LIMITS.CHARACTER_COMMUNICATION,
+      CHARACTER_LIMITS,
       isFormValid,
       getInitials,
       startEdit,
@@ -250,5 +271,18 @@ export default {
 /* CharacterCard now uses shared styles - minimal custom styles needed */
 .character-fields {
   flex: 1;
+}
+
+
+.character-limit-info {
+  font-size: 0.8em;
+  color: #6c757d;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.background-field,
+.communication-field {
+  margin-bottom: 16px;
 }
 </style>

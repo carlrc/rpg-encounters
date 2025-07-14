@@ -27,11 +27,6 @@
               <label class="shared-field-label">Class</label>
               <p class="shared-field-value">{{ player.class_name }}</p>
             </div>
-            
-            <div class="shared-field">
-              <label class="shared-field-label">Appearance</label>
-              <p class="shared-field-value shared-text-italic">{{ player.appearance }}</p>
-            </div>
           </div>
           
           <!-- Right Column -->
@@ -44,6 +39,17 @@
             <div class="shared-field">
               <label class="shared-field-label">Alignment</label>
               <p class="shared-field-value">{{ player.alignment }}</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Appearance Section (Full Width) -->
+        <div class="shared-field shared-field-full-width">
+          <div class="shared-field-label">Appearance</div>
+          <div class="shared-field-value">
+            <div class="shared-text-display">{{ player.appearance }}</div>
+            <div class="character-limit-info">
+              {{ (player.appearance || '').length }}/{{ CHARACTER_LIMITS.PLAYER_APPEARANCE }} characters
             </div>
           </div>
         </div>
@@ -96,12 +102,6 @@
             <option value="">Select Class</option>
             <option v-for="playerClass in classes" :key="playerClass" :value="playerClass">{{ playerClass }}</option>
           </select>
-          
-          <BaseTextarea 
-            v-model="editForm.appearance"
-            placeholder="Player appearance (max 40 words)"
-            :max-words="appearanceWordLimit"
-          />
         </div>
         
         <!-- Right Column -->
@@ -118,6 +118,16 @@
         </div>
       </div>
       
+      <!-- Appearance Field (Full Width) -->
+      <div class="appearance-field">
+        <label class="shared-field-label">Appearance</label>
+        <BaseTextareaWithCharacterCounter
+          v-model="editForm.appearance"
+          :placeholder="`Player appearance (max ${appearanceCharacterLimit} characters)`"
+          :max-characters="appearanceCharacterLimit"
+        />
+      </div>
+      
       <!-- Tags Section -->
       <TagManager v-model="editForm.tags" />
       
@@ -132,18 +142,18 @@
 <script>
 import { ref, reactive } from 'vue'
 import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
-import { WORD_LIMITS } from '../constants/validation.js'
+import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
 import TagManager from './forms/TagManager.vue'
 import AvatarUpload from './base/AvatarUpload.vue'
-import BaseTextarea from './base/BaseTextarea.vue'
+import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
 export default {
   name: 'PlayerCard',
   components: {
     TagManager,
     AvatarUpload,
-    BaseTextarea
+    BaseTextareaWithCharacterCounter
   },
   props: {
     player: {
@@ -218,7 +228,8 @@ export default {
       classes: CLASSES,
       sizes: SIZES.PLAYER,
       alignments: ALIGNMENTS,
-      appearanceWordLimit: WORD_LIMITS.PLAYER_APPEARANCE,
+      appearanceCharacterLimit: CHARACTER_LIMITS.PLAYER_APPEARANCE,
+      CHARACTER_LIMITS,
       isFormValid,
       getInitials,
       startEdit,
@@ -234,5 +245,17 @@ export default {
 /* PlayerCard now uses shared styles - minimal custom styles needed */
 .player-fields {
   flex: 1;
+}
+
+
+.character-limit-info {
+  font-size: 0.8em;
+  color: #6c757d;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.appearance-field {
+  margin-bottom: 16px;
 }
 </style>
