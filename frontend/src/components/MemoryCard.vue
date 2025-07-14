@@ -15,24 +15,40 @@
         </div>
       </div>
       
-      <!-- Visibility Conditions -->
-      <div class="shared-field">
-        <div class="shared-field-label">Visibility</div>
+      <!-- Visibility Conditions - 2x2 Grid Layout -->
+      <div class="shared-field shared-field-full-width">
+        <div class="shared-field-label">Visibility Conditions</div>
         <div class="shared-field-value">
-          <div class="visibility-display">
-            <span class="visibility-type">{{ formatVisibilityType(memory.visibility_type) }}</span>
-            <div v-if="memory.visibility_type !== 'always'" class="visibility-conditions">
-              <div v-if="memory.visibility_type === 'keyword' && memory.keywords.length > 0">
-                <strong>Keywords:</strong> {{ memory.keywords.join(', ') }}
+          <div class="shared-field-columns">
+            <!-- Left Column -->
+            <div class="shared-field-column">
+              <div class="shared-field">
+                <label class="shared-field-label">Always Present</label>
+                <p class="shared-field-value">{{ memory.visibility_type === 'always' ? 'Yes' : 'No' }}</p>
               </div>
-              <div v-if="memory.visibility_type === 'player_race' && memory.player_races.length > 0">
-                <strong>Player Races:</strong> {{ memory.player_races.join(', ') }}
+              
+              <div class="shared-field">
+                <label class="shared-field-label">Player Race</label>
+                <p class="shared-field-value">
+                  {{ memory.player_races && memory.player_races.length > 0 ? memory.player_races.join(', ') : 'None' }}
+                </p>
               </div>
-              <div v-if="memory.visibility_type === 'player_alignment' && memory.player_alignments.length > 0">
-                <strong>Player Alignments:</strong> {{ memory.player_alignments.join(', ') }}
+            </div>
+            
+            <!-- Right Column -->
+            <div class="shared-field-column">
+              <div class="shared-field">
+                <label class="shared-field-label">Keywords</label>
+                <p class="shared-field-value">
+                  {{ memory.keywords && memory.keywords.length > 0 ? memory.keywords.join(', ') : 'None' }}
+                </p>
               </div>
-              <div v-if="memory.visibility_type === 'tags' && memory.player_tags.length > 0">
-                <strong>Player Tags:</strong> {{ memory.player_tags.join(', ') }}
+              
+              <div class="shared-field">
+                <label class="shared-field-label">Player Alignment</label>
+                <p class="shared-field-value">
+                  {{ memory.player_alignments && memory.player_alignments.length > 0 ? memory.player_alignments.join(', ') : 'None' }}
+                </p>
               </div>
             </div>
           </div>
@@ -100,106 +116,125 @@
         <!-- Visibility Type -->
         <div class="visibility-field">
           <label class="shared-field-label">Visibility Conditions</label>
-          <div class="visibility-always-checkbox">
-            <label>
-              <input 
-                type="checkbox" 
-                v-model="isAlwaysVisible"
-                @change="handleAlwaysVisibleChange"
-              />
-              Always visible
-            </label>
+          <div class="visibility-options-list">
+            <div class="visibility-option">
+              <div class="visibility-option-left">
+                <label class="visibility-option-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="editForm.always_present"
+                    @change="handleAlwaysVisibleChange"
+                  />
+                  Always Present
+                </label>
+              </div>
+              <div class="visibility-option-right">
+                <div class="visibility-value-display">
+                  {{ editForm.always_present ? 'Enabled' : 'Disabled' }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="visibility-option" :class="{ disabled: editForm.always_present }">
+              <div class="visibility-option-left">
+                <label class="visibility-option-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="editForm.use_keywords"
+                    :disabled="editForm.always_present"
+                  />
+                  Keywords
+                </label>
+              </div>
+              <div class="visibility-option-right">
+                <div v-if="editForm.use_keywords && !editForm.always_present" class="visibility-option-control">
+                  <input 
+                    v-model="keywordInput"
+                    placeholder="Enter keywords (comma-separated)"
+                    class="shared-input"
+                    @keyup.enter="addKeywords"
+                  />
+                  <button @click="addKeywords" class="shared-btn shared-btn-success" type="button">Add</button>
+                </div>
+                <div class="visibility-current-values">
+                  <div v-if="editForm.keywords.length > 0" class="shared-tags-edit-display">
+                    <span v-for="(keyword, index) in editForm.keywords" :key="index" class="shared-tag-bubble editable">
+                      {{ keyword }}
+                      <button @click="removeKeyword(index)" class="shared-tag-remove-btn" type="button">×</button>
+                    </span>
+                  </div>
+                  <div v-else class="visibility-value-display">
+                    None
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="visibility-option" :class="{ disabled: editForm.always_present }">
+              <div class="visibility-option-left">
+                <label class="visibility-option-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="editForm.use_player_race"
+                    :disabled="editForm.always_present"
+                  />
+                  Player Race
+                </label>
+              </div>
+              <div class="visibility-option-right">
+                <div v-if="editForm.use_player_race && !editForm.always_present" class="visibility-option-control">
+                  <select v-model="selectedRaceToAdd" class="shared-select" @change="addPlayerRace">
+                    <option value="">Select race...</option>
+                    <option v-for="race in availableRaces" :key="race" :value="race">{{ race }}</option>
+                  </select>
+                </div>
+                <div class="visibility-current-values">
+                  <div v-if="editForm.player_races.length > 0" class="shared-tags-edit-display">
+                    <span v-for="(race, index) in editForm.player_races" :key="index" class="shared-tag-bubble editable">
+                      {{ race }}
+                      <button @click="removePlayerRace(index)" class="shared-tag-remove-btn" type="button">×</button>
+                    </span>
+                  </div>
+                  <div v-else class="visibility-value-display">
+                    None
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="visibility-option" :class="{ disabled: editForm.always_present }">
+              <div class="visibility-option-left">
+                <label class="visibility-option-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="editForm.use_player_alignment"
+                    :disabled="editForm.always_present"
+                  />
+                  Player Alignment
+                </label>
+              </div>
+              <div class="visibility-option-right">
+                <div v-if="editForm.use_player_alignment && !editForm.always_present" class="visibility-option-control">
+                  <select v-model="selectedAlignmentToAdd" class="shared-select" @change="addPlayerAlignment">
+                    <option value="">Select alignment...</option>
+                    <option v-for="alignment in availableAlignments" :key="alignment" :value="alignment">{{ alignment }}</option>
+                  </select>
+                </div>
+                <div class="visibility-current-values">
+                  <div v-if="editForm.player_alignments.length > 0" class="shared-tags-edit-display">
+                    <span v-for="(alignment, index) in editForm.player_alignments" :key="index" class="shared-tag-bubble editable">
+                      {{ alignment }}
+                      <button @click="removePlayerAlignment(index)" class="shared-tag-remove-btn" type="button">×</button>
+                    </span>
+                  </div>
+                  <div v-else class="visibility-value-display">
+                    None
+                  </div>
+                </div>
+              </div>
+            </div>
+            
           </div>
-          
-          <div v-if="!isAlwaysVisible" class="visibility-conditions-form">
-            <select v-model="editForm.visibility_type" class="shared-select">
-              <option value="keyword">Keywords</option>
-              <option value="player_race">Player Race</option>
-              <option value="player_alignment">Player Alignment</option>
-              <option value="tags">Player Tags</option>
-            </select>
-            
-            <!-- Keywords Input -->
-            <div v-if="editForm.visibility_type === 'keyword'" class="condition-input">
-              <input 
-                v-model="keywordInput"
-                placeholder="Enter keywords (comma-separated)"
-                class="shared-input"
-                @keyup.enter="addKeywords"
-              />
-              <button @click="addKeywords" class="shared-btn shared-btn-success" type="button">Add</button>
-            </div>
-            
-            <!-- Player Races Multi-select -->
-            <div v-if="editForm.visibility_type === 'player_race'" class="condition-input">
-              <select v-model="selectedRaceToAdd" class="shared-select" @change="addPlayerRace">
-                <option value="">Select race...</option>
-                <option v-for="race in availableRaces" :key="race" :value="race">{{ race }}</option>
-              </select>
-            </div>
-            
-            <!-- Player Alignments Multi-select -->
-            <div v-if="editForm.visibility_type === 'player_alignment'" class="condition-input">
-              <select v-model="selectedAlignmentToAdd" class="shared-select" @change="addPlayerAlignment">
-                <option value="">Select alignment...</option>
-                <option v-for="alignment in availableAlignments" :key="alignment" :value="alignment">{{ alignment }}</option>
-              </select>
-            </div>
-            
-            <!-- Player Tags Input -->
-            <div v-if="editForm.visibility_type === 'tags'" class="condition-input">
-              <input 
-                v-model="playerTagInput"
-                placeholder="Enter player tags (comma-separated)"
-                class="shared-input"
-                @keyup.enter="addPlayerTags"
-              />
-              <button @click="addPlayerTags" class="shared-btn shared-btn-success" type="button">Add</button>
-            </div>
-            
-            <!-- Display Current Conditions -->
-            <div class="current-conditions">
-              <div v-if="editForm.visibility_type === 'keyword' && editForm.keywords.length > 0" class="shared-tags-edit-display">
-                <span v-for="(keyword, index) in editForm.keywords" :key="index" class="shared-tag-bubble editable">
-                  {{ keyword }}
-                  <button @click="removeKeyword(index)" class="shared-tag-remove-btn" type="button">×</button>
-                </span>
-              </div>
-              
-              <div v-if="editForm.visibility_type === 'player_race' && editForm.player_races.length > 0" class="shared-tags-edit-display">
-                <span v-for="(race, index) in editForm.player_races" :key="index" class="shared-tag-bubble editable">
-                  {{ race }}
-                  <button @click="removePlayerRace(index)" class="shared-tag-remove-btn" type="button">×</button>
-                </span>
-              </div>
-              
-              <div v-if="editForm.visibility_type === 'player_alignment' && editForm.player_alignments.length > 0" class="shared-tags-edit-display">
-                <span v-for="(alignment, index) in editForm.player_alignments" :key="index" class="shared-tag-bubble editable">
-                  {{ alignment }}
-                  <button @click="removePlayerAlignment(index)" class="shared-tag-remove-btn" type="button">×</button>
-                </span>
-              </div>
-              
-              <div v-if="editForm.visibility_type === 'tags' && editForm.player_tags.length > 0" class="shared-tags-edit-display">
-                <span v-for="(tag, index) in editForm.player_tags" :key="index" class="shared-tag-bubble editable">
-                  {{ tag }}
-                  <button @click="removePlayerTag(index)" class="shared-tag-remove-btn" type="button">×</button>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Character Limit -->
-        <div class="character-limit-field">
-          <label class="shared-field-label">Character Limit</label>
-          <input 
-            v-model.number="editForm.character_limit" 
-            type="number"
-            min="1"
-            max="10000"
-            class="shared-input"
-          />
         </div>
         
         <!-- Memory Text -->
@@ -207,8 +242,8 @@
           <label class="shared-field-label">Memory</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.memory_text"
-            :placeholder="`Memory content (max ${editForm.character_limit} characters)`"
-            :max-characters="editForm.character_limit"
+            :placeholder="`Memory content (max ${CHARACTER_LIMITS.MEMORY_TEXT} characters)`"
+            :max-characters="CHARACTER_LIMITS.MEMORY_TEXT"
           />
         </div>
         
@@ -226,6 +261,7 @@
 import { ref, reactive, computed } from 'vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 import { RACES, ALIGNMENTS } from '../constants/gameData.js'
+import { CHARACTER_LIMITS } from '../constants/validation.js'
 
 export default {
   name: 'MemoryCard',
@@ -249,16 +285,16 @@ export default {
     const selectedRaceToAdd = ref('')
     const selectedAlignmentToAdd = ref('')
     const keywordInput = ref('')
-    const playerTagInput = ref('')
-    
     const editForm = reactive({
       title: '',
       linked_character_ids: [],
-      visibility_type: 'always',
+      always_present: false,
+      use_keywords: false,
+      use_player_race: false,
+      use_player_alignment: false,
       keywords: [],
       player_races: [],
       player_alignments: [],
-      player_tags: [],
       memory_text: '',
       character_limit: 500
     })
@@ -301,7 +337,7 @@ export default {
     const isFormValid = computed(() => {
       return editForm.title.trim() && 
              editForm.memory_text.trim() && 
-             editForm.memory_text.length <= editForm.character_limit
+             editForm.memory_text.length <= CHARACTER_LIMITS.MEMORY_TEXT
     })
     
     const formatVisibilityType = (type) => {
@@ -329,7 +365,6 @@ export default {
         keywords: [...props.memory.keywords],
         player_races: [...props.memory.player_races],
         player_alignments: [...props.memory.player_alignments],
-        player_tags: [...props.memory.player_tags],
         memory_text: props.memory.memory_text,
         character_limit: props.memory.character_limit
       })
@@ -343,7 +378,6 @@ export default {
       selectedRaceToAdd.value = ''
       selectedAlignmentToAdd.value = ''
       keywordInput.value = ''
-      playerTagInput.value = ''
     }
     
     const saveEdit = () => {
@@ -355,9 +389,8 @@ export default {
           keywords: editForm.keywords,
           player_races: editForm.player_races,
           player_alignments: editForm.player_alignments,
-          player_tags: editForm.player_tags,
           memory_text: editForm.memory_text.trim(),
-          character_limit: editForm.character_limit
+          character_limit: CHARACTER_LIMITS.MEMORY_TEXT
         })
         isEditing.value = false
       }
@@ -370,12 +403,23 @@ export default {
     }
     
     const handleAlwaysVisibleChange = () => {
-      if (isAlwaysVisible.value) {
+      if (editForm.always_present) {
+        // Clear all condition arrays and disable other options when switching to always
+        editForm.use_keywords = false
+        editForm.use_player_race = false
+        editForm.use_player_alignment = false
+        editForm.keywords = []
+        editForm.player_races = []
+        editForm.player_alignments = []
+      }
+    }
+    
+    const handleVisibilityTypeChange = () => {
+      if (editForm.visibility_type === 'always') {
         // Clear all condition arrays when switching to always
         editForm.keywords = []
         editForm.player_races = []
         editForm.player_alignments = []
-        editForm.player_tags = []
       }
     }
     
@@ -432,23 +476,6 @@ export default {
       editForm.player_alignments.splice(index, 1)
     }
     
-    // Player Tags Management
-    const addPlayerTags = () => {
-      if (playerTagInput.value.trim()) {
-        const tags = playerTagInput.value.split(',').map(t => t.trim()).filter(t => t)
-        tags.forEach(tag => {
-          if (!editForm.player_tags.includes(tag)) {
-            editForm.player_tags.push(tag)
-          }
-        })
-        playerTagInput.value = ''
-      }
-    }
-    
-    const removePlayerTag = (index) => {
-      editForm.player_tags.splice(index, 1)
-    }
-    
     return {
       isEditing,
       editForm,
@@ -457,7 +484,6 @@ export default {
       selectedRaceToAdd,
       selectedAlignmentToAdd,
       keywordInput,
-      playerTagInput,
       linkedCharacterNames,
       availableCharacters,
       availableRaces,
@@ -470,6 +496,7 @@ export default {
       saveEdit,
       confirmDelete,
       handleAlwaysVisibleChange,
+      handleVisibilityTypeChange,
       addLinkedCharacter,
       removeLinkedCharacter,
       addKeywords,
@@ -478,8 +505,7 @@ export default {
       removePlayerRace,
       addPlayerAlignment,
       removePlayerAlignment,
-      addPlayerTags,
-      removePlayerTag
+      CHARACTER_LIMITS
     }
   }
 }
@@ -569,5 +595,109 @@ export default {
 
 .current-conditions {
   margin-top: 8px;
+}
+
+.visibility-options-list {
+  margin-bottom: 16px;
+}
+
+.visibility-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.visibility-option:hover:not(.disabled) {
+  border-color: #007bff;
+  background: #f8f9fa;
+}
+
+.visibility-option.disabled {
+  opacity: 0.5;
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.visibility-option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 150px;
+  color: #495057;
+}
+
+.visibility-option.disabled .visibility-option-label {
+  cursor: not-allowed;
+  color: #6c757d;
+}
+
+.visibility-option-control {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 250px;
+}
+
+.visibility-option-control .shared-input {
+  flex: 1;
+  min-width: 180px;
+}
+
+.visibility-option-control .shared-select {
+  flex: 1;
+  min-width: 180px;
+}
+
+.visibility-option-control button {
+  white-space: nowrap;
+}
+
+.visibility-option-left {
+  flex: 0 0 150px;
+}
+
+.visibility-option-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.visibility-value-display {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: #6c757d;
+  font-style: italic;
+  min-width: 250px;
+  text-align: left;
+}
+
+.visibility-option.disabled .visibility-value-display {
+  background: #f1f3f4;
+  color: #adb5bd;
+}
+
+.visibility-current-values {
+  min-width: 250px;
+}
+
+.visibility-current-values .shared-tags-edit-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.visibility-current-values .visibility-value-display {
+  margin: 0;
 }
 </style>
