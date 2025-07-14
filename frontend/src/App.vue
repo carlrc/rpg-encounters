@@ -3,7 +3,7 @@
     <!-- Page Header -->
     <header class="page-header">
       <div class="header-content">
-        <h1 class="page-title">{{ activeTab === 'characters' ? 'Characters' : 'Players' }}</h1>
+        <h1 class="page-title">{{ getPageTitle(activeTab) }}</h1>
       </div>
     </header>
 
@@ -378,6 +378,217 @@
           </div>
         </div>
         
+        <!-- Memories Tab Content -->
+        <div v-else-if="activeTab === 'memories'" class="memories-split-view">
+          <!-- Left Pane - Memory List -->
+          <div class="memory-list-pane">
+            <div class="memory-list-header">
+              <h3>Memories</h3>
+            </div>
+            
+            <div class="memory-list-content">
+              <div 
+                v-for="memory in memories" 
+                :key="memory.id"
+                :class="['memory-list-item', { active: selectedMemoryId === memory.id }]"
+                @click="selectMemory(memory.id)"
+              >
+                {{ memory.title }}
+              </div>
+              
+              <div v-if="memories.length === 0" class="empty-state">
+                No memories yet
+              </div>
+            </div>
+            
+            <div class="memory-list-footer">
+              <button @click="startCreateMemory" class="add-memory-btn">
+                <span class="plus-icon">+</span>
+                Add Memory
+              </button>
+            </div>
+          </div>
+          
+          <!-- Right Pane - Memory Detail -->
+          <div class="memory-detail-pane">
+            <div v-if="!selectedMemory && !showCreateMemoryForm" class="empty-detail-state">
+              <div class="empty-icon">🧠</div>
+              <h3>No Memory Selected</h3>
+              <p>Select a memory from the list to view details, or create a new one.</p>
+            </div>
+            
+            <div v-else-if="showCreateMemoryForm" class="shared-card">
+              <div class="shared-form">
+                <!-- Memory Title -->
+                <input 
+                  v-model="createMemoryForm.title" 
+                  placeholder="Memory title"
+                  class="shared-input shared-input-name"
+                />
+                
+                <!-- Linked Characters -->
+                <div class="linked-characters-field">
+                  <label class="shared-field-label">Linked Characters</label>
+                  <select 
+                    v-model="selectedCharacterToAdd" 
+                    class="shared-select"
+                    @change="addLinkedCharacterToCreate"
+                  >
+                    <option value="">Select character to link...</option>
+                    <option 
+                      v-for="character in availableCharactersForCreate" 
+                      :key="character.id" 
+                      :value="character.id"
+                    >
+                      {{ character.name }}
+                    </option>
+                  </select>
+                  
+                  <div class="linked-characters-display">
+                    <span 
+                      v-for="characterId in createMemoryForm.linked_character_ids" 
+                      :key="characterId" 
+                      class="shared-tag-bubble editable"
+                    >
+                      {{ getCharacterName(characterId) }}
+                      <button @click="removeLinkedCharacterFromCreate(characterId)" class="shared-tag-remove-btn" type="button">×</button>
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Visibility Type -->
+                <div class="visibility-field">
+                  <label class="shared-field-label">Visibility Conditions</label>
+                  <div class="visibility-always-checkbox">
+                    <label>
+                      <input 
+                        type="checkbox" 
+                        v-model="isCreateAlwaysVisible"
+                        @change="handleCreateAlwaysVisibleChange"
+                      />
+                      Always visible
+                    </label>
+                  </div>
+                  
+                  <div v-if="!isCreateAlwaysVisible" class="visibility-conditions-form">
+                    <select v-model="createMemoryForm.visibility_type" class="shared-select">
+                      <option value="keyword">Keywords</option>
+                      <option value="player_race">Player Race</option>
+                      <option value="player_alignment">Player Alignment</option>
+                      <option value="tags">Player Tags</option>
+                    </select>
+                    
+                    <!-- Keywords Input -->
+                    <div v-if="createMemoryForm.visibility_type === 'keyword'" class="condition-input">
+                      <input 
+                        v-model="createKeywordInput"
+                        placeholder="Enter keywords (comma-separated)"
+                        class="shared-input"
+                        @keyup.enter="addCreateKeywords"
+                      />
+                      <button @click="addCreateKeywords" class="shared-btn shared-btn-success" type="button">Add</button>
+                    </div>
+                    
+                    <!-- Player Races Multi-select -->
+                    <div v-if="createMemoryForm.visibility_type === 'player_race'" class="condition-input">
+                      <select v-model="createSelectedRaceToAdd" class="shared-select" @change="addCreatePlayerRace">
+                        <option value="">Select race...</option>
+                        <option v-for="race in availableRacesForCreate" :key="race" :value="race">{{ race }}</option>
+                      </select>
+                    </div>
+                    
+                    <!-- Player Alignments Multi-select -->
+                    <div v-if="createMemoryForm.visibility_type === 'player_alignment'" class="condition-input">
+                      <select v-model="createSelectedAlignmentToAdd" class="shared-select" @change="addCreatePlayerAlignment">
+                        <option value="">Select alignment...</option>
+                        <option v-for="alignment in availableAlignmentsForCreate" :key="alignment" :value="alignment">{{ alignment }}</option>
+                      </select>
+                    </div>
+                    
+                    <!-- Player Tags Input -->
+                    <div v-if="createMemoryForm.visibility_type === 'tags'" class="condition-input">
+                      <input 
+                        v-model="createPlayerTagInput"
+                        placeholder="Enter player tags (comma-separated)"
+                        class="shared-input"
+                        @keyup.enter="addCreatePlayerTags"
+                      />
+                      <button @click="addCreatePlayerTags" class="shared-btn shared-btn-success" type="button">Add</button>
+                    </div>
+                    
+                    <!-- Display Current Conditions -->
+                    <div class="current-conditions">
+                      <div v-if="createMemoryForm.visibility_type === 'keyword' && createMemoryForm.keywords.length > 0" class="shared-tags-edit-display">
+                        <span v-for="(keyword, index) in createMemoryForm.keywords" :key="index" class="shared-tag-bubble editable">
+                          {{ keyword }}
+                          <button @click="removeCreateKeyword(index)" class="shared-tag-remove-btn" type="button">×</button>
+                        </span>
+                      </div>
+                      
+                      <div v-if="createMemoryForm.visibility_type === 'player_race' && createMemoryForm.player_races.length > 0" class="shared-tags-edit-display">
+                        <span v-for="(race, index) in createMemoryForm.player_races" :key="index" class="shared-tag-bubble editable">
+                          {{ race }}
+                          <button @click="removeCreatePlayerRace(index)" class="shared-tag-remove-btn" type="button">×</button>
+                        </span>
+                      </div>
+                      
+                      <div v-if="createMemoryForm.visibility_type === 'player_alignment' && createMemoryForm.player_alignments.length > 0" class="shared-tags-edit-display">
+                        <span v-for="(alignment, index) in createMemoryForm.player_alignments" :key="index" class="shared-tag-bubble editable">
+                          {{ alignment }}
+                          <button @click="removeCreatePlayerAlignment(index)" class="shared-tag-remove-btn" type="button">×</button>
+                        </span>
+                      </div>
+                      
+                      <div v-if="createMemoryForm.visibility_type === 'tags' && createMemoryForm.player_tags.length > 0" class="shared-tags-edit-display">
+                        <span v-for="(tag, index) in createMemoryForm.player_tags" :key="index" class="shared-tag-bubble editable">
+                          {{ tag }}
+                          <button @click="removeCreatePlayerTag(index)" class="shared-tag-remove-btn" type="button">×</button>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Character Limit -->
+                <div class="character-limit-field">
+                  <label class="shared-field-label">Character Limit</label>
+                  <input 
+                    v-model.number="createMemoryForm.character_limit" 
+                    type="number"
+                    min="1"
+                    max="10000"
+                    class="shared-input"
+                  />
+                </div>
+                
+                <!-- Memory Text -->
+                <div class="memory-text-field">
+                  <label class="shared-field-label">Memory Text</label>
+                  <BaseTextareaWithCharacterCounter
+                    v-model="createMemoryForm.memory_text"
+                    :placeholder="`Memory content (max ${createMemoryForm.character_limit} characters)`"
+                    :max-characters="createMemoryForm.character_limit"
+                  />
+                </div>
+                
+                <!-- Actions -->
+                <div class="shared-actions">
+                  <button @click="saveCreateMemory" class="shared-btn shared-btn-success" :disabled="!isCreateMemoryFormValid">Save</button>
+                  <button @click="cancelCreateMemory" class="shared-btn shared-btn-secondary">Cancel</button>
+                </div>
+              </div>
+            </div>
+            
+            <MemoryCard
+              v-else-if="selectedMemory"
+              :memory="selectedMemory"
+              :characters="characters"
+              @update="updateMemory"
+              @delete="deleteMemory"
+            />
+          </div>
+        </div>
+        
         <!-- Other tabs placeholder -->
         <div v-else class="placeholder-content">
           <h2>{{ activeTab.charAt(0).toUpperCase() + activeTab.slice(1) }}</h2>
@@ -392,9 +603,11 @@
 import { ref, onMounted, reactive, computed } from 'vue'
 import PlayerCard from './components/PlayerCard.vue'
 import CharacterCard from './components/CharacterCard.vue'
+import MemoryCard from './components/MemoryCard.vue'
 import TagManager from './components/forms/TagManager.vue'
 import AvatarUpload from './components/base/AvatarUpload.vue'
 import BaseTextarea from './components/base/BaseTextarea.vue'
+import BaseTextareaWithCharacterCounter from './components/base/BaseTextareaWithCharacterCounter.vue'
 import apiService from './services/api.js'
 import { RACES, CLASSES, SIZES, ALIGNMENTS, NAVIGATION_TABS } from './constants/gameData.js'
 import { WORD_LIMITS } from './constants/validation.js'
@@ -405,14 +618,17 @@ export default {
   components: {
     PlayerCard,
     CharacterCard,
+    MemoryCard,
     TagManager,
     AvatarUpload,
-    BaseTextarea
+    BaseTextarea,
+    BaseTextareaWithCharacterCounter
   },
   setup() {
     const activeTab = ref('players')
     const players = ref([])
     const characters = ref([])
+    const memories = ref([])
     const loading = ref(false)
     const error = ref('')
     const showCreateForm = ref(false)
@@ -421,6 +637,8 @@ export default {
     const successMessage = ref('')
     const selectedCharacterId = ref(null)
     const selectedPlayerId = ref(null)
+    const selectedMemoryId = ref(null)
+    const showCreateMemoryForm = ref(false)
     
     const createForm = reactive({
       name: '',
@@ -447,6 +665,16 @@ export default {
 
     const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'PLAYER')
     const { isFormValid: isCreateCharacterFormValid } = useFormValidation(createCharacterForm, 'CHARACTER')
+
+    const getPageTitle = (tabId) => {
+      const titleMap = {
+        'players': 'Players',
+        'characters': 'Characters',
+        'memories': 'Memories',
+        'encounters': 'Encounters'
+      }
+      return titleMap[tabId] || tabId.charAt(0).toUpperCase() + tabId.slice(1)
+    }
 
     const setActiveTab = (tabId) => {
       activeTab.value = tabId
@@ -942,6 +1170,7 @@ export default {
     onMounted(async () => {
       await loadPlayers()
       await loadCharacters()
+      await loadMemories()
       autoSelectFirstCharacter()
     })
 
@@ -952,18 +1181,249 @@ export default {
     const createBackgroundWordCount = ref(0)
     const createCommunicationWordCount = ref(0)
 
+    // Memory functionality
+    const createMemoryForm = reactive({
+      title: '',
+      linked_character_ids: [],
+      visibility_type: 'always',
+      keywords: [],
+      player_races: [],
+      player_alignments: [],
+      player_tags: [],
+      memory_text: '',
+      character_limit: 500
+    })
+
+    const selectedCharacterToAdd = ref('')
+    const createKeywordInput = ref('')
+    const createPlayerTagInput = ref('')
+    const createSelectedRaceToAdd = ref('')
+    const createSelectedAlignmentToAdd = ref('')
+
+    const isCreateAlwaysVisible = computed({
+      get: () => createMemoryForm.visibility_type === 'always',
+      set: (value) => {
+        if (value) {
+          createMemoryForm.visibility_type = 'always'
+          createMemoryForm.keywords = []
+          createMemoryForm.player_races = []
+          createMemoryForm.player_alignments = []
+          createMemoryForm.player_tags = []
+        } else {
+          createMemoryForm.visibility_type = 'keyword'
+        }
+      }
+    })
+
+    const availableCharactersForCreate = computed(() => {
+      return characters.value.filter(c => !createMemoryForm.linked_character_ids.includes(c.id))
+    })
+
+    const availableRacesForCreate = computed(() => {
+      return RACES.filter(race => !createMemoryForm.player_races.includes(race))
+    })
+
+    const availableAlignmentsForCreate = computed(() => {
+      return ALIGNMENTS.filter(alignment => !createMemoryForm.player_alignments.includes(alignment))
+    })
+
+    const isCreateMemoryFormValid = computed(() => {
+      return createMemoryForm.title.trim() && 
+             createMemoryForm.memory_text.trim() && 
+             createMemoryForm.memory_text.length <= createMemoryForm.character_limit
+    })
+
+    const selectedMemory = computed(() => {
+      return memories.value.find(m => m.id === selectedMemoryId.value) || null
+    })
+
+    const getCharacterName = (characterId) => {
+      const character = characters.value.find(c => c.id === characterId)
+      return character ? character.name : `Character ${characterId}`
+    }
+
+    const loadMemories = async () => {
+      loading.value = true
+      error.value = ''
+      try {
+        memories.value = await apiService.getMemories()
+      } catch (err) {
+        error.value = 'Failed to load memories. Make sure the backend is running.'
+        console.error('Error loading memories:', err)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const selectMemory = (memoryId) => {
+      selectedMemoryId.value = memoryId
+      showCreateMemoryForm.value = false
+    }
+
+    const startCreateMemory = () => {
+      showCreateMemoryForm.value = true
+      selectedMemoryId.value = null
+    }
+
+    const cancelCreateMemory = () => {
+      showCreateMemoryForm.value = false
+      Object.assign(createMemoryForm, {
+        title: '',
+        linked_character_ids: [],
+        visibility_type: 'always',
+        keywords: [],
+        player_races: [],
+        player_alignments: [],
+        player_tags: [],
+        memory_text: '',
+        character_limit: 500
+      })
+      selectedCharacterToAdd.value = ''
+      createKeywordInput.value = ''
+      createPlayerTagInput.value = ''
+      createSelectedRaceToAdd.value = ''
+      createSelectedAlignmentToAdd.value = ''
+    }
+
+    const saveCreateMemory = async () => {
+      if (isCreateMemoryFormValid.value) {
+        try {
+          const newMemory = await apiService.createMemory({
+            title: createMemoryForm.title.trim(),
+            linked_character_ids: createMemoryForm.linked_character_ids,
+            visibility_type: createMemoryForm.visibility_type,
+            keywords: createMemoryForm.keywords,
+            player_races: createMemoryForm.player_races,
+            player_alignments: createMemoryForm.player_alignments,
+            player_tags: createMemoryForm.player_tags,
+            memory_text: createMemoryForm.memory_text.trim(),
+            character_limit: createMemoryForm.character_limit
+          })
+          memories.value.push(newMemory)
+          selectedMemoryId.value = newMemory.id
+          cancelCreateMemory()
+        } catch (err) {
+          error.value = 'Failed to create memory'
+          console.error('Error creating memory:', err)
+        }
+      }
+    }
+
+    const updateMemory = async (memoryId, memoryData) => {
+      try {
+        const updatedMemory = await apiService.updateMemory(memoryId, memoryData)
+        const index = memories.value.findIndex(m => m.id === memoryId)
+        if (index !== -1) {
+          memories.value[index] = updatedMemory
+        }
+      } catch (err) {
+        error.value = 'Failed to update memory'
+        console.error('Error updating memory:', err)
+      }
+    }
+
+    const deleteMemory = async (memoryId) => {
+      try {
+        await apiService.deleteMemory(memoryId)
+        memories.value = memories.value.filter(m => m.id !== memoryId)
+        if (selectedMemoryId.value === memoryId) {
+          selectedMemoryId.value = null
+        }
+      } catch (err) {
+        error.value = 'Failed to delete memory'
+        console.error('Error deleting memory:', err)
+      }
+    }
+
+    const handleCreateAlwaysVisibleChange = () => {
+      if (isCreateAlwaysVisible.value) {
+        createMemoryForm.keywords = []
+        createMemoryForm.player_races = []
+        createMemoryForm.player_alignments = []
+        createMemoryForm.player_tags = []
+      }
+    }
+
+    const addLinkedCharacterToCreate = () => {
+      if (selectedCharacterToAdd.value && !createMemoryForm.linked_character_ids.includes(parseInt(selectedCharacterToAdd.value))) {
+        createMemoryForm.linked_character_ids.push(parseInt(selectedCharacterToAdd.value))
+        selectedCharacterToAdd.value = ''
+      }
+    }
+
+    const removeLinkedCharacterFromCreate = (characterId) => {
+      createMemoryForm.linked_character_ids = createMemoryForm.linked_character_ids.filter(id => id !== characterId)
+    }
+
+    const addCreateKeywords = () => {
+      if (createKeywordInput.value.trim()) {
+        const keywords = createKeywordInput.value.split(',').map(k => k.trim()).filter(k => k)
+        keywords.forEach(keyword => {
+          if (!createMemoryForm.keywords.includes(keyword)) {
+            createMemoryForm.keywords.push(keyword)
+          }
+        })
+        createKeywordInput.value = ''
+      }
+    }
+
+    const removeCreateKeyword = (index) => {
+      createMemoryForm.keywords.splice(index, 1)
+    }
+
+    const addCreatePlayerRace = () => {
+      if (createSelectedRaceToAdd.value && !createMemoryForm.player_races.includes(createSelectedRaceToAdd.value)) {
+        createMemoryForm.player_races.push(createSelectedRaceToAdd.value)
+        createSelectedRaceToAdd.value = ''
+      }
+    }
+
+    const removeCreatePlayerRace = (index) => {
+      createMemoryForm.player_races.splice(index, 1)
+    }
+
+    const addCreatePlayerAlignment = () => {
+      if (createSelectedAlignmentToAdd.value && !createMemoryForm.player_alignments.includes(createSelectedAlignmentToAdd.value)) {
+        createMemoryForm.player_alignments.push(createSelectedAlignmentToAdd.value)
+        createSelectedAlignmentToAdd.value = ''
+      }
+    }
+
+    const removeCreatePlayerAlignment = (index) => {
+      createMemoryForm.player_alignments.splice(index, 1)
+    }
+
+    const addCreatePlayerTags = () => {
+      if (createPlayerTagInput.value.trim()) {
+        const tags = createPlayerTagInput.value.split(',').map(t => t.trim()).filter(t => t)
+        tags.forEach(tag => {
+          if (!createMemoryForm.player_tags.includes(tag)) {
+            createMemoryForm.player_tags.push(tag)
+          }
+        })
+        createPlayerTagInput.value = ''
+      }
+    }
+
+    const removeCreatePlayerTag = (index) => {
+      createMemoryForm.player_tags.splice(index, 1)
+    }
+
     return {
       activeTab,
       navigationTabs: NAVIGATION_TABS,
       players,
       characters,
+      memories,
       loading,
       error,
       successMessage,
       showCreateForm,
       showCreateCharacterForm,
+      showCreateMemoryForm,
       createForm,
       createCharacterForm,
+      createMemoryForm,
       newCreateTagInput,
       newCreateCharacterTagInput,
       createWordCount,
@@ -974,6 +1434,18 @@ export default {
       selectedCharacter,
       selectedPlayerId,
       selectedPlayer,
+      selectedMemoryId,
+      selectedMemory,
+      selectedCharacterToAdd,
+      createKeywordInput,
+      createPlayerTagInput,
+      createSelectedRaceToAdd,
+      createSelectedAlignmentToAdd,
+      isCreateAlwaysVisible,
+      availableCharactersForCreate,
+      availableRacesForCreate,
+      availableAlignmentsForCreate,
+      isCreateMemoryFormValid,
       races: RACES,
       classes: CLASSES,
       sizes: SIZES.PLAYER,
@@ -982,6 +1454,8 @@ export default {
       isCreateFormValid,
       isCreateCharacterFormValid,
       getInitials,
+      getPageTitle,
+      getCharacterName,
       setActiveTab,
       updatePlayer,
       deletePlayer,
@@ -989,8 +1463,10 @@ export default {
       deleteCharacter: deleteCharacterWithSelection,
       selectCharacter,
       selectPlayer,
+      selectMemory,
       startCreate,
       startCreateCharacter,
+      startCreateMemory,
       updateCreateWordCount,
       updateCreateBackgroundWordCount,
       updateCreateCommunicationWordCount,
@@ -1004,8 +1480,23 @@ export default {
       removePlayerAvatar,
       cancelCreate,
       cancelCreateCharacter,
+      cancelCreateMemory,
       saveCreate,
       saveCreateCharacter,
+      saveCreateMemory,
+      updateMemory,
+      deleteMemory,
+      handleCreateAlwaysVisibleChange,
+      addLinkedCharacterToCreate,
+      removeLinkedCharacterFromCreate,
+      addCreateKeywords,
+      removeCreateKeyword,
+      addCreatePlayerRace,
+      removeCreatePlayerRace,
+      addCreatePlayerAlignment,
+      removeCreatePlayerAlignment,
+      addCreatePlayerTags,
+      removeCreatePlayerTag,
       handleImportFile
     }
   }
@@ -1742,6 +2233,168 @@ export default {
   background: #a8a8a8;
 }
 
+/* Memories Split View Layout */
+.memories-split-view {
+  display: flex;
+  height: 100%;
+  gap: 0;
+}
+
+.memory-list-pane {
+  width: 25%;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+  border-right: 2px solid #e9ecef;
+}
+
+.memory-list-header {
+  padding: 20px 16px 16px 16px;
+  border-bottom: 1px solid #e9ecef;
+  background: white;
+}
+
+.memory-list-header h3 {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.memory-list-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.memory-list-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+  font-weight: 500;
+  color: #495057;
+  background: white;
+  margin: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.memory-list-item:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+  border-color: #bbdefb;
+}
+
+.memory-list-item.active {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border-left-color: #004085;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.memory-list-item.active:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.memory-list-footer {
+  padding: 16px;
+  border-top: 1px solid #e9ecef;
+  background: white;
+}
+
+.add-memory-btn {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #28a745, #218838);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+}
+
+.add-memory-btn:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+}
+
+.add-memory-btn .plus-icon {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.memory-detail-pane {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #ffffff;
+}
+
+/* Memory form specific styles */
+.linked-characters-field,
+.visibility-field,
+.character-limit-field,
+.memory-text-field {
+  margin-bottom: 16px;
+}
+
+.linked-characters-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 40px;
+  align-items: flex-start;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px dashed #dee2e6;
+}
+
+.visibility-always-checkbox {
+  margin-bottom: 12px;
+}
+
+.visibility-always-checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.visibility-conditions-form {
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.condition-input {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.condition-input .shared-input {
+  flex: 1;
+}
+
+.current-conditions {
+  margin-top: 8px;
+}
+
 @media (max-width: 768px) {
   .edit-columns {
     grid-template-columns: 1fr;
@@ -1751,17 +2404,17 @@ export default {
     grid-template-columns: 1fr;
   }
   
-  .characters-split-view {
+  .characters-split-view, .memories-split-view {
     flex-direction: column;
   }
   
-  .character-list-pane {
+  .character-list-pane, .memory-list-pane {
     width: 100%;
     min-width: unset;
     max-height: 200px;
   }
   
-  .character-detail-pane {
+  .character-detail-pane, .memory-detail-pane {
     flex: 1;
     padding: 16px;
   }

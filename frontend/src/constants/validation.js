@@ -5,6 +5,10 @@ export const WORD_LIMITS = {
     CHARACTER_COMMUNICATION: 30
 }
 
+export const CHARACTER_LIMITS = {
+    MEMORY_TEXT: 500
+}
+
 export const VALIDATION_MESSAGES = {
     REQUIRED_FIELD: 'This field is required',
     WORD_LIMIT_EXCEEDED: 'Word limit exceeded',
@@ -19,5 +23,9 @@ export const FORM_FIELDS = {
     CHARACTER: {
         REQUIRED: ['name', 'race', 'size', 'alignment', 'profession', 'background', 'communication_style'],
         OPTIONAL: ['avatar', 'tags']
+    },
+    MEMORY: {
+        REQUIRED: ['title', 'memory_text'],
+        OPTIONAL: ['linked_character_ids', 'visibility_type', 'keywords', 'player_races', 'player_alignments', 'player_tags', 'character_limit']
     }
 }

@@ -87,6 +87,35 @@ class ApiService {
             method: 'DELETE',
         });
     }
+
+    // Memory CRUD operations
+    async getMemories() {
+        return this.request('/memories');
+    }
+
+    async getMemory(id) {
+        return this.request(`/memories/${id}`);
+    }
+
+    async createMemory(memoryData) {
+        return this.request('/memories', {
+            method: 'POST',
+            body: JSON.stringify(memoryData),
+        });
+    }
+
+    async updateMemory(id, memoryData) {
+        return this.request(`/memories/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(memoryData),
+        });
+    }
+
+    async deleteMemory(id) {
+        return this.request(`/memories/${id}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 export default new ApiService();

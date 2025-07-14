@@ -24,6 +24,6 @@ export const ALIGNMENTS = [
 export const NAVIGATION_TABS = [
     { id: 'players', label: 'Players' },
     { id: 'characters', label: 'Characters' },
-    { id: 'lorebooks', label: 'Lorebooks' },
+    { id: 'memories', label: 'Memories' },
     { id: 'encounters', label: 'Encounters' }
 ]
