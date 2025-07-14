@@ -8,7 +8,7 @@ from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 from app.services.llm import OllamaService
 from app.services.conversation_manager import ConversationManager
-from app.routers import players, characters
+from app.routers import players, characters, memories
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -18,6 +18,7 @@ app = FastAPI(title="D&D AI Character Backend")
 # Include routers
 app.include_router(players.router)
 app.include_router(characters.router)
+app.include_router(memories.router)
 
 # Initialize services
 audio_processor = AudioProcessor()
