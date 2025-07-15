@@ -5,10 +5,7 @@ from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 from app.ai.character_agent import CharacterAgent
-from app.models.character import Character
 from app.services.memory_manager import MemoryManager
-from app.data.memory_store import memory_store
-from app.data.player_store import player_store
 from app.data.character_store import character_store
 
 logging.basicConfig(level=logging.DEBUG)
@@ -63,7 +60,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             wav_path = audio_processor.save_chunks_to_wav(audio_chunks)
             
             transcription = await transcription_service.transcribe_audio(wav_path)
-            logger.debug(f"Transcribed audio text: {transcription}")
+            logger.info(f"Transcribed audio text: {transcription}")
             
             # Get character from character store
             character = character_store.get_character_by_id(character_id)
@@ -81,7 +78,6 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             
             
             # Stream TTS audio chunks back to frontend
-            logger.info("Starting TTS streaming...")
             for audio_chunk in tts_service.text_to_speech_stream(result.output):
                 try:
                     await websocket.send_bytes(audio_chunk)

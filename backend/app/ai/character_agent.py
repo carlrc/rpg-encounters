@@ -14,14 +14,14 @@ class CharacterAgent:
         self.agent = Agent(
             OpenAIModel(model_name='mistral', provider=OpenAIProvider(base_url='http://localhost:11434/v1')), 
             deps_type=list[str],
-            system_prompt="You are a character in an RPG world. Consider your characteristics and memories in your reply. Keep your replies very short. Do not reference your characteristics in your reply. Do not give up your memories unless prompted.",
+            system_prompt="You are a character in an RPG world. Keep your answers conversational and short. Do not reference your characteristics in your reply.",
             instructions=character.to_prompt(),
             history_processors=[self._keep_recent_messages])
         self.run_result: AgentRunResult[str] = None
         
         @self.agent.instructions
         def add_memories(ctx: RunContext[list[str]]) -> str:  
-            return f"MEMORIES={''.join(str(memory) for memory in ctx.deps)}"
+            return f"Memories to reference={''.join(str(memory) for memory in ctx.deps)}"
         
     async def chat(self, player_transcript: str, memories: list[str]) -> AgentRunResult[str]:
         message_history = self.run_result.all_messages() if self.run_result else []

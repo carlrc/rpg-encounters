@@ -137,14 +137,6 @@ class Character(CharacterBase):
     def to_prompt(self) -> str:
         """Convert character data into a system prompt for AI interactions."""
         
-        prompt_parts = []
-
-        prompt_parts.append(f"CHARACTER_IDENTITY=You name is {self.name}. You are a {self.size} {self.race}. Your profession is {self.profession}.")
-                
-        prompt_parts.append(f"CHARACTER_BACKGROUND={self.background}")
-        
-        prompt_parts.append(f"CHARACTER_COMMUNICATION_STYLE={self.communication_style}")
-                
-        return "".join(prompt_parts)
+        return f"You are {self.name}, a {self.race} {self.profession}. {self.background} You communicate in this style: {self.communication_style}. Stay in character and respond naturally as {self.name} would."
     
     model_config = {"from_attributes": True}
