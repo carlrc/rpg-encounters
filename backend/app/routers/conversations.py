@@ -4,8 +4,12 @@ import asyncio
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
-from app.services.llm import OllamaService
-from app.services.conversation_manager import ConversationManager
+from app.ai.character_agent import CharacterAgent
+from app.models.character import Character
+from app.services.memory_manager import MemoryManager
+from app.data.memory_store import memory_store
+from app.data.player_store import player_store
+from app.data.character_store import character_store
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -16,8 +20,7 @@ router = APIRouter(prefix="/conversation", tags=["conversations"])
 audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
-llm_service = OllamaService(model_name="mistral")
-conversation_manager = ConversationManager(exchange_threshold=5)
+memory_manager = MemoryManager()
 
 @router.websocket("/{player_id}/{character_id}")
 async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id: int):
@@ -62,42 +65,24 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             transcription = await transcription_service.transcribe_audio(wav_path)
             logger.debug(f"Transcribed audio text: {transcription}")
             
-            # Add user message to conversation history
-            conversation_manager.add_message(f"user: {transcription}")
+            # Get character from character store
+            character = character_store.get_character_by_id(character_id)
             
-            # Build context-aware prompt with conversation history
-            system_prompt = llm_service.get_dnd_character_system_prompt()
-            full_prompt = conversation_manager.build_prompt(system_prompt, max_tokens=2048)
+            # Get relevant memories for this character and player
+            memories = memory_manager.get_memories(character_id, player_id)
             
-            # Generate AI response using conversation context
-            response_text = await llm_service.generate_response(full_prompt)
-            logger.debug(f"Generated LLM response: {response_text}")
+            # Create character agent
+            agent = CharacterAgent(character)
             
-            # Add assistant response to conversation history
-            conversation_manager.add_message(f"agent: {response_text}")
+            # Generate AI response using character agent
+            result = await agent.chat(transcription, memories)
+            logger.debug(f"Generated character response: {result.output}")
             
-            # Check if summarization is needed and handle it
-            if conversation_manager.should_summarize():
-                logger.info("Triggering conversation summarization...")
-                
-                # Create async wrapper for the LLM service
-                async def llm_wrapper(prompt: str, sys_prompt: str = None) -> str:
-                    return await llm_service.generate_response(prompt, sys_prompt)
-                
-                # Run summarization (this is async but we want it to complete)
-                def sync_llm_wrapper(prompt: str, sys_prompt: str = None) -> str:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        return loop.run_until_complete(llm_wrapper(prompt, sys_prompt))
-                    finally:
-                        loop.close()
-                
-                conversation_manager.summarize_recent_exchanges(sync_llm_wrapper)
+            
             
             # Stream TTS audio chunks back to frontend
             logger.info("Starting TTS streaming...")
-            for audio_chunk in tts_service.text_to_speech_stream(response_text):
+            for audio_chunk in tts_service.text_to_speech_stream(result.output):
                 try:
                     await websocket.send_bytes(audio_chunk)
                 except Exception as e:
