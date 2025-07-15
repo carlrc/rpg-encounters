@@ -33,7 +33,6 @@ class ElevenLabsTTS:
             
             for chunk in audio_stream:
                 if isinstance(chunk, bytes):
-                    logger.debug("Yielded another chunk...")
                     yield chunk
                                 
         except Exception as e:

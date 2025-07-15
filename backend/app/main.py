@@ -4,7 +4,7 @@ import logging
 import uvicorn
 from app.routers import players, characters, memories, conversations
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="D&D AI Character Backend")

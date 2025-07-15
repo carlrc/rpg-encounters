@@ -48,14 +48,16 @@ export default {
     const navigationRoutes = [
       { path: '/players', name: 'Players' },
       { path: '/characters', name: 'Characters' },
-      { path: '/memories', name: 'Memories' }
+      { path: '/memories', name: 'Memories' },
+      { path: '/encounters', name: 'Encounters' }
     ]
 
     const pageTitle = computed(() => {
       const titleMap = {
         'Players': 'Players',
         'Characters': 'Characters',
-        'Memories': 'Memories'
+        'Memories': 'Memories',
+        'Encounters': 'Encounters'
       }
       return titleMap[route.name] || route.name
     })

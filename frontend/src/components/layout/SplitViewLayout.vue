@@ -22,7 +22,11 @@
       </div>
       
       <div class="list-footer">
-        <button @click="$emit('create-item')" class="add-btn">
+        <button 
+          v-if="createButtonText" 
+          @click="$emit('create-item')" 
+          class="add-btn"
+        >
           <span class="plus-icon">+</span>
           {{ createButtonText }}
         </button>
