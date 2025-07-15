@@ -135,18 +135,16 @@ class CharacterUpdate(CharacterBase):
 class Character(CharacterBase):
     id: int
     
-    def to_system_prompt(self) -> str:
+    def to_prompt(self) -> str:
         """Convert character data into a system prompt for AI interactions."""
         
         prompt_parts = []
 
-        prompt_parts.append(f"You are a character in an RPG world. Reply as this character would.")
-        
-        prompt_parts.append(f"CHARACTER_IDENTITY: You name is {self.name}. You are a {self.size} {self.race}. Your profession is {self.profession}.")
+        prompt_parts.append(f"CHARACTER_IDENTITY=You name is {self.name}. You are a {self.size} {self.race}. Your profession is {self.profession}.")
                 
-        prompt_parts.append(f"CHARACTER_BACKGROUND: {self.background}")
+        prompt_parts.append(f"CHARACTER_BACKGROUND={self.background}")
         
-        prompt_parts.append(f"CHARACTER_COMMUNICATION_STYLE: {self.communication_style}")
+        prompt_parts.append(f"CHARACTER_COMMUNICATION_STYLE={self.communication_style}")
                 
         return "".join(prompt_parts)
     

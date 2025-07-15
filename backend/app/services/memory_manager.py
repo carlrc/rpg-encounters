@@ -1,4 +1,4 @@
-from backend.app.models.memory import Memory
+from backend.app.models.memory import Memory, VisibilityType
 from backend.app.models.player import Player
 from ..data.memory_store import memory_store
 from ..data.player_store import player_store
@@ -17,20 +17,22 @@ class MemoryManager:
         inactive_memories = list(filter(lambda memory: memory.id not in active_memory_ids, linked_memories))
         relevant_memories = self._get_relevant_memories(inactive_memories, player)
 
-        return [memory.memory_text for memory in relevant_memories]
+        self.active_memories.extend(relevant_memories)
+
+        return [memory.memory_text for memory in self.active_memories]
 
     def _get_relevant_memories(self, memories: list[Memory], player: Player) -> list[Memory]:
         relevant_memories: list[Memory] = []
         for memory in memories:
-            if memory.visibility_type == "always":
+            if memory.visibility_type == VisibilityType.ALWAYS:
                 relevant_memories.append(memory)
-            if memory.visibility_type == "player_race":
+            if memory.visibility_type == VisibilityType.PLAYER_RACE:
                 if player.race in memory.player_races:
                     relevant_memories.append(memory)
-            if memory.visibility_type == "player_alignment":
+            if memory.visibility_type == VisibilityType.PLAYER_ALIGNMENT:
                 if player.alignment in memory.player_alignments:
                     relevant_memories.append(memory)
-            if memory.visibility_type == "keyword":
+            if memory.visibility_type == VisibilityType.KEYWORD:
                 if self._has_keywords("", memory):
                     relevant_memories.append(memory)
         

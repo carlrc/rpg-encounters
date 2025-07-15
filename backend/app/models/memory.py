@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Union
 from enum import Enum
+from .character import CharacterRace, CharacterAlignment
 
 class VisibilityType(str, Enum):
     ALWAYS = "always"
@@ -28,10 +29,7 @@ def validate_character_limit_range(character_limit):
 
 def validate_player_races_list(races_list):
     if races_list is not None:
-        valid_races = [
-            'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
-            'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
-        ]
+        valid_races = [race.value for race in CharacterRace]
         for race in races_list:
             if race not in valid_races:
                 raise ValueError(f'Invalid race: {race}. Must be one of: {", ".join(valid_races)}')
@@ -39,11 +37,7 @@ def validate_player_races_list(races_list):
 
 def validate_player_alignments_list(alignments_list):
     if alignments_list is not None:
-        valid_alignments = [
-            'Lawful Good', 'Neutral Good', 'Chaotic Good',
-            'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-            'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
-        ]
+        valid_alignments = [alignment.value for alignment in CharacterAlignment]
         for alignment in alignments_list:
             if alignment not in valid_alignments:
                 raise ValueError(f'Invalid alignment: {alignment}. Must be one of: {", ".join(valid_alignments)}')
