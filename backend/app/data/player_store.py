@@ -1,5 +1,5 @@
 from typing import Optional, List
-from ..models.player import Player, PlayerCreate, PlayerUpdate
+from app.models.player import Player, PlayerCreate, PlayerUpdate
 
 players_db = {
     1: Player(

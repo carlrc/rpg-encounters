@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Union
 from enum import Enum
+from .character import CharacterRace, CharacterAlignment
 
 class VisibilityType(str, Enum):
     ALWAYS = "always"
@@ -22,16 +23,13 @@ def validate_character_limit_range(character_limit):
     if character_limit is not None:
         if character_limit < 1:
             raise ValueError('Character limit must be at least 1')
-        if character_limit > 10000:
+        if character_limit > 500:
             raise ValueError('Character limit cannot exceed 10,000')
     return character_limit
 
 def validate_player_races_list(races_list):
     if races_list is not None:
-        valid_races = [
-            'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
-            'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
-        ]
+        valid_races = [race.value for race in CharacterRace]
         for race in races_list:
             if race not in valid_races:
                 raise ValueError(f'Invalid race: {race}. Must be one of: {", ".join(valid_races)}')
@@ -39,11 +37,7 @@ def validate_player_races_list(races_list):
 
 def validate_player_alignments_list(alignments_list):
     if alignments_list is not None:
-        valid_alignments = [
-            'Lawful Good', 'Neutral Good', 'Chaotic Good',
-            'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-            'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
-        ]
+        valid_alignments = [alignment.value for alignment in CharacterAlignment]
         for alignment in alignments_list:
             if alignment not in valid_alignments:
                 raise ValueError(f'Invalid alignment: {alignment}. Must be one of: {", ".join(valid_alignments)}')
@@ -63,7 +57,8 @@ class MemoryBase(BaseModel):
     player_races: List[str] = Field(default_factory=list, description="Player races for race-based visibility")
     player_alignments: List[str] = Field(default_factory=list, description="Player alignments for alignment-based visibility")
     memory_text: str = Field(..., description="Memory content text")
-    character_limit: int = Field(default=500, description="Character limit for memory text")
+    # TODO: Char limit needs to be fixed
+    character_limit: int = Field(default=100, description="Character limit for memory text")
 
     @field_validator('memory_text')
     @classmethod
@@ -85,7 +80,7 @@ class MemoryBase(BaseModel):
     def validate_player_alignments(cls, v):
         return validate_player_alignments_list(v)
 
-    @field_validator('keywords', 'player_tags')
+    @field_validator('keywords')
     @classmethod
     def validate_string_fields(cls, v):
         return validate_string_lists(v)
@@ -123,7 +118,7 @@ class MemoryUpdate(BaseModel):
     def validate_player_alignments(cls, v):
         return validate_player_alignments_list(v)
 
-    @field_validator('keywords', 'player_tags')
+    @field_validator('keywords')
     @classmethod
     def validate_string_fields(cls, v):
         return validate_string_lists(v)
@@ -131,5 +126,4 @@ class MemoryUpdate(BaseModel):
 class Memory(MemoryBase):
     id: int
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

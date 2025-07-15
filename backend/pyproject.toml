@@ -10,5 +10,21 @@ dependencies = [
     "openai-whisper==20250625",
     "elevenlabs==2.7.1",
     "python-dotenv==1.1.1",
-    "ollama==0.5.1"
+    "ollama==0.5.1",
+    "pydantic-ai==0.4.2"
 ]
+
+[project.optional-dependencies]
+test = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+    "dirty-equals==0.8.0",
+    "inline-snapshot==0.15.0"
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

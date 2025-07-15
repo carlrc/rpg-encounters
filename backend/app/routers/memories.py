@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from ..models.memory import Memory, MemoryCreate, MemoryUpdate
-from ..data.memory_store import memory_store
+from app.models.memory import Memory, MemoryCreate, MemoryUpdate
+from app.data.memory_store import memory_store
 
 router = APIRouter(prefix="/api/memories", tags=["memories"])
 
