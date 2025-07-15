@@ -6,13 +6,15 @@ from app.models.memory import Memory
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 
+MAX_MESSAGE_HISTORY = 8
+
 class CharacterAgent:
     def __init__(self, character: Character):
         self.character = character
         self.agent = Agent(
             OpenAIModel(model_name='mistral', provider=OpenAIProvider(base_url='http://localhost:11434/v1')), 
             deps_type=list[Memory],
-            system_prompt="You are a character in an RPG world. Consider your characteristics and memories in your reply",
+            system_prompt="You are a character in an RPG world. Consider your characteristics and memories in your reply. Keep your replies very short.",
             instructions=character.to_prompt(),
             history_processors=[self._keep_recent_messages])
         self.run_result: AgentRunResult[str] = None
@@ -28,5 +30,5 @@ class CharacterAgent:
         return self.run_result
     
     async def _keep_recent_messages(self, messages: list[ModelMessage]) -> list[ModelMessage]:
-        """Keep only the last 5 messages to manage token usage."""
-        return messages[-5:] if len(messages) > 5 else messages
+        """Keep only the last N messages to manage token usage."""
+        return messages[-MAX_MESSAGE_HISTORY:] if len(messages) > MAX_MESSAGE_HISTORY else messages

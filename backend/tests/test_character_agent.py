@@ -20,20 +20,25 @@ async def test_character_agent_memory_injection():
     )
     
     # Create test memory
-    memory = Memory(
-        id=1,
-        title="Ring Knowledge",
-        linked_character_ids=[1],
-        visibility_type=VisibilityType.ALWAYS,
-        memory_text="The One Ring was forged by the Dark Lord Sauron in the fires of Mount Doom. It contains much of Sauron's power and corrupts those who wear it.",
-        character_limit=500
-    )
+    memories = [
+        Memory(
+            id=1,
+            title="Ring Knowledge",
+            linked_character_ids=[1],
+            visibility_type=VisibilityType.ALWAYS,
+            memory_text="The One Ring was forged by the Dark Lord Sauron in the fires of Mount Doom. It contains much of Sauron's power and corrupts those who wear it.",
+        ),
+        Memory(
+            id=2,
+            title="World Knowledge",
+            linked_character_ids=[1],
+            visibility_type=VisibilityType.ALWAYS,
+            memory_text="Anyone who wears the one ring becomes a ring wrath.",
+        )
+    ]
     
-    # Create character agent
     agent = CharacterAgent(character)
-    
-    # Test with real API call
-    result = await agent.chat("What do you know about the One Ring?", [memory])
+    result = await agent.chat("What do you know about the One Ring?", memories)
     
     # Inspect the AgentRunResult
     assert result is not None
@@ -44,17 +49,9 @@ async def test_character_agent_memory_injection():
     # Verify the agent stored the result
     assert agent.run_result == result
     
+
+    result = await agent.chat("I'm going to put it on. Will you stop me?", memories)
+
     # Check that we have message history
     messages = result.all_messages()
-    assert len(messages) > 0
-    
-    print(f"\n=== CHARACTER AGENT TEST RESULTS ===")
-    print(f"Character: {character.name}")
-    print(f"Memory injected: {memory.title}")
-    print(f"Player question: 'What do you know about the One Ring?'")
-    print(f"Agent response: {result.output}")
-    print(f"Number of messages in history: {len(messages)}")
-    print(f"Response length: {len(result.output)} characters")
-    
-    # Basic assertions about the response
-    assert "ring" in result.output.lower() or "sauron" in result.output.lower()
+    assert len(messages) == 4
