@@ -16,7 +16,6 @@ class CharacterRace(Enum):
 class CharacterSize(Enum):
     SMALL = 'Small'
     MEDIUM = 'Medium'
-    LARGE = 'Large'
 
 class CharacterAlignment(Enum):
     LAWFUL_GOOD = 'Lawful Good'
@@ -148,5 +147,4 @@ class Character(CharacterBase):
                 
         return "".join(prompt_parts)
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

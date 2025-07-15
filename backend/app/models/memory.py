@@ -79,7 +79,7 @@ class MemoryBase(BaseModel):
     def validate_player_alignments(cls, v):
         return validate_player_alignments_list(v)
 
-    @field_validator('keywords', 'player_tags')
+    @field_validator('keywords')
     @classmethod
     def validate_string_fields(cls, v):
         return validate_string_lists(v)
@@ -117,7 +117,7 @@ class MemoryUpdate(BaseModel):
     def validate_player_alignments(cls, v):
         return validate_player_alignments_list(v)
 
-    @field_validator('keywords', 'player_tags')
+    @field_validator('keywords')
     @classmethod
     def validate_string_fields(cls, v):
         return validate_string_lists(v)
@@ -125,5 +125,4 @@ class MemoryUpdate(BaseModel):
 class Memory(MemoryBase):
     id: int
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

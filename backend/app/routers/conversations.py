@@ -1,11 +1,11 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import logging
 import asyncio
-from ..services.audio_processor import AudioProcessor
-from ..services.transcription import WhisperTranscriptionService
-from ..services.tts import ElevenLabsTTS
-from ..services.llm import OllamaService
-from ..services.conversation_manager import ConversationManager
+from app.services.audio_processor import AudioProcessor
+from app.services.transcription import WhisperTranscriptionService
+from app.services.tts import ElevenLabsTTS
+from app.services.llm import OllamaService
+from app.services.conversation_manager import ConversationManager
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

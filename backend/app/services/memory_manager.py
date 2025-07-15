@@ -1,7 +1,7 @@
-from backend.app.models.memory import Memory, VisibilityType
-from backend.app.models.player import Player
-from ..data.memory_store import memory_store
-from ..data.player_store import player_store
+from app.models.memory import Memory, VisibilityType
+from app.models.player import Player
+from app.data.memory_store import memory_store
+from app.data.player_store import player_store
 
 class MemoryManager:
     def __init__(self):

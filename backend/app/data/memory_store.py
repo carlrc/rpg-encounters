@@ -1,5 +1,5 @@
 from typing import Optional, List
-from ..models.memory import Memory, MemoryCreate, MemoryUpdate
+from app.models.memory import Memory, MemoryCreate, MemoryUpdate
 
 memories_db = {
     1: Memory(
