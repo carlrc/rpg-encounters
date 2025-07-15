@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models.character import Character, CharacterCreate, CharacterUpdate
+from app.models.character import Character, CharacterCreate, CharacterUpdate, CharacterRace, CharacterSize, CharacterAlignment
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -10,9 +10,9 @@ characters_db = [
         "id": 1,
         "name": "Elara Moonwhisper",
         "avatar": None,
-        "race": "Elf",
-        "size": "Medium",
-        "alignment": "Neutral Good",
+        "race": CharacterRace.ELF.value,
+        "size": CharacterSize.MEDIUM.value,
+        "alignment": CharacterAlignment.NEUTRAL_GOOD.value,
         "profession": "Merchant",
         "background": "A traveling merchant who has seen many lands and peoples. She values knowledge and fair trade above all else. Her family runs a network of trading posts across the realm.",
         "communication_style": "Speaks softly with measured words, often pausing to consider responses carefully.",
@@ -22,9 +22,9 @@ characters_db = [
         "id": 2,
         "name": "Thorin Ironforge",
         "avatar": None,
-        "race": "Dwarf",
-        "size": "Medium",
-        "alignment": "Lawful Good",
+        "race": CharacterRace.DWARF.value,
+        "size": CharacterSize.MEDIUM.value,
+        "alignment": CharacterAlignment.LAWFUL_GOOD.value,
         "profession": "Guard",
         "background": "A veteran city guard who has protected the gates for over twenty years. Known for his unwavering sense of duty and his ability to spot trouble from a mile away.",
         "communication_style": "Direct and gruff, but fair. Uses few words but makes them count.",
@@ -34,9 +34,9 @@ characters_db = [
         "id": 3,
         "name": "Zara the Wise",
         "avatar": None,
-        "race": "Human",
-        "size": "Medium",
-        "alignment": "True Neutral",
+        "race": CharacterRace.HUMAN.value,
+        "size": CharacterSize.MEDIUM.value,
+        "alignment": CharacterAlignment.TRUE_NEUTRAL.value,
         "profession": "Mage",
         "background": "An accomplished wizard who runs the local magic academy. She has dedicated her life to the study of arcane arts and teaching the next generation of spellcasters.",
         "communication_style": "Scholarly and precise, often references ancient texts and magical theory.",
@@ -46,9 +46,9 @@ characters_db = [
         "id": 4,
         "name": "Lord Aldric Blackwood",
         "avatar": None,
-        "race": "Human",
-        "size": "Medium",
-        "alignment": "Lawful Neutral",
+        "race": CharacterRace.HUMAN.value,
+        "size": CharacterSize.MEDIUM.value,
+        "alignment": CharacterAlignment.LAWFUL_NEUTRAL.value,
         "profession": "Noble",
         "background": "A minor lord who oversees a small but prosperous region. He is known for his political acumen and his ability to navigate court intrigue with skill.",
         "communication_style": "Formal and diplomatic, chooses words carefully to avoid offense.",

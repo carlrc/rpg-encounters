@@ -1,5 +1,68 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
+from enum import Enum
+
+class CharacterRace(Enum):
+    HUMAN = 'Human'
+    ELF = 'Elf'
+    DWARF = 'Dwarf'
+    HALFLING = 'Halfling'
+    DRAGONBORN = 'Dragonborn'
+    GNOME = 'Gnome'
+    HALF_ELF = 'Half-Elf'
+    HALF_ORC = 'Half-Orc'
+    TIEFLING = 'Tiefling'
+
+class CharacterSize(Enum):
+    SMALL = 'Small'
+    MEDIUM = 'Medium'
+    LARGE = 'Large'
+
+class CharacterAlignment(Enum):
+    LAWFUL_GOOD = 'Lawful Good'
+    NEUTRAL_GOOD = 'Neutral Good'
+    CHAOTIC_GOOD = 'Chaotic Good'
+    LAWFUL_NEUTRAL = 'Lawful Neutral'
+    TRUE_NEUTRAL = 'True Neutral'
+    CHAOTIC_NEUTRAL = 'Chaotic Neutral'
+    LAWFUL_EVIL = 'Lawful Evil'
+    NEUTRAL_EVIL = 'Neutral Evil'
+    CHAOTIC_EVIL = 'Chaotic Evil'
+
+# Constants for backward compatibility and validation
+VALID_RACES = [race.value for race in CharacterRace]
+VALID_SIZES = [size.value for size in CharacterSize]
+VALID_ALIGNMENTS = [alignment.value for alignment in CharacterAlignment]
+
+# Shared validation functions
+def validate_word_count(text: str, max_words: int, field_name: str) -> str:
+    """Validate word count for text fields."""
+    if text:
+        word_count = len(text.split())
+        if word_count > max_words:
+            raise ValueError(f'{field_name} must be {max_words} words or less')
+    return text
+
+def validate_choice(value: str, valid_choices: List[str], field_name: str) -> str:
+    """Validate that a value is in the list of valid choices."""
+    if value not in valid_choices:
+        raise ValueError(f'{field_name} must be one of: {", ".join(valid_choices)}')
+    return value
+
+def process_tags(tags_list: List[str]) -> List[str]:
+    """Process tags by adding hash prefix and converting to kebab-case."""
+    if not tags_list:
+        return tags_list
+    
+    processed_tags = []
+    for tag in tags_list:
+        if tag and not tag.startswith('#'):
+            # Auto-add hash prefix and convert to kebab-case
+            kebab_case = tag.lower().replace(' ', '-').replace('_', '-')
+            processed_tags.append(f'#{kebab_case}')
+        else:
+            processed_tags.append(tag)
+    return processed_tags
 
 class CharacterBase(BaseModel):
     name: str
@@ -14,74 +77,53 @@ class CharacterBase(BaseModel):
 
     @field_validator('background')
     @classmethod
-    def validate_background_word_count(cls, background_text):
-        if background_text:
-            word_count = len(background_text.split())
-            if word_count > 80:
-                raise ValueError('Background must be 80 words or less')
-        return background_text
+    def validate_background_word_count(cls, v):
+        if v is not None:
+            return validate_word_count(v, 80, 'Background')
+        return v
 
     @field_validator('communication_style')
     @classmethod
-    def validate_communication_style_word_count(cls, communication_style_text):
-        if communication_style_text:
-            word_count = len(communication_style_text.split())
-            if word_count > 30:
-                raise ValueError('Communication style must be 30 words or less')
-        return communication_style_text
+    def validate_communication_style_word_count(cls, v):
+        if v is not None:
+            return validate_word_count(v, 30, 'Communication style')
+        return v
 
     @field_validator('race')
     @classmethod
-    def validate_race(cls, race_value):
-        valid_races = [
-            'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
-            'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
-        ]
-        if race_value not in valid_races:
-            raise ValueError(f'Race must be one of: {", ".join(valid_races)}')
-        return race_value
+    def validate_race(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_RACES, 'Race')
+        return v
 
     @field_validator('size')
     @classmethod
-    def validate_size(cls, size_value):
-        valid_sizes = ['Small', 'Medium', 'Large']
-        if size_value not in valid_sizes:
-            raise ValueError(f'Size must be one of: {", ".join(valid_sizes)}')
-        return size_value
+    def validate_size(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_SIZES, 'Size')
+        return v
 
     @field_validator('alignment')
     @classmethod
-    def validate_alignment(cls, alignment_value):
-        valid_alignments = [
-            'Lawful Good', 'Neutral Good', 'Chaotic Good',
-            'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-            'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
-        ]
-        if alignment_value not in valid_alignments:
-            raise ValueError(f'Alignment must be one of: {", ".join(valid_alignments)}')
-        return alignment_value
+    def validate_alignment(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_ALIGNMENTS, 'Alignment')
+        return v
 
     @field_validator('tags')
     @classmethod
-    def validate_tags(cls, tags_list):
-        if tags_list:
-            processed_tags = []
-            for tag in tags_list:
-                if tag and not tag.startswith('#'):
-                    # Auto-add hash prefix and convert to kebab-case
-                    kebab_case = tag.lower().replace(' ', '-').replace('_', '-')
-                    processed_tags.append(f'#{kebab_case}')
-                else:
-                    processed_tags.append(tag)
-            return processed_tags
-        return tags_list
+    def validate_tags(cls, v):
+        if v is not None:
+            return process_tags(v)
+        return v
 
 class CharacterCreate(CharacterBase):
+    """Character creation model - inherits all validation from CharacterBase."""
     pass
 
-class CharacterUpdate(BaseModel):
+class CharacterUpdate(CharacterBase):
+    """Character update model - all fields optional with same validation rules."""
     name: Optional[str] = None
-    avatar: Optional[str] = None
     race: Optional[str] = None
     size: Optional[str] = None
     alignment: Optional[str] = None
@@ -90,75 +132,23 @@ class CharacterUpdate(BaseModel):
     communication_style: Optional[str] = None
     tags: Optional[List[str]] = None
 
-    @field_validator('background')
-    @classmethod
-    def validate_background_word_count(cls, background_text):
-        if background_text:
-            word_count = len(background_text.split())
-            if word_count > 80:
-                raise ValueError('Background must be 80 words or less')
-        return background_text
-
-    @field_validator('communication_style')
-    @classmethod
-    def validate_communication_style_word_count(cls, communication_style_text):
-        if communication_style_text:
-            word_count = len(communication_style_text.split())
-            if word_count > 30:
-                raise ValueError('Communication style must be 30 words or less')
-        return communication_style_text
-
-    @field_validator('race')
-    @classmethod
-    def validate_race(cls, race_value):
-        if race_value is not None:
-            valid_races = [
-                'Human', 'Elf', 'Dwarf', 'Halfling', 'Dragonborn', 
-                'Gnome', 'Half-Elf', 'Half-Orc', 'Tiefling'
-            ]
-            if race_value not in valid_races:
-                raise ValueError(f'Race must be one of: {", ".join(valid_races)}')
-        return race_value
-
-    @field_validator('size')
-    @classmethod
-    def validate_size(cls, size_value):
-        if size_value is not None:
-            valid_sizes = ['Small', 'Medium', 'Large']
-            if size_value not in valid_sizes:
-                raise ValueError(f'Size must be one of: {", ".join(valid_sizes)}')
-        return size_value
-
-    @field_validator('alignment')
-    @classmethod
-    def validate_alignment(cls, alignment_value):
-        if alignment_value is not None:
-            valid_alignments = [
-                'Lawful Good', 'Neutral Good', 'Chaotic Good',
-                'Lawful Neutral', 'True Neutral', 'Chaotic Neutral',
-                'Lawful Evil', 'Neutral Evil', 'Chaotic Evil'
-            ]
-            if alignment_value not in valid_alignments:
-                raise ValueError(f'Alignment must be one of: {", ".join(valid_alignments)}')
-        return alignment_value
-
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, tags_list):
-        if tags_list:
-            processed_tags = []
-            for tag in tags_list:
-                if tag and not tag.startswith('#'):
-                    # Auto-add hash prefix and convert to kebab-case
-                    kebab_case = tag.lower().replace(' ', '-').replace('_', '-')
-                    processed_tags.append(f'#{kebab_case}')
-                else:
-                    processed_tags.append(tag)
-            return processed_tags
-        return tags_list
-
 class Character(CharacterBase):
     id: int
+    
+    def to_system_prompt(self) -> str:
+        """Convert character data into a system prompt for AI interactions."""
+        
+        prompt_parts = []
+
+        prompt_parts.append(f"You are a character in an RPG world. Reply as this character would.")
+        
+        prompt_parts.append(f"CHARACTER_IDENTITY: You name is {self.name}. You are a {self.size} {self.race}. Your profession is {self.profession}.")
+                
+        prompt_parts.append(f"CHARACTER_BACKGROUND: {self.background}")
+        
+        prompt_parts.append(f"CHARACTER_COMMUNICATION_STYLE: {self.communication_style}")
+                
+        return "".join(prompt_parts)
     
     class Config:
         from_attributes = True
