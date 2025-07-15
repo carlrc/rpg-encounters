@@ -10,5 +10,6 @@ dependencies = [
     "openai-whisper==20250625",
     "elevenlabs==2.7.1",
     "python-dotenv==1.1.1",
-    "ollama==0.5.1"
+    "ollama==0.5.1",
+    "pydantic-ai==0.4.2"
 ]
