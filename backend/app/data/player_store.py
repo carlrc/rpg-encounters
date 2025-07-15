@@ -9,8 +9,7 @@ players_db = {
         race="Human",
         class_name="Ranger",
         size="Medium",
-        alignment="Lawful Good",
-        tags=["#fellowship", "#rangers-of-the-north"]
+        alignment="Lawful Good"
     ),
     2: Player(
         id=2,
@@ -19,8 +18,7 @@ players_db = {
         race="Elf",
         class_name="Ranger",
         size="Medium",
-        alignment="Chaotic Good",
-        tags=["#fellowship", "#woodland-realm"]
+        alignment="Chaotic Good"
     ),
     3: Player(
         id=3,
@@ -29,8 +27,7 @@ players_db = {
         race="Dwarf",
         class_name="Fighter",
         size="Medium",
-        alignment="Lawful Good",
-        tags=["#fellowship", "#erebor"]
+        alignment="Lawful Good"
     ),
     4: Player(
         id=4,
@@ -39,8 +36,7 @@ players_db = {
         race="Human",
         class_name="Wizard",
         size="Medium",
-        alignment="Neutral Good",
-        tags=["#fellowship", "#istari"]
+        alignment="Neutral Good"
     )
 }
 next_player_id = 5

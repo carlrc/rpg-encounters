@@ -24,7 +24,6 @@ class PlayerBase(BaseModel):
     class_name: str = Field(..., description="Player class")
     size: str = Field(..., description="Player size")
     alignment: str = Field(..., description="Player alignment")
-    tags: List[str] = Field(default_factory=list, description="Player tags")
 
     @field_validator('appearance')
     @classmethod
@@ -67,20 +66,6 @@ class PlayerBase(BaseModel):
             raise ValueError(f'Alignment must be one of: {", ".join(valid_alignments)}')
         return alignment_value
 
-    @field_validator('tags')
-    @classmethod
-    def validate_tags(cls, tags_list):
-        if tags_list:
-            processed_tags = []
-            for tag in tags_list:
-                if tag and not tag.startswith('#'):
-                    # Auto-add hash prefix and convert to kebab-case
-                    kebab_case = tag.lower().replace(' ', '-').replace('_', '-')
-                    processed_tags.append(f'#{kebab_case}')
-                else:
-                    processed_tags.append(tag)
-            return processed_tags
-        return tags_list
 
 class PlayerCreate(PlayerBase):
     pass
@@ -93,7 +78,6 @@ class PlayerUpdate(PlayerBase):
     class_name: Optional[str] = None
     size: Optional[str] = None
     alignment: Optional[str] = None
-    tags: Optional[List[str]] = None
 
 class Player(PlayerBase):
     id: int

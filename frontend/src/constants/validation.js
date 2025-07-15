@@ -16,7 +16,7 @@ export const VALIDATION_MESSAGES = {
 export const FORM_FIELDS = {
     PLAYER: {
         REQUIRED: ['name', 'appearance', 'race', 'class_name', 'size', 'alignment'],
-        OPTIONAL: ['avatar', 'tags']
+        OPTIONAL: ['avatar']
     },
     CHARACTER: {
         REQUIRED: ['name', 'race', 'size', 'alignment', 'profession', 'background', 'communication_style', 'motivation'],
@@ -24,6 +24,6 @@ export const FORM_FIELDS = {
     },
     MEMORY: {
         REQUIRED: ['title', 'memory_text'],
-        OPTIONAL: ['linked_character_ids', 'visibility_type', 'keywords', 'player_races', 'player_alignments', 'player_tags', 'character_limit']
+        OPTIONAL: ['linked_character_ids', 'visibility_type', 'keywords', 'player_races', 'player_alignments', 'character_limit']
     }
 }

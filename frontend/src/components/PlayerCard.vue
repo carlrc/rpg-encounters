@@ -54,22 +54,6 @@
           </div>
         </div>
         
-        <!-- Tags Section (Full Width) -->
-        <div class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Tags</label>
-          <div class="shared-tags-display">
-            <span 
-              v-for="tag in player.tags" 
-              :key="tag" 
-              class="shared-tag-bubble"
-            >
-              {{ tag }}
-            </span>
-            <span v-if="!player.tags || player.tags.length === 0" class="shared-no-tags">
-              No tags assigned
-            </span>
-          </div>
-        </div>
       </div>
       
       <div class="shared-actions">
@@ -128,8 +112,6 @@
         />
       </div>
       
-      <!-- Tags Section -->
-      <TagManager v-model="editForm.tags" />
       
       <div class="shared-actions">
         <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">Save</button>
@@ -144,14 +126,12 @@ import { ref, reactive } from 'vue'
 import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
-import TagManager from './forms/TagManager.vue'
 import AvatarUpload from './base/AvatarUpload.vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
 export default {
   name: 'PlayerCard',
   components: {
-    TagManager,
     AvatarUpload,
     BaseTextareaWithCharacterCounter
   },
@@ -172,8 +152,7 @@ export default {
       race: '',
       class_name: '',
       size: '',
-      alignment: '',
-      tags: []
+      alignment: ''
     })
 
     const { isFormValid } = useFormValidation(editForm, 'PLAYER')
@@ -191,7 +170,6 @@ export default {
       editForm.class_name = props.player.class_name || ''
       editForm.size = props.player.size || ''
       editForm.alignment = props.player.alignment || ''
-      editForm.tags = [...(props.player.tags || [])]
       isEditing.value = true
     }
 
@@ -208,8 +186,7 @@ export default {
           race: editForm.race,
           class_name: editForm.class_name,
           size: editForm.size,
-          alignment: editForm.alignment,
-          tags: editForm.tags
+          alignment: editForm.alignment
         })
         isEditing.value = false
       }
