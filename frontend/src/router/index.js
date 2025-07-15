@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import PlayersPage from '../views/PlayersPage.vue'
 import CharactersPage from '../views/CharactersPage.vue'
 import MemoriesPage from '../views/MemoriesPage.vue'
+import EncountersPage from '../views/EncountersPage.vue'
 
 const routes = [
     {
@@ -22,6 +23,11 @@ const routes = [
         path: '/memories',
         name: 'Memories',
         component: MemoriesPage
+    },
+    {
+        path: '/encounters',
+        name: 'Encounters',
+        component: EncountersPage
     }
 ]
 
