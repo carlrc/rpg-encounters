@@ -1,12 +1,12 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import logging
-import asyncio
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 from app.ai.character_agent import CharacterAgent
 from app.services.memory_manager import MemoryManager
 from app.data.character_store import character_store
+from app.data.player_store import player_store
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -62,14 +62,14 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             transcription = await transcription_service.transcribe_audio(wav_path)
             logger.info(f"Transcribed audio text: {transcription}")
             
-            # Get character from character store
             character = character_store.get_character_by_id(character_id)
+            player = player_store.get_player_by_id(player_id)
             
             # Get relevant memories for this character and player
             memories = memory_manager.get_memories(character_id, player_id)
             
             # Create character agent
-            agent = CharacterAgent(character)
+            agent = CharacterAgent(character, player)
             
             # Generate AI response using character agent
             result = await agent.chat(transcription, memories)

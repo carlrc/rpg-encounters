@@ -5,17 +5,18 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from app.models.memory import Memory
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
+from app.models.player import Player
 
 MAX_MESSAGE_HISTORY = 8
 
 class CharacterAgent:
-    def __init__(self, character: Character):
+    def __init__(self, character: Character, player: Player):
         self.character = character
         self.agent = Agent(
-            OpenAIModel(model_name='mistral', provider=OpenAIProvider(base_url='http://localhost:11434/v1')), 
+            OpenAIModel(model_name='gpt-4o'), 
             deps_type=list[str],
-            system_prompt="You are a character in an RPG world. Keep your answers conversational and short. Do not reference your characteristics in your reply.",
-            instructions=character.to_prompt(),
+            system_prompt="You are a character in an RPG world. Keep your answers to under 25 words. Consider your memories in your responses.",
+            instructions=f"{character.to_prompt()}. You are speaking with a {player.race} who looks like {player.appearance}.",
             history_processors=[self._keep_recent_messages])
         self.run_result: AgentRunResult[str] = None
         
