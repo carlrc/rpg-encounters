@@ -66,20 +66,14 @@
           </div>
         </div>
         
-        <!-- Tags Section (Full Width) -->
+        <!-- Motivation Section (Full Width) -->
         <div class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Tags</label>
-          <div class="shared-tags-display">
-            <span 
-              v-for="tag in character.tags" 
-              :key="tag" 
-              class="shared-tag-bubble"
-            >
-              {{ tag }}
-            </span>
-            <span v-if="!character.tags || character.tags.length === 0" class="shared-no-tags">
-              No tags assigned
-            </span>
+          <div class="shared-field-label">Motivation</div>
+          <div class="shared-field-value">
+            <div class="shared-text-display">{{ character.motivation }}</div>
+            <div class="character-limit-info">
+              {{ (character.motivation || '').length }}/{{ CHARACTER_LIMITS.CHARACTER_MOTIVATION }} characters
+            </div>
           </div>
         </div>
       </div>
@@ -151,8 +145,15 @@
         />
       </div>
       
-      <!-- Tags Section -->
-      <TagManager v-model="editForm.tags" />
+      <!-- Motivation Field (Full Width) -->
+      <div class="motivation-field">
+        <label class="shared-field-label">Motivation</label>
+        <BaseTextareaWithCharacterCounter
+          v-model="editForm.motivation"
+          :placeholder="`Character motivation (max ${motivationCharacterLimit} characters)`"
+          :max-characters="motivationCharacterLimit"
+        />
+      </div>
       
       <div class="shared-actions">
         <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">Save</button>
@@ -167,14 +168,12 @@ import { ref, reactive } from 'vue'
 import { RACES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
-import TagManager from './forms/TagManager.vue'
 import AvatarUpload from './base/AvatarUpload.vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
 export default {
   name: 'CharacterCard',
   components: {
-    TagManager,
     AvatarUpload,
     BaseTextareaWithCharacterCounter
   },
@@ -197,7 +196,7 @@ export default {
       profession: '',
       background: '',
       communication_style: '',
-      tags: []
+      motivation: ''
     })
 
     const { isFormValid } = useFormValidation(editForm, 'CHARACTER')
@@ -216,7 +215,7 @@ export default {
       editForm.profession = props.character.profession || ''
       editForm.background = props.character.background || ''
       editForm.communication_style = props.character.communication_style || ''
-      editForm.tags = [...(props.character.tags || [])]
+      editForm.motivation = props.character.motivation || ''
       isEditing.value = true
     }
 
@@ -235,7 +234,7 @@ export default {
           profession: editForm.profession.trim(),
           background: editForm.background.trim(),
           communication_style: editForm.communication_style.trim(),
-          tags: editForm.tags
+          motivation: editForm.motivation.trim()
         })
         isEditing.value = false
       }
@@ -255,6 +254,7 @@ export default {
       alignments: ALIGNMENTS,
       backgroundCharacterLimit: CHARACTER_LIMITS.CHARACTER_BACKGROUND,
       communicationCharacterLimit: CHARACTER_LIMITS.CHARACTER_COMMUNICATION,
+      motivationCharacterLimit: CHARACTER_LIMITS.CHARACTER_MOTIVATION,
       CHARACTER_LIMITS,
       isFormValid,
       getInitials,
@@ -282,7 +282,8 @@ export default {
 }
 
 .background-field,
-.communication-field {
+.communication-field,
+.motivation-field {
   margin-bottom: 16px;
 }
 </style>

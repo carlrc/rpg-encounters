@@ -83,17 +83,11 @@
                 <option v-for="alignment in alignments" :key="alignment" :value="alignment">{{ alignment }}</option>
               </select>
               
-              <div class="shared-word-counter-field">
-                <textarea 
-                  v-model="createForm.background" 
-                  placeholder="Character background (max 80 words)"
-                  class="shared-textarea"
-                  @input="updateCreateBackgroundWordCount"
-                ></textarea>
-                <div class="shared-word-counter" :class="{ 'over-limit': createBackgroundWordCount > 80 }">
-                  {{ createBackgroundWordCount }}/80 words
-                </div>
-              </div>
+              <BaseTextareaWithCharacterCounter
+                v-model="createForm.background"
+                :placeholder="`Character background (max ${CHARACTER_LIMITS.CHARACTER_BACKGROUND} characters)`"
+                :max-characters="CHARACTER_LIMITS.CHARACTER_BACKGROUND"
+              />
             </div>
             
             <!-- Right Column -->
@@ -109,42 +103,20 @@
                 class="shared-input"
               />
               
-              <div class="shared-word-counter-field">
-                <textarea 
-                  v-model="createForm.communication_style" 
-                  placeholder="Communication style (max 30 words)"
-                  class="shared-textarea"
-                  @input="updateCreateCommunicationWordCount"
-                ></textarea>
-                <div class="shared-word-counter" :class="{ 'over-limit': createCommunicationWordCount > 30 }">
-                  {{ createCommunicationWordCount }}/30 words
-                </div>
-              </div>
+              <BaseTextareaWithCharacterCounter
+                v-model="createForm.communication_style"
+                :placeholder="`Communication style (max ${CHARACTER_LIMITS.CHARACTER_COMMUNICATION} characters)`"
+                :max-characters="CHARACTER_LIMITS.CHARACTER_COMMUNICATION"
+              />
             </div>
           </div>
           
-          <!-- Tags Section -->
-          <div class="shared-tags-field">
-            <div class="shared-tags-input-container">
-              <input 
-                v-model="newCreateTagInput"
-                placeholder="Add tag"
-                class="shared-input shared-tag-input"
-                @keyup.enter="addCreateTag"
-              />
-              <button @click="addCreateTag" class="shared-btn shared-btn-success" type="button">Add</button>
-            </div>
-            <div class="shared-tags-edit-display">
-              <span 
-                v-for="(tag, index) in createForm.tags" 
-                :key="index" 
-                class="shared-tag-bubble editable"
-              >
-                {{ tag }}
-                <button @click="removeCreateTag(index)" class="shared-tag-remove-btn" type="button">×</button>
-              </span>
-            </div>
-          </div>
+          <!-- Motivation Field (Full Width) -->
+          <BaseTextareaWithCharacterCounter
+            v-model="createForm.motivation"
+            :placeholder="`Character motivation (max ${CHARACTER_LIMITS.CHARACTER_MOTIVATION} characters)`"
+            :max-characters="CHARACTER_LIMITS.CHARACTER_MOTIVATION"
+          />
           
           <div class="shared-actions">
             <button @click="saveCreate" class="shared-btn shared-btn-success" :disabled="!isCreateFormValid">Save</button>
@@ -172,13 +144,16 @@ import { useEntityCRUD } from '../utils/useEntityCRUD.js'
 import { useFileImport } from '../utils/useFileImport.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
 import { RACES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
+import { CHARACTER_LIMITS } from '../constants/validation.js'
+import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
 
 export default {
   name: 'CharactersPage',
   components: {
     SplitViewLayout,
     EmptyState,
-    CharacterCard
+    CharacterCard,
+    BaseTextareaWithCharacterCounter
   },
   setup() {
     const {
@@ -207,12 +182,8 @@ export default {
       profession: '',
       background: '',
       communication_style: '',
-      tags: []
+      motivation: ''
     })
-
-    const newCreateTagInput = ref('')
-    const createBackgroundWordCount = ref(0)
-    const createCommunicationWordCount = ref(0)
 
     const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'CHARACTER')
 
@@ -223,33 +194,6 @@ export default {
     const getInitials = (name) => {
       if (!name) return '?'
       return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
-
-    const updateCreateBackgroundWordCount = () => {
-      createBackgroundWordCount.value = createForm.background.trim() ? createForm.background.trim().split(/\s+/).length : 0
-    }
-
-    const updateCreateCommunicationWordCount = () => {
-      createCommunicationWordCount.value = createForm.communication_style.trim() ? createForm.communication_style.trim().split(/\s+/).length : 0
-    }
-
-    const convertToKebabCase = (text) => {
-      const kebab = text.toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-')
-      return kebab.startsWith('#') ? kebab : `#${kebab}`
-    }
-
-    const addCreateTag = () => {
-      if (newCreateTagInput.value.trim()) {
-        const formattedTag = convertToKebabCase(newCreateTagInput.value.trim())
-        if (!createForm.tags.includes(formattedTag)) {
-          createForm.tags.push(formattedTag)
-        }
-        newCreateTagInput.value = ''
-      }
-    }
-
-    const removeCreateTag = (index) => {
-      createForm.tags.splice(index, 1)
     }
 
     const handleAvatarUpload = (event) => {
@@ -276,10 +220,7 @@ export default {
       createForm.profession = ''
       createForm.background = ''
       createForm.communication_style = ''
-      createForm.tags = []
-      newCreateTagInput.value = ''
-      createBackgroundWordCount.value = 0
-      createCommunicationWordCount.value = 0
+      createForm.motivation = ''
     }
 
     const saveCreate = async () => {
@@ -294,7 +235,7 @@ export default {
             profession: createForm.profession.trim(),
             background: createForm.background.trim(),
             communication_style: createForm.communication_style.trim(),
-            tags: createForm.tags
+            motivation: createForm.motivation.trim()
           })
           resetCreateForm()
         } catch (err) {
@@ -334,23 +275,17 @@ export default {
       showCreateForm,
       selectedCharacter,
       createForm,
-      newCreateTagInput,
-      createBackgroundWordCount,
-      createCommunicationWordCount,
       importing,
       races: RACES,
       characterSizes: SIZES.CHARACTER,
       alignments: ALIGNMENTS,
+      CHARACTER_LIMITS,
       isCreateFormValid,
       selectEntity,
       startCreate,
       updateEntity,
       deleteEntity,
       getInitials,
-      updateCreateBackgroundWordCount,
-      updateCreateCommunicationWordCount,
-      addCreateTag,
-      removeCreateTag,
       handleAvatarUpload,
       removeAvatar,
       saveCreate,

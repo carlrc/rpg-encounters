@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from app.models.character import Character
 from pydantic_ai import Agent, RunContext, TextOutput
 from pydantic_ai.models.openai import OpenAIModel
@@ -11,6 +12,7 @@ MAX_MESSAGE_HISTORY = 8
 
 class CharacterAgent:
     def __init__(self, character: Character, player: Player):
+        load_dotenv()
         self.character = character
         self.agent = Agent(
             OpenAIModel(model_name='gpt-4o'), 

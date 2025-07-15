@@ -1,5 +1,6 @@
 from app.ai.character_agent import CharacterAgent
 from app.models.character import Character, CharacterRace, CharacterSize, CharacterAlignment
+from app.models.player import Player, PlayerClass
 from app.models.memory import Memory, VisibilityType
 from app.services.memory_manager import MemoryManager
 
@@ -16,7 +17,19 @@ async def test_character_agent_memory_injection():
         profession="Wizard",
         background="A wise wizard who has traveled Middle-earth for centuries",
         communication_style="Speaks with wisdom and gravitas",
-        tags=["#wizard"]
+        motivation="To guide and protect the free peoples of Middle-earth from the forces of darkness"
+    )
+    
+    # Create test player
+    player = Player(
+        id=1,
+        name="Frodo",
+        appearance="A small hobbit with curly brown hair and large feet",
+        race=CharacterRace.HALFLING.value,
+        class_name=PlayerClass.ROGUE.value,
+        size=CharacterSize.SMALL.value,
+        alignment=CharacterAlignment.LAWFUL_GOOD.value,
+        tags=["#ring-bearer"]
     )
     
     # Create test memory
@@ -37,7 +50,7 @@ async def test_character_agent_memory_injection():
         )
     ]
     
-    agent = CharacterAgent(character)
+    agent = CharacterAgent(character, player)
     result = await agent.chat("What do you know about the One Ring?", memories)
     
     # Inspect the AgentRunResult

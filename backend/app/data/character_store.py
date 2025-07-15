@@ -12,7 +12,7 @@ characters_db = {
         profession="Merchant",
         background="A traveling merchant who has seen many lands and peoples. She values knowledge and fair trade above all else. Her family runs a network of trading posts across the realm.",
         communication_style="Speaks softly with measured words, often pausing to consider responses carefully.",
-        tags=["#merchant", "#traveler", "#knowledge-seeker"]
+        motivation="To build bridges between different cultures through fair trade and mutual understanding."
     ),
     2: Character(
         id=2,
@@ -24,7 +24,7 @@ characters_db = {
         profession="Guard",
         background="A veteran city guard who has protected the gates for over twenty years. Known for his unwavering sense of duty and his ability to spot trouble from a mile away.",
         communication_style="Direct and gruff, but fair. Uses few words but makes them count.",
-        tags=["#guard", "#veteran", "#duty-bound"]
+        motivation="To protect the innocent and maintain order in the city he calls home."
     ),
     3: Character(
         id=3,
@@ -36,7 +36,7 @@ characters_db = {
         profession="Mage",
         background="An accomplished wizard who runs the local magic academy. She has dedicated her life to the study of arcane arts and teaching the next generation of spellcasters.",
         communication_style="Scholarly and precise, often references ancient texts and magical theory.",
-        tags=["#mage", "#teacher", "#scholar"]
+        motivation="To preserve and expand magical knowledge for future generations of scholars."
     ),
     4: Character(
         id=4,
@@ -48,7 +48,7 @@ characters_db = {
         profession="Noble",
         background="A minor lord who oversees a small but prosperous region. He is known for his political acumen and his ability to navigate court intrigue with skill.",
         communication_style="Formal and diplomatic, chooses words carefully to avoid offense.",
-        tags=["#noble", "#politician", "#courtly"]
+        motivation="To secure his family's legacy and expand his political influence through strategic alliances."
     )
 }
 next_character_id = 5
