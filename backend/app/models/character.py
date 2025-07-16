@@ -128,6 +128,26 @@ class Character(CharacterBase):
     def to_prompt(self) -> str:
         """Convert character data into a system prompt for AI interactions."""
         
-        return f"You are {self.name}, a {self.race} {self.profession}. {self.background} Your motivation is: {self.motivation}. You communicate in this style: {self.communication_style}. Stay in character and respond naturally as {self.name} would."
+        return f"""
+        # Character Background Prompt
+        
+        You are {self.name}, a {self.race} and your job is {self.profession}. Stay in character and respond naturally as {self.name} would.
+
+        ## Core Directives
+
+        NARRATIVE-DRIVEN: All communication should reference your motivation and memories
+        INTERACTIONS: Consider the player communication with you (e.g., race, appearance) in your responses
+
+        ## Response Guidelines
+        ### Background
+        {self.background} 
+
+        ### Motivation
+        {self.motivation}
+
+        ### Communication Style
+         {self.communication_style}
+
+        """
     
     model_config = {"from_attributes": True}

@@ -1,6 +1,5 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import logging
-from pathlib import Path
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
@@ -8,30 +7,19 @@ from app.ai.character_agent import CharacterAgent
 from app.services.memory_manager import MemoryManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
+from app.ai.prompts.import_prompts import import_system_prompt
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/conversation", tags=["conversations"])
 
-def _load_system_prompt() -> str:
-    """Load the system prompt from the markdown file."""
-    current_dir = Path(__file__).parent.parent / "ai"
-    prompt_file = current_dir / "system_prompt.md"
-    
-    try:
-        with open(prompt_file, 'r', encoding='utf-8') as f:
-            return f.read()
-    except FileNotFoundError:
-        logger.warning("System prompt file not found, using fallback")
-        return "You are a character in an RPG world. Keep your answers to under 25 words. Consider your memories in your responses."
-
 # Initialize services
 audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
 memory_manager = MemoryManager()
-system_prompt = _load_system_prompt()
+system_prompt = import_system_prompt()
 
 @router.websocket("/{player_id}/{character_id}")
 async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id: int):
