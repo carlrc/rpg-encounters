@@ -4,61 +4,50 @@ from app.models.memory import Memory, MemoryCreate, MemoryUpdate
 memories_db = {
     1: Memory(
         id=1,
-        title="Tavern Regular",
-        linked_character_ids=[1],
-        visibility_type="always",
-        keywords=[],
+        title="The One Ring's Corruption",
+        linked_character_ids=[1, 3],
+        visibility_type="keyword",
+        keywords=["ring", "precious", "burden"],
         player_races=[],
         player_alignments=[],
-        memory_text="This character is a regular at the local tavern and knows all the gossip in town. They're friendly to adventurers who buy them a drink.",
+        memory_text="They speak of its terrible power to corrupt even the purest hearts and the need for great caution.",
         character_limit=500
     ),
     2: Memory(
-        id=2,
-        title="Distrusts Elves",
-        linked_character_ids=[1],
-        visibility_type="player_race",
-        keywords=[],
-        player_races=["Elf"],
+        id=3,
+        title="Gondor's Glory",
+        linked_character_ids=[2],
+        visibility_type="keyword",
+        keywords=["gondor", "minas tirith", "white city", "steward"],
+        player_races=[],
         player_alignments=[],
-        memory_text="This character has had bad experiences with elves in the past and is initially suspicious of elf characters. They may be less helpful or charge higher prices.",
+        memory_text="This character's eyes light up when Gondor is mentioned. They speak proudly of the White City's strength and the valor of its defenders against the darkness.",
         character_limit=500
     ),
     3: Memory(
-        id=3,
-        title="Recognizes Noble Bearing",
-        linked_character_ids=[2],
-        visibility_type="always",
-        keywords=[],
+        id=4,
+        title="Sauron's Growing Shadow",
+        linked_character_ids=[1, 2, 3, 4],
+        visibility_type="keyword",
+        keywords=["sauron", "mordor", "darkness", "enemy", "shadow"],
         player_races=[],
         player_alignments=[],
-        memory_text="This character can spot nobility from a mile away and will treat noble-born characters with extra respect and deference.",
+        memory_text="When the Dark Lord is mentioned, this character becomes solemn and speaks of the growing threat from Mordor and the need for all free peoples to unite.",
         character_limit=500
     ),
     4: Memory(
-        id=4,
-        title="Dragon Knowledge",
-        linked_character_ids=[1, 2],
+        id=5,
+        title="Rohan's Horse-lords",
+        linked_character_ids=[4],
         visibility_type="keyword",
-        keywords=["dragon", "wyrm", "ancient", "treasure"],
+        keywords=["rohan", "horse", "edoras", "rohirrim", "riders"],
         player_races=[],
         player_alignments=[],
-        memory_text="When dragons are mentioned, this character becomes visibly nervous and will share warnings about an ancient red dragon that supposedly lairs in the nearby mountains.",
-        character_limit=500
-    ),
-    5: Memory(
-        id=5,
-        title="Wary of Evil Intent",
-        linked_character_ids=[2],
-        visibility_type="player_alignment",
-        keywords=[],
-        player_races=[],
-        player_alignments=["Lawful Evil", "Neutral Evil", "Chaotic Evil"],
-        memory_text="This character has a keen sense for malevolent intentions and becomes noticeably uncomfortable around evil-aligned individuals. They may refuse service or demand payment upfront.",
+        memory_text="This character speaks with pride of the Rohirrim and their swift horses, recounting tales of great cavalry charges and the bond between rider and steed.",
         character_limit=500
     )
 }
-next_memory_id = 6
+next_memory_id = 5
 
 class MemoryStore:
     def __init__(self):

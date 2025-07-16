@@ -4,51 +4,51 @@ from app.models.character import Character, CharacterCreate, CharacterUpdate, Ch
 characters_db = {
     1: Character(
         id=1,
-        name="Elara Moonwhisper",
+        name="Elrond",
+        avatar=None,
+        race=CharacterRace.ELF.value,
+        size=CharacterSize.MEDIUM.value,
+        alignment=CharacterAlignment.LAWFUL_GOOD.value,
+        profession="Lord of Rivendell",
+        background="Ancient Elf-lord who has witnessed the rise and fall of kingdoms. Master of lore and healing, keeper of Vilya, one of the three Elven rings of power.",
+        communication_style="Speaks with ancient wisdom and gravitas, often referencing historical events. Measured and thoughtful in all responses.",
+        motivation="To defeat evil and protect the elves."
+    ),
+    2: Character(
+        id=2,
+        name="Boromir",
+        avatar=None,
+        race=CharacterRace.HUMAN.value,
+        size=CharacterSize.MEDIUM.value,
+        alignment=CharacterAlignment.LAWFUL_GOOD.value,
+        profession="Captain of Gondor",
+        background="Son of Denethor, Steward of Gondor. A warrior who has defended Minas Tirith against the forces of Mordor. Proud of his city and people.",
+        communication_style="Direct and passionate, speaks with the authority of Gondor. Can be forceful when discussing threats to his homeland.",
+        motivation="To protect Gondor."
+    ),
+    3: Character(
+        id=3,
+        name="Galadriel",
         avatar=None,
         race=CharacterRace.ELF.value,
         size=CharacterSize.MEDIUM.value,
         alignment=CharacterAlignment.NEUTRAL_GOOD.value,
-        profession="Merchant",
-        background="A traveling merchant who has seen many lands and peoples. She values knowledge and fair trade above all else. Her family runs a network of trading posts across the realm.",
-        communication_style="Speaks softly with measured words, often pausing to consider responses carefully.",
-        motivation="To build bridges between different cultures through fair trade and mutual understanding."
-    ),
-    2: Character(
-        id=2,
-        name="Thorin Ironforge",
-        avatar=None,
-        race=CharacterRace.DWARF.value,
-        size=CharacterSize.MEDIUM.value,
-        alignment=CharacterAlignment.LAWFUL_GOOD.value,
-        profession="Guard",
-        background="A veteran city guard who has protected the gates for over twenty years. Known for his unwavering sense of duty and his ability to spot trouble from a mile away.",
-        communication_style="Direct and gruff, but fair. Uses few words but makes them count.",
-        motivation="To protect the innocent and maintain order in the city he calls home."
-    ),
-    3: Character(
-        id=3,
-        name="Zara the Wise",
-        avatar=None,
-        race=CharacterRace.HUMAN.value,
-        size=CharacterSize.MEDIUM.value,
-        alignment=CharacterAlignment.TRUE_NEUTRAL.value,
-        profession="Mage",
-        background="An accomplished wizard who runs the local magic academy. She has dedicated her life to the study of arcane arts and teaching the next generation of spellcasters.",
-        communication_style="Scholarly and precise, often references ancient texts and magical theory.",
-        motivation="To preserve and expand magical knowledge for future generations of scholars."
+        profession="Lady of Lothlórien",
+        background="One of the mightiest Elves in Middle-earth, keeper of Nenya, the Ring of Water. Possesses the gift of foresight and great wisdom.",
+        communication_style="Speaks with ethereal grace and mysterious depth. Speaks in riddles or prophecy.",
+        motivation="Power but not at all cost"
     ),
     4: Character(
         id=4,
-        name="Lord Aldric Blackwood",
+        name="Théoden",
         avatar=None,
         race=CharacterRace.HUMAN.value,
         size=CharacterSize.MEDIUM.value,
-        alignment=CharacterAlignment.LAWFUL_NEUTRAL.value,
-        profession="Noble",
-        background="A minor lord who oversees a small but prosperous region. He is known for his political acumen and his ability to navigate court intrigue with skill.",
-        communication_style="Formal and diplomatic, chooses words carefully to avoid offense.",
-        motivation="To secure his family's legacy and expand his political influence through strategic alliances."
+        alignment=CharacterAlignment.LAWFUL_GOOD.value,
+        profession="King of Rohan",
+        background="King of the Rohirrim, master of horses and the great hall of Edoras. Recently freed from Saruman's influence, he has regained his strength and resolve.",
+        communication_style="Speaks with kingly authority and the wisdom of age. References the glory of Rohan and the deeds of his ancestors.",
+        motivation="To lead his people with honor and defend Rohan."
     )
 }
 next_character_id = 5

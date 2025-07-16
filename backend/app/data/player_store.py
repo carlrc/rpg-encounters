@@ -1,45 +1,28 @@
 from typing import Optional, List
-from app.models.player import Player, PlayerCreate, PlayerUpdate
+from app.models.player import Player, PlayerCreate, PlayerUpdate, PlayerClass
+from app.models.character import CharacterRace, CharacterSize, CharacterAlignment
 
 players_db = {
     1: Player(
         id=1,
-        name="Aragorn",
-        appearance="Tall ranger with weathered features, keen grey eyes, and dark hair",
-        race="Human",
-        class_name="Ranger",
-        size="Medium",
-        alignment="Lawful Good"
+        name="Silviana Moonleaf",
+        appearance="Graceful elf with silver hair braided with leaves, violet eyes, and elegant elven robes",
+        race=CharacterRace.ELF.value,
+        class_name=PlayerClass.WIZARD.value,
+        size=CharacterSize.MEDIUM.value,
+        alignment=CharacterAlignment.NEUTRAL_GOOD.value
     ),
     2: Player(
         id=2,
-        name="Legolas",
-        appearance="Graceful elf with golden hair, bright blue eyes, and elegant features",
-        race="Elf",
-        class_name="Ranger",
-        size="Medium",
-        alignment="Chaotic Good"
-    ),
-    3: Player(
-        id=3,
-        name="Gimli",
-        appearance="Stout dwarf with braided red beard, chainmail armor, and fierce eyes",
-        race="Dwarf",
-        class_name="Fighter",
-        size="Medium",
-        alignment="Lawful Good"
-    ),
-    4: Player(
-        id=4,
-        name="Gandalf",
-        appearance="Tall wizard in grey robes with long white beard and piercing eyes",
-        race="Human",
-        class_name="Wizard",
-        size="Medium",
-        alignment="Neutral Good"
+        name="Pippin Greenhill",
+        appearance="Cheerful hobbit with curly auburn hair, bright brown eyes, and well-worn traveling clothes",
+        race=CharacterRace.HALFLING.value,
+        class_name=PlayerClass.ROGUE.value,
+        size=CharacterSize.SMALL.value,
+        alignment=CharacterAlignment.CHAOTIC_GOOD.value
     )
 }
-next_player_id = 5
+next_player_id = 3
 
 class PlayerStore:
     def __init__(self):
