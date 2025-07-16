@@ -64,6 +64,7 @@ class CharacterBase(BaseModel):
     background: str = Field(..., description="Character background")
     communication_style: str = Field(..., description="Character communication style")
     motivation: str = Field(..., description="Character motivation")
+    voice: Optional[str] = Field("JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS")
 
     @field_validator('background')
     @classmethod
@@ -121,6 +122,7 @@ class CharacterUpdate(CharacterBase):
     background: Optional[str] = None
     communication_style: Optional[str] = None
     motivation: Optional[str] = None
+    voice: Optional[str] = None
 
 class Character(CharacterBase):
     id: int

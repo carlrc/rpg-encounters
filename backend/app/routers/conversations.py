@@ -83,7 +83,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             
             
             # Stream TTS audio chunks back to frontend
-            for audio_chunk in tts_service.text_to_speech_stream(result.output):
+            for audio_chunk in tts_service.text_to_speech_stream(result.output, character.voice):
                 try:
                     await websocket.send_bytes(audio_chunk)
                 except Exception as e:
