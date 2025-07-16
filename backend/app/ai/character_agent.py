@@ -11,13 +11,13 @@ from app.models.player import Player
 MAX_MESSAGE_HISTORY = 8
 
 class CharacterAgent:
-    def __init__(self, character: Character, player: Player):
+    def __init__(self, character: Character, player: Player, system_prompt: str):
         load_dotenv()
         self.character = character
         self.agent = Agent(
             OpenAIModel(model_name='gpt-4o'), 
             deps_type=list[str],
-            system_prompt="You are a character in an RPG world. Keep your answers to under 25 words. Consider your memories in your responses.",
+            system_prompt=system_prompt,
             instructions=f"{character.to_prompt()}. You are speaking with a {player.race} who looks like {player.appearance}.",
             history_processors=[self._keep_recent_messages])
         self.run_result: AgentRunResult[str] = None
