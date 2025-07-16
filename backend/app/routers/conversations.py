@@ -5,11 +5,11 @@ from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 from app.ai.character_agent import CharacterAgent
 from app.services.memory_manager import MemoryManager
+from app.services.agent_manager import AgentManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
 from app.ai.prompts.import_prompts import import_system_prompt
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/conversation", tags=["conversations"])
@@ -19,6 +19,7 @@ audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
 memory_manager = MemoryManager()
+agent_manager = AgentManager()
 system_prompt = import_system_prompt()
 
 @router.websocket("/{player_id}/{character_id}")
@@ -70,8 +71,10 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             # Get relevant memories for this character and player
             memories = memory_manager.get_memories(character_id, player_id)
             
-            # Create character agent
-            agent = CharacterAgent(character, player, system_prompt)
+            # Get or create persistent character agent
+            agent = agent_manager.get_or_create_agent(
+                player_id, character_id, character, player, system_prompt
+            )
             
             # Generate AI response using character agent
             result = await agent.chat(transcription, memories)
