@@ -9,7 +9,8 @@ players_db = {
         race=CharacterRace.ELF.value,
         class_name=PlayerClass.WIZARD.value,
         size=CharacterSize.MEDIUM.value,
-        alignment=CharacterAlignment.NEUTRAL_GOOD.value
+        alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+        gender="female"
     ),
     2: Player(
         id=2,
@@ -18,7 +19,8 @@ players_db = {
         race=CharacterRace.HALFLING.value,
         class_name=PlayerClass.ROGUE.value,
         size=CharacterSize.SMALL.value,
-        alignment=CharacterAlignment.CHAOTIC_GOOD.value
+        alignment=CharacterAlignment.CHAOTIC_GOOD.value,
+        gender="male"
     )
 }
 

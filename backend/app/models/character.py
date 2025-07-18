@@ -28,6 +28,11 @@ class CharacterAlignment(Enum):
     NEUTRAL_EVIL = 'Neutral Evil'
     CHAOTIC_EVIL = 'Chaotic Evil'
 
+class Gender(Enum):
+    MALE = 'male'
+    FEMALE = 'female'
+    NONBINARY = 'nonbinary'
+
 # Constants for backward compatibility and validation
 VALID_RACES = [race.value for race in CharacterRace]
 VALID_SIZES = [size.value for size in CharacterSize]

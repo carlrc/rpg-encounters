@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import uvicorn
-from app.routers import players, characters, memories, conversations
+from app.routers import players, characters, memories, conversations, trust
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,6 +14,7 @@ app.include_router(players.router)
 app.include_router(characters.router)
 app.include_router(memories.router)
 app.include_router(conversations.router)
+app.include_router(trust.router)
 
 # Add CORS middleware to allow frontend connections
 app.add_middleware(
