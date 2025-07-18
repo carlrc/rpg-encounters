@@ -53,10 +53,11 @@ def get_all_nuggets():
 
 @router.post("/nuggets", response_model=TrustNugget)
 def create_nugget(nugget_data: TrustNuggetCreate):
-    """Create a trust nugget for a character"""
-    # Verify character exists
-    if not character_store.character_exists(nugget_data.character_id):
-        raise HTTPException(status_code=404, detail="Character not found")
+    """Create a trust nugget for multiple characters"""
+    # Verify all characters exist
+    for character_id in nugget_data.character_ids:
+        if not character_store.character_exists(character_id):
+            raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
     
     return nugget_store.create_nugget(nugget_data)
 

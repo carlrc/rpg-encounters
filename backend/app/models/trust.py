@@ -54,14 +54,18 @@ class NuggetLayer(Enum):
 
 class TrustNugget(BaseModel):
     id: int
-    character_id: int
-    layer: NuggetLayer
-    content: str
+    title: str
+    character_ids: List[int]
+    level_1_content: str  # Public level content
+    level_2_content: str  # Privileged level content
+    level_3_content: str  # Exclusive level content
 
 class TrustNuggetCreate(BaseModel):
-    character_id: int
-    layer: NuggetLayer
-    content: str
+    title: str
+    character_ids: List[int]
+    level_1_content: str
+    level_2_content: str
+    level_3_content: str
 
 class TrustProfile(BaseModel):
     character_id: int

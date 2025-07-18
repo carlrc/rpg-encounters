@@ -21,50 +21,60 @@
       
       <div v-else-if="showCreateForm" class="shared-card">
         <div class="shared-form">
+          <!-- Title -->
+          <input 
+            v-model="createForm.title" 
+            placeholder="Nugget title"
+            class="shared-input shared-input-name"
+          />
+          
           <!-- Character Selection -->
           <div class="character-field">
-            <label class="shared-field-label">Character</label>
-            <select v-model="createForm.character_id" class="shared-select">
-              <option value="">Select character...</option>
-              <option 
+            <label class="shared-field-label">Characters</label>
+            <div class="character-selection">
+              <div 
                 v-for="character in characters" 
-                :key="character.id" 
-                :value="character.id"
+                :key="character.id"
+                class="character-checkbox"
               >
-                {{ character.name }}
-              </option>
-            </select>
-          </div>
-          
-          <!-- Trust Level Selection -->
-          <div class="trust-level-field">
-            <label class="shared-field-label">Trust Level</label>
-            <div class="trust-level-options">
-              <label 
-                v-for="level in 3" 
-                :key="level"
-                class="trust-level-option"
-                :class="{ active: createForm.layer === level }"
-              >
-                <input 
-                  type="radio" 
-                  :value="level" 
-                  v-model="createForm.layer"
-                />
-                <div class="trust-level-info">
-                  <div class="trust-level-name">Level {{ level }}: {{ getLevelName(level) }}</div>
-                  <div class="trust-level-desc">{{ getLevelDescription(level) }}</div>
-                </div>
-              </label>
+                <label class="character-option">
+                  <input 
+                    type="checkbox" 
+                    :value="character.id"
+                    v-model="createForm.character_ids"
+                  />
+                  <span>{{ character.name }}</span>
+                </label>
+              </div>
             </div>
           </div>
           
-          <!-- Content -->
-          <div class="content-field">
-            <label class="shared-field-label">Secret Content</label>
+          <!-- Level 1 Content -->
+          <div class="shared-field shared-field-full-width">
+            <label class="shared-field-label">Level 1: Public Content</label>
             <BaseTextareaWithCharacterCounter
-              v-model="createForm.content"
-              placeholder="Enter the secret content for this trust level..."
+              v-model="createForm.level_1_content"
+              placeholder="Enter public content (always accessible)..."
+              :max-characters="500"
+            />
+          </div>
+          
+          <!-- Level 2 Content -->
+          <div class="shared-field shared-field-full-width">
+            <label class="shared-field-label">Level 2: Privileged Content</label>
+            <BaseTextareaWithCharacterCounter
+              v-model="createForm.level_2_content"
+              placeholder="Enter privileged content (high trust required)..."
+              :max-characters="500"
+            />
+          </div>
+          
+          <!-- Level 3 Content -->
+          <div class="shared-field shared-field-full-width">
+            <label class="shared-field-label">Level 3: Exclusive Content</label>
+            <BaseTextareaWithCharacterCounter
+              v-model="createForm.level_3_content"
+              placeholder="Enter exclusive content (maximum trust required)..."
               :max-characters="500"
             />
           </div>
@@ -125,16 +135,22 @@ export default {
     const characters = ref([])
 
     const createForm = reactive({
-      character_id: '',
-      layer: 1,
-      content: ''
+      title: '',
+      character_ids: [],
+      level_1_content: '',
+      level_2_content: '',
+      level_3_content: ''
     })
 
     const isCreateFormValid = computed(() => {
-      return createForm.character_id && 
-             createForm.layer && 
-             createForm.content.trim() && 
-             createForm.content.length <= 500
+      return createForm.title.trim() &&
+             createForm.character_ids.length > 0 && 
+             createForm.level_1_content.trim() && 
+             createForm.level_2_content.trim() && 
+             createForm.level_3_content.trim() &&
+             createForm.level_1_content.length <= 500 &&
+             createForm.level_2_content.length <= 500 &&
+             createForm.level_3_content.length <= 500
     })
 
     const selectedNugget = computed(() => {
@@ -169,9 +185,11 @@ export default {
 
     const resetCreateForm = () => {
       Object.assign(createForm, {
-        character_id: '',
-        layer: 1,
-        content: ''
+        title: '',
+        character_ids: [],
+        level_1_content: '',
+        level_2_content: '',
+        level_3_content: ''
       })
     }
 
@@ -179,9 +197,11 @@ export default {
       if (isCreateFormValid.value) {
         try {
           await createEntity({
-            character_id: parseInt(createForm.character_id),
-            layer: createForm.layer,
-            content: createForm.content.trim()
+            title: createForm.title.trim(),
+            character_ids: createForm.character_ids.map(id => parseInt(id)),
+            level_1_content: createForm.level_1_content.trim(),
+            level_2_content: createForm.level_2_content.trim(),
+            level_3_content: createForm.level_3_content.trim()
           })
           resetCreateForm()
         } catch (err) {
@@ -301,5 +321,58 @@ export default {
 
 .trust-level-option.active .trust-level-name {
   color: #007bff;
+}
+
+.character-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 0.75rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.character-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+.character-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.character-option:hover {
+  background-color: #e9ecef;
+}
+
+.character-option input[type="checkbox"] {
+  margin: 0;
+  transform: scale(0.9);
+}
+
+.character-option span {
+  font-weight: 500;
+  color: #495057;
+}
+
+/* Ensure text areas take full width */
+.shared-field-full-width :deep(.shared-word-counter-field) {
+  width: 100%;
+}
+
+.shared-field-full-width :deep(.shared-textarea) {
+  width: 100%;
+  box-sizing: border-box;
 }
 </style>

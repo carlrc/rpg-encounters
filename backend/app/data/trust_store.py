@@ -47,7 +47,7 @@ class NuggetStore:
 
     def get_by_character_id(self, character_id: int) -> List[TrustNugget]:
         """Get all nuggets for a character"""
-        return [nugget for nugget in self.nuggets.values() if nugget.character_id == character_id]
+        return [nugget for nugget in self.nuggets.values() if character_id in nugget.character_ids]
 
     def get_nugget(self, nugget_id: int) -> Optional[TrustNugget]:
         """Get a specific nugget by ID"""
