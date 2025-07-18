@@ -88,31 +88,31 @@ class ApiService {
         });
     }
 
-    // Memory CRUD operations
-    async getMemories() {
-        return this.request('/memories');
+    // Nugget CRUD operations
+    async getNuggets() {
+        return this.request('/trust/nuggets');
     }
 
-    async getMemory(id) {
-        return this.request(`/memories/${id}`);
+    async getNugget(id) {
+        return this.request(`/trust/nuggets/${id}`);
     }
 
-    async createMemory(memoryData) {
-        return this.request('/memories', {
+    async createNugget(nuggetData) {
+        return this.request('/trust/nuggets', {
             method: 'POST',
-            body: JSON.stringify(memoryData),
+            body: JSON.stringify(nuggetData),
         });
     }
 
-    async updateMemory(id, memoryData) {
-        return this.request(`/memories/${id}`, {
+    async updateNugget(id, nuggetData) {
+        return this.request(`/trust/nuggets/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(memoryData),
+            body: JSON.stringify(nuggetData),
         });
     }
 
-    async deleteMemory(id) {
-        return this.request(`/memories/${id}`, {
+    async deleteNugget(id) {
+        return this.request(`/trust/nuggets/${id}`, {
             method: 'DELETE',
         });
     }

@@ -40,21 +40,21 @@ class CharacterAgent:
         
         # Decorator does not work on self.agent
         @agent.instructions
-        def add_memories(ctx: RunContext[list[str]]) -> str:  
-            memories_list = '\n'.join(f"- {memory}" for memory in ctx.deps)
-            return f"""# Memories
-            These are {self.character.name} memories.
+        def add_nuggets(ctx: RunContext[list[str]]) -> str:  
+            nuggets_list = '\n'.join(f"- {nugget}" for nugget in ctx.deps)
+            return f"""# Trust Nuggets
+            These are {self.character.name} trust-based secrets.
 
-            ## Summary
-                {memories_list}
+            ## Available Secrets
+                {nuggets_list}
             """
         
         # Set instance variable after decorators defined
         self.agent = agent
         
-    async def chat(self, player_transcript: str, memories: list[str]) -> AgentRunResult[str]:
+    async def chat(self, player_transcript: str, nuggets: list[str]) -> AgentRunResult[str]:
         message_history = self.run_result.all_messages() if self.run_result else None
-        self.run_result = await self.agent.run(player_transcript, deps=memories, message_history=message_history)
+        self.run_result = await self.agent.run(player_transcript, deps=nuggets, message_history=message_history)
         return self.run_result
     
     def _build_trust_instruction(self, character: Character, player: Player, trust_state) -> str:

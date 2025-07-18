@@ -4,7 +4,6 @@ from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 from app.ai.character_agent import CharacterAgent
-from app.services.memory_manager import MemoryManager
 from app.services.agent_manager import AgentManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
@@ -18,7 +17,6 @@ router = APIRouter(prefix="/conversation", tags=["conversations"])
 audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
-memory_manager = MemoryManager()
 agent_manager = AgentManager()
 system_prompt = import_system_prompt()
 
@@ -68,8 +66,20 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             character = character_store.get_character_by_id(character_id)
             player = player_store.get_player_by_id(player_id)
             
-            # Get relevant memories for this character and player
-            memories = memory_manager.get_memories(character_id, player_id)
+            # Get relevant nuggets for this character and player based on trust
+            from app.data.trust_store import trust_state_store, nugget_store
+            from app.models.trust import get_trust_threshold
+            
+            trust_state = trust_state_store.get_trust_state(character_id, player_id)
+            accessible_nuggets = []
+            
+            if trust_state:
+                all_nuggets = nugget_store.get_by_character_id(character_id)
+                for nugget in all_nuggets:
+                    if trust_state.total_trust >= get_trust_threshold(nugget.layer):
+                        accessible_nuggets.append(nugget.content)
+            
+            memories = accessible_nuggets
             
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(

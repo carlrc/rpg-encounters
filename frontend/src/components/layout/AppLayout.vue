@@ -48,7 +48,7 @@ export default {
     const navigationRoutes = [
       { path: '/players', name: 'Players' },
       { path: '/characters', name: 'Characters' },
-      { path: '/memories', name: 'Memories' },
+      { path: '/nuggets', name: 'Nuggets' },
       { path: '/encounters', name: 'Encounters' }
     ]
 
@@ -56,7 +56,7 @@ export default {
       const titleMap = {
         'Players': 'Players',
         'Characters': 'Characters',
-        'Memories': 'Memories',
+        'Nuggets': 'Nuggets',
         'Encounters': 'Encounters'
       }
       return titleMap[route.name] || route.name

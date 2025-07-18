@@ -41,12 +41,20 @@ class NuggetStore:
         self.nuggets: Dict[int, TrustNugget] = {}  # nugget_id -> TrustNugget
         self.next_id = 1
 
+    def get_all_nuggets(self) -> List[TrustNugget]:
+        """Get all nuggets across all characters"""
+        return list(self.nuggets.values())
+
     def get_by_character_id(self, character_id: int) -> List[TrustNugget]:
         """Get all nuggets for a character"""
         return [nugget for nugget in self.nuggets.values() if nugget.character_id == character_id]
 
-    def get_by_id(self, nugget_id: int) -> Optional[TrustNugget]:
+    def get_nugget(self, nugget_id: int) -> Optional[TrustNugget]:
         """Get a specific nugget by ID"""
+        return self.nuggets.get(nugget_id)
+
+    def get_by_id(self, nugget_id: int) -> Optional[TrustNugget]:
+        """Get a specific nugget by ID (alias for get_nugget)"""
         return self.nuggets.get(nugget_id)
 
     def create_nugget(self, nugget_data: TrustNuggetCreate) -> TrustNugget:

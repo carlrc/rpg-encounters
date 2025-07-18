@@ -4,7 +4,7 @@ from app.models.trust import TrustProfile, TrustProfileCreate, TrustNugget, Trus
 from app.data.trust_store import trust_profile_store, nugget_store
 from app.data.character_store import character_store
 
-router = APIRouter(prefix="/trust", tags=["trust"])
+router = APIRouter(prefix="/api/trust", tags=["trust"])
 
 # Trust Profile endpoints
 @router.post("/profiles", response_model=TrustProfile)
@@ -46,6 +46,11 @@ def delete_trust_profile(character_id: int):
     return {"message": "Trust profile deleted successfully"}
 
 # Nugget endpoints
+@router.get("/nuggets", response_model=List[TrustNugget])
+def get_all_nuggets():
+    """Get all nuggets across all characters"""
+    return nugget_store.get_all_nuggets()
+
 @router.post("/nuggets", response_model=TrustNugget)
 def create_nugget(nugget_data: TrustNuggetCreate):
     """Create a trust nugget for a character"""
@@ -55,7 +60,15 @@ def create_nugget(nugget_data: TrustNuggetCreate):
     
     return nugget_store.create_nugget(nugget_data)
 
-@router.get("/nuggets/{character_id}", response_model=List[TrustNugget])
+@router.get("/nuggets/{nugget_id}", response_model=TrustNugget)
+def get_nugget(nugget_id: int):
+    """Get a specific nugget by ID"""
+    nugget = nugget_store.get_nugget(nugget_id)
+    if not nugget:
+        raise HTTPException(status_code=404, detail="Nugget not found")
+    return nugget
+
+@router.get("/nuggets/character/{character_id}", response_model=List[TrustNugget])
 def get_character_nuggets(character_id: int):
     """Get all nuggets for a character"""
     # Verify character exists
