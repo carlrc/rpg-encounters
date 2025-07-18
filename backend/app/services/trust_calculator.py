@@ -1,4 +1,4 @@
-from app.models.trust import TrustProfile
+from app.models.trust import TrustProfile, BASE_TRUST_MIN, BASE_TRUST_MAX, PREFERENCE_VALUE_MAX
 from app.models.player import Player
 
 class TrustCalculator:
@@ -25,6 +25,6 @@ class TrustCalculator:
         # Appearance keywords (±0.3 if any keyword matches)
         if any(keyword.lower() in player.appearance.lower() 
                for keyword in trust_profile.appearance_keywords):
-            trust += 0.3
+            trust += PREFERENCE_VALUE_MAX
             
-        return max(0.0, min(1.0, trust))  # Clamp to [0.0, 1.0]
+        return max(BASE_TRUST_MIN, min(BASE_TRUST_MAX, trust))

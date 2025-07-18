@@ -85,14 +85,15 @@ class TrustStateStore:
     def __init__(self):
         self.trust_states: Dict[tuple, TrustState] = {}  # (character_id, player_id) -> TrustState
 
-    def get_or_create(self, character_id: int, player_id: int, initial_trust: float = 0.0) -> TrustState:
+    def get_or_create(self, character_id: int, player_id: int, base_trust: float = 0.0) -> TrustState:
         """Get existing trust state or create new one"""
         key = (character_id, player_id)
         if key not in self.trust_states:
             self.trust_states[key] = TrustState(
                 character_id=character_id,
                 player_id=player_id,
-                current_trust=initial_trust
+                base_trust=base_trust,
+                earned_trust=0.0
             )
         return self.trust_states[key]
 
@@ -108,10 +109,10 @@ class TrustStateStore:
         return self.trust_states.get(key)
 
     def reset_trust_state(self, character_id: int, player_id: int) -> bool:
-        """Reset trust state to 0.0"""
+        """Reset earned trust to 0.0, keep base trust"""
         key = (character_id, player_id)
         if key in self.trust_states:
-            self.trust_states[key].current_trust = 0.0
+            self.trust_states[key].earned_trust = 0.0
             return True
         return False
 

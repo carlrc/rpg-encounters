@@ -5,7 +5,7 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
-from app.models.trust import NuggetLayer
+from app.models.trust import NuggetLayer, get_trust_threshold, TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, EARNED_TRUST_MIN, EARNED_TRUST_MAX
 from app.data.trust_store import trust_profile_store, nugget_store, trust_state_store
 from app.services.trust_calculator import TrustCalculator
 
@@ -17,14 +17,15 @@ class CharacterAgent:
         self.character = character
         self.player = player
         
-        # Get or create trust state with base trust calculation
-        trust_state = trust_state_store.get_or_create(character.id, player.id)
-        if trust_state.current_trust == 0.0:  # Only calculate base trust once
+        # Get current trust state (should already exist from previous interactions)
+        trust_state = trust_state_store.get_trust_state(character.id, player.id)
+        if not trust_state:
+            # If no trust state exists, create one with calculated base trust
             trust_profile = trust_profile_store.get_by_character_id(character.id)
+            base_trust = 0.0
             if trust_profile:
                 base_trust = TrustCalculator.calculate_base_trust(trust_profile, player)
-                trust_state.current_trust = base_trust
-                trust_state_store.update_trust_state(trust_state)
+            trust_state = trust_state_store.get_or_create(character.id, player.id, base_trust)
         
         # Build trust-aware instructions
         trust_instruction = self._build_trust_instruction(character, player, trust_state)
@@ -58,41 +59,74 @@ class CharacterAgent:
     
     def _build_trust_instruction(self, character: Character, player: Player, trust_state) -> str:
         """Build trust-aware instruction for the AI"""
+        # Check if character has a trust profile configured
         trust_profile = trust_profile_store.get_by_character_id(character.id)
-        if not trust_profile:
-            return f"{character.to_prompt()}. You are speaking with a {player.race} {player.gender} who looks like {player.appearance}."
         
+        if not trust_profile:
+            # No trust system configured - shallow interaction only
+            return f"""{character.to_prompt()}
+
+You are speaking with a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}.
+
+INTERACTION MODE: BASIC
+You have no special secrets or trust system configured. Keep your responses shallow and surface-level. You are polite but don't share anything particularly interesting or personal. Respond naturally as {character.name} but without revealing any deep information about yourself or others."""
+        
+        # Trust system is configured - full trust evaluation
         # Get all nuggets organized by layer
         all_nuggets = nugget_store.get_by_character_id(character.id)
         
         # Organize by layer
-        public_nuggets = [n for n in all_nuggets if n.layer == NuggetLayer.PUBLIC]
-        privileged_nuggets = [n for n in all_nuggets if n.layer == NuggetLayer.PRIVILEGED]
-        exclusive_nuggets = [n for n in all_nuggets if n.layer == NuggetLayer.EXCLUSIVE]
+        public_nuggets = [n.content for n in all_nuggets if n.layer == NuggetLayer.PUBLIC]
+        privileged_nuggets = [n.content for n in all_nuggets if n.layer == NuggetLayer.PRIVILEGED]
+        exclusive_nuggets = [n.content for n in all_nuggets if n.layer == NuggetLayer.EXCLUSIVE]
+        
+        # Calculate trust ranges for display
+        current_earned = trust_state.earned_trust
+        min_earned = max(EARNED_TRUST_MIN, current_earned + TRUST_CHANGE_MIN)
+        max_earned = min(EARNED_TRUST_MAX, current_earned + TRUST_CHANGE_MAX)
+        
+        # Get thresholds using helper functions
+        public_threshold = get_trust_threshold(NuggetLayer.PUBLIC)
+        privileged_threshold = get_trust_threshold(NuggetLayer.PRIVILEGED)
+        exclusive_threshold = get_trust_threshold(NuggetLayer.EXCLUSIVE)
         
         instruction = f"""{character.to_prompt()}
 
 You are speaking with a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}.
 
-CURRENT TRUST LEVEL: {trust_state.current_trust:.2f}/1.0
+PERSONALITY FOR TRUST EVALUATION:
+{character.personality}
 
-TRUST & SECRET SYSTEM:
-- Analyze this message for storytelling elements: {trust_profile.storytelling_keywords}
-- If worthy elements found, add 0.3 to current trust
-- Reveal secrets based on FINAL trust level:
+CURRENT TRUST STATUS:
+- Base Trust: {trust_state.base_trust:.2f} (from player characteristics)
+- Earned Trust: {trust_state.earned_trust:.2f} (from interactions)
+- Total Trust: {trust_state.total_trust:.2f}
+
+TRUST EVALUATION:
+Based on your personality above, evaluate this player's message:
+1. Does it align with what you appreciate?
+2. Does it show understanding of who you are?
+3. Is the social approach appropriate for your character?
+4. Does it contain good storytelling, appropriate humor, or meaningful connection?
+5. Does it go against your values or show disrespect?
+
+TRUST ADJUSTMENT:
+Adjust earned trust by {TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX} based on this evaluation.
+Current earned trust range: {min_earned:.1f} to {max_earned:.1f}
 
 AVAILABLE SECRETS:
-Public (0.0+ trust): {[n.content for n in public_nuggets]}
-Privileged (0.34+ trust): {[n.content for n in privileged_nuggets]}  
-Exclusive (0.67+ trust): {[n.content for n in exclusive_nuggets]}
+Public ({public_threshold}+): {public_nuggets}
+Privileged ({privileged_threshold}+): {privileged_nuggets if trust_state.total_trust >= privileged_threshold else "LOCKED - Need higher trust"}
+Exclusive ({exclusive_threshold}+): {exclusive_nuggets if trust_state.total_trust >= exclusive_threshold else "LOCKED - Need much higher trust"}
 
 INSTRUCTIONS:
-1. Decide if this message deserves +0.3 trust
-2. Calculate your final trust level
-3. Reveal ALL secrets your final trust level unlocks
-4. Respond naturally as {character.name}
+1. Evaluate the message based on your personality
+2. Decide earned trust change ({TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX})
+3. Calculate your new total trust level
+4. Reveal appropriate secrets based on your FINAL trust level
+5. Respond naturally as {character.name}
 
-You handle everything - no system will process your response."""
+You handle all trust calculations and secret revealing - no system will process your response."""
         
         return instruction
 

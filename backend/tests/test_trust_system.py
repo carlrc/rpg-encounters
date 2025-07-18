@@ -90,15 +90,18 @@ def test_trust_calculation():
     trust_state = TrustState(
         character_id=character.id,
         player_id=player.id,
-        current_trust=base_trust
+        base_trust=base_trust,
+        earned_trust=0.0
     )
     trust_state = trust_state_store.update_trust_state(trust_state)
-    logger.info(f"Trust state created with trust level: {trust_state.current_trust}")
+    logger.info(f"Trust state created with trust level: {trust_state.total_trust}")
     
     # Assert that trust calculation works correctly
-    # Halfling(0.3) + Rogue(0.3) + Chaotic Good(0.3) + Small(0.3) + "cheerful" keyword(0.3) = 1.5, clamped to 1.0
-    assert base_trust == 1.0  
-    assert trust_state.current_trust == base_trust
+    # Halfling(0.3) + Rogue(0.3) + Chaotic Good(0.3) + Small(0.3) + "cheerful" keyword(0.3) = 1.5, clamped to 0.6
+    assert base_trust == 0.6  
+    assert trust_state.base_trust == base_trust
+    assert trust_state.earned_trust == 0.0
+    assert trust_state.total_trust == base_trust
 
 def test_character_agent_integration():
     """Test the CharacterAgent with trust system"""
@@ -112,7 +115,8 @@ def test_character_agent_integration():
     trust_state = TrustState(
         character_id=character.id,
         player_id=player.id,
-        current_trust=base_trust
+        base_trust=base_trust,
+        earned_trust=0.0
     )
     trust_state = trust_state_store.update_trust_state(trust_state)
     
@@ -125,29 +129,26 @@ def test_character_agent_integration():
         
         # Get current trust state
         trust_state = trust_state_store.get_trust_state(character.id, player.id)
-        logger.info(f"Current trust level: {trust_state.current_trust if trust_state else 'No trust state'}")
+        logger.info(f"Current trust level: {trust_state.total_trust if trust_state else 'No trust state'}")
         
         # Show what nuggets should be available
         if trust_state:
             available_nuggets = []
             for nugget in nuggets:
-                required_trust = {
-                    NuggetLayer.PUBLIC: 0.0,
-                    NuggetLayer.PRIVILEGED: 0.34, 
-                    NuggetLayer.EXCLUSIVE: 0.67
-                }[nugget.layer]
+                from app.models.trust import get_trust_threshold
+                required_trust = get_trust_threshold(nugget.layer)
                 
-                if trust_state.current_trust >= required_trust:
+                if trust_state.total_trust >= required_trust:
                     available_nuggets.append(nugget)
             
-            logger.info(f"Available nuggets at trust level {trust_state.current_trust:.2f}:")
+            logger.info(f"Available nuggets at trust level {trust_state.total_trust:.2f}:")
             for nugget in available_nuggets:
                 logger.info(f"  - {nugget.layer.name}: {nugget.content}")
             
             # Assert that the agent was created and trust state exists
             assert agent is not None
             assert trust_state is not None
-            assert trust_state.current_trust == 1.0
+            assert trust_state.total_trust == 0.6
         
     except Exception as e:
         logger.error(f"Error creating CharacterAgent: {e}")
