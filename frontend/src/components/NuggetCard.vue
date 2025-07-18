@@ -14,7 +14,7 @@
             </div>
           </div>
           
-          <div class="shared-field">
+          <div v-if="nugget.level_2_content" class="shared-field">
             <div class="shared-field-label">Level 2: Privileged</div>
             <div class="shared-field-value">
               <div class="shared-text-display">{{ nugget.level_2_content }}</div>
@@ -23,7 +23,7 @@
         </div>
         
         <div class="shared-field-column">
-          <div class="shared-field">
+          <div v-if="nugget.level_3_content" class="shared-field">
             <div class="shared-field-label">Level 3: Exclusive</div>
             <div class="shared-field-value">
               <div class="shared-text-display">{{ nugget.level_3_content }}</div>
@@ -85,9 +85,9 @@
           </div>
         </div>
         
-        <!-- Level 1 Content -->
+        <!-- Level 1 Content (Always Required) -->
         <div class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Level 1: Public Content</label>
+          <label class="shared-field-label">Level 1: Public Content <span class="required">*</span></label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.level_1_content"
             placeholder="Enter public content (always accessible)..."
@@ -95,8 +95,20 @@
           />
         </div>
         
+        <!-- Level 2 Toggle -->
+        <div class="level-toggle">
+          <label class="level-toggle-option">
+            <input 
+              type="checkbox" 
+              v-model="editForm.enable_level_2"
+              @change="handleLevel2Toggle"
+            />
+            <span>Add Level 2: Privileged Content</span>
+          </label>
+        </div>
+        
         <!-- Level 2 Content -->
-        <div class="shared-field shared-field-full-width">
+        <div v-if="editForm.enable_level_2" class="shared-field shared-field-full-width">
           <label class="shared-field-label">Level 2: Privileged Content</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.level_2_content"
@@ -105,8 +117,20 @@
           />
         </div>
         
+        <!-- Level 3 Toggle -->
+        <div class="level-toggle">
+          <label class="level-toggle-option">
+            <input 
+              type="checkbox" 
+              v-model="editForm.enable_level_3"
+              @change="handleLevel3Toggle"
+            />
+            <span>Add Level 3: Exclusive Content</span>
+          </label>
+        </div>
+        
         <!-- Level 3 Content -->
-        <div class="shared-field shared-field-full-width">
+        <div v-if="editForm.enable_level_3" class="shared-field shared-field-full-width">
           <label class="shared-field-label">Level 3: Exclusive Content</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.level_3_content"
@@ -156,18 +180,24 @@ export default {
       character_ids: [],
       level_1_content: '',
       level_2_content: '',
-      level_3_content: ''
+      level_3_content: '',
+      enable_level_2: false,
+      enable_level_3: false
     })
     
     const isFormValid = computed(() => {
-      return editForm.title.trim() &&
-             editForm.character_ids.length > 0 && 
-             editForm.level_1_content.trim() && 
-             editForm.level_2_content.trim() && 
-             editForm.level_3_content.trim() &&
-             editForm.level_1_content.length <= 500 &&
-             editForm.level_2_content.length <= 500 &&
-             editForm.level_3_content.length <= 500
+      const baseValid = editForm.title.trim() &&
+                       editForm.character_ids.length > 0 && 
+                       editForm.level_1_content.trim() &&
+                       editForm.level_1_content.length <= 500
+
+      const level2Valid = !editForm.enable_level_2 || 
+                         (editForm.level_2_content.trim() && editForm.level_2_content.length <= 500)
+      
+      const level3Valid = !editForm.enable_level_3 || 
+                         (editForm.level_3_content.trim() && editForm.level_3_content.length <= 500)
+
+      return baseValid && level2Valid && level3Valid
     })
     
     const getCharacterName = (characterId) => {
@@ -186,9 +216,11 @@ export default {
       Object.assign(editForm, {
         title: props.nugget.title,
         character_ids: [...props.nugget.character_ids],
-        level_1_content: props.nugget.level_1_content,
-        level_2_content: props.nugget.level_2_content,
-        level_3_content: props.nugget.level_3_content
+        level_1_content: props.nugget.level_1_content || '',
+        level_2_content: props.nugget.level_2_content || '',
+        level_3_content: props.nugget.level_3_content || '',
+        enable_level_2: !!props.nugget.level_2_content,
+        enable_level_3: !!props.nugget.level_3_content
       })
       isEditing.value = true
     }
@@ -199,17 +231,31 @@ export default {
     
     const saveEdit = () => {
       if (isFormValid.value) {
-        emit('update', props.nugget.id, {
+        const updateData = {
           title: editForm.title.trim(),
           character_ids: editForm.character_ids.map(id => parseInt(id)),
           level_1_content: editForm.level_1_content.trim(),
-          level_2_content: editForm.level_2_content.trim(),
-          level_3_content: editForm.level_3_content.trim()
-        })
+          level_2_content: editForm.enable_level_2 ? editForm.level_2_content.trim() : null,
+          level_3_content: editForm.enable_level_3 ? editForm.level_3_content.trim() : null
+        }
+        
+        emit('update', props.nugget.id, updateData)
         isEditing.value = false
       }
     }
     
+    const handleLevel2Toggle = () => {
+      if (!editForm.enable_level_2) {
+        editForm.level_2_content = ''
+      }
+    }
+
+    const handleLevel3Toggle = () => {
+      if (!editForm.enable_level_3) {
+        editForm.level_3_content = ''
+      }
+    }
+
     const confirmDelete = () => {
       const characterNames = getCharacterNames(props.nugget.character_ids)
       if (confirm(`Are you sure you want to delete the nugget for ${characterNames}?`)) {
@@ -226,7 +272,9 @@ export default {
       startEdit,
       cancelEdit,
       saveEdit,
-      confirmDelete
+      confirmDelete,
+      handleLevel2Toggle,
+      handleLevel3Toggle
     }
   }
 }
@@ -281,13 +329,49 @@ export default {
   color: #495057;
 }
 
+/* Level toggle styles */
+.level-toggle {
+  margin-bottom: 1rem;
+}
+
+.level-toggle-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.75rem;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.level-toggle-option:hover {
+  border-color: #007bff;
+  background: #e3f2fd;
+}
+
+.level-toggle-option input[type="checkbox"] {
+  margin: 0;
+  transform: scale(1.1);
+}
+
+.required {
+  color: #dc3545;
+  font-weight: bold;
+}
+
 /* Ensure text areas take full width */
 .shared-field-full-width :deep(.shared-word-counter-field) {
-  width: 100%;
+  width: 100% !important;
 }
 
 .shared-field-full-width :deep(.shared-textarea) {
-  width: 100%;
+  width: 100% !important;
   box-sizing: border-box;
+  min-width: 100%;
 }
 </style>

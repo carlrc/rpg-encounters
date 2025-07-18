@@ -16,28 +16,17 @@ async def test_character_agent_nugget_injection():
     trust_profile_data = TrustProfileCreate(
         character_id=character.id,
         race_preferences={"Halfling": 0.3},
-        class_preferences={"Rogue": 0.3},
-        alignment_preferences={"Chaotic Good": 0.3}
+        class_preferences={"Rogue": 0.3}
     )
     trust_profile = trust_profile_store.create_trust_profile(trust_profile_data)
     
     # Create test nuggets for different trust levels
-    public_nugget = nugget_store.create_nugget(TrustNuggetCreate(
-        character_id=character.id,
-        layer=NuggetLayer.PUBLIC,
-        content="I've been running this tavern for over twenty years and know everyone in town."
-    ))
-    
-    privileged_nugget = nugget_store.create_nugget(TrustNuggetCreate(
-        character_id=character.id,
-        layer=NuggetLayer.PRIVILEGED,
-        content="The mayor has been skimming coins from the town treasury to pay his gambling debts."
-    ))
-    
-    exclusive_nugget = nugget_store.create_nugget(TrustNuggetCreate(
-        character_id=character.id,
-        layer=NuggetLayer.EXCLUSIVE,
-        content="There's a secret passage behind the wine cellar that leads to the old smuggler's tunnels."
+    test_nugget = nugget_store.create_nugget(TrustNuggetCreate(
+        title="Tavern Secrets",
+        character_ids=[character.id],
+        level_1_content="I've been running this tavern for over twenty years and know everyone in town.",
+        level_2_content="The mayor has been skimming coins from the town treasury to pay his gambling debts.",
+        level_3_content="There's a secret passage behind the wine cellar that leads to the old smuggler's tunnels."
     ))
     
     # Create agent and get accessible nuggets based on trust
@@ -53,8 +42,13 @@ async def test_character_agent_nugget_injection():
     
     for nugget in all_nuggets:
         from app.models.trust import get_trust_threshold
-        if trust_state.total_trust >= get_trust_threshold(nugget.layer):
-            accessible_nuggets.append(nugget.content)
+        # Add content based on trust level thresholds using enums
+        if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PUBLIC):
+            accessible_nuggets.append(nugget.level_1_content)
+        if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PRIVILEGED):
+            accessible_nuggets.append(nugget.level_2_content)
+        if trust_state.total_trust >= get_trust_threshold(NuggetLayer.EXCLUSIVE):
+            accessible_nuggets.append(nugget.level_3_content)
     
     result = await agent.chat("What's the latest gossip at the tavern?", accessible_nuggets)
     
@@ -79,8 +73,13 @@ async def test_character_agent_conversation_history():
         all_nuggets = nugget_store.get_by_character_id(character.id)
         for nugget in all_nuggets:
             from app.models.trust import get_trust_threshold
-            if trust_state.total_trust >= get_trust_threshold(nugget.layer):
-                accessible_nuggets.append(nugget.content)
+            # Add content based on trust level thresholds using enums
+            if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PUBLIC):
+                accessible_nuggets.append(nugget.level_1_content)
+            if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PRIVILEGED):
+                accessible_nuggets.append(nugget.level_2_content)
+            if trust_state.total_trust >= get_trust_threshold(NuggetLayer.EXCLUSIVE):
+                accessible_nuggets.append(nugget.level_3_content)
     
     system_prompt = import_system_prompt()
     agent = CharacterAgent(character, player, system_prompt)

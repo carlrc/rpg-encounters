@@ -72,13 +72,13 @@ INTERACTION MODE: BASIC
 You have no special secrets or trust system configured. Keep your responses shallow and surface-level. You are polite but don't share anything particularly interesting or personal. Respond naturally as {character.name} but without revealing any deep information about yourself or others."""
         
         # Trust system is configured - full trust evaluation
-        # Get all nuggets organized by layer
+        # Get all nuggets organized by trust level
         all_nuggets = nugget_store.get_by_character_id(character.id)
         
-        # Organize by layer
-        public_nuggets = [n.content for n in all_nuggets if n.layer == NuggetLayer.PUBLIC]
-        privileged_nuggets = [n.content for n in all_nuggets if n.layer == NuggetLayer.PRIVILEGED]
-        exclusive_nuggets = [n.content for n in all_nuggets if n.layer == NuggetLayer.EXCLUSIVE]
+        # Organize by trust level content
+        public_nuggets = [n.level_1_content for n in all_nuggets if n.level_1_content]
+        privileged_nuggets = [n.level_2_content for n in all_nuggets if n.level_2_content]
+        exclusive_nuggets = [n.level_3_content for n in all_nuggets if n.level_3_content]
         
         # Calculate trust ranges for display
         current_earned = trust_state.earned_trust

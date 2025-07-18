@@ -116,6 +116,31 @@ class ApiService {
             method: 'DELETE',
         });
     }
+
+    // Trust Profile CRUD operations
+    async getTrustProfile(characterId) {
+        return this.request(`/trust/profiles/${characterId}`);
+    }
+
+    async createTrustProfile(trustProfileData) {
+        return this.request('/trust/profiles', {
+            method: 'POST',
+            body: JSON.stringify(trustProfileData),
+        });
+    }
+
+    async updateTrustProfile(characterId, trustProfileData) {
+        return this.request(`/trust/profiles/${characterId}`, {
+            method: 'PUT',
+            body: JSON.stringify(trustProfileData),
+        });
+    }
+
+    async deleteTrustProfile(characterId) {
+        return this.request(`/trust/profiles/${characterId}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 export default new ApiService();

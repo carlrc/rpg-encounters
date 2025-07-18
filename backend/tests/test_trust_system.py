@@ -35,7 +35,6 @@ def setup_test_data():
         race_preferences={"Halfling": 0.3, "Human": 0.0, "Orc": -0.3},
         class_preferences={"Rogue": 0.3, "Paladin": 0.0, "Wizard": -0.3},
         gender_preferences={"male": 0.0, "female": 0.0, "nonbinary": 0.0},
-        alignment_preferences={"Chaotic Good": 0.3, "Lawful Evil": -0.3},
         size_preferences={"Small": 0.3, "Medium": 0.0},
         appearance_keywords=["cheerful", "bright", "curly"],
         storytelling_keywords=["adventure", "travel", "stories", "friendship", "courage"]
@@ -46,19 +45,11 @@ def setup_test_data():
     # Create nuggets for different trust levels
     nuggets_data = [
         TrustNuggetCreate(
-            character_id=character.id,
-            layer=NuggetLayer.PUBLIC,
-            content="I've been running this tavern for over twenty years and know everyone in town."
-        ),
-        TrustNuggetCreate(
-            character_id=character.id,
-            layer=NuggetLayer.PRIVILEGED,
-            content="The mayor has been skimming coins from the town treasury to pay his gambling debts."
-        ),
-        TrustNuggetCreate(
-            character_id=character.id,
-            layer=NuggetLayer.EXCLUSIVE,
-            content="There's a secret passage behind the wine cellar that leads to the old smuggler's tunnels."
+            title="Tavern Knowledge",
+            character_ids=[character.id],
+            level_1_content="I've been running this tavern for over twenty years and know everyone in town.",
+            level_2_content="The mayor has been skimming coins from the town treasury to pay his gambling debts.",
+            level_3_content="There's a secret passage behind the wine cellar that leads to the old smuggler's tunnels."
         )
     ]
     
@@ -66,7 +57,7 @@ def setup_test_data():
     for nugget_data in nuggets_data:
         nugget = nugget_store.create_nugget(nugget_data)
         nuggets.append(nugget)
-        logger.info(f"Created {nugget.layer.name} nugget: {nugget.content[:50]}...")
+        logger.info(f"Created nugget: {nugget.title}")
     
     return character, player, trust_profile, nuggets
 
@@ -133,17 +124,16 @@ def test_character_agent_integration():
         
         # Show what nuggets should be available
         if trust_state:
-            available_nuggets = []
+            logger.info(f"Available nuggets at trust level {trust_state.total_trust:.2f}:")
             for nugget in nuggets:
                 from app.models.trust import get_trust_threshold
-                required_trust = get_trust_threshold(nugget.layer)
-                
-                if trust_state.total_trust >= required_trust:
-                    available_nuggets.append(nugget)
-            
-            logger.info(f"Available nuggets at trust level {trust_state.total_trust:.2f}:")
-            for nugget in available_nuggets:
-                logger.info(f"  - {nugget.layer.name}: {nugget.content}")
+                # Check each level of content based on trust thresholds using enums
+                if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PUBLIC):
+                    logger.info(f"  - Level 1 (Public): {nugget.level_1_content}")
+                if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PRIVILEGED):
+                    logger.info(f"  - Level 2 (Privileged): {nugget.level_2_content}")
+                if trust_state.total_trust >= get_trust_threshold(NuggetLayer.EXCLUSIVE):
+                    logger.info(f"  - Level 3 (Exclusive): {nugget.level_3_content}")
             
             # Assert that the agent was created and trust state exists
             assert agent is not None

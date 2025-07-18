@@ -16,9 +16,6 @@ class TrustCalculator:
         # Gender preference
         trust += trust_profile.gender_preferences.get(player.gender, 0.0)
         
-        # Alignment preference
-        trust += trust_profile.alignment_preferences.get(player.alignment, 0.0)
-        
         # Size preference
         trust += trust_profile.size_preferences.get(player.size, 0.0)
         

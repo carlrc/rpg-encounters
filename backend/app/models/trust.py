@@ -56,28 +56,27 @@ class TrustNugget(BaseModel):
     id: int
     title: str
     character_ids: List[int]
-    level_1_content: str  # Public level content
-    level_2_content: str  # Privileged level content
-    level_3_content: str  # Exclusive level content
+    level_1_content: str  # Public level content (always required)
+    level_2_content: Optional[str] = None  # Privileged level content (optional)
+    level_3_content: Optional[str] = None  # Exclusive level content (optional)
 
 class TrustNuggetCreate(BaseModel):
     title: str
     character_ids: List[int]
     level_1_content: str
-    level_2_content: str
-    level_3_content: str
+    level_2_content: Optional[str] = None
+    level_3_content: Optional[str] = None
 
 class TrustProfile(BaseModel):
     character_id: int
     race_preferences: Dict[str, float] = Field(default_factory=dict)      # {"Human": 0.3, "Elf": -0.3}
     class_preferences: Dict[str, float] = Field(default_factory=dict)     
     gender_preferences: Dict[str, float] = Field(default_factory=dict)    
-    alignment_preferences: Dict[str, float] = Field(default_factory=dict) 
     size_preferences: Dict[str, float] = Field(default_factory=dict)      
     appearance_keywords: List[str] = Field(default_factory=list)          
     storytelling_keywords: List[str] = Field(default_factory=list)        
 
-    @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'alignment_preferences', 'size_preferences')
+    @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'size_preferences')
     @classmethod
     def validate_preferences(cls, v):
         return validate_preference_values(v)
@@ -87,12 +86,11 @@ class TrustProfileCreate(BaseModel):
     race_preferences: Dict[str, float] = Field(default_factory=dict)
     class_preferences: Dict[str, float] = Field(default_factory=dict)
     gender_preferences: Dict[str, float] = Field(default_factory=dict)
-    alignment_preferences: Dict[str, float] = Field(default_factory=dict)
     size_preferences: Dict[str, float] = Field(default_factory=dict)
     appearance_keywords: List[str] = Field(default_factory=list)
     storytelling_keywords: List[str] = Field(default_factory=list)
 
-    @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'alignment_preferences', 'size_preferences')
+    @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'size_preferences')
     @classmethod
     def validate_preferences(cls, v):
         return validate_preference_values(v)

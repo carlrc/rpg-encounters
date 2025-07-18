@@ -76,6 +76,28 @@
             </div>
           </div>
         </div>
+
+        <!-- Character Biases Section -->
+        <div v-if="displayBiases && Object.keys(displayBiases).length > 0" class="shared-field shared-field-full-width">
+          <div class="shared-field-label">Character Biases</div>
+          <div class="shared-field-value">
+            <div class="bias-display-grid">
+              <div v-for="(preferences, category) in displayBiases" :key="category" class="bias-category-display">
+                <div class="bias-category-title">{{ formatCategoryName(category) }}</div>
+                <div class="bias-preferences-list">
+                  <span 
+                    v-for="(value, option) in preferences" 
+                    :key="option"
+                    class="bias-preference-item"
+                    :class="getBiasClass(value)"
+                  >
+                    {{ option }}: {{ formatBiasValue(value) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div class="shared-actions">
@@ -154,6 +176,109 @@
           :max-characters="motivationCharacterLimit"
         />
       </div>
+
+      <!-- Character Biases Section -->
+      <div class="bias-section">
+        <h4 class="bias-section-title">Character Biases</h4>
+        <p class="bias-section-description">Configure how this character feels about different player characteristics (±0.3 trust modifier each)</p>
+        
+        <!-- Race Preferences -->
+        <div class="bias-category">
+          <label class="bias-category-label">Race Preferences</label>
+          <BiasPreferenceRow
+            v-for="(bias, index) in editForm.biases.race_preferences"
+            :key="`race-${index}`"
+            :options="races"
+            :used-options="editForm.biases.race_preferences.map(b => b.option)"
+            :initial-option="bias.option"
+            :initial-value="bias.value"
+            placeholder="Select Race"
+            @change="(option, val) => updateBiasPreference('race_preferences', index, option, val)"
+            @remove="() => removeBiasPreference('race_preferences', index)"
+          />
+          <button 
+            @click="addBiasPreference('race_preferences')" 
+            class="bias-add-btn"
+            type="button"
+            v-if="editForm.biases.race_preferences.length < races.length"
+          >
+            + Add Race Preference
+          </button>
+        </div>
+
+        <!-- Class Preferences -->
+        <div class="bias-category">
+          <label class="bias-category-label">Class Preferences</label>
+          <BiasPreferenceRow
+            v-for="(bias, index) in editForm.biases.class_preferences"
+            :key="`class-${index}`"
+            :options="classes"
+            :used-options="editForm.biases.class_preferences.map(b => b.option)"
+            :initial-option="bias.option"
+            :initial-value="bias.value"
+            placeholder="Select Class"
+            @change="(option, val) => updateBiasPreference('class_preferences', index, option, val)"
+            @remove="() => removeBiasPreference('class_preferences', index)"
+          />
+          <button 
+            @click="addBiasPreference('class_preferences')" 
+            class="bias-add-btn"
+            type="button"
+            v-if="editForm.biases.class_preferences.length < classes.length"
+          >
+            + Add Class Preference
+          </button>
+        </div>
+
+        <!-- Gender Preferences -->
+        <div class="bias-category">
+          <label class="bias-category-label">Gender Preferences</label>
+          <BiasPreferenceRow
+            v-for="(bias, index) in editForm.biases.gender_preferences"
+            :key="`gender-${index}`"
+            :options="genders"
+            :used-options="editForm.biases.gender_preferences.map(b => b.option)"
+            :initial-option="bias.option"
+            :initial-value="bias.value"
+            placeholder="Select Gender"
+            @change="(option, val) => updateBiasPreference('gender_preferences', index, option, val)"
+            @remove="() => removeBiasPreference('gender_preferences', index)"
+          />
+          <button 
+            @click="addBiasPreference('gender_preferences')" 
+            class="bias-add-btn"
+            type="button"
+            v-if="editForm.biases.gender_preferences.length < genders.length"
+          >
+            + Add Gender Preference
+          </button>
+        </div>
+
+
+        <!-- Size Preferences -->
+        <div class="bias-category">
+          <label class="bias-category-label">Size Preferences</label>
+          <BiasPreferenceRow
+            v-for="(bias, index) in editForm.biases.size_preferences"
+            :key="`size-${index}`"
+            :options="sizes"
+            :used-options="editForm.biases.size_preferences.map(b => b.option)"
+            :initial-option="bias.option"
+            :initial-value="bias.value"
+            placeholder="Select Size"
+            @change="(option, val) => updateBiasPreference('size_preferences', index, option, val)"
+            @remove="() => removeBiasPreference('size_preferences', index)"
+          />
+          <button 
+            @click="addBiasPreference('size_preferences')" 
+            class="bias-add-btn"
+            type="button"
+            v-if="editForm.biases.size_preferences.length < sizes.length"
+          >
+            + Add Size Preference
+          </button>
+        </div>
+      </div>
       
       <div class="shared-actions">
         <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">Save</button>
@@ -164,18 +289,21 @@
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
-import { RACES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { RACES, SIZES, ALIGNMENTS, CLASSES } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
 import AvatarUpload from './base/AvatarUpload.vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
+import BiasPreferenceRow from './BiasPreferenceRow.vue'
+import apiService from '../services/api.js'
 
 export default {
   name: 'CharacterCard',
   components: {
     AvatarUpload,
-    BaseTextareaWithCharacterCounter
+    BaseTextareaWithCharacterCounter,
+    BiasPreferenceRow
   },
   props: {
     character: {
@@ -196,17 +324,47 @@ export default {
       profession: '',
       background: '',
       communication_style: '',
-      motivation: ''
+      motivation: '',
+      biases: {
+        race_preferences: [],
+        class_preferences: [],
+        gender_preferences: [],
+        size_preferences: []
+      }
     })
 
     const { isFormValid } = useFormValidation(editForm, 'CHARACTER')
+
+    // Gender options (not in gameData.js)
+    const genders = ['male', 'female', 'nonbinary']
 
     const getInitials = (name) => {
       if (!name) return '?'
       return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
     }
 
-    const startEdit = () => {
+    const loadTrustProfile = async () => {
+      try {
+        const trustProfile = await apiService.getTrustProfile(props.character.id)
+        // Convert objects to arrays for editing
+        editForm.biases = {
+          race_preferences: Object.entries(trustProfile.race_preferences || {}).map(([option, value]) => ({ option, value })),
+          class_preferences: Object.entries(trustProfile.class_preferences || {}).map(([option, value]) => ({ option, value })),
+          gender_preferences: Object.entries(trustProfile.gender_preferences || {}).map(([option, value]) => ({ option, value })),
+          size_preferences: Object.entries(trustProfile.size_preferences || {}).map(([option, value]) => ({ option, value }))
+        }
+      } catch (error) {
+        // Trust profile doesn't exist yet, use empty biases
+        editForm.biases = {
+          race_preferences: [],
+          class_preferences: [],
+          gender_preferences: [],
+          size_preferences: []
+        }
+      }
+    }
+
+    const startEdit = async () => {
       editForm.name = props.character.name || ''
       editForm.avatar = props.character.avatar || null
       editForm.race = props.character.race || ''
@@ -216,6 +374,10 @@ export default {
       editForm.background = props.character.background || ''
       editForm.communication_style = props.character.communication_style || ''
       editForm.motivation = props.character.motivation || ''
+      
+      // Load existing trust profile
+      await loadTrustProfile()
+      
       isEditing.value = true
     }
 
@@ -223,8 +385,49 @@ export default {
       isEditing.value = false
     }
 
-    const saveEdit = () => {
+    const saveTrustProfile = async () => {
+      try {
+        // Convert arrays back to objects for API
+        const convertToObject = (arr) => {
+          const obj = {}
+          arr.forEach(({ option, value }) => {
+            if (option) { // Only include items with valid options
+              obj[option] = value
+            }
+          })
+          return obj
+        }
+
+        const trustData = {
+          race_preferences: convertToObject(editForm.biases.race_preferences),
+          class_preferences: convertToObject(editForm.biases.class_preferences),
+          gender_preferences: convertToObject(editForm.biases.gender_preferences),
+          size_preferences: convertToObject(editForm.biases.size_preferences),
+          appearance_keywords: [],
+          storytelling_keywords: []
+        }
+
+        // Check if trust profile exists
+        try {
+          await apiService.getTrustProfile(props.character.id)
+          // Profile exists, update it
+          await apiService.updateTrustProfile(props.character.id, trustData)
+        } catch (error) {
+          // Profile doesn't exist, create it
+          await apiService.createTrustProfile({
+            character_id: props.character.id,
+            ...trustData
+          })
+        }
+      } catch (error) {
+        console.error('Error saving trust profile:', error)
+        // Don't block character saving if trust profile fails
+      }
+    }
+
+    const saveEdit = async () => {
       if (isFormValid.value) {
+        // Save character data
         emit('update', props.character.id, {
           name: editForm.name.trim(),
           avatar: editForm.avatar,
@@ -236,8 +439,31 @@ export default {
           communication_style: editForm.communication_style.trim(),
           motivation: editForm.motivation.trim()
         })
+        
+        // Save trust profile
+        await saveTrustProfile()
+        
+        // Refresh display biases to show the updated biases
+        await loadDisplayBiases()
+        
         isEditing.value = false
       }
+    }
+
+    const addBiasPreference = (category) => {
+      // Add a new empty preference object to the array
+      editForm.biases[category].push({ option: '', value: 0.0 })
+    }
+
+    const updateBiasPreference = (category, index, option, value) => {
+      if (editForm.biases[category][index]) {
+        editForm.biases[category][index].option = option
+        editForm.biases[category][index].value = value
+      }
+    }
+
+    const removeBiasPreference = (category, index) => {
+      editForm.biases[category].splice(index, 1)
     }
 
     const deleteCharacter = () => {
@@ -246,10 +472,96 @@ export default {
       }
     }
 
+    // Bias display functionality
+    const displayBiases = ref({})
+
+    const loadDisplayBiases = async () => {
+      try {
+        const trustProfile = await apiService.getTrustProfile(props.character.id)
+        const biases = {}
+        
+        // Only include categories that have preferences
+        if (trustProfile.race_preferences && Object.keys(trustProfile.race_preferences).length > 0) {
+          biases.race_preferences = trustProfile.race_preferences
+        }
+        if (trustProfile.class_preferences && Object.keys(trustProfile.class_preferences).length > 0) {
+          biases.class_preferences = trustProfile.class_preferences
+        }
+        if (trustProfile.gender_preferences && Object.keys(trustProfile.gender_preferences).length > 0) {
+          biases.gender_preferences = trustProfile.gender_preferences
+        }
+        if (trustProfile.size_preferences && Object.keys(trustProfile.size_preferences).length > 0) {
+          biases.size_preferences = trustProfile.size_preferences
+        }
+        
+        displayBiases.value = biases
+      } catch (error) {
+        // No trust profile exists
+        displayBiases.value = {}
+      }
+    }
+
+    const formatCategoryName = (category) => {
+      const names = {
+        race_preferences: 'Race',
+        class_preferences: 'Class',
+        gender_preferences: 'Gender',
+        alignment_preferences: 'Alignment',
+        size_preferences: 'Size'
+      }
+      return names[category] || category
+    }
+
+    const formatBiasValue = (value) => {
+      const sign = value >= 0 ? '+' : ''
+      return `${sign}${value.toFixed(1)}`
+    }
+
+    const getBiasClass = (value) => {
+      if (value > 0) return 'bias-positive'
+      if (value < 0) return 'bias-negative'
+      return 'bias-neutral'
+    }
+
+    // Computed properties for two-column layout
+    const leftColumnBiases = computed(() => {
+      const entries = Object.entries(displayBiases.value)
+      const leftEntries = {}
+      entries.forEach(([category, preferences], index) => {
+        if (index % 2 === 0) {
+          leftEntries[category] = preferences
+        }
+      })
+      return leftEntries
+    })
+
+    const rightColumnBiases = computed(() => {
+      const entries = Object.entries(displayBiases.value)
+      const rightEntries = {}
+      entries.forEach(([category, preferences], index) => {
+        if (index % 2 === 1) {
+          rightEntries[category] = preferences
+        }
+      })
+      return rightEntries
+    })
+
+    // Load display biases when component mounts and when character changes
+    onMounted(() => {
+      loadDisplayBiases()
+    })
+
+    // Watch for character prop changes and reload biases
+    watch(() => props.character.id, () => {
+      loadDisplayBiases()
+    })
+
     return {
       isEditing,
       editForm,
       races: RACES,
+      classes: CLASSES,
+      genders,
       sizes: SIZES.CHARACTER,
       alignments: ALIGNMENTS,
       backgroundCharacterLimit: CHARACTER_LIMITS.CHARACTER_BACKGROUND,
@@ -261,7 +573,16 @@ export default {
       startEdit,
       cancelEdit,
       saveEdit,
-      deleteCharacter
+      addBiasPreference,
+      updateBiasPreference,
+      removeBiasPreference,
+      deleteCharacter,
+      displayBiases,
+      leftColumnBiases,
+      rightColumnBiases,
+      formatCategoryName,
+      formatBiasValue,
+      getBiasClass
     }
   }
 }
@@ -285,5 +606,156 @@ export default {
 .communication-field,
 .motivation-field {
   margin-bottom: 16px;
+}
+
+/* Bias Section Styles */
+.bias-section {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.bias-section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.bias-section-description {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.875rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.bias-category {
+  margin-bottom: 1.5rem;
+}
+
+.bias-category:last-child {
+  margin-bottom: 0;
+}
+
+.bias-category-label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.bias-add-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.bias-add-btn:hover {
+  background: #0056b3;
+}
+
+.bias-add-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Bias Display Styles */
+.bias-display-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.bias-category-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-height: 80px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.bias-category-title {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.bias-preferences-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+.bias-preference-item {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+/* Responsive design for bias grid */
+@media (max-width: 768px) {
+  .bias-display-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .bias-category-display {
+    padding: 0.5rem;
+    min-height: 60px;
+  }
+  
+  .bias-preference-item {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+  }
+}
+
+.bias-preference-item.bias-positive {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.bias-preference-item.bias-negative {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.bias-preference-item.bias-neutral {
+  background-color: #e2e3e5;
+  border-color: #d6d8db;
+  color: #383d41;
 }
 </style>

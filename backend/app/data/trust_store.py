@@ -129,3 +129,7 @@ class TrustStateStore:
 trust_profile_store = TrustProfileStore()
 nugget_store = NuggetStore()
 trust_state_store = TrustStateStore()
+
+# Load trust profiles from fixtures
+from tests.fixtures.trust import trust_profiles_db
+trust_profile_store.trust_profiles = trust_profiles_db
