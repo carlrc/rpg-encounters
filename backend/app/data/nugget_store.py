@@ -1,10 +1,11 @@
-from typing import Optional, List, Dict
+from typing import Optional, List
 from app.models.nugget import TrustNugget, TrustNuggetCreate
+from tests.fixtures.nuggets import nugget_db, next_nugget_id
 
 class NuggetStore:
     def __init__(self):
-        self.nuggets: Dict[int, TrustNugget] = {}  # nugget_id -> TrustNugget
-        self.next_id = 1
+        self.nuggets = nugget_db
+        self.next_id = next_nugget_id
 
     def get_all_nuggets(self) -> List[TrustNugget]:
         """Get all nuggets across all characters"""

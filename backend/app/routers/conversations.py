@@ -8,7 +8,7 @@ from app.data.character_store import character_store
 from app.data.player_store import player_store
 from app.data.trust_store import trust_state_store
 from app.data.nugget_store import nugget_store
-from app.models.nugget import get_trust_threshold
+from app.models.nugget import categorize_nuggets_by_trust
 from app.ai.prompts.import_prompts import import_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -70,13 +70,12 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             
             # Get relevant nuggets for this character and player based on trust
             trust_state = trust_state_store.get_trust_state(character_id, player_id)
-            accessible_nuggets = []
+            available_nuggets = []
+            unavailable_nuggets = []
             
             if trust_state:
                 all_nuggets = nugget_store.get_by_character_id(character_id)
-                for nugget in all_nuggets:
-                    if trust_state.total_trust >= get_trust_threshold(nugget.layer):
-                        accessible_nuggets.append(nugget.content)
+                available_nuggets, unavailable_nuggets = categorize_nuggets_by_trust(trust_state, all_nuggets)
             
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(
@@ -84,7 +83,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             )
             
             # Generate AI response using character agent
-            result = await agent.chat(transcription, accessible_nuggets)
+            result = await agent.chat(transcription, available_nuggets, unavailable_nuggets)
             logger.debug(f"Generated character response: {result.output}")
             
             

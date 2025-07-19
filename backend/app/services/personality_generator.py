@@ -8,7 +8,7 @@ load_dotenv()
 class PersonalityGenerator:
     @staticmethod
     async def generate_personality(character_data: CharacterCreate) -> str:
-        """Generate personality profile from character attributes using Pydantic AI"""
+        """Generate personality profile from character attributes"""
         
         # Create Pydantic AI agent for personality generation
         agent = Agent(
@@ -21,8 +21,11 @@ class PersonalityGenerator:
             3. What behaviors/topics they dislike (loses trust)
             4. How their background influences their social reactions
             5. Their sense of humor and storytelling preferences
+            6. How their bias preferences (race, class, gender, etc.) affect their trust evaluation
             
-            Format as a single paragraph suitable for AI trust evaluation. Focus on what would make this character trust or distrust someone in conversation."""
+            IMPORTANT: Include specific mentions of their bias preferences and explain WHY they have these biases based on their background, profession, and experiences. Describe how these biases manifest in their social interactions and trust-building behaviors.
+            
+            Format as a single paragraph suitable for AI trust evaluation. Focus on what would make this character trust or distrust someone in conversation, including their inherent biases."""
         )
         
         prompt = f"""
@@ -35,6 +38,16 @@ class PersonalityGenerator:
         Background: {character_data.background}
         Communication Style: {character_data.communication_style}
         Motivation: {character_data.motivation}
+        
+        Bias Preferences:
+        Race Preferences: {character_data.race_preferences or 'None specified'}
+        Class Preferences: {character_data.class_preferences or 'None specified'}
+        Gender Preferences: {character_data.gender_preferences or 'None specified'}
+        Size Preferences: {character_data.size_preferences or 'None specified'}
+        Appearance Keywords: {character_data.appearance_keywords or 'None specified'}
+        Storytelling Keywords: {character_data.storytelling_keywords or 'None specified'}
+        
+        IMPORTANT: Explain WHY this character has these specific bias preferences based on their background and experiences, and how these biases affect their trust evaluation of different types of people.
         """
         
         try:

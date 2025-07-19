@@ -8,7 +8,6 @@ from app.models.player import Player
 from app.models.nugget import NuggetLayer, get_trust_threshold
 from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, EARNED_TRUST_MIN, EARNED_TRUST_MAX
 from app.data.trust_store import trust_state_store
-from app.data.nugget_store import nugget_store
 from app.services.trust_calculator import TrustCalculator
 
 MAX_MESSAGE_HISTORY = 10
@@ -51,9 +50,9 @@ class CharacterAgent:
         # Set instance variable after decorators defined
         self.agent = agent
         
-    async def chat(self, player_transcript: str, nuggets: list[str]) -> AgentRunResult[str]:
+    async def chat(self, player_transcript: str, available_nuggets: list[str], unavailable_nuggets: list[str]) -> AgentRunResult[str]:
         message_history = self.run_result.all_messages() if self.run_result else None
-        self.run_result = await self.agent.run(player_transcript, deps=nuggets, message_history=message_history)
+        self.run_result = await self.agent.run(player_transcript, deps=available_nuggets, message_history=message_history)
         return self.run_result
     
     def _build_trust_instruction(self, character: Character, player: Player, trust_state) -> str:
@@ -79,23 +78,10 @@ INTERACTION MODE: BASIC
 You have no special secrets or trust system configured. Keep your responses shallow and surface-level. You are polite but don't share anything particularly interesting or personal. Respond naturally as {character.name} but without revealing any deep information about yourself or others."""
         
         # Trust system is configured - full trust evaluation
-        # Get all nuggets organized by trust level
-        all_nuggets = nugget_store.get_by_character_id(character.id)
-        
-        # Organize by trust level content
-        public_nuggets = [n.level_1_content for n in all_nuggets if n.level_1_content]
-        privileged_nuggets = [n.level_2_content for n in all_nuggets if n.level_2_content]
-        exclusive_nuggets = [n.level_3_content for n in all_nuggets if n.level_3_content]
-        
         # Calculate trust ranges for display
         current_earned = trust_state.earned_trust
         min_earned = max(EARNED_TRUST_MIN, current_earned + TRUST_CHANGE_MIN)
         max_earned = min(EARNED_TRUST_MAX, current_earned + TRUST_CHANGE_MAX)
-        
-        # Get thresholds using helper functions
-        public_threshold = get_trust_threshold(NuggetLayer.PUBLIC)
-        privileged_threshold = get_trust_threshold(NuggetLayer.PRIVILEGED)
-        exclusive_threshold = get_trust_threshold(NuggetLayer.EXCLUSIVE)
         
         # Build personality description from character fields
         personality_parts = []
@@ -132,16 +118,11 @@ TRUST ADJUSTMENT:
 Adjust earned trust by {TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX} based on this evaluation.
 Current earned trust range: {min_earned:.1f} to {max_earned:.1f}
 
-AVAILABLE SECRETS:
-Public ({public_threshold}+): {public_nuggets}
-Privileged ({privileged_threshold}+): {privileged_nuggets if trust_state.total_trust >= privileged_threshold else "LOCKED - Need higher trust"}
-Exclusive ({exclusive_threshold}+): {exclusive_nuggets if trust_state.total_trust >= exclusive_threshold else "LOCKED - Need much higher trust"}
-
 INSTRUCTIONS:
 1. Evaluate the message based on your personality
 2. Decide earned trust change ({TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX})
 3. Calculate your new total trust level
-4. Reveal appropriate secrets based on your FINAL trust level
+4. Use the available secrets provided to you through the nuggets system
 5. Respond naturally as {character.name}
 
 You handle all trust calculations and secret revealing - no system will process your response."""
