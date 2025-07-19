@@ -90,57 +90,35 @@ class ApiService {
 
     // Nugget CRUD operations
     async getNuggets() {
-        return this.request('/trust/nuggets');
+        return this.request('/nuggets');
     }
 
     async getNugget(id) {
-        return this.request(`/trust/nuggets/${id}`);
+        return this.request(`/nuggets/${id}`);
     }
 
     async createNugget(nuggetData) {
-        return this.request('/trust/nuggets', {
+        return this.request('/nuggets', {
             method: 'POST',
             body: JSON.stringify(nuggetData),
         });
     }
 
     async updateNugget(id, nuggetData) {
-        return this.request(`/trust/nuggets/${id}`, {
+        return this.request(`/nuggets/${id}`, {
             method: 'PUT',
             body: JSON.stringify(nuggetData),
         });
     }
 
     async deleteNugget(id) {
-        return this.request(`/trust/nuggets/${id}`, {
+        return this.request(`/nuggets/${id}`, {
             method: 'DELETE',
         });
     }
 
-    // Trust Profile CRUD operations
-    async getTrustProfile(characterId) {
-        return this.request(`/trust/profiles/${characterId}`);
-    }
-
-    async createTrustProfile(trustProfileData) {
-        return this.request('/trust/profiles', {
-            method: 'POST',
-            body: JSON.stringify(trustProfileData),
-        });
-    }
-
-    async updateTrustProfile(characterId, trustProfileData) {
-        return this.request(`/trust/profiles/${characterId}`, {
-            method: 'PUT',
-            body: JSON.stringify(trustProfileData),
-        });
-    }
-
-    async deleteTrustProfile(characterId) {
-        return this.request(`/trust/profiles/${characterId}`, {
-            method: 'DELETE',
-        });
-    }
+    // Note: Trust profiles are now integrated into character model
+    // Trust profile data is managed through character endpoints
 }
 
 export default new ApiService();

@@ -5,8 +5,10 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
-from app.models.trust import NuggetLayer, get_trust_threshold, TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, EARNED_TRUST_MIN, EARNED_TRUST_MAX
-from app.data.trust_store import trust_profile_store, nugget_store, trust_state_store
+from app.models.nugget import NuggetLayer, get_trust_threshold
+from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, EARNED_TRUST_MIN, EARNED_TRUST_MAX
+from app.data.trust_store import trust_state_store
+from app.data.nugget_store import nugget_store
 from app.services.trust_calculator import TrustCalculator
 
 MAX_MESSAGE_HISTORY = 10
@@ -21,10 +23,7 @@ class CharacterAgent:
         trust_state = trust_state_store.get_trust_state(character.id, player.id)
         if not trust_state:
             # If no trust state exists, create one with calculated base trust
-            trust_profile = trust_profile_store.get_by_character_id(character.id)
-            base_trust = 0.0
-            if trust_profile:
-                base_trust = TrustCalculator.calculate_base_trust(trust_profile, player)
+            base_trust = TrustCalculator.calculate_base_trust(character, player)
             trust_state = trust_state_store.get_or_create(character.id, player.id, base_trust)
         
         # Build trust-aware instructions
@@ -59,10 +58,18 @@ class CharacterAgent:
     
     def _build_trust_instruction(self, character: Character, player: Player, trust_state) -> str:
         """Build trust-aware instruction for the AI"""
-        # Check if character has a trust profile configured
-        trust_profile = trust_profile_store.get_by_character_id(character.id)
+        # Check if character has trust preferences configured
+        has_trust_preferences = (
+            character.race_preferences or 
+            character.class_preferences or 
+            character.gender_preferences or 
+            character.size_preferences or
+            character.appearance_keywords or
+            character.storytelling_keywords
+        )
         
-        if not trust_profile:
+        if not has_trust_preferences:
+            # TODO: Make entry and exit shallow conversations
             # No trust system configured - shallow interaction only
             return f"""{character.to_prompt()}
 
@@ -90,12 +97,23 @@ You have no special secrets or trust system configured. Keep your responses shal
         privileged_threshold = get_trust_threshold(NuggetLayer.PRIVILEGED)
         exclusive_threshold = get_trust_threshold(NuggetLayer.EXCLUSIVE)
         
+        # Build personality description from character fields
+        personality_parts = []
+        if character.background:
+            personality_parts.append(f"Background: {character.background}")
+        if character.communication_style:
+            personality_parts.append(f"Communication Style: {character.communication_style}")
+        if character.motivation:
+            personality_parts.append(f"Motivation: {character.motivation}")
+        
+        personality = "\n".join(personality_parts) if personality_parts else "No detailed personality configured."
+        
         instruction = f"""{character.to_prompt()}
 
 You are speaking with a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}.
 
 PERSONALITY FOR TRUST EVALUATION:
-{character.personality}
+{personality}
 
 CURRENT TRUST STATUS:
 - Base Trust: {trust_state.base_trust:.2f} (from player characteristics)

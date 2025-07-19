@@ -235,7 +235,14 @@ export default {
             profession: createForm.profession.trim(),
             background: createForm.background.trim(),
             communication_style: createForm.communication_style.trim(),
-            motivation: createForm.motivation.trim()
+            motivation: createForm.motivation.trim(),
+            // Initialize empty trust profile fields
+            race_preferences: {},
+            class_preferences: {},
+            gender_preferences: {},
+            size_preferences: {},
+            appearance_keywords: [],
+            storytelling_keywords: []
           })
           resetCreateForm()
         } catch (err) {

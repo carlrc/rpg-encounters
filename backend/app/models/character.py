@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from typing import Optional, List, Dict
 from enum import Enum
 
 class CharacterRace(Enum):
@@ -58,7 +58,6 @@ def validate_choice(value: str, valid_choices: List[str], field_name: str) -> st
         raise ValueError(f'{field_name} must be one of: {", ".join(valid_choices)}')
     return value
 
-
 class CharacterBase(BaseModel):
     name: str
     avatar: Optional[str] = Field(None, description="Character avatar image (base64 or URL)")
@@ -71,6 +70,14 @@ class CharacterBase(BaseModel):
     motivation: str = Field(..., description="Character motivation")
     personality: str = Field("", description="AI-generated personality profile for trust decisions")
     voice: Optional[str] = Field("JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS")
+    
+    # Bias
+    race_preferences: Optional[Dict[str, float]] = Field(None, description="Race preferences for trust calculation")
+    class_preferences: Optional[Dict[str, float]] = Field(None, description="Class preferences for trust calculation")
+    gender_preferences: Optional[Dict[str, float]] = Field(None, description="Gender preferences for trust calculation")
+    size_preferences: Optional[Dict[str, float]] = Field(None, description="Size preferences for trust calculation")
+    appearance_keywords: Optional[List[str]] = Field(None, description="Appearance keywords for trust calculation")
+    storytelling_keywords: Optional[List[str]] = Field(None, description="Storytelling keywords for trust calculation")
 
     @field_validator('background')
     @classmethod
@@ -114,6 +121,19 @@ class CharacterBase(BaseModel):
             return validate_choice(v, VALID_ALIGNMENTS, 'Alignment')
         return v
 
+    @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'size_preferences')
+    @classmethod
+    def validate_preferences(cls, v):
+        """Ensure preference values are within ±0.3 range"""
+        if v is None:
+            return v
+        PREFERENCE_VALUE_MIN = -0.3
+        PREFERENCE_VALUE_MAX = 0.3
+        for key, value in v.items():
+            if not (PREFERENCE_VALUE_MIN <= value <= PREFERENCE_VALUE_MAX):
+                raise ValueError(f'Preference values must be between {PREFERENCE_VALUE_MIN} and {PREFERENCE_VALUE_MAX}, got {value} for {key}')
+        return v
+
 class CharacterCreate(CharacterBase):
     """Character creation model - inherits all validation from CharacterBase."""
     pass
@@ -130,6 +150,12 @@ class CharacterUpdate(CharacterBase):
     motivation: Optional[str] = None
     personality: Optional[str] = None
     voice: Optional[str] = None
+    race_preferences: Optional[Dict[str, float]] = None
+    class_preferences: Optional[Dict[str, float]] = None
+    gender_preferences: Optional[Dict[str, float]] = None
+    size_preferences: Optional[Dict[str, float]] = None
+    appearance_keywords: Optional[List[str]] = None
+    storytelling_keywords: Optional[List[str]] = None
 
 class Character(CharacterBase):
     id: int

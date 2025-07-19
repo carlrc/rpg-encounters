@@ -343,24 +343,14 @@ export default {
       return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
     }
 
-    const loadTrustProfile = async () => {
-      try {
-        const trustProfile = await apiService.getTrustProfile(props.character.id)
-        // Convert objects to arrays for editing
-        editForm.biases = {
-          race_preferences: Object.entries(trustProfile.race_preferences || {}).map(([option, value]) => ({ option, value })),
-          class_preferences: Object.entries(trustProfile.class_preferences || {}).map(([option, value]) => ({ option, value })),
-          gender_preferences: Object.entries(trustProfile.gender_preferences || {}).map(([option, value]) => ({ option, value })),
-          size_preferences: Object.entries(trustProfile.size_preferences || {}).map(([option, value]) => ({ option, value }))
-        }
-      } catch (error) {
-        // Trust profile doesn't exist yet, use empty biases
-        editForm.biases = {
-          race_preferences: [],
-          class_preferences: [],
-          gender_preferences: [],
-          size_preferences: []
-        }
+    const loadTrustProfile = () => {
+      // Trust profiles are now part of the character model
+      const character = props.character
+      editForm.biases = {
+        race_preferences: Object.entries(character.race_preferences || {}).map(([option, value]) => ({ option, value })),
+        class_preferences: Object.entries(character.class_preferences || {}).map(([option, value]) => ({ option, value })),
+        gender_preferences: Object.entries(character.gender_preferences || {}).map(([option, value]) => ({ option, value })),
+        size_preferences: Object.entries(character.size_preferences || {}).map(([option, value]) => ({ option, value }))
       }
     }
 
@@ -385,49 +375,19 @@ export default {
       isEditing.value = false
     }
 
-    const saveTrustProfile = async () => {
-      try {
-        // Convert arrays back to objects for API
-        const convertToObject = (arr) => {
-          const obj = {}
-          arr.forEach(({ option, value }) => {
-            if (option) { // Only include items with valid options
-              obj[option] = value
-            }
-          })
-          return obj
+    const convertBiasesToObject = (arr) => {
+      const obj = {}
+      arr.forEach(({ option, value }) => {
+        if (option) { // Only include items with valid options
+          obj[option] = value
         }
-
-        const trustData = {
-          race_preferences: convertToObject(editForm.biases.race_preferences),
-          class_preferences: convertToObject(editForm.biases.class_preferences),
-          gender_preferences: convertToObject(editForm.biases.gender_preferences),
-          size_preferences: convertToObject(editForm.biases.size_preferences),
-          appearance_keywords: [],
-          storytelling_keywords: []
-        }
-
-        // Check if trust profile exists
-        try {
-          await apiService.getTrustProfile(props.character.id)
-          // Profile exists, update it
-          await apiService.updateTrustProfile(props.character.id, trustData)
-        } catch (error) {
-          // Profile doesn't exist, create it
-          await apiService.createTrustProfile({
-            character_id: props.character.id,
-            ...trustData
-          })
-        }
-      } catch (error) {
-        console.error('Error saving trust profile:', error)
-        // Don't block character saving if trust profile fails
-      }
+      })
+      return obj
     }
 
     const saveEdit = async () => {
       if (isFormValid.value) {
-        // Save character data
+        // Save character data including trust profile fields
         emit('update', props.character.id, {
           name: editForm.name.trim(),
           avatar: editForm.avatar,
@@ -437,14 +397,18 @@ export default {
           profession: editForm.profession.trim(),
           background: editForm.background.trim(),
           communication_style: editForm.communication_style.trim(),
-          motivation: editForm.motivation.trim()
+          motivation: editForm.motivation.trim(),
+          // Include trust profile fields
+          race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
+          class_preferences: convertBiasesToObject(editForm.biases.class_preferences),
+          gender_preferences: convertBiasesToObject(editForm.biases.gender_preferences),
+          size_preferences: convertBiasesToObject(editForm.biases.size_preferences),
+          appearance_keywords: [],
+          storytelling_keywords: []
         })
         
-        // Save trust profile
-        await saveTrustProfile()
-        
         // Refresh display biases to show the updated biases
-        await loadDisplayBiases()
+        loadDisplayBiases()
         
         isEditing.value = false
       }
@@ -475,30 +439,26 @@ export default {
     // Bias display functionality
     const displayBiases = ref({})
 
-    const loadDisplayBiases = async () => {
-      try {
-        const trustProfile = await apiService.getTrustProfile(props.character.id)
-        const biases = {}
-        
-        // Only include categories that have preferences
-        if (trustProfile.race_preferences && Object.keys(trustProfile.race_preferences).length > 0) {
-          biases.race_preferences = trustProfile.race_preferences
-        }
-        if (trustProfile.class_preferences && Object.keys(trustProfile.class_preferences).length > 0) {
-          biases.class_preferences = trustProfile.class_preferences
-        }
-        if (trustProfile.gender_preferences && Object.keys(trustProfile.gender_preferences).length > 0) {
-          biases.gender_preferences = trustProfile.gender_preferences
-        }
-        if (trustProfile.size_preferences && Object.keys(trustProfile.size_preferences).length > 0) {
-          biases.size_preferences = trustProfile.size_preferences
-        }
-        
-        displayBiases.value = biases
-      } catch (error) {
-        // No trust profile exists
-        displayBiases.value = {}
+    const loadDisplayBiases = () => {
+      // Trust profiles are now part of the character model
+      const character = props.character
+      const biases = {}
+      
+      // Only include categories that have preferences
+      if (character.race_preferences && Object.keys(character.race_preferences).length > 0) {
+        biases.race_preferences = character.race_preferences
       }
+      if (character.class_preferences && Object.keys(character.class_preferences).length > 0) {
+        biases.class_preferences = character.class_preferences
+      }
+      if (character.gender_preferences && Object.keys(character.gender_preferences).length > 0) {
+        biases.gender_preferences = character.gender_preferences
+      }
+      if (character.size_preferences && Object.keys(character.size_preferences).length > 0) {
+        biases.size_preferences = character.size_preferences
+      }
+      
+      displayBiases.value = biases
     }
 
     const formatCategoryName = (category) => {

@@ -1,93 +1,5 @@
 from typing import Optional, List, Dict
-from app.models.trust import TrustProfile, TrustProfileCreate, TrustNugget, TrustNuggetCreate, TrustState, TrustStateCreate, NuggetLayer
-
-class TrustProfileStore:
-    def __init__(self):
-        self.trust_profiles: Dict[int, TrustProfile] = {}  # character_id -> TrustProfile
-
-    def get_by_character_id(self, character_id: int) -> Optional[TrustProfile]:
-        """Get trust profile for a character"""
-        return self.trust_profiles.get(character_id)
-
-    def create_trust_profile(self, profile_data: TrustProfileCreate) -> TrustProfile:
-        """Create a new trust profile"""
-        profile = TrustProfile(**profile_data.model_dump())
-        self.trust_profiles[profile.character_id] = profile
-        return profile
-
-    def update_trust_profile(self, character_id: int, updates: dict) -> Optional[TrustProfile]:
-        """Update an existing trust profile"""
-        if character_id not in self.trust_profiles:
-            return None
-        
-        existing_profile = self.trust_profiles[character_id]
-        update_data = existing_profile.model_dump()
-        update_data.update(updates)
-        
-        updated_profile = TrustProfile(**update_data)
-        self.trust_profiles[character_id] = updated_profile
-        return updated_profile
-
-    def delete_trust_profile(self, character_id: int) -> bool:
-        """Delete a trust profile"""
-        if character_id not in self.trust_profiles:
-            return False
-        del self.trust_profiles[character_id]
-        return True
-
-
-class NuggetStore:
-    def __init__(self):
-        self.nuggets: Dict[int, TrustNugget] = {}  # nugget_id -> TrustNugget
-        self.next_id = 1
-
-    def get_all_nuggets(self) -> List[TrustNugget]:
-        """Get all nuggets across all characters"""
-        return list(self.nuggets.values())
-
-    def get_by_character_id(self, character_id: int) -> List[TrustNugget]:
-        """Get all nuggets for a character"""
-        return [nugget for nugget in self.nuggets.values() if character_id in nugget.character_ids]
-
-    def get_nugget(self, nugget_id: int) -> Optional[TrustNugget]:
-        """Get a specific nugget by ID"""
-        return self.nuggets.get(nugget_id)
-
-    def get_by_id(self, nugget_id: int) -> Optional[TrustNugget]:
-        """Get a specific nugget by ID (alias for get_nugget)"""
-        return self.nuggets.get(nugget_id)
-
-    def create_nugget(self, nugget_data: TrustNuggetCreate) -> TrustNugget:
-        """Create a new nugget"""
-        nugget_dict = nugget_data.model_dump()
-        nugget_dict["id"] = self.next_id
-        
-        nugget = TrustNugget(**nugget_dict)
-        self.nuggets[self.next_id] = nugget
-        self.next_id += 1
-        
-        return nugget
-
-    def update_nugget(self, nugget_id: int, updates: dict) -> Optional[TrustNugget]:
-        """Update an existing nugget"""
-        if nugget_id not in self.nuggets:
-            return None
-        
-        existing_nugget = self.nuggets[nugget_id]
-        update_data = existing_nugget.model_dump()
-        update_data.update(updates)
-        
-        updated_nugget = TrustNugget(**update_data)
-        self.nuggets[nugget_id] = updated_nugget
-        return updated_nugget
-
-    def delete_nugget(self, nugget_id: int) -> bool:
-        """Delete a nugget"""
-        if nugget_id not in self.nuggets:
-            return False
-        del self.nuggets[nugget_id]
-        return True
-
+from app.models.trust import TrustState
 
 class TrustStateStore:
     def __init__(self):
@@ -125,11 +37,5 @@ class TrustStateStore:
         return False
 
 
-# Create singleton instances
-trust_profile_store = TrustProfileStore()
-nugget_store = NuggetStore()
+# Create singleton instance
 trust_state_store = TrustStateStore()
-
-# Load trust profiles from fixtures
-from tests.fixtures.trust import trust_profiles_db
-trust_profile_store.trust_profiles = trust_profiles_db

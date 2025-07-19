@@ -3,10 +3,12 @@ import logging
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
-from app.ai.character_agent import CharacterAgent
 from app.services.agent_manager import AgentManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
+from app.data.trust_store import trust_state_store
+from app.data.nugget_store import nugget_store
+from app.models.nugget import get_trust_threshold
 from app.ai.prompts.import_prompts import import_system_prompt
 
 logger = logging.getLogger(__name__)
@@ -67,9 +69,6 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             player = player_store.get_player_by_id(player_id)
             
             # Get relevant nuggets for this character and player based on trust
-            from app.data.trust_store import trust_state_store, nugget_store
-            from app.models.trust import get_trust_threshold
-            
             trust_state = trust_state_store.get_trust_state(character_id, player_id)
             accessible_nuggets = []
             
@@ -79,15 +78,13 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
                     if trust_state.total_trust >= get_trust_threshold(nugget.layer):
                         accessible_nuggets.append(nugget.content)
             
-            memories = accessible_nuggets
-            
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(
                 player_id, character_id, character, player, system_prompt
             )
             
             # Generate AI response using character agent
-            result = await agent.chat(transcription, memories)
+            result = await agent.chat(transcription, accessible_nuggets)
             logger.debug(f"Generated character response: {result.output}")
             
             

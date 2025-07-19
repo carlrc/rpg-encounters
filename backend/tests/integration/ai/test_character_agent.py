@@ -2,9 +2,11 @@ from app.ai.character_agent import CharacterAgent
 from app.ai.prompts.import_prompts import import_system_prompt
 from tests.fixtures.characters import characters_db
 from tests.fixtures.players import players_db
-from app.models.trust import TrustNuggetCreate, NuggetLayer
-from app.data.trust_store import nugget_store, trust_profile_store, trust_state_store
-from app.models.trust import TrustProfileCreate
+from app.models.nugget import TrustNuggetCreate, NuggetLayer, get_trust_threshold
+from app.data.trust_store import trust_state_store
+from app.data.nugget_store import nugget_store
+from app.services.trust_calculator import TrustCalculator
+from app.models.trust import TrustState
 
 async def test_character_agent_nugget_injection():
     """Test that trust nuggets are properly injected into the character agent based on trust levels."""
@@ -12,13 +14,15 @@ async def test_character_agent_nugget_injection():
     character = characters_db[1]  # Bingo Bracegirdle - Halfling Barkeep
     player = players_db[2]        # Pippin Greenhill - Halfling Rogue
     
-    # Create trust profile for the character
-    trust_profile_data = TrustProfileCreate(
+    # Calculate base trust using character directly
+    base_trust = TrustCalculator.calculate_base_trust(character, player)
+    trust_state = TrustState(
         character_id=character.id,
-        race_preferences={"Halfling": 0.3},
-        class_preferences={"Rogue": 0.3}
+        player_id=player.id,
+        base_trust=base_trust,
+        earned_trust=0.0
     )
-    trust_profile = trust_profile_store.create_trust_profile(trust_profile_data)
+    trust_state = trust_state_store.update_trust_state(trust_state)
     
     # Create test nuggets for different trust levels
     test_nugget = nugget_store.create_nugget(TrustNuggetCreate(
@@ -41,7 +45,6 @@ async def test_character_agent_nugget_injection():
     all_nuggets = nugget_store.get_by_character_id(character.id)
     
     for nugget in all_nuggets:
-        from app.models.trust import get_trust_threshold
         # Add content based on trust level thresholds using enums
         if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PUBLIC):
             accessible_nuggets.append(nugget.level_1_content)
@@ -72,7 +75,6 @@ async def test_character_agent_conversation_history():
     if trust_state:
         all_nuggets = nugget_store.get_by_character_id(character.id)
         for nugget in all_nuggets:
-            from app.models.trust import get_trust_threshold
             # Add content based on trust level thresholds using enums
             if trust_state.total_trust >= get_trust_threshold(NuggetLayer.PUBLIC):
                 accessible_nuggets.append(nugget.level_1_content)
