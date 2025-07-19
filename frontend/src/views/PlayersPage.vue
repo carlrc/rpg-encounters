@@ -18,7 +18,7 @@
       />
       <button 
         @click="$refs.playerFileInput.click()" 
-        class="import-players-btn"
+        class="shared-import-btn"
         :disabled="importing"
       >
         <span v-if="importing">Importing...</span>
@@ -27,8 +27,8 @@
     </template>
 
     <template #detail-content>
-      <div v-if="loading" class="loading">Loading players...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-if="loading" class="shared-loading">Loading players...</div>
+      <div v-else-if="error" class="shared-error">{{ error }}</div>
       
       <EmptyState
         v-else-if="!selectedPlayer && !showCreateForm"
@@ -158,6 +158,7 @@ import PlayerCard from '../components/PlayerCard.vue'
 import { useEntityCRUD } from '../utils/useEntityCRUD.js'
 import { useFileImport } from '../utils/useFileImport.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
+import { getInitials, handleAvatarUpload } from '../utils/avatarUtils.js'
 import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 
 export default {
@@ -205,11 +206,6 @@ export default {
       return entities.value.find(p => p.id === selectedEntityId.value) || null
     })
 
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
-
     const updateCreateWordCount = () => {
       createWordCount.value = createForm.appearance.trim() ? createForm.appearance.trim().split(/\s+/).length : 0
     }
@@ -234,14 +230,9 @@ export default {
     }
 
     const handlePlayerAvatarUpload = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          createForm.avatar = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
+      handleAvatarUpload(event, (result) => {
+        createForm.avatar = result
+      })
     }
 
     const removePlayerAvatar = () => {

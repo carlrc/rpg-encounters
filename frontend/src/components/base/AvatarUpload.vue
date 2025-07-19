@@ -23,6 +23,8 @@
 </template>
 
 <script>
+import { getInitials, handleAvatarUpload } from '../../utils/avatarUtils.js'
+
 export default {
   name: 'AvatarUpload',
   props: {
@@ -37,20 +39,10 @@ export default {
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
-    
-    const handleAvatarUpload = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          emit('update:modelValue', e.target.result)
-        }
-        reader.readAsDataURL(file)
-      }
+    const onAvatarUpload = (event) => {
+      handleAvatarUpload(event, (result) => {
+        emit('update:modelValue', result)
+      })
     }
     
     const removeAvatar = () => {
@@ -59,7 +51,7 @@ export default {
     
     return {
       getInitials,
-      handleAvatarUpload,
+      handleAvatarUpload: onAvatarUpload,
       removeAvatar
     }
   }

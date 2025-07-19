@@ -18,7 +18,7 @@
       />
       <button 
         @click="$refs.characterFileInput.click()" 
-        class="import-characters-btn"
+        class="shared-import-btn"
         :disabled="importing"
       >
         <span v-if="importing">Importing...</span>
@@ -27,8 +27,8 @@
     </template>
 
     <template #detail-content>
-      <div v-if="loading" class="loading">Loading characters...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-if="loading" class="shared-loading">Loading characters...</div>
+      <div v-else-if="error" class="shared-error">{{ error }}</div>
       
       <EmptyState
         v-else-if="!selectedCharacter && !showCreateForm"
@@ -51,7 +51,7 @@
               ref="avatarInput"
               type="file" 
               accept="image/*" 
-              @change="handleAvatarUpload"
+              @change="onAvatarUpload"
               style="display: none"
             />
             <button @click="$refs.avatarInput.click()" class="shared-avatar-btn shared-avatar-upload-btn">
@@ -143,6 +143,7 @@ import CharacterCard from '../components/CharacterCard.vue'
 import { useEntityCRUD } from '../utils/useEntityCRUD.js'
 import { useFileImport } from '../utils/useFileImport.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
+import { getInitials, handleAvatarUpload } from '../utils/avatarUtils.js'
 import { RACES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
@@ -191,20 +192,10 @@ export default {
       return entities.value.find(c => c.id === selectedEntityId.value) || null
     })
 
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
-
-    const handleAvatarUpload = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          createForm.avatar = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
+    const onAvatarUpload = (event) => {
+      handleAvatarUpload(event, (result) => {
+        createForm.avatar = result
+      })
     }
 
     const removeAvatar = () => {
@@ -293,7 +284,7 @@ export default {
       updateEntity,
       deleteEntity,
       getInitials,
-      handleAvatarUpload,
+      onAvatarUpload,
       removeAvatar,
       saveCreate,
       cancelCreate: handleCancelCreate,

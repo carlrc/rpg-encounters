@@ -21,7 +21,7 @@ const routes = [
     },
     {
         path: '/nuggets',
-        name: 'Nuggets',
+        name: 'Trust Nuggets',
         component: NuggetsPage
     },
     {

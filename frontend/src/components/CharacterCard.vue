@@ -293,6 +293,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { RACES, SIZES, ALIGNMENTS, CLASSES } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
+import { getInitials } from '../utils/avatarUtils.js'
 import AvatarUpload from './base/AvatarUpload.vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 import BiasPreferenceRow from './BiasPreferenceRow.vue'
@@ -337,11 +338,6 @@ export default {
 
     // Gender options (not in gameData.js)
     const genders = ['male', 'female', 'nonbinary']
-
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
 
     const loadTrustProfile = () => {
       // Trust profiles are now part of the character model

@@ -491,6 +491,60 @@
     min-height: 60px;
 }
 
+/* ===== SHARED IMPORT BUTTON ===== */
+.shared-import-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: var(--font-weight-semibold);
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-button);
+    margin-top: var(--spacing-sm);
+}
+
+.shared-import-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-button-hover);
+}
+
+.shared-import-btn:disabled {
+    background: var(--secondary-color);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ===== SHARED LOADING AND ERROR STATES ===== */
+.shared-loading {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 1.1em;
+}
+
+.shared-error {
+    text-align: left;
+    padding: 20px;
+    color: var(--danger-color);
+    font-size: 0.95em;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: var(--radius-lg);
+    margin: 20px;
+    white-space: pre-line;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.5;
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
     .shared-field-columns {

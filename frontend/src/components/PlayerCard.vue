@@ -126,6 +126,7 @@ import { ref, reactive } from 'vue'
 import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
+import { getInitials } from '../utils/avatarUtils.js'
 import AvatarUpload from './base/AvatarUpload.vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
@@ -156,11 +157,6 @@ export default {
     })
 
     const { isFormValid } = useFormValidation(editForm, 'PLAYER')
-
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
 
     const startEdit = () => {
       editForm.name = props.player.name || ''
