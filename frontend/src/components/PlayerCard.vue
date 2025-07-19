@@ -11,7 +11,8 @@
         </div>
       </div>
       
-      <h3 class="shared-title">{{ player.name }}</h3>
+      <!-- Name with Gender Emoji -->
+      <h3 class="shared-title">{{ getGenderEmoji(player.gender) }} {{ player.name }}</h3>
       
       <!-- Two Column Layout -->
       <div class="player-fields">
@@ -102,6 +103,12 @@
         </div>
       </div>
       
+      <!-- Gender Field (Full Width) -->
+      <select v-model="editForm.gender" class="shared-select">
+        <option value="">Select Gender</option>
+        <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
+      </select>
+      
       <!-- Appearance Field (Full Width) -->
       <div class="appearance-field">
         <label class="shared-field-label">Appearance</label>
@@ -153,10 +160,24 @@ export default {
       race: '',
       class_name: '',
       size: '',
-      alignment: ''
+      alignment: '',
+      gender: ''
     })
 
     const { isFormValid } = useFormValidation(editForm, 'PLAYER')
+
+    // Gender options (not in gameData.js)
+    const genders = ['male', 'female', 'nonbinary']
+
+    // Helper function to get gender emoji
+    const getGenderEmoji = (gender) => {
+      const genderEmojis = {
+        'male': '♂️',
+        'female': '♀️',
+        'nonbinary': '⚧️'
+      }
+      return genderEmojis[gender] || ''
+    }
 
     const startEdit = () => {
       editForm.name = props.player.name || ''
@@ -166,6 +187,7 @@ export default {
       editForm.class_name = props.player.class_name || ''
       editForm.size = props.player.size || ''
       editForm.alignment = props.player.alignment || ''
+      editForm.gender = props.player.gender || ''
       isEditing.value = true
     }
 
@@ -182,7 +204,8 @@ export default {
           race: editForm.race,
           class_name: editForm.class_name,
           size: editForm.size,
-          alignment: editForm.alignment
+          alignment: editForm.alignment,
+          gender: editForm.gender
         })
         isEditing.value = false
       }
@@ -199,12 +222,14 @@ export default {
       editForm,
       races: RACES,
       classes: CLASSES,
+      genders,
       sizes: SIZES.PLAYER,
       alignments: ALIGNMENTS,
       appearanceCharacterLimit: CHARACTER_LIMITS.PLAYER_APPEARANCE,
       CHARACTER_LIMITS,
       isFormValid,
       getInitials,
+      getGenderEmoji,
       startEdit,
       cancelEdit,
       saveEdit,

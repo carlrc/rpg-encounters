@@ -37,6 +37,7 @@ class Gender(Enum):
 VALID_RACES = [race.value for race in CharacterRace]
 VALID_SIZES = [size.value for size in CharacterSize]
 VALID_ALIGNMENTS = [alignment.value for alignment in CharacterAlignment]
+VALID_GENDERS = [gender.value for gender in Gender]
 
 # Character field limits
 CHARACTER_BACKGROUND_LIMIT = 240
@@ -64,6 +65,7 @@ class CharacterBase(BaseModel):
     race: str = Field(..., description="Character race")
     size: str = Field(..., description="Character size")
     alignment: str = Field(..., description="Character alignment")
+    gender: str = Field(..., description="Character gender")
     profession: str = Field(..., description="Character profession")
     background: str = Field(..., description="Character background")
     communication_style: str = Field(..., description="Character communication style")
@@ -121,6 +123,13 @@ class CharacterBase(BaseModel):
             return validate_choice(v, VALID_ALIGNMENTS, 'Alignment')
         return v
 
+    @field_validator('gender')
+    @classmethod
+    def validate_gender(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_GENDERS, 'Gender')
+        return v
+
     @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'size_preferences')
     @classmethod
     def validate_preferences(cls, v):
@@ -144,6 +153,7 @@ class CharacterUpdate(CharacterBase):
     race: Optional[str] = None
     size: Optional[str] = None
     alignment: Optional[str] = None
+    gender: Optional[str] = None
     profession: Optional[str] = None
     background: Optional[str] = None
     communication_style: Optional[str] = None

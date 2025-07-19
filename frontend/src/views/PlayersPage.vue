@@ -110,6 +110,16 @@
             </div>
           </div>
           
+          <!-- Gender Field (Full Width) -->
+          <select v-model="createForm.gender" class="shared-select">
+            <option value="">Select Gender</option>
+            <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
+          </select>
+          
+          <!-- Reopen the field columns div for tags -->
+          <div class="shared-field-columns">
+          </div>
+          
           <!-- Tags Section -->
           <div class="shared-tags-field">
             <div class="shared-tags-input-container">
@@ -194,6 +204,7 @@ export default {
       class_name: '',
       size: '',
       alignment: '',
+      gender: '',
       tags: []
     })
 
@@ -201,6 +212,9 @@ export default {
     const createWordCount = ref(0)
 
     const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'PLAYER')
+
+    // Gender options (not in gameData.js)
+    const genders = ['male', 'female', 'nonbinary']
 
     const selectedPlayer = computed(() => {
       return entities.value.find(p => p.id === selectedEntityId.value) || null
@@ -247,6 +261,7 @@ export default {
       createForm.class_name = ''
       createForm.size = ''
       createForm.alignment = ''
+      createForm.gender = ''
       createForm.tags = []
       newCreateTagInput.value = ''
       createWordCount.value = 0
@@ -263,6 +278,7 @@ export default {
             class_name: createForm.class_name,
             size: createForm.size,
             alignment: createForm.alignment,
+            gender: createForm.gender,
             tags: createForm.tags
           })
           resetCreateForm()
@@ -308,6 +324,7 @@ export default {
       importing,
       races: RACES,
       classes: CLASSES,
+      genders,
       sizes: SIZES.PLAYER,
       alignments: ALIGNMENTS,
       isCreateFormValid,

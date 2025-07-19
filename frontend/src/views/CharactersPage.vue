@@ -102,14 +102,21 @@
                 placeholder="Profession"
                 class="shared-input"
               />
-              
-              <BaseTextareaWithCharacterCounter
-                v-model="createForm.communication_style"
-                :placeholder="`Communication style (max ${CHARACTER_LIMITS.CHARACTER_COMMUNICATION} characters)`"
-                :max-characters="CHARACTER_LIMITS.CHARACTER_COMMUNICATION"
-              />
             </div>
           </div>
+          
+          <!-- Gender Field (Full Width) -->
+          <select v-model="createForm.gender" class="shared-select">
+            <option value="">Select Gender</option>
+            <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
+          </select>
+          
+          <!-- Communication Style Field (Full Width) -->
+          <BaseTextareaWithCharacterCounter
+            v-model="createForm.communication_style"
+            :placeholder="`Communication style (max ${CHARACTER_LIMITS.CHARACTER_COMMUNICATION} characters)`"
+            :max-characters="CHARACTER_LIMITS.CHARACTER_COMMUNICATION"
+          />
           
           <!-- Motivation Field (Full Width) -->
           <BaseTextareaWithCharacterCounter
@@ -180,6 +187,7 @@ export default {
       race: '',
       size: '',
       alignment: '',
+      gender: '',
       profession: '',
       background: '',
       communication_style: '',
@@ -187,6 +195,9 @@ export default {
     })
 
     const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'CHARACTER')
+
+    // Gender options (not in gameData.js)
+    const genders = ['male', 'female', 'nonbinary']
 
     const selectedCharacter = computed(() => {
       return entities.value.find(c => c.id === selectedEntityId.value) || null
@@ -208,6 +219,7 @@ export default {
       createForm.race = ''
       createForm.size = ''
       createForm.alignment = ''
+      createForm.gender = ''
       createForm.profession = ''
       createForm.background = ''
       createForm.communication_style = ''
@@ -223,6 +235,7 @@ export default {
             race: createForm.race,
             size: createForm.size,
             alignment: createForm.alignment,
+            gender: createForm.gender,
             profession: createForm.profession.trim(),
             background: createForm.background.trim(),
             communication_style: createForm.communication_style.trim(),
@@ -277,6 +290,7 @@ export default {
       races: RACES,
       characterSizes: SIZES.CHARACTER,
       alignments: ALIGNMENTS,
+      genders,
       CHARACTER_LIMITS,
       isCreateFormValid,
       selectEntity,

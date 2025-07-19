@@ -11,8 +11,8 @@
         </div>
       </div>
       
-      <!-- Name -->
-      <h3 class="shared-title">{{ character.name }}</h3>
+      <!-- Name with Gender Emoji -->
+      <h3 class="shared-title">{{ getGenderEmoji(character.gender) }} {{ character.name }}</h3>
       
       <!-- Two Column Layout -->
       <div class="character-fields">
@@ -139,13 +139,19 @@
             <option v-for="size in sizes" :key="size" :value="size">{{ size }}</option>
           </select>
           
-          <input 
-            v-model="editForm.profession" 
-            placeholder="Profession"
-            class="shared-input"
-          />
+          <select v-model="editForm.gender" class="shared-select">
+            <option value="">Select Gender</option>
+            <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
+          </select>
         </div>
       </div>
+      
+      <!-- Profession Field (Full Width) -->
+      <input 
+        v-model="editForm.profession" 
+        placeholder="Profession"
+        class="shared-input"
+      />
       
       <!-- Background Field (Full Width) -->
       <div class="background-field">
@@ -322,6 +328,7 @@ export default {
       race: '',
       size: '',
       alignment: '',
+      gender: '',
       profession: '',
       background: '',
       communication_style: '',
@@ -338,6 +345,16 @@ export default {
 
     // Gender options (not in gameData.js)
     const genders = ['male', 'female', 'nonbinary']
+
+    // Helper function to get gender emoji
+    const getGenderEmoji = (gender) => {
+      const genderEmojis = {
+        'male': '♂️',
+        'female': '♀️',
+        'nonbinary': '⚧️'
+      }
+      return genderEmojis[gender] || ''
+    }
 
     const loadTrustProfile = () => {
       // Trust profiles are now part of the character model
@@ -356,6 +373,7 @@ export default {
       editForm.race = props.character.race || ''
       editForm.size = props.character.size || ''
       editForm.alignment = props.character.alignment || ''
+      editForm.gender = props.character.gender || ''
       editForm.profession = props.character.profession || ''
       editForm.background = props.character.background || ''
       editForm.communication_style = props.character.communication_style || ''
@@ -390,6 +408,7 @@ export default {
           race: editForm.race,
           size: editForm.size,
           alignment: editForm.alignment,
+          gender: editForm.gender,
           profession: editForm.profession.trim(),
           background: editForm.background.trim(),
           communication_style: editForm.communication_style.trim(),
@@ -526,6 +545,7 @@ export default {
       CHARACTER_LIMITS,
       isFormValid,
       getInitials,
+      getGenderEmoji,
       startEdit,
       cancelEdit,
       saveEdit,
