@@ -1,49 +1,6 @@
 from typing import Optional, List
 from app.models.player import Player, PlayerCreate, PlayerUpdate
-
-players_db = {
-    1: Player(
-        id=1,
-        name="Aragorn",
-        appearance="Tall ranger with weathered features, keen grey eyes, and dark hair",
-        race="Human",
-        class_name="Ranger",
-        size="Medium",
-        alignment="Lawful Good",
-        tags=["#fellowship", "#rangers-of-the-north"]
-    ),
-    2: Player(
-        id=2,
-        name="Legolas",
-        appearance="Graceful elf with golden hair, bright blue eyes, and elegant features",
-        race="Elf",
-        class_name="Ranger",
-        size="Medium",
-        alignment="Chaotic Good",
-        tags=["#fellowship", "#woodland-realm"]
-    ),
-    3: Player(
-        id=3,
-        name="Gimli",
-        appearance="Stout dwarf with braided red beard, chainmail armor, and fierce eyes",
-        race="Dwarf",
-        class_name="Fighter",
-        size="Medium",
-        alignment="Lawful Good",
-        tags=["#fellowship", "#erebor"]
-    ),
-    4: Player(
-        id=4,
-        name="Gandalf",
-        appearance="Tall wizard in grey robes with long white beard and piercing eyes",
-        race="Human",
-        class_name="Wizard",
-        size="Medium",
-        alignment="Neutral Good",
-        tags=["#fellowship", "#istari"]
-    )
-}
-next_player_id = 5
+from tests.fixtures.players import players_db, next_player_id
 
 class PlayerStore:
     def __init__(self):

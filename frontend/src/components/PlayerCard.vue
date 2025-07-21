@@ -11,7 +11,8 @@
         </div>
       </div>
       
-      <h3 class="shared-title">{{ player.name }}</h3>
+      <!-- Name with Gender Emoji -->
+      <h3 class="shared-title">{{ getGenderEmoji(player.gender) }} {{ player.name }}</h3>
       
       <!-- Two Column Layout -->
       <div class="player-fields">
@@ -54,22 +55,6 @@
           </div>
         </div>
         
-        <!-- Tags Section (Full Width) -->
-        <div class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Tags</label>
-          <div class="shared-tags-display">
-            <span 
-              v-for="tag in player.tags" 
-              :key="tag" 
-              class="shared-tag-bubble"
-            >
-              {{ tag }}
-            </span>
-            <span v-if="!player.tags || player.tags.length === 0" class="shared-no-tags">
-              No tags assigned
-            </span>
-          </div>
-        </div>
       </div>
       
       <div class="shared-actions">
@@ -118,6 +103,12 @@
         </div>
       </div>
       
+      <!-- Gender Field (Full Width) -->
+      <select v-model="editForm.gender" class="shared-select">
+        <option value="">Select Gender</option>
+        <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
+      </select>
+      
       <!-- Appearance Field (Full Width) -->
       <div class="appearance-field">
         <label class="shared-field-label">Appearance</label>
@@ -128,8 +119,6 @@
         />
       </div>
       
-      <!-- Tags Section -->
-      <TagManager v-model="editForm.tags" />
       
       <div class="shared-actions">
         <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">Save</button>
@@ -144,14 +133,13 @@ import { ref, reactive } from 'vue'
 import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 import { CHARACTER_LIMITS } from '../constants/validation.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
-import TagManager from './forms/TagManager.vue'
+import { getInitials } from '../utils/avatarUtils.js'
 import AvatarUpload from './base/AvatarUpload.vue'
 import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
 export default {
   name: 'PlayerCard',
   components: {
-    TagManager,
     AvatarUpload,
     BaseTextareaWithCharacterCounter
   },
@@ -173,14 +161,22 @@ export default {
       class_name: '',
       size: '',
       alignment: '',
-      tags: []
+      gender: ''
     })
 
     const { isFormValid } = useFormValidation(editForm, 'PLAYER')
 
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+    // Gender options (not in gameData.js)
+    const genders = ['male', 'female', 'nonbinary']
+
+    // Helper function to get gender emoji
+    const getGenderEmoji = (gender) => {
+      const genderEmojis = {
+        'male': '♂️',
+        'female': '♀️',
+        'nonbinary': '⚧️'
+      }
+      return genderEmojis[gender] || ''
     }
 
     const startEdit = () => {
@@ -191,7 +187,7 @@ export default {
       editForm.class_name = props.player.class_name || ''
       editForm.size = props.player.size || ''
       editForm.alignment = props.player.alignment || ''
-      editForm.tags = [...(props.player.tags || [])]
+      editForm.gender = props.player.gender || ''
       isEditing.value = true
     }
 
@@ -209,7 +205,7 @@ export default {
           class_name: editForm.class_name,
           size: editForm.size,
           alignment: editForm.alignment,
-          tags: editForm.tags
+          gender: editForm.gender
         })
         isEditing.value = false
       }
@@ -226,12 +222,14 @@ export default {
       editForm,
       races: RACES,
       classes: CLASSES,
+      genders,
       sizes: SIZES.PLAYER,
       alignments: ALIGNMENTS,
       appearanceCharacterLimit: CHARACTER_LIMITS.PLAYER_APPEARANCE,
       CHARACTER_LIMITS,
       isFormValid,
       getInitials,
+      getGenderEmoji,
       startEdit,
       cancelEdit,
       saveEdit,

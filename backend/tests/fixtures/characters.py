@@ -1,0 +1,122 @@
+from app.models.character import Character, CharacterRace, CharacterSize, CharacterAlignment, Gender
+
+characters_db = {
+    1: Character(
+        id=1,
+        name="Bingo Bracegirdle",
+        avatar=None,
+        race=CharacterRace.HALFLING.value,
+        size=CharacterSize.SMALL.value,
+        alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+        gender=Gender.MALE.value,
+        profession="Tavern Owner",
+        background="Friendly tavern keeper who runs the village inn. Knows everyone in town and all the local gossip. Makes excellent ale and hearty meals for weary travelers.",
+        communication_style="Chatty and welcoming, always ready with a story or bit of news. Speaks warmly and uses folksy expressions.",
+        motivation="To keep the tavern running smoothly, customer retention through happy guests and paying his bills.",
+        personality="Appreciates friendly conversation, local gossip sharing, and customers who show genuine interest in his stories and the community. As a Halfling tavern owner, he naturally feels more comfortable with fellow Halflings who understand the importance of hearth and home, while being somewhat wary of taller folk who might not appreciate Halfling hospitality traditions. Shows a slight preference for female patrons, finding them generally more appreciative of his storytelling and less likely to cause tavern brawls. Builds trust with those who are welcoming to travelers, respect tavern etiquette, and value good hospitality, but loses trust with rude customers, troublemakers, or people who dismiss the importance of community gathering places.",
+        voice="MFZUKuGQUsGJPQjTS4wC",
+        race_preferences={
+            "Halfling": 0.3,
+            "Human": -0.3,
+            "Elf": -0.3,
+            "Dwarf": -0.3,
+            "Dragonborn": -0.3,
+            "Gnome": -0.3,
+            "Half-Elf": -0.3,
+            "Half-Orc": -0.3,
+            "Tiefling": -0.3
+        },
+        gender_preferences={"female": 0.3},
+        appearance_keywords=None,
+        storytelling_keywords=None
+    ),
+    2: Character(
+        id=2,
+        name="Old Took",
+        avatar=None,
+        race=CharacterRace.HALFLING.value,
+        size=CharacterSize.SMALL.value,
+        alignment=CharacterAlignment.CHAOTIC_GOOD.value,
+        gender=Gender.MALE.value,
+        profession="Retiree",
+        background="Former village elder and gardner who has seen many seasons come and go. Full of stories about the old days and local history. Enjoys his pipe and afternoon tea.",
+        communication_style="Rambling and storytelling, often goes off on tangents about the past. Wise but scattered, loves sharing tales and memories with anyone who will listen.",
+        motivation="To tell stories of the old days and teach people about plants",
+        personality="Values patient listeners who enjoy rambling stories about the old days, gardening wisdom, and local history. As an elderly Halfling, he feels most at ease with fellow Halflings who share his cultural appreciation for storytelling and tradition, while finding other races often too hurried or dismissive of Halfling wisdom. Has a particular fondness for Bards and male companions who remind him of his younger adventuring days and appreciate the art of a well-told tale. Builds trust with those who respect elders, show genuine interest in traditional knowledge, and appreciate the value of experience over youth, but loses trust with impatient people who dismiss his tales or show no respect for tradition.",
+        voice="j9jfwdrw7BRfcR43Qohk",
+        race_preferences={
+            "Halfling": 0.3,
+            "Human": -0.3,
+            "Elf": -0.3,
+            "Dwarf": -0.3,
+            "Dragonborn": -0.3,
+            "Gnome": -0.3,
+            "Half-Elf": -0.3,
+            "Half-Orc": -0.3,
+            "Tiefling": -0.3
+        },
+        class_preferences={"Bard": 0.3},
+        gender_preferences={"male": 0.3},
+        appearance_keywords=[],
+        storytelling_keywords=[]
+    ),
+    3: Character(
+        id=3,
+        name="Poppy Proudfoot",
+        avatar=None,
+        race=CharacterRace.HALFLING.value,
+        size=CharacterSize.SMALL.value,
+        alignment=CharacterAlignment.LAWFUL_GOOD.value,
+        gender=Gender.FEMALE.value,
+        profession="Baker",
+        background="Village baker who creates delicious pies, breads, and pastries.",
+        communication_style="Warm and motherly. Often offers food as comfort and uses baking metaphors in conversation.",
+        motivation="To be the most popular baker in town.",
+        personality="Appreciates compliments on her baking, gratitude for her nurturing care, and those who show family values and community spirit. As a Halfling baker, she feels most comfortable with fellow Halflings who truly understand the cultural significance of food and hospitality, while finding other races often don't fully appreciate the love and tradition baked into every loaf. Her lawful good nature makes her somewhat suspicious of those from chaotic or evil backgrounds who might not share her values of order and community care. Builds trust with people who accept her food offerings graciously, share stories about their own families, and understand the love that goes into homemade goods, but loses trust with those who waste food, reject her motherly gestures, or show no appreciation for traditional baking.",
+        voice="ZF6FPAbjXT4488VcRRnw",
+        race_preferences={
+            "Halfling": 0.3,
+            "Human": -0.3,
+            "Elf": -0.3,
+            "Dwarf": -0.3,
+            "Dragonborn": -0.3,
+            "Gnome": -0.3,
+            "Half-Elf": -0.3,
+            "Half-Orc": -0.3,
+            "Tiefling": -0.3
+        },
+        appearance_keywords=[],
+        storytelling_keywords=[]
+    ),
+    4: Character(
+        id=4,
+        name="Merry Greenhill",
+        avatar=None,
+        race=CharacterRace.HALFLING.value,
+        size=CharacterSize.SMALL.value,
+        alignment=CharacterAlignment.NEUTRAL_EVIL.value,
+        gender=Gender.MALE.value,
+        profession="Gardener",
+        background="Village gardener who maintains the community gardens and helps neighbors with their vegetable patches. Known for growing the finest pipe-weed in the area.",
+        communication_style="Down-to-earth and practical and doesn't mince words.",
+        motivation="Become the best gardener.",
+        personality="Values practical, direct conversation about gardening, pipe-weed cultivation, and efficient problem-solving without unnecessary pleasantries. As a Halfling with neutral evil tendencies, he feels most comfortable with fellow Halflings who understand his blunt nature, while finding other races either too soft-hearted or too aggressive for his liking. Has particular respect for Druids who share his deep connection to nature and growing things, seeing them as kindred spirits who understand the harsh realities of cultivation. Builds trust with those who appreciate his expertise, respect his blunt honesty, and don't waste his time with small talk, but loses trust with people who are overly sentimental, ignore his practical advice, or expect him to sugarcoat harsh truths about gardening.",
+        voice="6OzrBCQf8cjERkYgzSg8",
+        race_preferences={
+            "Halfling": 0.3,
+            "Human": -0.3,
+            "Elf": -0.3,
+            "Dwarf": -0.3,
+            "Dragonborn": -0.3,
+            "Gnome": -0.3,
+            "Half-Elf": -0.3,
+            "Half-Orc": -0.3,
+            "Tiefling": -0.3
+        },
+        class_preferences={"Druid": 0.3},
+        appearance_keywords=[],
+        storytelling_keywords=[]
+    )
+}
+
+next_character_id = 5

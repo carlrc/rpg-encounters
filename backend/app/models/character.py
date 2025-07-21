@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from typing import Optional, List, Dict
 from enum import Enum
 
 class CharacterRace(Enum):
@@ -28,18 +28,29 @@ class CharacterAlignment(Enum):
     NEUTRAL_EVIL = 'Neutral Evil'
     CHAOTIC_EVIL = 'Chaotic Evil'
 
+class Gender(Enum):
+    MALE = 'male'
+    FEMALE = 'female'
+    NONBINARY = 'nonbinary'
+
 # Constants for backward compatibility and validation
 VALID_RACES = [race.value for race in CharacterRace]
 VALID_SIZES = [size.value for size in CharacterSize]
 VALID_ALIGNMENTS = [alignment.value for alignment in CharacterAlignment]
+VALID_GENDERS = [gender.value for gender in Gender]
+
+# Character field limits
+CHARACTER_BACKGROUND_LIMIT = 240
+CHARACTER_COMMUNICATION_LIMIT = 180
+CHARACTER_MOTIVATION_LIMIT = 300
 
 # Shared validation functions
-def validate_word_count(text: str, max_words: int, field_name: str) -> str:
-    """Validate word count for text fields."""
+def validate_character_count(text: str, max_characters: int, field_name: str) -> str:
+    """Validate character count for text fields."""
     if text:
-        word_count = len(text.split())
-        if word_count > max_words:
-            raise ValueError(f'{field_name} must be {max_words} words or less')
+        character_count = len(text)
+        if character_count > max_characters:
+            raise ValueError(f'{field_name} must be {max_characters} characters or less')
     return text
 
 def validate_choice(value: str, valid_choices: List[str], field_name: str) -> str:
@@ -48,44 +59,47 @@ def validate_choice(value: str, valid_choices: List[str], field_name: str) -> st
         raise ValueError(f'{field_name} must be one of: {", ".join(valid_choices)}')
     return value
 
-def process_tags(tags_list: List[str]) -> List[str]:
-    """Process tags by adding hash prefix and converting to kebab-case."""
-    if not tags_list:
-        return tags_list
-    
-    processed_tags = []
-    for tag in tags_list:
-        if tag and not tag.startswith('#'):
-            # Auto-add hash prefix and convert to kebab-case
-            kebab_case = tag.lower().replace(' ', '-').replace('_', '-')
-            processed_tags.append(f'#{kebab_case}')
-        else:
-            processed_tags.append(tag)
-    return processed_tags
-
 class CharacterBase(BaseModel):
     name: str
     avatar: Optional[str] = Field(None, description="Character avatar image (base64 or URL)")
     race: str = Field(..., description="Character race")
     size: str = Field(..., description="Character size")
     alignment: str = Field(..., description="Character alignment")
+    gender: str = Field(..., description="Character gender")
     profession: str = Field(..., description="Character profession")
-    background: str = Field(..., description="Character background (max 80 words)")
-    communication_style: str = Field(..., description="Character communication style (max 30 words)")
-    tags: List[str] = Field(default_factory=list, description="Character tags")
+    background: str = Field(..., description="Character background")
+    communication_style: str = Field(..., description="Character communication style")
+    motivation: str = Field(..., description="Character motivation")
+    personality: str = Field("", description="AI-generated personality profile for trust decisions")
+    voice: Optional[str] = Field("JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS")
+    
+    # Bias
+    race_preferences: Optional[Dict[str, float]] = Field(None, description="Race preferences for trust calculation")
+    class_preferences: Optional[Dict[str, float]] = Field(None, description="Class preferences for trust calculation")
+    gender_preferences: Optional[Dict[str, float]] = Field(None, description="Gender preferences for trust calculation")
+    size_preferences: Optional[Dict[str, float]] = Field(None, description="Size preferences for trust calculation")
+    appearance_keywords: Optional[List[str]] = Field(None, description="Appearance keywords for trust calculation")
+    storytelling_keywords: Optional[List[str]] = Field(None, description="Storytelling keywords for trust calculation")
 
     @field_validator('background')
     @classmethod
-    def validate_background_word_count(cls, v):
+    def validate_background_character_count(cls, v):
         if v is not None:
-            return validate_word_count(v, 80, 'Background')
+            return validate_character_count(v, CHARACTER_BACKGROUND_LIMIT, 'Background')
         return v
 
     @field_validator('communication_style')
     @classmethod
-    def validate_communication_style_word_count(cls, v):
+    def validate_communication_style_character_count(cls, v):
         if v is not None:
-            return validate_word_count(v, 30, 'Communication style')
+            return validate_character_count(v, CHARACTER_COMMUNICATION_LIMIT, 'Communication style')
+        return v
+
+    @field_validator('motivation')
+    @classmethod
+    def validate_motivation_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, CHARACTER_MOTIVATION_LIMIT, 'Motivation')
         return v
 
     @field_validator('race')
@@ -109,11 +123,24 @@ class CharacterBase(BaseModel):
             return validate_choice(v, VALID_ALIGNMENTS, 'Alignment')
         return v
 
-    @field_validator('tags')
+    @field_validator('gender')
     @classmethod
-    def validate_tags(cls, v):
+    def validate_gender(cls, v):
         if v is not None:
-            return process_tags(v)
+            return validate_choice(v, VALID_GENDERS, 'Gender')
+        return v
+
+    @field_validator('race_preferences', 'class_preferences', 'gender_preferences', 'size_preferences')
+    @classmethod
+    def validate_preferences(cls, v):
+        """Ensure preference values are within ±0.3 range"""
+        if v is None:
+            return v
+        PREFERENCE_VALUE_MIN = -0.3
+        PREFERENCE_VALUE_MAX = 0.3
+        for key, value in v.items():
+            if not (PREFERENCE_VALUE_MIN <= value <= PREFERENCE_VALUE_MAX):
+                raise ValueError(f'Preference values must be between {PREFERENCE_VALUE_MIN} and {PREFERENCE_VALUE_MAX}, got {value} for {key}')
         return v
 
 class CharacterCreate(CharacterBase):
@@ -126,10 +153,19 @@ class CharacterUpdate(CharacterBase):
     race: Optional[str] = None
     size: Optional[str] = None
     alignment: Optional[str] = None
+    gender: Optional[str] = None
     profession: Optional[str] = None
     background: Optional[str] = None
     communication_style: Optional[str] = None
-    tags: Optional[List[str]] = None
+    motivation: Optional[str] = None
+    personality: Optional[str] = None
+    voice: Optional[str] = None
+    race_preferences: Optional[Dict[str, float]] = None
+    class_preferences: Optional[Dict[str, float]] = None
+    gender_preferences: Optional[Dict[str, float]] = None
+    size_preferences: Optional[Dict[str, float]] = None
+    appearance_keywords: Optional[List[str]] = None
+    storytelling_keywords: Optional[List[str]] = None
 
 class Character(CharacterBase):
     id: int
@@ -137,6 +173,26 @@ class Character(CharacterBase):
     def to_prompt(self) -> str:
         """Convert character data into a system prompt for AI interactions."""
         
-        return f"You are {self.name}, a {self.race} {self.profession}. {self.background} You communicate in this style: {self.communication_style}. Stay in character and respond naturally as {self.name} would."
+        return f"""
+        # Character Background Prompt
+        
+        You are {self.name}, a {self.race} and your job is {self.profession}. Stay in character and respond naturally as {self.name} would.
+
+        ## Core Directives
+
+        NARRATIVE-DRIVEN: All communication should reference your motivation and memories
+        INTERACTIONS: Consider the player communication with you (e.g., race, appearance) in your responses
+
+        ## Response Guidelines
+        ### Background
+        {self.background} 
+
+        ### Motivation
+        {self.motivation}
+
+        ### Communication Style
+         {self.communication_style}
+
+        """
     
     model_config = {"from_attributes": True}

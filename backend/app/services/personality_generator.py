@@ -1,0 +1,60 @@
+from dotenv import load_dotenv
+from pydantic_ai import Agent
+from pydantic_ai.models.openai import OpenAIModel
+from app.models.character import CharacterCreate
+
+load_dotenv()
+
+class PersonalityGenerator:
+    @staticmethod
+    async def generate_personality(character_data: CharacterCreate) -> str:
+        """Generate personality profile from character attributes"""
+        
+        # Create Pydantic AI agent for personality generation
+        agent = Agent(
+            OpenAIModel(model_name='gpt-4o'),
+            system_prompt="""You are an expert at analyzing D&D characters and creating personality profiles for social interactions.
+            
+            Generate concise personality profiles (2-3 sentences) that describe:
+            1. Their social interaction style and preferences
+            2. What behaviors/topics they appreciate (builds trust)
+            3. What behaviors/topics they dislike (loses trust)
+            4. How their background influences their social reactions
+            5. Their sense of humor and storytelling preferences
+            6. How their bias preferences (race, class, gender, etc.) affect their trust evaluation
+            
+            IMPORTANT: Include specific mentions of their bias preferences and explain WHY they have these biases based on their background, profession, and experiences. Describe how these biases manifest in their social interactions and trust-building behaviors.
+            
+            Format as a single paragraph suitable for AI trust evaluation. Focus on what would make this character trust or distrust someone in conversation, including their inherent biases."""
+        )
+        
+        prompt = f"""
+        Analyze this D&D character and generate a personality profile for social trust interactions:
+        
+        Name: {character_data.name}
+        Race: {character_data.race}
+        Profession: {character_data.profession}
+        Alignment: {character_data.alignment}
+        Background: {character_data.background}
+        Communication Style: {character_data.communication_style}
+        Motivation: {character_data.motivation}
+        
+        Bias Preferences:
+        Race Preferences: {character_data.race_preferences or 'None specified'}
+        Class Preferences: {character_data.class_preferences or 'None specified'}
+        Gender Preferences: {character_data.gender_preferences or 'None specified'}
+        Size Preferences: {character_data.size_preferences or 'None specified'}
+        Appearance Keywords: {character_data.appearance_keywords or 'None specified'}
+        Storytelling Keywords: {character_data.storytelling_keywords or 'None specified'}
+        
+        IMPORTANT: Explain WHY this character has these specific bias preferences based on their background and experiences, and how these biases affect their trust evaluation of different types of people.
+        """
+        
+        try:
+            result = await agent.run(prompt)
+            return result.data.strip()
+            
+        except Exception as e:
+            # Fallback personality based on basic attributes
+            fallback = f"A {character_data.alignment.lower()} {character_data.race.lower()} {character_data.profession.lower()} who values {character_data.motivation.lower()}. Appreciates respectful conversation and behavior that aligns with their professional and moral values. Responds well to genuine interest in their work and background."
+            return fallback

@@ -3,12 +3,14 @@ import logging
 from app.services.audio_processor import AudioProcessor
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
-from app.ai.character_agent import CharacterAgent
-from app.services.memory_manager import MemoryManager
+from app.services.agent_manager import AgentManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
+from app.data.trust_store import trust_state_store
+from app.data.nugget_store import nugget_store
+from app.services.nugget_service import NuggetService
+from app.agents.prompts.import_prompts import import_system_prompt
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/conversation", tags=["conversations"])
@@ -17,7 +19,8 @@ router = APIRouter(prefix="/conversation", tags=["conversations"])
 audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
-memory_manager = MemoryManager()
+agent_manager = AgentManager()
+system_prompt = import_system_prompt()
 
 @router.websocket("/{player_id}/{character_id}")
 async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id: int):
@@ -65,20 +68,28 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             character = character_store.get_character_by_id(character_id)
             player = player_store.get_player_by_id(player_id)
             
-            # Get relevant memories for this character and player
-            memories = memory_manager.get_memories(character_id, player_id)
+            # Get relevant nuggets for this character and player based on trust
+            trust_state = trust_state_store.get_trust_state(character_id, player_id)
+            available_nuggets = []
+            unavailable_nuggets = []
             
-            # Create character agent
-            agent = CharacterAgent(character, player)
+            if trust_state:
+                all_nuggets = nugget_store.get_by_character_id(character_id)
+                available_nuggets, unavailable_nuggets = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
+            
+            # Get or create persistent character agent
+            agent = agent_manager.get_or_create_agent(
+                player_id, character_id, character, player, system_prompt
+            )
             
             # Generate AI response using character agent
-            result = await agent.chat(transcription, memories)
+            result = await agent.chat(transcription, available_nuggets, unavailable_nuggets)
             logger.debug(f"Generated character response: {result.output}")
             
             
             
             # Stream TTS audio chunks back to frontend
-            for audio_chunk in tts_service.text_to_speech_stream(result.output):
+            for audio_chunk in tts_service.text_to_speech_stream(result.output, character.voice):
                 try:
                     await websocket.send_bytes(audio_chunk)
                 except Exception as e:

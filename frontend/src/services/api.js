@@ -88,34 +88,37 @@ class ApiService {
         });
     }
 
-    // Memory CRUD operations
-    async getMemories() {
-        return this.request('/memories');
+    // Nugget CRUD operations
+    async getNuggets() {
+        return this.request('/nuggets');
     }
 
-    async getMemory(id) {
-        return this.request(`/memories/${id}`);
+    async getNugget(id) {
+        return this.request(`/nuggets/${id}`);
     }
 
-    async createMemory(memoryData) {
-        return this.request('/memories', {
+    async createNugget(nuggetData) {
+        return this.request('/nuggets', {
             method: 'POST',
-            body: JSON.stringify(memoryData),
+            body: JSON.stringify(nuggetData),
         });
     }
 
-    async updateMemory(id, memoryData) {
-        return this.request(`/memories/${id}`, {
+    async updateNugget(id, nuggetData) {
+        return this.request(`/nuggets/${id}`, {
             method: 'PUT',
-            body: JSON.stringify(memoryData),
+            body: JSON.stringify(nuggetData),
         });
     }
 
-    async deleteMemory(id) {
-        return this.request(`/memories/${id}`, {
+    async deleteNugget(id) {
+        return this.request(`/nuggets/${id}`, {
             method: 'DELETE',
         });
     }
+
+    // Note: Trust profiles are now integrated into character model
+    // Trust profile data is managed through character endpoints
 }
 
 export default new ApiService();

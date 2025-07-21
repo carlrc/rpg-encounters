@@ -1,15 +1,10 @@
 // Validation rules and limits
-export const WORD_LIMITS = {
-    PLAYER_APPEARANCE: 40,
-    CHARACTER_BACKGROUND: 80,
-    CHARACTER_COMMUNICATION: 30
-}
-
 export const CHARACTER_LIMITS = {
     MEMORY_TEXT: 500,
-    PLAYER_APPEARANCE: 240,
-    CHARACTER_BACKGROUND: 480,
-    CHARACTER_COMMUNICATION: 180
+    PLAYER_APPEARANCE: 180,
+    CHARACTER_BACKGROUND: 240,
+    CHARACTER_COMMUNICATION: 180,
+    CHARACTER_MOTIVATION: 300
 }
 
 export const VALIDATION_MESSAGES = {
@@ -21,14 +16,14 @@ export const VALIDATION_MESSAGES = {
 export const FORM_FIELDS = {
     PLAYER: {
         REQUIRED: ['name', 'appearance', 'race', 'class_name', 'size', 'alignment'],
-        OPTIONAL: ['avatar', 'tags']
+        OPTIONAL: ['avatar']
     },
     CHARACTER: {
-        REQUIRED: ['name', 'race', 'size', 'alignment', 'profession', 'background', 'communication_style'],
-        OPTIONAL: ['avatar', 'tags']
+        REQUIRED: ['name', 'race', 'size', 'alignment', 'profession', 'background', 'communication_style', 'motivation'],
+        OPTIONAL: ['avatar']
     },
     MEMORY: {
         REQUIRED: ['title', 'memory_text'],
-        OPTIONAL: ['linked_character_ids', 'visibility_type', 'keywords', 'player_races', 'player_alignments', 'player_tags', 'character_limit']
+        OPTIONAL: ['linked_character_ids', 'visibility_type', 'keywords', 'player_races', 'player_alignments', 'character_limit']
     }
 }

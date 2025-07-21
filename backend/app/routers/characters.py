@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from app.models.character import Character, CharacterCreate, CharacterUpdate
 from app.data.character_store import character_store
+from app.services.personality_generator import PersonalityGenerator
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -19,9 +20,18 @@ async def get_character(character_id: int):
     return character
 
 @router.post("/", response_model=Character, status_code=201)
-async def create_character(character: CharacterCreate):
-    """Create a new character"""
-    return character_store.create_character(character)
+async def create_character(character_data: CharacterCreate):
+    """Create a new character with AI-generated personality"""
+    # Generate personality profile
+    personality = await PersonalityGenerator.generate_personality(character_data)
+    
+    # Create new CharacterCreate object with generated personality
+    character_with_personality = CharacterCreate(
+        **character_data.model_dump(),
+        personality=personality
+    )
+    
+    return character_store.create_character(character_with_personality)
 
 @router.put("/{character_id}", response_model=Character)
 async def update_character(character_id: int, character_update: CharacterUpdate):

@@ -37,29 +37,27 @@
 
 <script>
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
   name: 'AppLayout',
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const successMessage = ref('')
 
-    const navigationRoutes = [
-      { path: '/players', name: 'Players' },
-      { path: '/characters', name: 'Characters' },
-      { path: '/memories', name: 'Memories' },
-      { path: '/encounters', name: 'Encounters' }
-    ]
+    // Get navigation routes from router configuration
+    const navigationRoutes = computed(() => {
+      return router.getRoutes()
+        .filter(route => route.name && route.path !== '/')
+        .map(route => ({
+          path: route.path,
+          name: route.name
+        }))
+    })
 
     const pageTitle = computed(() => {
-      const titleMap = {
-        'Players': 'Players',
-        'Characters': 'Characters',
-        'Memories': 'Memories',
-        'Encounters': 'Encounters'
-      }
-      return titleMap[route.name] || route.name
+      return route.name || 'DnD AI'
     })
 
     const showSuccessMessage = (message) => {

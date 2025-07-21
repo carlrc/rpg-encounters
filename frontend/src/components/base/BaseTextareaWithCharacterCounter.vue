@@ -53,3 +53,14 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.shared-word-counter-field {
+  width: 100%;
+}
+
+.shared-textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+</style>

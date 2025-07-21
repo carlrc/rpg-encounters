@@ -14,12 +14,13 @@ class ElevenLabsTTS:
         self.api_key = os.getenv("ELEVENLABS_API_KEY")
         self.client = ElevenLabs(api_key=self.api_key)
 
-    def text_to_speech_stream(self, text: str) -> Generator[bytes, None, None]:
+    def text_to_speech_stream(self, text: str, voice_id: str = "JBFqnCBsd6RMkjVDRZzb") -> Generator[bytes, None, None]:
         """
         Stream text-to-speech audio chunks
         
         Args:
             text: Text to convert to speech
+            voice_id: ElevenLabs voice ID to use for TTS
             
         Yields:
             bytes: Audio chunks as they are generated
@@ -27,7 +28,7 @@ class ElevenLabsTTS:
         try:
             audio_stream = self.client.text_to_speech.stream(
                 text=text,
-                voice_id="JBFqnCBsd6RMkjVDRZzb",
+                voice_id=voice_id,
                 model_id="eleven_flash_v2_5"
             )
             

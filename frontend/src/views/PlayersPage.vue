@@ -18,7 +18,7 @@
       />
       <button 
         @click="$refs.playerFileInput.click()" 
-        class="import-players-btn"
+        class="shared-import-btn"
         :disabled="importing"
       >
         <span v-if="importing">Importing...</span>
@@ -27,8 +27,8 @@
     </template>
 
     <template #detail-content>
-      <div v-if="loading" class="loading">Loading players...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-if="loading" class="shared-loading">Loading players...</div>
+      <div v-else-if="error" class="shared-error">{{ error }}</div>
       
       <EmptyState
         v-else-if="!selectedPlayer && !showCreateForm"
@@ -110,6 +110,16 @@
             </div>
           </div>
           
+          <!-- Gender Field (Full Width) -->
+          <select v-model="createForm.gender" class="shared-select">
+            <option value="">Select Gender</option>
+            <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
+          </select>
+          
+          <!-- Reopen the field columns div for tags -->
+          <div class="shared-field-columns">
+          </div>
+          
           <!-- Tags Section -->
           <div class="shared-tags-field">
             <div class="shared-tags-input-container">
@@ -158,6 +168,7 @@ import PlayerCard from '../components/PlayerCard.vue'
 import { useEntityCRUD } from '../utils/useEntityCRUD.js'
 import { useFileImport } from '../utils/useFileImport.js'
 import { useFormValidation } from '../utils/useFormValidation.js'
+import { getInitials, handleAvatarUpload } from '../utils/avatarUtils.js'
 import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 
 export default {
@@ -193,6 +204,7 @@ export default {
       class_name: '',
       size: '',
       alignment: '',
+      gender: '',
       tags: []
     })
 
@@ -201,14 +213,12 @@ export default {
 
     const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'PLAYER')
 
+    // Gender options (not in gameData.js)
+    const genders = ['male', 'female', 'nonbinary']
+
     const selectedPlayer = computed(() => {
       return entities.value.find(p => p.id === selectedEntityId.value) || null
     })
-
-    const getInitials = (name) => {
-      if (!name) return '?'
-      return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
-    }
 
     const updateCreateWordCount = () => {
       createWordCount.value = createForm.appearance.trim() ? createForm.appearance.trim().split(/\s+/).length : 0
@@ -234,14 +244,9 @@ export default {
     }
 
     const handlePlayerAvatarUpload = (event) => {
-      const file = event.target.files[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          createForm.avatar = e.target.result
-        }
-        reader.readAsDataURL(file)
-      }
+      handleAvatarUpload(event, (result) => {
+        createForm.avatar = result
+      })
     }
 
     const removePlayerAvatar = () => {
@@ -256,6 +261,7 @@ export default {
       createForm.class_name = ''
       createForm.size = ''
       createForm.alignment = ''
+      createForm.gender = ''
       createForm.tags = []
       newCreateTagInput.value = ''
       createWordCount.value = 0
@@ -272,6 +278,7 @@ export default {
             class_name: createForm.class_name,
             size: createForm.size,
             alignment: createForm.alignment,
+            gender: createForm.gender,
             tags: createForm.tags
           })
           resetCreateForm()
@@ -317,6 +324,7 @@ export default {
       importing,
       races: RACES,
       classes: CLASSES,
+      genders,
       sizes: SIZES.PLAYER,
       alignments: ALIGNMENTS,
       isCreateFormValid,
