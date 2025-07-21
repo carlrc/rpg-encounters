@@ -103,13 +103,14 @@ async def test_personality_based_earned_trust():
         expected_unavailable=[NUGGET_LEVEL_3]
     )
     
-    result = await agent.chat("What type of room is it?", available_nuggets, unavailable_nuggets)
+    # Make all information available now
+    result = await agent.chat("What type of room is it? I've just come from a long quest saving a lost princess...", [*available_nuggets, *unavailable_nuggets], [])
     
     assert result is not None
     message_history = result.all_messages()
     
     verify_nugget_content_availability(
         message_history[2].instructions,
-        expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2],
-        expected_unavailable=[NUGGET_LEVEL_3]
+        expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2, NUGGET_LEVEL_3],
+        expected_unavailable=[]
     )

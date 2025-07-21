@@ -41,12 +41,9 @@ class CharacterAgent:
         @agent.instructions
         def add_nuggets(ctx: RunContext[list[str]]) -> str:  
             nuggets_list = '\n'.join(f"- {nugget}" for nugget in ctx.deps)
-            return f"""# Trust Nuggets
-            These are {self.character.name} trust-based secrets.
-
-            ## Available Secrets
+            return f"""# Available Secrets
                 {nuggets_list}
-            """
+                **PRIORITY**: Use EXCLUSIVE secrets first, then PRIVILEGED, then PUBLIC. Only reveal one secret per response."""
         
         # Set instance variable after decorators defined
         self.agent = agent
@@ -57,7 +54,7 @@ class CharacterAgent:
         return self.run_result
     
     def _build_trust_instruction(self, character: Character, player: Player, trust_state) -> str:
-        """Build trust-aware instruction for the AI"""
+        """Build streamlined trust-aware instruction for the AI"""
         # Check if character has trust preferences configured
         has_trust_preferences = (
             character.race_preferences or 
@@ -68,67 +65,34 @@ class CharacterAgent:
             character.storytelling_keywords
         )
         
+        base_instruction = f"""{character.to_prompt()}
+
+## Current Interaction Context
+
+You are speaking with **{player.name}**: a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}."""
+
         if not has_trust_preferences:
-            # TODO: Make entry and exit shallow conversations
-            # No trust system configured - shallow interaction only
-            return f"""{character.to_prompt()}
+            return f"""{base_instruction}
 
-You are speaking with a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}.
-
-INTERACTION MODE: BASIC
-You have no special secrets or trust system configured. Keep your responses shallow and surface-level. You are polite but don't share anything particularly interesting or personal. Respond naturally as {character.name} but without revealing any deep information about yourself or others."""
+**INTERACTION MODE**: BASIC - No trust system configured. Keep responses shallow and surface-level without revealing deep secrets."""
         
-        # Trust system is configured - full trust evaluation
-        # Calculate trust ranges for display
+        # Trust system is configured - add trust status
         current_earned = trust_state.earned_trust
         min_earned = max(EARNED_TRUST_MIN, current_earned + TRUST_CHANGE_MIN)
         max_earned = min(EARNED_TRUST_MAX, current_earned + TRUST_CHANGE_MAX)
         
-        # Build personality description from character fields
-        personality_parts = []
-        if character.background:
-            personality_parts.append(f"Background: {character.background}")
-        if character.communication_style:
-            personality_parts.append(f"Communication Style: {character.communication_style}")
-        if character.motivation:
-            personality_parts.append(f"Motivation: {character.motivation}")
-        
-        personality = "\n".join(personality_parts) if personality_parts else "No detailed personality configured."
-        
-        instruction = f"""{character.to_prompt()}
+        return f"""{base_instruction}
 
-You are speaking with a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}.
+## Trust Status
+- **Base Trust**: {trust_state.base_trust:.2f} (from player characteristics)
+- **Earned Trust**: {trust_state.earned_trust:.2f} (from interactions so far)  
+- **Total Trust**: {trust_state.total_trust:.2f}
 
-PERSONALITY FOR TRUST EVALUATION:
-{personality}
+## Trust Adjustment Range
+Adjust earned trust by {TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX} based on message evaluation.
+New earned trust range: {min_earned:.1f} to {max_earned:.1f}
 
-CURRENT TRUST STATUS:
-- Base Trust: {trust_state.base_trust:.2f} (from player characteristics)
-- Earned Trust: {trust_state.earned_trust:.2f} (from interactions)
-- Total Trust: {trust_state.total_trust:.2f}
-
-TRUST EVALUATION:
-Based on your personality above, evaluate this player's message:
-1. Does it align with what you appreciate?
-2. Does it show understanding of who you are?
-3. Is the social approach appropriate for your character?
-4. Does it contain good storytelling, appropriate humor, or meaningful connection?
-5. Does it go against your values or show disrespect?
-
-TRUST ADJUSTMENT:
-Adjust earned trust by {TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX} based on this evaluation.
-Current earned trust range: {min_earned:.1f} to {max_earned:.1f}
-
-INSTRUCTIONS:
-1. Evaluate the message based on your personality
-2. Decide earned trust change ({TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX})
-3. Calculate your new total trust level
-4. Use the available secrets provided to you through the nuggets system
-5. Respond naturally as {character.name}
-
-You handle all trust calculations and secret revealing - no system will process your response."""
-        
-        return instruction
+**PROCESS**: Evaluate message → Adjust trust → Use appropriate secrets → Respond naturally"""
 
     async def _keep_recent_messages(self, messages: list[ModelMessage]) -> list[ModelMessage]:
         """Keep only the last N messages to manage token usage."""

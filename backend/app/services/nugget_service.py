@@ -28,23 +28,23 @@ class NuggetService:
         unavailable_nuggets = []
         
         for nugget in all_nuggets:
-            # Check each level of content and add to appropriate list
+            # Check each level of content and add to appropriate list with layer labels
             if nugget.level_1_content:
                 if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PUBLIC):
-                    available_nuggets.append(nugget.level_1_content)
+                    available_nuggets.append(f"PUBLIC - {nugget.level_1_content}")
                 else:
-                    unavailable_nuggets.append(nugget.level_1_content)
+                    unavailable_nuggets.append(f"PUBLIC - {nugget.level_1_content}")
             
             if nugget.level_2_content:
                 if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PRIVILEGED):
-                    available_nuggets.append(nugget.level_2_content)
+                    available_nuggets.append(f"PRIVILEGED - {nugget.level_2_content}")
                 else:
-                    unavailable_nuggets.append(nugget.level_2_content)
+                    unavailable_nuggets.append(f"PRIVILEGED - {nugget.level_2_content}")
             
             if nugget.level_3_content:
                 if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.EXCLUSIVE):
-                    available_nuggets.append(nugget.level_3_content)
+                    available_nuggets.append(f"EXCLUSIVE - {nugget.level_3_content}")
                 else:
-                    unavailable_nuggets.append(nugget.level_3_content)
+                    unavailable_nuggets.append(f"EXCLUSIVE - {nugget.level_3_content}")
         
         return available_nuggets, unavailable_nuggets
