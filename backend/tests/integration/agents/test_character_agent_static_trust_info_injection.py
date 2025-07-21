@@ -31,10 +31,10 @@ def create_character():
         communication_style="Chatty and welcoming, always ready with a story or bit of news.",
         motivation="To keep the tavern running smoothly and customers happy.",
         personality="Appreciates friendly conversation and local gossip sharing.",
-        race_preferences={"Halfling": 0.3},
-        class_preferences={"Bard": 0.3},
+        race_preferences={CharacterRace.HALFLING.value: 0.3},
+        class_preferences={PlayerClass.BARD.value: 0.3},
         gender_preferences={Gender.FEMALE.value: 0.3},
-        size_preferences={"Small": 0.3},
+        size_preferences={CharacterSize.SMALL.value: 0.3},
         appearance_keywords=None,
         storytelling_keywords=None
     )

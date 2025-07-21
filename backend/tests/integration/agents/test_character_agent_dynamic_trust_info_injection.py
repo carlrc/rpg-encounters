@@ -30,10 +30,10 @@ def create_character():
         communication_style="Chatty and welcoming, always ready with a story or bit of news.",
         motivation="To keep the tavern running smoothly, keep customers happy and make money.",
         personality="Appreciates friendly conversation and local gossip sharing.",
-        race_preferences={"Halfling": 0.3},
-        class_preferences={"Bard": 0.3},
+        race_preferences={CharacterRace.HALFLING.value: 0.3},
+        class_preferences={PlayerClass.BARD.value: 0.3},
         gender_preferences={Gender.FEMALE.value: 0.3},
-        size_preferences={"Small": 0.3},
+        size_preferences={CharacterSize.SMALL.value: 0.3},
         appearance_keywords=None,
         storytelling_keywords=None
     )
@@ -68,8 +68,8 @@ async def test_personality_based_earned_trust():
         id=100,
         name="Wondering Bard",
         appearance="A small women with long brown hair with strong cheek bones.",
-        race=CharacterRace.HALFLING,
-        class_name=PlayerClass.BARD,
+        race=CharacterRace.HALFLING.value,
+        class_name=PlayerClass.BARD.value,
         size=CharacterSize.SMALL.value, 
         alignment=CharacterAlignment.NEUTRAL_GOOD.value,
         gender=Gender.FEMALE.value
