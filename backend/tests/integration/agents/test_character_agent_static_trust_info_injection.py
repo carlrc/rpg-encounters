@@ -33,7 +33,7 @@ def create_character():
         personality="Appreciates friendly conversation and local gossip sharing.",
         race_preferences={"Halfling": 0.3},
         class_preferences={"Bard": 0.3},
-        gender_preferences={"female": 0.3},
+        gender_preferences={Gender.FEMALE.value: 0.3},
         size_preferences={"Small": 0.3},
         appearance_keywords=None,
         storytelling_keywords=None
@@ -104,7 +104,7 @@ async def test_low_static_trust_public_only():
         class_name=PlayerClass.FIGHTER.value,  # Not Bard
         size=CharacterSize.MEDIUM.value,  # Not Small
         alignment=CharacterAlignment.NEUTRAL_GOOD.value,
-        gender="male"  # Not female
+        gender=Gender.MALE.value  # Not female
     )
 
     trust_state = await run_trust_test(
@@ -137,7 +137,7 @@ async def test_moderate_static_trust_privileged_access():
         class_name=PlayerClass.ROGUE.value,  # Not Bard
         size=CharacterSize.MEDIUM.value,  # Not small
         alignment=CharacterAlignment.CHAOTIC_GOOD.value,
-        gender="female"
+        gender=Gender.FEMALE.value
     )
     
     trust_state = await run_trust_test(
@@ -170,7 +170,7 @@ async def test_high_static_trust_with_dynamic_max_access():
         class_name=PlayerClass.BARD.value,  
         size=CharacterSize.SMALL.value,
         alignment=CharacterAlignment.CHAOTIC_GOOD.value,
-        gender="female"
+        gender=Gender.FEMALE.value
     )
     
     trust_state = await run_trust_test(

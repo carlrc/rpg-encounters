@@ -26,7 +26,7 @@ characters_db = {
             "Half-Orc": -0.3,
             "Tiefling": -0.3
         },
-        gender_preferences={"female": 0.3},
+        gender_preferences={Gender.FEMALE.value: 0.3},
         appearance_keywords=None,
         storytelling_keywords=None
     ),
@@ -56,7 +56,7 @@ characters_db = {
             "Tiefling": -0.3
         },
         class_preferences={"Bard": 0.3},
-        gender_preferences={"male": 0.3},
+        gender_preferences={Gender.MALE.value: 0.3},
         appearance_keywords=[],
         storytelling_keywords=[]
     ),
