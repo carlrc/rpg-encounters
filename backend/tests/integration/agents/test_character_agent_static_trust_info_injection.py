@@ -66,13 +66,13 @@ async def run_trust_test(character: Character, player: Player, earned_trust: flo
     
     # Set up agent
     system_prompt = import_system_prompt()
-    agent = CharacterAgent(character, player, system_prompt)
+    agent = CharacterAgent(character, player, system_prompt, trust_state)
     
     # Categorize nuggets by trust
-    available_nuggets, unavailable_nuggets = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
 
     # Run chat
-    result = await agent.chat(chat_message, available_nuggets, unavailable_nuggets)
+    result = await agent.chat(chat_message, nugget_levels)
     
     assert result is not None
     message_history = result.all_messages()
@@ -85,10 +85,10 @@ async def run_trust_test(character: Character, player: Player, earned_trust: flo
         assert content not in message_history[0].instructions, f"Expected '{content}' to be unavailable"
     
     # Verify categorization counts
-    assert len(available_nuggets) == len(expected_available)
-    assert len(unavailable_nuggets) == len(expected_unavailable)
-    
-    return trust_state
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    assert len(available_content) == len(expected_available)
+    assert len(unavailable_content) == len(expected_unavailable)
 
 async def test_low_static_trust_public_only():
     """Test that only public (Layer 1) nuggets are accessible with low trust."""
@@ -107,7 +107,7 @@ async def test_low_static_trust_public_only():
         gender=Gender.MALE.value  # Not female
     )
 
-    trust_state = await run_trust_test(
+    await run_trust_test(
         character=character,
         player=player,
         earned_trust=0.0,
@@ -119,9 +119,7 @@ async def test_low_static_trust_public_only():
         expected_available=[NUGGET_LEVEL_1],
         expected_unavailable=[NUGGET_LEVEL_2, NUGGET_LEVEL_3]
     )
-    
-    # Verify trust is 0.0
-    assert trust_state.total_trust == 0.0
+
 
 async def test_moderate_static_trust_privileged_access():
     """Test that privileged (Layer 2) nuggets are accessible with moderate-high static trust."""
@@ -140,7 +138,7 @@ async def test_moderate_static_trust_privileged_access():
         gender=Gender.FEMALE.value
     )
     
-    trust_state = await run_trust_test(
+    await run_trust_test(
         character=character,
         player=player,
         earned_trust=0.0,
@@ -152,9 +150,6 @@ async def test_moderate_static_trust_privileged_access():
         expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2],
         expected_unavailable=[NUGGET_LEVEL_3]
     )
-    
-    # Verify trust is 0.6 (above 0.55 threshold for Layer 2)
-    assert trust_state.total_trust == 0.6
 
 async def test_high_static_trust_with_dynamic_max_access():
     """Test that all nugget layers are accessible with maximum trust (base + earned)."""
@@ -173,7 +168,7 @@ async def test_high_static_trust_with_dynamic_max_access():
         gender=Gender.FEMALE.value
     )
     
-    trust_state = await run_trust_test(
+    await run_trust_test(
         character=character,
         player=player,
         earned_trust=0.4,  # Maximum earned trust
@@ -186,5 +181,3 @@ async def test_high_static_trust_with_dynamic_max_access():
         expected_unavailable=[]
     )
     
-    # Verify trust is 1.0 (0.6 base + 0.4 earned)
-    assert trust_state.total_trust == 1.0

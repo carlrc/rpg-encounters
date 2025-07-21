@@ -2,8 +2,6 @@ from app.models.character import Character
 from app.models.player import Player
 from app.models.trust import BASE_TRUST_MIN, BASE_TRUST_MAX
 
-PREFERENCE_VALUE_MAX = 0.3
-
 class TrustCalculator:
     @staticmethod
     def calculate_base_trust(character: Character, player: Player) -> float:

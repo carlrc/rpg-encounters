@@ -10,6 +10,7 @@ from app.data.trust_store import trust_state_store
 from app.data.nugget_store import nugget_store
 from app.services.nugget_service import NuggetService
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.services.trust_calculator import TrustCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -62,30 +63,32 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             # Save audio chunks directly to WAV file using ffmpeg
             wav_path = audio_processor.save_chunks_to_wav(audio_chunks)
             
+            # Transcribe player audio from WAV file
             transcription = await transcription_service.transcribe_audio(wav_path)
             logger.info(f"Transcribed audio text: {transcription}")
             
+            # Get character and player information
             character = character_store.get_character_by_id(character_id)
             player = player_store.get_player_by_id(player_id)
             
-            # Get relevant nuggets for this character and player based on trust
-            trust_state = trust_state_store.get_trust_state(character_id, player_id)
-            available_nuggets = []
-            unavailable_nuggets = []
-            
-            if trust_state:
-                all_nuggets = nugget_store.get_by_character_id(character_id)
-                available_nuggets, unavailable_nuggets = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
+            # Get static trust metric between character and player
+            base_trust = TrustCalculator.calculate_base_trust(character, player)
+            # Get or create persistent trust state
+            trust_state = trust_state_store.get_or_create(character_id, player_id, base_trust)
+            # Get information tied to character
+            all_nuggets = nugget_store.get_by_character_id(character_id)
+            nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
             
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(
-                player_id, character_id, character, player, system_prompt
+                player_id, character_id, character, player, system_prompt, trust_state
             )
+
+            # TODO: Persist the trust adjustments as a background task here for restart continuity 
             
             # Generate AI response using character agent
-            result = await agent.chat(transcription, available_nuggets, unavailable_nuggets)
+            result = await agent.chat(transcription, nugget_levels)
             logger.debug(f"Generated character response: {result.output}")
-            
             
             
             # Stream TTS audio chunks back to frontend

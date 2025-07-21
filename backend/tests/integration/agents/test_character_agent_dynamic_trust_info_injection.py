@@ -48,12 +48,7 @@ def create_test_nugget(character_id: int, title: str, level_1: str, level_2: str
         level_3_content=level_3
     )
 
-def verify_nugget_content_availability(instructions, expected_available=None, expected_unavailable=None):
-    if expected_available is None:
-        expected_available = []
-    if expected_unavailable is None:
-        expected_unavailable = []
-    
+def verify_nugget_content_availability(instructions, expected_available, expected_unavailable):
     for content in expected_available:
         assert content in instructions, f"Expected '{content}' to be available in instructions"
 
@@ -81,30 +76,31 @@ async def test_personality_based_earned_trust():
     
     # Set up agent
     system_prompt = import_system_prompt()
-    agent = CharacterAgent(character, player, system_prompt)
-
+    
     trust_state = trust_state_store.update_trust_state(TrustState(
         character_id=character.id,
         player_id=player.id,
         base_trust=TrustCalculator.calculate_base_trust(character, player),
         earned_trust=0.0
     ))
-    
-    available_nuggets, unavailable_nuggets = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
 
-    result = await agent.chat("Hi there, I'm wondering if you have any rooms available tonight?", available_nuggets, unavailable_nuggets)
+    agent = CharacterAgent(character, player, system_prompt, trust_state)
+    
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
+
+    result = await agent.chat("Hi there, I'm wondering if you have any rooms available tonight?", nugget_levels)
     
     assert result is not None
     message_history = result.all_messages()
     
+    # Assert final level of information is hidden
     verify_nugget_content_availability(
         message_history[0].instructions,
         expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2],
         expected_unavailable=[NUGGET_LEVEL_3]
     )
     
-    # Make all information available now
-    result = await agent.chat("What type of room is it? I've just come from a long quest saving a lost princess...", [*available_nuggets, *unavailable_nuggets], [])
+    result = await agent.chat("What type of room is it? I've just come from a long quest saving a lost princess...", nugget_levels)
     
     assert result is not None
     message_history = result.all_messages()

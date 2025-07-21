@@ -28,3 +28,9 @@ class TrustNuggetCreate(BaseModel):
     level_1_content: str
     level_2_content: Optional[str] = None
     level_3_content: Optional[str] = None
+
+
+class NuggetLevelInfo(BaseModel):
+    content: str
+    level: str  # "PUBLIC", "PRIVILEGED", or "EXCLUSIVE"
+    available: bool

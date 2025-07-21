@@ -1,5 +1,6 @@
 from typing import List
-from app.models.nugget import NuggetLayer, NUGGET_THRESHOLDS, TrustNugget
+from app.models.nugget import NuggetLayer, NUGGET_THRESHOLDS, TrustNugget, NuggetLevelInfo
+from app.models.trust import TrustState
 
 
 class NuggetService:
@@ -7,9 +8,9 @@ class NuggetService:
     def get_trust_threshold(layer: NuggetLayer) -> float:
         """Get the trust threshold required for a nugget layer"""
         threshold_map = {
-            NuggetLayer.PUBLIC: NUGGET_THRESHOLDS['PUBLIC'],
-            NuggetLayer.PRIVILEGED: NUGGET_THRESHOLDS['PRIVILEGED'],
-            NuggetLayer.EXCLUSIVE: NUGGET_THRESHOLDS['EXCLUSIVE']
+            NuggetLayer.PUBLIC: NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name],
+            NuggetLayer.PRIVILEGED: NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name],
+            NuggetLayer.EXCLUSIVE: NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
         }
         return threshold_map[layer]
 
@@ -19,32 +20,36 @@ class NuggetService:
         return trust_level >= NuggetService.get_trust_threshold(layer)
 
     @staticmethod
-    def categorize_nuggets_by_trust(trust_state, all_nuggets: List[TrustNugget]) -> tuple[List[str], List[str]]:
+    def categorize_nuggets_by_trust(trust_state: TrustState, all_nuggets: List[TrustNugget]) -> List[NuggetLevelInfo]:
         """
-        Categorize nuggets into available and unavailable based on trust level.
-        Returns tuple of (available_nuggets, unavailable_nuggets)
+        Categorize nuggets by trust level, returning structured information about each level.
+        Returns list of NuggetLevelInfo objects with content, level, and availability.
         """
-        available_nuggets = []
-        unavailable_nuggets = []
-        
+        nugget_levels = []
         for nugget in all_nuggets:
-            # Check each level of content and add to appropriate list with layer labels
+            # Check each level of content and create NuggetLevelInfo objects
             if nugget.level_1_content:
-                if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PUBLIC):
-                    available_nuggets.append(f"PUBLIC - {nugget.level_1_content}")
-                else:
-                    unavailable_nuggets.append(f"PUBLIC - {nugget.level_1_content}")
+                available = trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PUBLIC)
+                nugget_levels.append(NuggetLevelInfo(
+                    content=nugget.level_1_content,
+                    level=NuggetLayer.PUBLIC.name,
+                    available=available
+                ))
             
             if nugget.level_2_content:
-                if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PRIVILEGED):
-                    available_nuggets.append(f"PRIVILEGED - {nugget.level_2_content}")
-                else:
-                    unavailable_nuggets.append(f"PRIVILEGED - {nugget.level_2_content}")
+                available = trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PRIVILEGED)
+                nugget_levels.append(NuggetLevelInfo(
+                    content=nugget.level_2_content,
+                    level=NuggetLayer.PRIVILEGED.name,
+                    available=available
+                ))
             
             if nugget.level_3_content:
-                if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.EXCLUSIVE):
-                    available_nuggets.append(f"EXCLUSIVE - {nugget.level_3_content}")
-                else:
-                    unavailable_nuggets.append(f"EXCLUSIVE - {nugget.level_3_content}")
+                available = trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.EXCLUSIVE)
+                nugget_levels.append(NuggetLevelInfo(
+                    content=nugget.level_3_content,
+                    level=NuggetLayer.EXCLUSIVE.name,
+                    available=available
+                ))
         
-        return available_nuggets, unavailable_nuggets
+        return nugget_levels
