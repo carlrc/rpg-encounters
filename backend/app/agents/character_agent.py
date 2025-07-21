@@ -5,7 +5,8 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
-from app.models.nugget import NuggetLayer, get_trust_threshold
+from app.models.nugget import NuggetLayer
+from app.services.nugget_service import NuggetService
 from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, EARNED_TRUST_MIN, EARNED_TRUST_MAX
 from app.data.trust_store import trust_state_store
 from app.services.trust_calculator import TrustCalculator

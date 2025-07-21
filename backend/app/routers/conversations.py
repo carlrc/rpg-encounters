@@ -8,8 +8,8 @@ from app.data.character_store import character_store
 from app.data.player_store import player_store
 from app.data.trust_store import trust_state_store
 from app.data.nugget_store import nugget_store
-from app.models.nugget import categorize_nuggets_by_trust
-from app.ai.prompts.import_prompts import import_system_prompt
+from app.services.nugget_service import NuggetService
+from app.agents.prompts.import_prompts import import_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             
             if trust_state:
                 all_nuggets = nugget_store.get_by_character_id(character_id)
-                available_nuggets, unavailable_nuggets = categorize_nuggets_by_trust(trust_state, all_nuggets)
+                available_nuggets, unavailable_nuggets = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
             
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(

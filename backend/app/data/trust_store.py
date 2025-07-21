@@ -36,6 +36,10 @@ class TrustStateStore:
             return True
         return False
 
+    def clear(self) -> None:
+        """Clear all trust states - used for testing"""
+        self.trust_states.clear()
+
 
 # Create singleton instance
 trust_state_store = TrustStateStore()

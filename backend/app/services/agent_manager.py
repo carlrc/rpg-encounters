@@ -1,4 +1,4 @@
-from app.ai.character_agent import CharacterAgent
+from app.agents.character_agent import CharacterAgent
 from app.models.character import Character
 from app.models.player import Player
 import logging
