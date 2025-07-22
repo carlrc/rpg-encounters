@@ -1,5 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict
+from pydantic import BaseModel, field_validator
 
 BASE_TRUST_MIN = 0.0
 BASE_TRUST_MAX = 0.6

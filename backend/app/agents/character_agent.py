@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
-from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, EARNED_TRUST_MIN, EARNED_TRUST_MAX, TrustState
+from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, TrustState
 from app.models.nugget import NuggetLevelInfo
 
 MAX_MESSAGE_HISTORY = 10
@@ -25,11 +25,11 @@ class CharacterAgent:
         self.trust = trust_state
                 
         # Build trust-aware instructions
-        trust_instruction = self._build_trust_instruction(character, player, trust_state)
+        trust_instruction = self._build_base_instruction(self.character, self.player, self.trust)
         
         agent = Agent(
             OpenAIModel(model_name='gpt-4o'), 
-            system_prompt=system_prompt + "\n" + character.to_prompt(),
+            system_prompt=system_prompt + "\n" + self.character.to_prompt(),
             instructions=trust_instruction,
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(CharacterAgentOutput,description='Return the chat response along with the trust adjustment and accompanying reason.'))
@@ -84,7 +84,7 @@ class CharacterAgent:
         self.run_result = await self.agent.run(player_transcript, deps=nugget_levels, message_history=message_history)
         return self.run_result
     
-    def _build_trust_instruction(self, character: Character, player: Player, trust_state) -> str:
+    def _build_base_instruction(self, character: Character, player: Player, trust_state) -> str:
         """Build streamlined trust-aware instruction for the AI"""
         # Check if character has trust preferences configured
         has_trust_preferences = (
@@ -103,20 +103,9 @@ class CharacterAgent:
             return f"""{base_instruction}
                 **INTERACTION MODE**: BASIC - No trust system configured. Keep responses shallow and surface-level."""
         
-        # Trust system is configured - add trust status
-        current_earned = trust_state.earned_trust
-        min_earned = max(EARNED_TRUST_MIN, current_earned + TRUST_CHANGE_MIN)
-        max_earned = min(EARNED_TRUST_MAX, current_earned + TRUST_CHANGE_MAX)
-        
         return f"""{base_instruction}
-            ## Trust Status
-            - **Base Trust**: {trust_state.base_trust:.2f} (from player characteristics)
-            - **Earned Trust**: {trust_state.earned_trust:.2f} (from interactions so far)  
-            - **Total Trust**: {trust_state.total_trust:.2f}
-
-            ## Trust Adjustment Range
+            # Trust Adjustment Range
             Adjust earned trust by {TRUST_CHANGE_MIN} to {TRUST_CHANGE_MAX} based on message evaluation.
-            New earned trust range: {min_earned:.1f} to {max_earned:.1f}
 
             **PROCESS**: Evaluate message → Adjust trust → Use appropriate secrets → Respond naturally"""
 
