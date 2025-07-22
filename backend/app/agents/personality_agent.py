@@ -19,13 +19,13 @@ class PersonalityGenerator:
         agent = Agent(
             OpenAIModel(model_name="gpt-4o"),
             system_prompt="""You are an expert at analyzing D&D characters and creating personality profiles for social interactions.
-            Generate concise personality profiles (2-3 sentences) that describe:
+            Generate concise personality profiles (2-3 short sentences) that describe:
             1. Their social interaction style and preferences
             2. What behaviors/topics they appreciate (builds trust)
             3. What behaviors/topics they dislike (loses trust)
             4. How their background influences their social reactions
             5. Their sense of humor and storytelling preferences
-            6. How their bias preferences (race, class, gender, etc.) affect their trust evaluation
+            6. How their bias preferences (race, class, gender, etc.) affect their trust evaluation (keep short)
             IMPORTANT: Include specific mentions of their bias preferences and explain WHY they have these biases based on their background, profession, and experiences. Describe how these biases manifest in their trust interpretations.
             Format as a single paragraph suitable for AI trust evaluation. Focus on what would make this character trust or distrust someone in conversation, including their inherent biases.""",
         )
