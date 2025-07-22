@@ -11,3 +11,12 @@ repos:
     hooks:
     - id: flake8
       args: [--max-line-length=240, --extend-ignore=E203]
+-   repo: local
+    hooks:
+    - id: prettier
+      name: prettier
+      entry: bash -c 'cd frontend && npx prettier . --write'
+      language: system
+      files: \.(js|vue|css|html|json)$
+      exclude: node_modules/|dist/
+

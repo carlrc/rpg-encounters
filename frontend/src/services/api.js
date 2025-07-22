@@ -1,124 +1,124 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/api'
 
 class ApiService {
-    async request(endpoint, options = {}) {
-        const url = `${API_BASE_URL}${endpoint}`;
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
-            ...options,
-        };
-
-        try {
-            const response = await fetch(url, config);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            // Handle 204 No Content responses
-            if (response.status === 204) {
-                return null;
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('API request failed:', error);
-            throw error;
-        }
+  async request(endpoint, options = {}) {
+    const url = `${API_BASE_URL}${endpoint}`
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
     }
 
-    // Player CRUD operations
-    async getPlayers() {
-        return this.request('/players');
-    }
+    try {
+      const response = await fetch(url, config)
 
-    async getPlayer(id) {
-        return this.request(`/players/${id}`);
-    }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
-    async createPlayer(playerData) {
-        return this.request('/players', {
-            method: 'POST',
-            body: JSON.stringify(playerData),
-        });
-    }
+      // Handle 204 No Content responses
+      if (response.status === 204) {
+        return null
+      }
 
-    async updatePlayer(id, playerData) {
-        return this.request(`/players/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(playerData),
-        });
+      return await response.json()
+    } catch (error) {
+      console.error('API request failed:', error)
+      throw error
     }
+  }
 
-    async deletePlayer(id) {
-        return this.request(`/players/${id}`, {
-            method: 'DELETE',
-        });
-    }
+  // Player CRUD operations
+  async getPlayers() {
+    return this.request('/players')
+  }
 
-    // Character CRUD operations
-    async getCharacters() {
-        return this.request('/characters');
-    }
+  async getPlayer(id) {
+    return this.request(`/players/${id}`)
+  }
 
-    async getCharacter(id) {
-        return this.request(`/characters/${id}`);
-    }
+  async createPlayer(playerData) {
+    return this.request('/players', {
+      method: 'POST',
+      body: JSON.stringify(playerData),
+    })
+  }
 
-    async createCharacter(characterData) {
-        return this.request('/characters', {
-            method: 'POST',
-            body: JSON.stringify(characterData),
-        });
-    }
+  async updatePlayer(id, playerData) {
+    return this.request(`/players/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(playerData),
+    })
+  }
 
-    async updateCharacter(id, characterData) {
-        return this.request(`/characters/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(characterData),
-        });
-    }
+  async deletePlayer(id) {
+    return this.request(`/players/${id}`, {
+      method: 'DELETE',
+    })
+  }
 
-    async deleteCharacter(id) {
-        return this.request(`/characters/${id}`, {
-            method: 'DELETE',
-        });
-    }
+  // Character CRUD operations
+  async getCharacters() {
+    return this.request('/characters')
+  }
 
-    // Nugget CRUD operations
-    async getNuggets() {
-        return this.request('/nuggets');
-    }
+  async getCharacter(id) {
+    return this.request(`/characters/${id}`)
+  }
 
-    async getNugget(id) {
-        return this.request(`/nuggets/${id}`);
-    }
+  async createCharacter(characterData) {
+    return this.request('/characters', {
+      method: 'POST',
+      body: JSON.stringify(characterData),
+    })
+  }
 
-    async createNugget(nuggetData) {
-        return this.request('/nuggets', {
-            method: 'POST',
-            body: JSON.stringify(nuggetData),
-        });
-    }
+  async updateCharacter(id, characterData) {
+    return this.request(`/characters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(characterData),
+    })
+  }
 
-    async updateNugget(id, nuggetData) {
-        return this.request(`/nuggets/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(nuggetData),
-        });
-    }
+  async deleteCharacter(id) {
+    return this.request(`/characters/${id}`, {
+      method: 'DELETE',
+    })
+  }
 
-    async deleteNugget(id) {
-        return this.request(`/nuggets/${id}`, {
-            method: 'DELETE',
-        });
-    }
+  // Nugget CRUD operations
+  async getNuggets() {
+    return this.request('/nuggets')
+  }
 
-    // Note: Trust profiles are now integrated into character model
-    // Trust profile data is managed through character endpoints
+  async getNugget(id) {
+    return this.request(`/nuggets/${id}`)
+  }
+
+  async createNugget(nuggetData) {
+    return this.request('/nuggets', {
+      method: 'POST',
+      body: JSON.stringify(nuggetData),
+    })
+  }
+
+  async updateNugget(id, nuggetData) {
+    return this.request(`/nuggets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(nuggetData),
+    })
+  }
+
+  async deleteNugget(id) {
+    return this.request(`/nuggets/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Note: Trust profiles are now integrated into character model
+  // Trust profile data is managed through character endpoints
 }
 
-export default new ApiService();
+export default new ApiService()

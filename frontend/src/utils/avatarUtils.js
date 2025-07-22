@@ -8,8 +8,13 @@
  * @returns {string} - The initials (max 2 characters)
  */
 export function getInitials(name) {
-    if (!name) return '?'
-    return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .map((word) => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 }
 
 /**
@@ -18,12 +23,12 @@ export function getInitials(name) {
  * @param {Function} callback - Callback function to handle the result
  */
 export function handleAvatarUpload(event, callback) {
-    const file = event.target.files[0]
-    if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-            callback(e.target.result)
-        }
-        reader.readAsDataURL(file)
+  const file = event.target.files[0]
+  if (file) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      callback(e.target.result)
     }
+    reader.readAsDataURL(file)
+  }
 }

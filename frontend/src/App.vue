@@ -5,12 +5,12 @@
 </template>
 
 <script>
-import AppLayout from './components/layout/AppLayout.vue'
+  import AppLayout from './components/layout/AppLayout.vue'
 
-export default {
-  name: 'App',
-  components: {
-    AppLayout
+  export default {
+    name: 'App',
+    components: {
+      AppLayout,
+    },
   }
-}
 </script>

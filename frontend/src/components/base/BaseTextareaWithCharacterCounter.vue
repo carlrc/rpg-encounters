@@ -1,6 +1,6 @@
 <template>
   <div class="shared-word-counter-field">
-    <textarea 
+    <textarea
       :value="modelValue"
       @input="updateValue"
       :placeholder="placeholder"
@@ -13,54 +13,54 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+  import { computed } from 'vue'
 
-export default {
-  name: 'BaseTextareaWithCharacterCounter',
-  props: {
-    modelValue: {
-      type: String,
-      default: ''
+  export default {
+    name: 'BaseTextareaWithCharacterCounter',
+    props: {
+      modelValue: {
+        type: String,
+        default: '',
+      },
+      placeholder: {
+        type: String,
+        default: '',
+      },
+      maxCharacters: {
+        type: Number,
+        required: true,
+      },
     },
-    placeholder: {
-      type: String,
-      default: ''
+    emits: ['update:modelValue'],
+    setup(props, { emit }) {
+      const characterCount = computed(() => {
+        return props.modelValue.length
+      })
+
+      const isOverLimit = computed(() => {
+        return characterCount.value > props.maxCharacters
+      })
+
+      const updateValue = (event) => {
+        emit('update:modelValue', event.target.value)
+      }
+
+      return {
+        characterCount,
+        isOverLimit,
+        updateValue,
+      }
     },
-    maxCharacters: {
-      type: Number,
-      required: true
-    }
-  },
-  emits: ['update:modelValue'],
-  setup(props, { emit }) {
-    const characterCount = computed(() => {
-      return props.modelValue.length
-    })
-    
-    const isOverLimit = computed(() => {
-      return characterCount.value > props.maxCharacters
-    })
-    
-    const updateValue = (event) => {
-      emit('update:modelValue', event.target.value)
-    }
-    
-    return {
-      characterCount,
-      isOverLimit,
-      updateValue
-    }
   }
-}
 </script>
 
 <style scoped>
-.shared-word-counter-field {
-  width: 100%;
-}
+  .shared-word-counter-field {
+    width: 100%;
+  }
 
-.shared-textarea {
-  width: 100%;
-  box-sizing: border-box;
-}
+  .shared-textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
 </style>
