@@ -21,7 +21,7 @@ async def test_character_agent_conversation_history():
     all_nuggets = nugget_store.get_by_character_id(character.id)
     nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
     
-    system_prompt = import_system_prompt()
+    system_prompt = import_system_prompt("character_agent")
     agent = CharacterAgent(character, player, system_prompt, trust_state)
     
     await agent.chat("What's happening in the village lately?", nugget_levels)

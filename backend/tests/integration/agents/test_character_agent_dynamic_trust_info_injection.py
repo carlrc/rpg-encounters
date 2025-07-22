@@ -8,6 +8,7 @@ from app.services.nugget_service import NuggetService
 from app.data.trust_store import trust_state_store
 from app.services.trust_calculator import TrustCalculator
 from app.models.trust import TrustState
+from tests.utilities import verify_nugget_content_availability, assert_contains_any_keywords
 
 NUGGET_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
 NUGGET_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
@@ -48,13 +49,6 @@ def create_test_nugget(character_id: int, title: str, level_1: str, level_2: str
         level_3_content=level_3
     )
 
-def verify_nugget_content_availability(instructions, expected_available, expected_unavailable):
-    for content in expected_available:
-        assert content in instructions, f"Expected '{content}' to be available in instructions"
-
-    for content in expected_unavailable:
-        assert content not in instructions, f"Expected '{content}' to be unavailable in instructions"
-
 async def test_personality_based_earned_trust():    
     character = create_character()
     
@@ -75,7 +69,7 @@ async def test_personality_based_earned_trust():
     all_nuggets = [test_nugget]
     
     # Set up agent
-    system_prompt = import_system_prompt()
+    system_prompt = import_system_prompt("character_agent")
     
     trust_state = trust_state_store.update_trust_state(TrustState(
         character_id=character.id,
@@ -93,20 +87,13 @@ async def test_personality_based_earned_trust():
     assert result is not None
     message_history = result.all_messages()
     
-    # Assert final level of information is hidden
     verify_nugget_content_availability(
         message_history[0].instructions,
         expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2],
-        expected_unavailable=[NUGGET_LEVEL_3]
-    )
-    
-    result = await agent.chat("What type of room is it? I've just come from a long quest saving a lost princess...", nugget_levels)
-    
-    assert result is not None
-    message_history = result.all_messages()
-    
-    verify_nugget_content_availability(
-        message_history[2].instructions,
-        expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2, NUGGET_LEVEL_3],
+        expected_conditional=[NUGGET_LEVEL_3],
         expected_unavailable=[]
     )
+    
+    result = await agent.chat("What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!", nugget_levels)
+    
+    assert_contains_any_keywords(result.output.response, ["secret", "corridor"])

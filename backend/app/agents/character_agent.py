@@ -32,21 +32,40 @@ class CharacterAgent:
             system_prompt=system_prompt + "\n" + character.to_prompt(),
             instructions=trust_instruction,
             history_processors=[self._keep_recent_messages],
-            output_type=NativeOutput(CharacterAgentOutput,description='Return the chat response along with the trust adjustment and accompanying reason'))
-        self.run_result: AgentRunResult[str] = None
+            output_type=NativeOutput(CharacterAgentOutput,description='Return the chat response along with the trust adjustment and accompanying reason.'))
+        self.run_result: AgentRunResult[CharacterAgentOutput] = None
         
         # Decorator does not work on self.agent
         @agent.instructions
         def add_nuggets(ctx: RunContext[list[NuggetLevelInfo]]) -> str:  
             available_nuggets = [nugget for nugget in ctx.deps if nugget.available]
-            if not available_nuggets:
-                return "# Available Secrets\nNo secrets are currently available based on your trust level."
+            conditional_nuggets = [nugget for nugget in ctx.deps if nugget.conditionally_available]
             
-            nuggets_with_level = '\n'.join(f"- [{nugget.level}] {nugget.content}" for nugget in available_nuggets)
-            return f"""# Available Secrets
-                {nuggets_with_level}
-
-                **PRIORITY**: Use EXCLUSIVE secrets first, then PRIVILEGED, then PUBLIC. Only reveal one secret per response."""
+            instruction_parts = []
+            
+            # Available secrets section
+            if available_nuggets:
+                nuggets_with_level = '\n'.join(f"- [{nugget.level}] {nugget.content}" for nugget in available_nuggets)
+                instruction_parts.append(f"""# Available Secrets {nuggets_with_level}""")
+            else:
+                instruction_parts.append("# Available Secrets\nNo secrets are currently available.")
+            
+            # Conditional secrets section
+            if conditional_nuggets:
+                current_trust = self.trust.total_trust
+                conditional_list = []
+                for nugget in conditional_nuggets:
+                    trust_needed = nugget.trust_needed - current_trust
+                    conditional_list.append(f"- [{nugget.level}] {nugget.content}\n  → Available if you give +{trust_needed:.2f} or more trust (current: {current_trust:.2f}, need: {nugget.trust_needed:.2f})")
+                
+                conditional_text = '\n'.join(conditional_list)
+                instruction_parts.append(f"""# Conditionally Available Secrets (unlock with trust adjustment)
+                    {conditional_text}
+                    **CONDITIONAL USAGE**: You can use conditional secrets if your trust adjustment would unlock them.""")
+            
+            instruction_parts.append("**PRIORITY**: Use EXCLUSIVE secrets first, then PRIVILEGED, then PUBLIC. Only reveal one secret per response.")
+            
+            return '\n\n'.join(instruction_parts)
         
         @agent.output_validator
         def validate_trust_adjustment(ctx: RunContext[Any], output: CharacterAgentOutput) -> CharacterAgentOutput:
@@ -60,7 +79,7 @@ class CharacterAgent:
         # Set instance variable after decorators defined
         self.agent = agent
         
-    async def chat(self, player_transcript: str, nugget_levels: list[NuggetLevelInfo]) -> AgentRunResult[str]:
+    async def chat(self, player_transcript: str, nugget_levels: list[NuggetLevelInfo]):
         message_history = self.run_result.all_messages() if self.run_result else None
         self.run_result = await self.agent.run(player_transcript, deps=nugget_levels, message_history=message_history)
         return self.run_result

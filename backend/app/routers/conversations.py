@@ -21,7 +21,7 @@ audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
 agent_manager = AgentManager()
-system_prompt = import_system_prompt()
+system_prompt = import_system_prompt("character_agent")
 
 @router.websocket("/{player_id}/{character_id}")
 async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id: int):
@@ -92,7 +92,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             
             
             # Stream TTS audio chunks back to frontend
-            for audio_chunk in tts_service.text_to_speech_stream(result.output, character.voice):
+            for audio_chunk in tts_service.text_to_speech_stream(result.output.response, character.voice):
                 try:
                     await websocket.send_bytes(audio_chunk)
                 except Exception as e:

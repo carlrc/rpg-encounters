@@ -34,3 +34,5 @@ class NuggetLevelInfo(BaseModel):
     content: str
     level: str  # "PUBLIC", "PRIVILEGED", or "EXCLUSIVE"
     available: bool
+    conditionally_available: bool = False  # Can be unlocked with trust adjustment
+    trust_needed: Optional[float] = None  # Trust level needed to unlock
