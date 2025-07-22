@@ -1,4 +1,10 @@
-from app.models.character import Character, CharacterRace, CharacterSize, CharacterAlignment, Gender
+from app.models.character import (
+    Character,
+    CharacterRace,
+    CharacterSize,
+    CharacterAlignment,
+    Gender,
+)
 from app.models.player import PlayerClass
 
 characters_db = {
@@ -25,11 +31,11 @@ characters_db = {
             CharacterRace.GNOME.value: -0.3,
             CharacterRace.HALF_ELF.value: -0.3,
             CharacterRace.HALF_ORC.value: -0.3,
-            CharacterRace.TIEFLING.value: -0.3
+            CharacterRace.TIEFLING.value: -0.3,
         },
         gender_preferences={Gender.FEMALE.value: 0.3},
         appearance_keywords=None,
-        storytelling_keywords=None
+        storytelling_keywords=None,
     ),
     2: Character(
         id=2,
@@ -54,12 +60,12 @@ characters_db = {
             CharacterRace.GNOME.value: -0.3,
             CharacterRace.HALF_ELF.value: -0.3,
             CharacterRace.HALF_ORC.value: -0.3,
-            CharacterRace.TIEFLING.value: -0.3
+            CharacterRace.TIEFLING.value: -0.3,
         },
         class_preferences={PlayerClass.BARD.value: 0.3},
         gender_preferences={Gender.MALE.value: 0.3},
         appearance_keywords=[],
-        storytelling_keywords=[]
+        storytelling_keywords=[],
     ),
     3: Character(
         id=3,
@@ -84,10 +90,10 @@ characters_db = {
             CharacterRace.GNOME.value: -0.3,
             CharacterRace.HALF_ELF.value: -0.3,
             CharacterRace.HALF_ORC.value: -0.3,
-            CharacterRace.TIEFLING.value: -0.3
+            CharacterRace.TIEFLING.value: -0.3,
         },
         appearance_keywords=[],
-        storytelling_keywords=[]
+        storytelling_keywords=[],
     ),
     4: Character(
         id=4,
@@ -112,12 +118,12 @@ characters_db = {
             CharacterRace.GNOME.value: -0.3,
             CharacterRace.HALF_ELF.value: -0.3,
             CharacterRace.HALF_ORC.value: -0.3,
-            CharacterRace.TIEFLING.value: -0.3
+            CharacterRace.TIEFLING.value: -0.3,
         },
         class_preferences={PlayerClass.DRUID.value: 0.3},
         appearance_keywords=[],
-        storytelling_keywords=[]
-    )
+        storytelling_keywords=[],
+    ),
 }
 
 next_character_id = 5

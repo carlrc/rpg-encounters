@@ -6,10 +6,12 @@ from app.data.character_store import character_store
 
 router = APIRouter(prefix="/api/nuggets", tags=["nuggets"])
 
+
 @router.get("", response_model=List[TrustNugget])
 def get_all_nuggets():
     """Get all nuggets across all characters"""
     return nugget_store.get_all_nuggets()
+
 
 @router.post("", response_model=TrustNugget)
 def create_nugget(nugget_data: TrustNuggetCreate):
@@ -17,9 +19,12 @@ def create_nugget(nugget_data: TrustNuggetCreate):
     # Verify all characters exist
     for character_id in nugget_data.character_ids:
         if not character_store.character_exists(character_id):
-            raise HTTPException(status_code=404, detail=f"Character {character_id} not found")
-    
+            raise HTTPException(
+                status_code=404, detail=f"Character {character_id} not found"
+            )
+
     return nugget_store.create_nugget(nugget_data)
+
 
 @router.get("/{nugget_id}", response_model=TrustNugget)
 def get_nugget(nugget_id: int):
@@ -29,14 +34,16 @@ def get_nugget(nugget_id: int):
         raise HTTPException(status_code=404, detail="Nugget not found")
     return nugget
 
+
 @router.get("/character/{character_id}", response_model=List[TrustNugget])
 def get_character_nuggets(character_id: int):
     """Get all nuggets for a character"""
     # Verify character exists
     if not character_store.character_exists(character_id):
         raise HTTPException(status_code=404, detail="Character not found")
-    
+
     return nugget_store.get_by_character_id(character_id)
+
 
 @router.put("/{nugget_id}", response_model=TrustNugget)
 def update_nugget(nugget_id: int, updates: dict):
@@ -45,6 +52,7 @@ def update_nugget(nugget_id: int, updates: dict):
     if not nugget:
         raise HTTPException(status_code=404, detail="Nugget not found")
     return nugget
+
 
 @router.delete("/{nugget_id}")
 def delete_nugget(nugget_id: int):

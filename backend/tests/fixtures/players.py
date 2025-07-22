@@ -1,5 +1,10 @@
 from app.models.player import Player, PlayerClass
-from app.models.character import CharacterRace, CharacterSize, CharacterAlignment, Gender
+from app.models.character import (
+    CharacterRace,
+    CharacterSize,
+    CharacterAlignment,
+    Gender,
+)
 
 players_db = {
     1: Player(
@@ -10,7 +15,7 @@ players_db = {
         class_name=PlayerClass.WIZARD.value,
         size=CharacterSize.MEDIUM.value,
         alignment=CharacterAlignment.NEUTRAL_GOOD.value,
-        gender=Gender.FEMALE.value
+        gender=Gender.FEMALE.value,
     ),
     2: Player(
         id=2,
@@ -20,8 +25,8 @@ players_db = {
         class_name=PlayerClass.BARD.value,
         size=CharacterSize.SMALL.value,
         alignment=CharacterAlignment.CHAOTIC_GOOD.value,
-        gender=Gender.MALE.value
-    )
+        gender=Gender.MALE.value,
+    ),
 }
 
 next_player_id = 3

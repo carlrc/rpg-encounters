@@ -5,10 +5,12 @@ from app.data.player_store import player_store
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
+
 @router.get("/", response_model=List[Player])
 async def get_players():
     """Get all players"""
     return player_store.get_all_players()
+
 
 @router.get("/{player_id}", response_model=Player)
 async def get_player(player_id: int):
@@ -18,10 +20,12 @@ async def get_player(player_id: int):
         raise HTTPException(status_code=404, detail="Player not found")
     return player
 
+
 @router.post("/", response_model=Player, status_code=201)
 async def create_player(player: PlayerCreate):
     """Create a new player"""
     return player_store.create_player(player)
+
 
 @router.put("/{player_id}", response_model=Player)
 async def update_player(player_id: int, player_update: PlayerUpdate):
@@ -30,6 +34,7 @@ async def update_player(player_id: int, player_update: PlayerUpdate):
     if updated_player is None:
         raise HTTPException(status_code=404, detail="Player not found")
     return updated_player
+
 
 @router.delete("/{player_id}", status_code=204)
 async def delete_player(player_id: int):
