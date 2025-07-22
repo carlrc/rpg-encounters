@@ -1,21 +1,23 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from typing import Optional
 from enum import Enum
 from .character import CharacterRace, CharacterSize, CharacterAlignment, Gender
 
+
 class PlayerClass(Enum):
-    BARBARIAN = 'Barbarian'
-    BARD = 'Bard'
-    CLERIC = 'Cleric'
-    DRUID = 'Druid'
-    FIGHTER = 'Fighter'
-    MONK = 'Monk'
-    PALADIN = 'Paladin'
-    RANGER = 'Ranger'
-    ROGUE = 'Rogue'
-    SORCERER = 'Sorcerer'
-    WARLOCK = 'Warlock'
-    WIZARD = 'Wizard'
+    BARBARIAN = "Barbarian"
+    BARD = "Bard"
+    CLERIC = "Cleric"
+    DRUID = "Druid"
+    FIGHTER = "Fighter"
+    MONK = "Monk"
+    PALADIN = "Paladin"
+    RANGER = "Ranger"
+    ROGUE = "Rogue"
+    SORCERER = "Sorcerer"
+    WARLOCK = "Warlock"
+    WIZARD = "Wizard"
+
 
 class PlayerBase(BaseModel):
     name: str
@@ -26,16 +28,16 @@ class PlayerBase(BaseModel):
     alignment: str = Field(..., description="Player alignment")
     gender: str = Field(..., description="Player gender")
 
-    @field_validator('appearance')
+    @field_validator("appearance")
     @classmethod
     def validate_appearance_word_count(cls, appearance_text):
         if appearance_text:
             word_count = len(appearance_text.split())
             if word_count > 40:
-                raise ValueError('Appearance must be 40 words or less')
+                raise ValueError("Appearance must be 40 words or less")
         return appearance_text
 
-    @field_validator('race')
+    @field_validator("race")
     @classmethod
     def validate_race(cls, race_value):
         valid_races = [race.value for race in CharacterRace]
@@ -43,7 +45,7 @@ class PlayerBase(BaseModel):
             raise ValueError(f'Race must be one of: {", ".join(valid_races)}')
         return race_value
 
-    @field_validator('class_name')
+    @field_validator("class_name")
     @classmethod
     def validate_class_name(cls, class_value):
         valid_classes = [player_class.value for player_class in PlayerClass]
@@ -51,7 +53,7 @@ class PlayerBase(BaseModel):
             raise ValueError(f'Class must be one of: {", ".join(valid_classes)}')
         return class_value
 
-    @field_validator('size')
+    @field_validator("size")
     @classmethod
     def validate_size(cls, size_value):
         valid_sizes = [size.value for size in CharacterSize]
@@ -59,7 +61,7 @@ class PlayerBase(BaseModel):
             raise ValueError(f'Size must be one of: {", ".join(valid_sizes)}')
         return size_value
 
-    @field_validator('alignment')
+    @field_validator("alignment")
     @classmethod
     def validate_alignment(cls, alignment_value):
         valid_alignments = [alignment.value for alignment in CharacterAlignment]
@@ -67,7 +69,7 @@ class PlayerBase(BaseModel):
             raise ValueError(f'Alignment must be one of: {", ".join(valid_alignments)}')
         return alignment_value
 
-    @field_validator('gender')
+    @field_validator("gender")
     @classmethod
     def validate_gender(cls, gender_value):
         valid_genders = [gender.value for gender in Gender]
@@ -79,8 +81,10 @@ class PlayerBase(BaseModel):
 class PlayerCreate(PlayerBase):
     pass
 
+
 class PlayerUpdate(PlayerBase):
     """Player update model - all fields optional with same validation rules."""
+
     name: Optional[str] = None
     appearance: Optional[str] = None
     race: Optional[str] = None
@@ -89,7 +93,8 @@ class PlayerUpdate(PlayerBase):
     alignment: Optional[str] = None
     gender: Optional[str] = None
 
+
 class Player(PlayerBase):
     id: int
-    
+
     model_config = {"from_attributes": True}

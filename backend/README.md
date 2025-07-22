@@ -14,16 +14,22 @@ Install system level dependencies
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
+Activate `venv`
+
+```bash
+source .venv/bin/activate
+```
+
 Sync project dependencies
 
 ```bash
 uv pip sync
 ```
 
-Activate `venv`
+Install pre commit hooks
 
 ```bash
-source .venv/bin/activate
+pre-commit install
 ```
 
 Run backend

@@ -3,6 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def import_system_prompt(prefix: str) -> str:
     """Load the system prompt from the markdown file."""
     current_dir = path.dirname(path.abspath(__file__))
@@ -10,7 +11,7 @@ def import_system_prompt(prefix: str) -> str:
     try:
         with open(prompt_path, "r") as f:
             return f.read()
-        
+
     except FileNotFoundError:
         logger.error("System prompt file not found.")
         raise RuntimeError()
