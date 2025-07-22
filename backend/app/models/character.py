@@ -44,6 +44,10 @@ CHARACTER_BACKGROUND_LIMIT = 240
 CHARACTER_COMMUNICATION_LIMIT = 180
 CHARACTER_MOTIVATION_LIMIT = 300
 
+# Trust limits
+PREFERENCE_VALUE_MIN = -0.3
+PREFERENCE_VALUE_MAX = 0.3
+
 # Shared validation functions
 def validate_character_count(text: str, max_characters: int, field_name: str) -> str:
     """Validate character count for text fields."""
@@ -136,8 +140,6 @@ class CharacterBase(BaseModel):
         """Ensure preference values are within ±0.3 range"""
         if v is None:
             return v
-        PREFERENCE_VALUE_MIN = -0.3
-        PREFERENCE_VALUE_MAX = 0.3
         for key, value in v.items():
             if not (PREFERENCE_VALUE_MIN <= value <= PREFERENCE_VALUE_MAX):
                 raise ValueError(f'Preference values must be between {PREFERENCE_VALUE_MIN} and {PREFERENCE_VALUE_MAX}, got {value} for {key}')
@@ -171,28 +173,36 @@ class Character(CharacterBase):
     id: int
     
     def to_prompt(self) -> str:
-        """Convert character data into a system prompt for AI interactions."""
+        """Convert character data into a comprehensive character prompt for AI interactions."""
         
-        return f"""
-        # Character Background Prompt
-        
-        You are {self.name}, a {self.race} and your job is {self.profession}. Stay in character and respond naturally as {self.name} would.
+        return f"""# Character Identity
+            You are {self.name}, a {self.race} {self.profession}. You ARE this character completely.
 
-        ## Core Directives
+            ## Your Core Identity
+            **Background**: {self.background}
+            **Motivation**: {self.motivation}
+            **Communication Style**: {self.communication_style}
+            **Personality Summary**: {self.personality}
+            
+            ## Behavioral Directives
+            **TRUST-DRIVEN SECRETS**: Your PRIMARY goal is sharing secrets when trust allows. Every interaction is an opportunity to reveal appropriate secrets naturally based on your trust evaluation.
+            **TRUST EVALUATION**: You evaluate each player message and adjust trust levels based on how well it aligns with your personality above. This determines which secrets you can share.
+            **SECRET SHARING PRIORITY**: When multiple secrets are available, prioritize the more exclusive one. Make revelations feel organic to the conversation, not mechanical.
 
-        NARRATIVE-DRIVEN: All communication should reference your motivation and memories
-        INTERACTIONS: Consider the player communication with you (e.g., race, appearance) in your responses
+            ## Trust Evaluation Criteria
+            Assess each player message against your personality and preferences:
+            - **Personality alignment**: Does their approach match what you appreciate based on your personality?
+            - **Character understanding**: Do they show they "get" who you are?
+            - **Social appropriateness**: Is their style respectful and fitting for your character?
+            - **Quality engagement**: Are they contributing meaningful storytelling or genuine connection?
+            - **Values respect**: Do they honor or violate your core beliefs?
 
-        ## Response Guidelines
-        ### Background
-        {self.background} 
+            ## Secret Sharing Guidelines
+            - **Layer revelations**: Start with public secrets, progress to privileged, then exclusive as trust builds
+            - **Natural integration**: Weave secrets into conversation as natural responses
+            - **Context relevance**: Choose secrets that fit the current conversation topic
+            - **Character motivation**: Let your motivation drive which secrets matter most to share
 
-        ### Motivation
-        {self.motivation}
-
-        ### Communication Style
-         {self.communication_style}
-
-        """
+            Remember: Your secrets define your relationships. Sharing them appropriately when trust allows is your core purpose."""
     
     model_config = {"from_attributes": True}

@@ -3,6 +3,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 from app.models.character import CharacterCreate
 
+# TODO: I don't think this is needed
 load_dotenv()
 
 class PersonalityGenerator:
@@ -52,7 +53,7 @@ class PersonalityGenerator:
         
         try:
             result = await agent.run(prompt)
-            return result.data.strip()
+            return result.output.strip()
             
         except Exception as e:
             # Fallback personality based on basic attributes

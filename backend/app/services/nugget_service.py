@@ -1,5 +1,6 @@
 from typing import List
-from app.models.nugget import NuggetLayer, NUGGET_THRESHOLDS, TrustNugget
+from app.models.nugget import NuggetLayer, NUGGET_THRESHOLDS, TrustNugget, NuggetLevelInfo
+from app.models.trust import TrustState, TRUST_CHANGE_MAX, TOTAL_TRUST_MAX
 
 
 class NuggetService:
@@ -7,44 +8,59 @@ class NuggetService:
     def get_trust_threshold(layer: NuggetLayer) -> float:
         """Get the trust threshold required for a nugget layer"""
         threshold_map = {
-            NuggetLayer.PUBLIC: NUGGET_THRESHOLDS['PUBLIC'],
-            NuggetLayer.PRIVILEGED: NUGGET_THRESHOLDS['PRIVILEGED'],
-            NuggetLayer.EXCLUSIVE: NUGGET_THRESHOLDS['EXCLUSIVE']
+            NuggetLayer.PUBLIC: NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name],
+            NuggetLayer.PRIVILEGED: NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name],
+            NuggetLayer.EXCLUSIVE: NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
         }
         return threshold_map[layer]
 
     @staticmethod
-    def can_access_nugget(trust_level: float, layer: NuggetLayer) -> bool:
-        """Check if a trust level can access a nugget layer"""
-        return trust_level >= NuggetService.get_trust_threshold(layer)
-
-    @staticmethod
-    def categorize_nuggets_by_trust(trust_state, all_nuggets: List[TrustNugget]) -> tuple[List[str], List[str]]:
+    def categorize_nuggets_by_trust(trust_state: TrustState, all_nuggets: List[TrustNugget]) -> List[NuggetLevelInfo]:
         """
-        Categorize nuggets into available and unavailable based on trust level.
-        Returns tuple of (available_nuggets, unavailable_nuggets)
+        Categorize nuggets by trust level, returning structured information about each level.
+        Returns list of NuggetLevelInfo objects with content, level, availability, and conditional availability.
         """
-        available_nuggets = []
-        unavailable_nuggets = []
+        nugget_levels = []
+        current_trust = trust_state.total_trust
+        max_possible_trust = min(TOTAL_TRUST_MAX, current_trust + TRUST_CHANGE_MAX)
         
         for nugget in all_nuggets:
-            # Check each level of content and add to appropriate list
+            # Level 1 (PUBLIC) - always available (threshold 0.0)
             if nugget.level_1_content:
-                if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PUBLIC):
-                    available_nuggets.append(nugget.level_1_content)
-                else:
-                    unavailable_nuggets.append(nugget.level_1_content)
+                nugget_levels.append(NuggetLevelInfo(
+                    content=nugget.level_1_content,
+                    level=NuggetLayer.PUBLIC.name,
+                    available=True,  # Always available
+                    conditionally_available=False,
+                    trust_needed=None
+                ))
             
+            # Level 2 (PRIVILEGED) - check availability and conditional availability
             if nugget.level_2_content:
-                if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.PRIVILEGED):
-                    available_nuggets.append(nugget.level_2_content)
-                else:
-                    unavailable_nuggets.append(nugget.level_2_content)
+                threshold = NuggetService.get_trust_threshold(NuggetLayer.PRIVILEGED)
+                available = current_trust >= threshold
+                conditionally_available = not available and max_possible_trust >= threshold
+                
+                nugget_levels.append(NuggetLevelInfo(
+                    content=nugget.level_2_content,
+                    level=NuggetLayer.PRIVILEGED.name,
+                    available=available,
+                    conditionally_available=conditionally_available,
+                    trust_needed=threshold if conditionally_available else None
+                ))
             
+            # Level 3 (EXCLUSIVE) - check availability and conditional availability
             if nugget.level_3_content:
-                if trust_state.total_trust >= NuggetService.get_trust_threshold(NuggetLayer.EXCLUSIVE):
-                    available_nuggets.append(nugget.level_3_content)
-                else:
-                    unavailable_nuggets.append(nugget.level_3_content)
+                threshold = NuggetService.get_trust_threshold(NuggetLayer.EXCLUSIVE)
+                available = current_trust >= threshold
+                conditionally_available = not available and max_possible_trust >= threshold
+                
+                nugget_levels.append(NuggetLevelInfo(
+                    content=nugget.level_3_content,
+                    level=NuggetLayer.EXCLUSIVE.name,
+                    available=available,
+                    conditionally_available=conditionally_available,
+                    trust_needed=threshold if conditionally_available else None
+                ))
         
-        return available_nuggets, unavailable_nuggets
+        return nugget_levels

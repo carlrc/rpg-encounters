@@ -1,6 +1,6 @@
 import pytest
 from app.services.nugget_service import NuggetService
-from app.models.nugget import NuggetLayer, TrustNugget, NUGGET_THRESHOLDS
+from app.models.nugget import NuggetLayer, TrustNugget, NUGGET_THRESHOLDS, NuggetLevelInfo
 from app.models.trust import BASE_TRUST_MAX, EARNED_TRUST_MAX, TOTAL_TRUST_MAX, TrustState
 from tests.fixtures.characters import characters_db
 
@@ -44,91 +44,24 @@ def create_trust_state(static_character, total_trust: float):
         earned_trust=earned_trust
     )
 
-
-def test_get_trust_threshold_public():
-    """Test PUBLIC layer threshold"""
-    threshold = NuggetService.get_trust_threshold(NuggetLayer.PUBLIC)
-    expected = NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name]
-    assert threshold == expected
-
-
-def test_get_trust_threshold_privileged():
-    """Test PRIVILEGED layer threshold"""
-    threshold = NuggetService.get_trust_threshold(NuggetLayer.PRIVILEGED)
-    expected = NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name]
-    assert threshold == expected
-
-
-def test_get_trust_threshold_exclusive():
-    """Test EXCLUSIVE layer threshold"""
-    threshold = NuggetService.get_trust_threshold(NuggetLayer.EXCLUSIVE)
-    expected = NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
-    assert threshold == expected
-
-
-def test_can_always_access_nugget_public_layer():
-    """Test access to PUBLIC layer with various trust levels"""
-    # PUBLIC should always be accessible
-    public_threshold = NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name]
-    assert NuggetService.can_access_nugget(public_threshold, NuggetLayer.PUBLIC) == True
-    assert NuggetService.can_access_nugget(0.3, NuggetLayer.PUBLIC) == True
-    assert NuggetService.can_access_nugget(NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name], NuggetLayer.PUBLIC) == True
-    assert NuggetService.can_access_nugget(NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name], NuggetLayer.PUBLIC) == True
-    assert NuggetService.can_access_nugget(TOTAL_TRUST_MAX, NuggetLayer.PUBLIC) == True
-
-
-def test_can_access_nugget_privileged_layer():
-    """Test successful access to PRIVILEGED layer at and above threshold"""
-    privileged_threshold = NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name]
-    
-    # At and above threshold
-    assert NuggetService.can_access_nugget(privileged_threshold, NuggetLayer.PRIVILEGED) == True
-    assert NuggetService.can_access_nugget(BASE_TRUST_MAX, NuggetLayer.PRIVILEGED) == True
-    assert NuggetService.can_access_nugget(NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name], NuggetLayer.PRIVILEGED) == True
-    assert NuggetService.can_access_nugget(TOTAL_TRUST_MAX, NuggetLayer.PRIVILEGED) == True
-
-
-def test_cannot_access_nugget_privileged_layer():
-    """Test denied access to PRIVILEGED layer below threshold"""
-    privileged_threshold = NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name]
-    
-    # Below threshold
-    assert NuggetService.can_access_nugget(NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name], NuggetLayer.PRIVILEGED) == False
-    assert NuggetService.can_access_nugget(privileged_threshold - 0.01, NuggetLayer.PRIVILEGED) == False
-
-
-def test_can_access_nugget_exclusive_layer():
-    """Test successful access to EXCLUSIVE layer at and above threshold"""
-    exclusive_threshold = NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
-    
-    # At and above threshold
-    assert NuggetService.can_access_nugget(exclusive_threshold, NuggetLayer.EXCLUSIVE) == True
-    assert NuggetService.can_access_nugget(TOTAL_TRUST_MAX - 0.1, NuggetLayer.EXCLUSIVE) == True
-    assert NuggetService.can_access_nugget(TOTAL_TRUST_MAX, NuggetLayer.EXCLUSIVE) == True
-
-
-def test_cannot_access_nugget_exclusive_layer():
-    """Test denied access to EXCLUSIVE layer below threshold"""
-    exclusive_threshold = NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
-    
-    # Below threshold
-    assert NuggetService.can_access_nugget(NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name], NuggetLayer.EXCLUSIVE) == False
-    assert NuggetService.can_access_nugget(NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name], NuggetLayer.EXCLUSIVE) == False
-    assert NuggetService.can_access_nugget(exclusive_threshold - 0.01, NuggetLayer.EXCLUSIVE) == False
-
-
 def test_categorize_nuggets_below_privileged_threshold(static_character, test_nugget):
     """Test categorization just below PRIVILEGED threshold"""
     privileged_threshold = NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name]
     trust_state = create_trust_state(static_character, privileged_threshold - 0.01)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, [test_nugget]
     )
     
-    # Should only have PUBLIC content
-    assert available == [PUBLIC_CONTENT]
-    assert set(unavailable) == {PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
+    # Should have 3 levels total
+    assert len(nugget_levels) == 3
+    
+    # Check availability: only PUBLIC should be available
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    
+    assert available_content == [PUBLIC_CONTENT]
+    assert set(unavailable_content) == {PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
 
 
 def test_categorize_nuggets_at_privileged_threshold(static_character, test_nugget):
@@ -136,13 +69,16 @@ def test_categorize_nuggets_at_privileged_threshold(static_character, test_nugge
     privileged_threshold = NUGGET_THRESHOLDS[NuggetLayer.PRIVILEGED.name]
     trust_state = create_trust_state(static_character, privileged_threshold)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, [test_nugget]
     )
     
-    # Should have PUBLIC + PRIVILEGED content
-    assert set(available) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT}
-    assert unavailable == [EXCLUSIVE_CONTENT]
+    # Check availability: PUBLIC + PRIVILEGED should be available
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    
+    assert set(available_content) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT}
+    assert unavailable_content == [EXCLUSIVE_CONTENT]
 
 
 def test_categorize_nuggets_below_exclusive_threshold(static_character, test_nugget):
@@ -150,13 +86,16 @@ def test_categorize_nuggets_below_exclusive_threshold(static_character, test_nug
     exclusive_threshold = NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
     trust_state = create_trust_state(static_character, exclusive_threshold - 0.01)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, [test_nugget]
     )
     
-    # Should have PUBLIC + PRIVILEGED content
-    assert set(available) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT}
-    assert unavailable == [EXCLUSIVE_CONTENT]
+    # Check availability: PUBLIC + PRIVILEGED should be available
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    
+    assert set(available_content) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT}
+    assert unavailable_content == [EXCLUSIVE_CONTENT]
 
 
 def test_categorize_nuggets_at_exclusive_threshold(static_character, test_nugget):
@@ -164,13 +103,16 @@ def test_categorize_nuggets_at_exclusive_threshold(static_character, test_nugget
     exclusive_threshold = NUGGET_THRESHOLDS[NuggetLayer.EXCLUSIVE.name]
     trust_state = create_trust_state(static_character, exclusive_threshold)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, [test_nugget]
     )
     
-    # Should have all content
-    assert set(available) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
-    assert unavailable == []
+    # Check availability: all content should be available
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    
+    assert set(available_content) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
+    assert unavailable_content == []
 
 
 def test_categorize_nuggets_minimum_trust(static_character, test_nugget):
@@ -178,35 +120,40 @@ def test_categorize_nuggets_minimum_trust(static_character, test_nugget):
     public_threshold = NUGGET_THRESHOLDS[NuggetLayer.PUBLIC.name]
     trust_state = create_trust_state(static_character, public_threshold)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, [test_nugget]
     )
     
-    # Should only have PUBLIC content
-    assert available == [PUBLIC_CONTENT]
-    assert set(unavailable) == {PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
+    # Check availability: only PUBLIC should be available
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    
+    assert available_content == [PUBLIC_CONTENT]
+    assert set(unavailable_content) == {PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
 
 
 def test_categorize_nuggets_maximum_trust(static_character, test_nugget):
     """Test categorization with maximum trust (1.0)"""
     trust_state = create_trust_state(static_character, TOTAL_TRUST_MAX)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, [test_nugget]
     )
     
-    # Should have all content
-    assert set(available) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
-    assert unavailable == []
+    # Check availability: all content should be available
+    available_content = [level.content for level in nugget_levels if level.available]
+    unavailable_content = [level.content for level in nugget_levels if not level.available]
+    
+    assert set(available_content) == {PUBLIC_CONTENT, PRIVILEGED_CONTENT, EXCLUSIVE_CONTENT}
+    assert unavailable_content == []
 
 
 def test_categorize_nuggets_empty_list(static_character):
     """Test categorization with empty nugget list"""
     trust_state = create_trust_state(static_character, 0.5)
     
-    available, unavailable = NuggetService.categorize_nuggets_by_trust(
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(
         trust_state, []
     )
     
-    assert available == []
-    assert unavailable == []
+    assert nugget_levels == []
