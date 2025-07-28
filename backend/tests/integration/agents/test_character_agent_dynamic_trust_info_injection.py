@@ -23,50 +23,42 @@ NUGGET_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed r
 NUGGET_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
 NUGGET_LEVEL_3 = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
 
+CHARACTER = Character(
+    id=100,
+    name="Bingo Bracegirdle",
+    race=CharacterRace.HALFLING.value,
+    size=CharacterSize.SMALL.value,
+    alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+    gender=Gender.MALE.value,
+    profession="Inn Owner",
+    background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
+    communication_style="Chatty and welcoming, always ready with a story or bit of news.",
+    motivation="To keep the tavern running smoothly, keep customers happy and make money.",
+    personality="Appreciates friendly conversation and local gossip sharing.",
+    race_preferences={CharacterRace.HALFLING.value: 0.3},
+    class_preferences={PlayerClass.BARD.value: 0.3},
+    gender_preferences={Gender.FEMALE.value: 0.3},
+    size_preferences={CharacterSize.SMALL.value: 0.3},
+    appearance_keywords=None,
+    storytelling_keywords=None,
+)
+
+TEST_NUGGET = TrustNugget(
+    id=1,  # Static ID since we're not persisting
+    title="Inn Secrets",
+    character_ids=[CHARACTER.id],
+    level_1_content=NUGGET_LEVEL_1,
+    level_2_content=NUGGET_LEVEL_2,
+    level_3_content=NUGGET_LEVEL_3,
+)
+
 
 @pytest.fixture(autouse=True)
 def clear_trust_store():
     trust_state_store.clear()
 
 
-def create_character():
-    return Character(
-        id=100,
-        name="Bingo Bracegirdle",
-        race=CharacterRace.HALFLING.value,
-        size=CharacterSize.SMALL.value,
-        alignment=CharacterAlignment.NEUTRAL_GOOD.value,
-        gender=Gender.MALE.value,
-        profession="Inn Owner",
-        background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
-        communication_style="Chatty and welcoming, always ready with a story or bit of news.",
-        motivation="To keep the tavern running smoothly, keep customers happy and make money.",
-        personality="Appreciates friendly conversation and local gossip sharing.",
-        race_preferences={CharacterRace.HALFLING.value: 0.3},
-        class_preferences={PlayerClass.BARD.value: 0.3},
-        gender_preferences={Gender.FEMALE.value: 0.3},
-        size_preferences={CharacterSize.SMALL.value: 0.3},
-        appearance_keywords=None,
-        storytelling_keywords=None,
-    )
-
-
-def create_test_nugget(
-    character_id: int, title: str, level_1: str, level_2: str, level_3: str
-):
-    return TrustNugget(
-        id=1,  # Static ID since we're not persisting
-        title=title,
-        character_ids=[character_id],
-        level_1_content=level_1,
-        level_2_content=level_2,
-        level_3_content=level_3,
-    )
-
-
 async def test_personality_based_earned_trust():
-    character = create_character()
-
     # Create player that matches ALL of the characters preferences
     player = Player(
         id=100,
@@ -79,25 +71,21 @@ async def test_personality_based_earned_trust():
         gender=Gender.FEMALE.value,
     )
 
-    # Create test nugget directly
-    test_nugget = create_test_nugget(
-        character.id, "Inn Secrets", NUGGET_LEVEL_1, NUGGET_LEVEL_2, NUGGET_LEVEL_3
-    )
-    all_nuggets = [test_nugget]
+    all_nuggets = [TEST_NUGGET]
 
     # Set up agent
     system_prompt = import_system_prompt("character_agent")
 
     trust_state = trust_state_store.update_trust_state(
         TrustState(
-            character_id=character.id,
+            character_id=CHARACTER.id,
             player_id=player.id,
-            base_trust=TrustCalculator.calculate_base_trust(character, player),
+            base_trust=TrustCalculator.calculate_base_trust(CHARACTER, player),
             earned_trust=0.0,
         )
     )
 
-    agent = CharacterAgent(character, player, system_prompt, trust_state)
+    agent = CharacterAgent(CHARACTER, player, system_prompt, trust_state)
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
 
@@ -121,4 +109,5 @@ async def test_personality_based_earned_trust():
         nugget_levels,
     )
 
+    # TODO: This type of test is brittle as the models aren't consistent
     assert_contains_any_keywords(result.output.response, ["secret", "corridor"])

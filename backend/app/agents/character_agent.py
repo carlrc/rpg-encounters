@@ -87,7 +87,7 @@ class CharacterAgent:
                 instruction_parts.append(
                     f"""# Conditionally Available Secrets (unlock with trust adjustment)
                     {conditional_text}
-                    **CONDITIONAL USAGE**: You can use conditional secrets if your trust adjustment would unlock them."""
+                    **CONDITIONAL USAGE**: You can use conditional secrets if your trust adjustment would unlock them. Check your trust adjustment before deciding."""
                 )
 
             instruction_parts.append(
