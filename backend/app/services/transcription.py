@@ -3,6 +3,7 @@ import os
 import logging
 import asyncio
 import functools
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,22 @@ class WhisperTranscriptionService:
     def _load_model(self):
         """Load the Whisper model"""
         try:
-            logger.debug(f"Loading Whisper model: {self.model_size}")
-            self.model = whisper.load_model(self.model_size)
+            device = self._get_device()
+            logger.info(f"Loading Whisper model: {self.model_size} with {device}")
+            self.model = whisper.load_model(self.model_size).to(device)
         except Exception as e:
             logger.error(f"Failed to load Whisper model {self.model_size}: {e}")
+            raise
+
+    def _get_device(self) -> str:
+        # TODO: Support MPS on mac
+        try:
+            if torch.cuda.is_available():
+                return "cuda"
+            else:
+                return "cpu"
+        except Exception as e:
+            logger.error(f"Failed to determine device. {e}")
             raise
 
     async def transcribe_audio(self, wav_file_path: str) -> str:

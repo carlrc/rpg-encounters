@@ -8,10 +8,14 @@ Install [UV](https://docs.astral.sh/uv/getting-started/installation/) then setup
 uv venv
 ```
 
-Install system level dependencies
+Install ffmpeg (required for Whisper model)
 
 ```bash
-curl -fsSL https://ollama.com/install.sh | sh
+# Ubuntu
+sudo apt update && sudo apt install ffmpeg
+
+# MacOS
+brew install ffmpeg
 ```
 
 Activate `venv`
@@ -23,13 +27,21 @@ source .venv/bin/activate
 Sync project dependencies
 
 ```bash
-uv pip sync
+uv sync
 ```
 
-Install pre commit hooks
+Install pre commit hooks and format files
 
 ```bash
 pre-commit install
+pre-commit run --all-files
+```
+
+Create a `.env` file with the following keys in the `backend` directory
+
+```bash
+OPENAI_API_KEY={SERVICE_ACC_API_KEY}
+ELEVENLABS_API_KEY={USER_API_KEY}
 ```
 
 Run backend
