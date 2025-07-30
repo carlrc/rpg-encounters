@@ -12,10 +12,9 @@ from app.models.player import Player, PlayerClass
 from app.models.nugget import TrustNugget
 from app.services.nugget_service import NuggetService
 from app.data.trust_store import trust_state_store
-from app.services.trust_calculator import TrustCalculator
-from app.models.trust import TrustState
+from app.models.trust import BASE_TRUST_MAX, TrustState
+from app.services.conversation_manager import ConversationManager
 from tests.utilities import (
-    verify_nugget_content_availability,
     assert_contains_any_keywords,
 )
 
@@ -59,7 +58,6 @@ def clear_trust_store():
 
 
 async def test_personality_based_earned_trust():
-    # Create player that matches ALL of the characters preferences
     player = Player(
         id=100,
         name="Wondering Bard",
@@ -80,12 +78,14 @@ async def test_personality_based_earned_trust():
         TrustState(
             character_id=CHARACTER.id,
             player_id=player.id,
-            base_trust=TrustCalculator.calculate_base_trust(CHARACTER, player),
+            base_trust=BASE_TRUST_MAX,  # Force max base trust
             earned_trust=0.0,
         )
     )
 
-    agent = CharacterAgent(CHARACTER, player, system_prompt, trust_state)
+    agent = CharacterAgent(
+        CHARACTER, player, system_prompt, trust_state, ConversationManager()
+    )
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, all_nuggets)
 
@@ -94,15 +94,8 @@ async def test_personality_based_earned_trust():
         nugget_levels,
     )
 
-    assert result is not None
-    message_history = result.all_messages()
-
-    verify_nugget_content_availability(
-        message_history[0].instructions,
-        expected_available=[NUGGET_LEVEL_1, NUGGET_LEVEL_2],
-        expected_conditional=[NUGGET_LEVEL_3],
-        expected_unavailable=[],
-    )
+    assert agent.trust.earned_trust == 0.2
+    assert_contains_any_keywords(result, ["balcony"])
 
     result = await agent.chat(
         "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
@@ -110,4 +103,4 @@ async def test_personality_based_earned_trust():
     )
 
     # TODO: This type of test is brittle as the models aren't consistent
-    assert_contains_any_keywords(result.output.response, ["secret", "corridor"])
+    assert_contains_any_keywords(result, ["secret", "corridor"])

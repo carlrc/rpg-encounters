@@ -91,15 +91,15 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
                 player_id, character_id, character, player, system_prompt, trust_state
             )
 
-            # TODO: Persist the trust adjustments as a background task here for restart continuity
-
             # Generate AI response using character agent
-            result = await agent.chat(transcription, nugget_levels)
-            logger.debug(f"Generated character response: {result.output}")
+            response = await agent.chat(transcription, nugget_levels)
+            logger.debug(f"Generated character response: {response}")
+
+            # TODO: Persist the trust adjustments as a background task here for restart continuity
 
             # Stream TTS audio chunks back to frontend
             for audio_chunk in tts_service.text_to_speech_stream(
-                result.output.response, character.voice
+                response, character.voice
             ):
                 try:
                     await websocket.send_bytes(audio_chunk)

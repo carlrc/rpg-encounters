@@ -3,6 +3,7 @@ from app.models.character import Character
 from app.models.player import Player
 import logging
 from app.models.trust import TrustState
+from app.services.conversation_manager import ConversationManager
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class AgentManager:
                 f"Creating new agent for player {player_id} and character {character_id}"
             )
             self._agents[key] = CharacterAgent(
-                character, player, system_prompt, trust_state
+                character, player, system_prompt, trust_state, ConversationManager()
             )
         else:
             logger.debug(

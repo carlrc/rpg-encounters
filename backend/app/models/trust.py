@@ -1,7 +1,7 @@
 from pydantic import BaseModel, field_validator
 
 BASE_TRUST_MIN = 0.0
-BASE_TRUST_MAX = 0.6
+BASE_TRUST_MAX = 0.5
 EARNED_TRUST_MIN = -0.6
 EARNED_TRUST_MAX = 0.4
 TOTAL_TRUST_MIN = 0.0
