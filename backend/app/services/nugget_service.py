@@ -88,7 +88,7 @@ class NuggetService:
         privileged_response: str | None,
         exclusive_response: str | None,
         total_trust: float,
-    ) -> str:
+    ) -> tuple[str, NuggetLayer]:
         """
         Select appropriate response based on trust levels and trust adjustment.
 
@@ -103,10 +103,10 @@ class NuggetService:
         if exclusive_response and total_trust >= NuggetService.get_trust_threshold(
             NuggetLayer.EXCLUSIVE
         ):
-            return exclusive_response
+            return exclusive_response, NuggetLayer.EXCLUSIVE
         elif privileged_response and total_trust >= NuggetService.get_trust_threshold(
             NuggetLayer.PRIVILEGED
         ):
-            return privileged_response
+            return privileged_response, NuggetLayer.PRIVILEGED
         else:
-            return public_response
+            return public_response, NuggetLayer.PUBLIC

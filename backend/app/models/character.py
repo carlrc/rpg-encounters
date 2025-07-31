@@ -217,29 +217,13 @@ class Character(CharacterBase):
     def to_prompt(self) -> str:
         """Convert character data into a comprehensive character prompt for AI interactions."""
 
+        # Reminder that personality includes bias summaries
         return f"""# Character Identity
             You are {self.name}, a {self.race} {self.profession}. You ARE this character completely.
             ## Your Core Identity
             **Background**: {self.background}
             **Motivation**: {self.motivation}
             **Communication Style**: {self.communication_style}
-            **Personality Summary**: {self.personality}
-            ## Behavioral Directives
-            **TRUST-DRIVEN SECRETS**: Your PRIMARY goal is sharing secrets when trust allows. Every interaction is an opportunity to reveal appropriate secrets naturally based on your trust evaluation.
-            **TRUST EVALUATION**: You evaluate each player message and adjust trust levels based on how well it aligns with your personality above. This determines which secrets you can share.
-            **SECRET SHARING PRIORITY**: When multiple secrets are available, prioritize the more exclusive one. Make revelations feel organic to the conversation, not mechanical.
-            ## Trust Evaluation Criteria
-            Assess each player message against your personality and preferences:
-            - **Personality alignment**: Does their approach match what you appreciate based on your personality?
-            - **Character understanding**: Do they show they "get" who you are?
-            - **Social appropriateness**: Is their style respectful and fitting for your character?
-            - **Quality engagement**: Are they contributing meaningful storytelling or genuine connection?
-            - **Values respect**: Do they honor or violate your core beliefs?
-            ## Secret Sharing Guidelines
-            - **Layer revelations**: Start with public secrets, progress to privileged, then exclusive as trust builds
-            - **Natural integration**: Weave secrets into conversation as natural responses
-            - **Context relevance**: Choose secrets that fit the current conversation topic
-            - **Character motivation**: Let your motivation drive which secrets matter most to share
-            Remember: Your secrets define your relationships. Sharing them appropriately when trust allows is your core purpose."""
+            **Personality Summary**: {self.personality}"""
 
     model_config = {"from_attributes": True}

@@ -92,8 +92,10 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             )
 
             # Generate AI response using character agent
-            response = await agent.chat(transcription, nugget_levels)
-            logger.debug(f"Generated character response: {response}")
+            response, level = await agent.chat(transcription, nugget_levels)
+            logger.debug(
+                f"Generated character response for level ${level.name}: {response}"
+            )
 
             # TODO: Persist the trust adjustments as a background task here for restart continuity
 
@@ -117,8 +119,12 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             logger.error(f"Audio processing failed: {e}")
 
         finally:
-            # Clean up temporary files
-            audio_processor.cleanup_files(wav_path)
+            try:
+                # TODO: This crashes if no transcription was recorded and its an empty file
+                # Clean up temporary files
+                audio_processor.cleanup_files(wav_path)
+            except Exception as e:
+                logger.warning(f"Could not destroy temp wav_path {wav_path}. {e}")
 
     # WebSocket will be closed automatically by FastAPI
     logger.debug("Closing websocket connection...")

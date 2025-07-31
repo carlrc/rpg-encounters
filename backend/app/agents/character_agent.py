@@ -8,9 +8,12 @@ from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
 from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, TrustState
-from app.models.nugget import NuggetLevelInfo
+from app.models.nugget import NuggetLayer, NuggetLevelInfo
 from app.services.nugget_service import NuggetService
 from app.services.conversation_manager import ConversationManager
+import logging
+
+logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_HISTORY = 10
 
@@ -28,6 +31,7 @@ class CharacterAgent:
         character: Character,
         player: Player,
         system_prompt: str,
+        # TODO: Trust should not be in this class
         trust_state: TrustState,
         conversation_manager: ConversationManager,
     ):
@@ -38,9 +42,7 @@ class CharacterAgent:
         self.convo_manager = conversation_manager
 
         # Build trust-aware instructions
-        trust_instruction = self._build_base_instruction(
-            self.character, self.player, self.trust
-        )
+        trust_instruction = self._build_base_instruction(self.player)
 
         agent = Agent(
             OpenAIModel(model_name="gpt-4o"),
@@ -54,7 +56,7 @@ class CharacterAgent:
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
 
-        # Decorator does not work on self.agent
+        # Decorator does not work on self.agent.instructions
         @agent.instructions
         def add_nuggets(ctx: RunContext[list[NuggetLevelInfo]]) -> str:
             all_nuggets = [nugget for nugget in ctx.deps]
@@ -71,6 +73,7 @@ class CharacterAgent:
         def validate_trust_adjustment(
             ctx: RunContext[Any], output: CharacterAgentOutput
         ) -> CharacterAgentOutput:
+            # TODO: This should be in a diff class
             # Clamp trust adjustment to valid range
             output.trust_level_adjustment = max(
                 TRUST_CHANGE_MIN, min(TRUST_CHANGE_MAX, output.trust_level_adjustment)
@@ -85,14 +88,22 @@ class CharacterAgent:
 
     async def chat(
         self, player_transcript: str, nugget_levels: list[NuggetLevelInfo]
-    ) -> str:
-        self.run_result = await self.agent.run(
-            player_transcript,
-            deps=nugget_levels,
-            message_history=self.convo_manager.get_history(),
+    ) -> tuple[str, NuggetLayer]:
+        try:
+            self.run_result = await self.agent.run(
+                player_transcript,
+                deps=nugget_levels,
+                message_history=self.convo_manager.get_history(),
+            )
+        except Exception as e:
+            logger.error(f"Response generation failed. {e}")
+            raise
+
+        logger.info(
+            f"{self.player.name} got trust adjustment {self.run_result.output.trust_level_adjustment}"
         )
 
-        selected_response = NuggetService.select_response_by_trust(
+        selected_response, level = NuggetService.select_response_by_trust(
             public_response=self.run_result.output.public_response,
             privileged_response=self.run_result.output.privileged_response,
             exclusive_response=self.run_result.output.exclusive_response,
@@ -106,11 +117,9 @@ class CharacterAgent:
         self.convo_manager.add_user_message(messages[0])
         self.convo_manager.add_agent_response(response=selected_response)
 
-        return selected_response
+        return selected_response, level
 
-    def _build_base_instruction(
-        self, character: Character, player: Player, trust_state
-    ) -> str:
+    def _build_base_instruction(self, player: Player) -> str:
         """Build streamlined trust-aware instruction for the AI"""
 
         base_instruction = f"""# Current Interaction Context
