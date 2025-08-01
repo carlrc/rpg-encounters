@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 from dotenv import load_dotenv
 from app.models.character import Character
 from pydantic_ai import Agent, NativeOutput, RunContext
@@ -7,11 +7,13 @@ from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
-from app.models.trust import TRUST_CHANGE_MIN, TRUST_CHANGE_MAX, TrustState
+from app.models.trust import TrustState
 from app.models.nugget import NuggetLayer, NuggetLevelInfo
 from app.services.nugget_service import NuggetService
 from app.services.conversation_manager import ConversationManager
 import logging
+from app.agents.trust_scoring_agent import TrustCalculatorAgent
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +23,7 @@ MAX_MESSAGE_HISTORY = 10
 class CharacterAgentOutput(BaseModel):
     public_response: str
     privileged_response: Optional[str] = None
-    exclusive_response: str
-    trust_level_adjustment: float
+    exclusive_response: Optional[str] = None
 
 
 class CharacterAgent:
@@ -34,12 +35,14 @@ class CharacterAgent:
         # TODO: Trust should not be in this class
         trust_state: TrustState,
         conversation_manager: ConversationManager,
+        trust_calculator_agent: TrustCalculatorAgent,
     ):
         load_dotenv()
         self.character = character
         self.player = player
         self.trust = trust_state
         self.convo_manager = conversation_manager
+        self.trust_calculator_agent = trust_calculator_agent
 
         # Build trust-aware instructions
         trust_instruction = self._build_base_instruction(self.player)
@@ -51,7 +54,7 @@ class CharacterAgent:
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 CharacterAgentOutput,
-                description="Fill in the different response levels and accompanying with trust adjustment.",
+                description="Fill in the different response levels",
             ),
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
@@ -69,20 +72,6 @@ class CharacterAgent:
 
             return "".join(instruction_parts)
 
-        @agent.output_validator
-        def validate_trust_adjustment(
-            ctx: RunContext[Any], output: CharacterAgentOutput
-        ) -> CharacterAgentOutput:
-            # TODO: This should be in a diff class
-            # Clamp trust adjustment to valid range
-            output.trust_level_adjustment = max(
-                TRUST_CHANGE_MIN, min(TRUST_CHANGE_MAX, output.trust_level_adjustment)
-            )
-            # Updated earned trust
-            self.trust.earned_trust += output.trust_level_adjustment
-
-            return output
-
         # Set instance variable after decorators defined
         self.agent = agent
 
@@ -90,18 +79,18 @@ class CharacterAgent:
         self, player_transcript: str, nugget_levels: list[NuggetLevelInfo]
     ) -> tuple[str, NuggetLayer, int]:
         try:
-            self.run_result = await self.agent.run(
+            agent_task = self.agent.run(
                 player_transcript,
                 deps=nugget_levels,
                 message_history=self.convo_manager.get_history(),
             )
+            trust_task = self.trust_calculator_agent.process(player_transcript)
+            self.run_result, trust_result = await asyncio.gather(agent_task, trust_task)
         except Exception as e:
             logger.error(f"Response generation failed. {e}")
             raise
 
-        logger.info(
-            f"{self.player.name} got trust adjustment {self.run_result.output.trust_level_adjustment}"
-        )
+        self.trust.earned_trust += trust_result.score
 
         selected_response, level = NuggetService.select_response_by_trust(
             public_response=self.run_result.output.public_response,
@@ -117,7 +106,7 @@ class CharacterAgent:
         self.convo_manager.add_user_message(messages[0])
         self.convo_manager.add_agent_response(response=selected_response)
 
-        return selected_response, level, self.run_result.output.trust_level_adjustment
+        return selected_response, level, trust_result.score
 
     def _build_base_instruction(self, player: Player) -> str:
         """Build streamlined trust-aware instruction for the AI"""
