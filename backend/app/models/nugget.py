@@ -16,8 +16,7 @@ NUGGET_THRESHOLDS = {
 }
 
 
-class TrustNugget(BaseModel):
-    id: int
+class TrustNuggetBase(BaseModel):
     title: str
     character_ids: List[int]
     level_1_content: str  # Public level content (always required)
@@ -25,12 +24,12 @@ class TrustNugget(BaseModel):
     level_3_content: Optional[str] = None  # Exclusive level content (optional)
 
 
-class TrustNuggetCreate(BaseModel):
-    title: str
-    character_ids: List[int]
-    level_1_content: str
-    level_2_content: Optional[str] = None
-    level_3_content: Optional[str] = None
+class TrustNugget(TrustNuggetBase):
+    id: int
+
+
+class TrustNuggetCreate(TrustNuggetBase):
+    pass
 
 
 class NuggetLevelInfo(BaseModel):
