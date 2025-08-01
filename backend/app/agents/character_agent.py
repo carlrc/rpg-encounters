@@ -88,7 +88,7 @@ class CharacterAgent:
 
     async def chat(
         self, player_transcript: str, nugget_levels: list[NuggetLevelInfo]
-    ) -> tuple[str, NuggetLayer]:
+    ) -> tuple[str, NuggetLayer, int]:
         try:
             self.run_result = await self.agent.run(
                 player_transcript,
@@ -117,7 +117,7 @@ class CharacterAgent:
         self.convo_manager.add_user_message(messages[0])
         self.convo_manager.add_agent_response(response=selected_response)
 
-        return selected_response, level
+        return selected_response, level, self.run_result.output.trust_level_adjustment
 
     def _build_base_instruction(self, player: Player) -> str:
         """Build streamlined trust-aware instruction for the AI"""

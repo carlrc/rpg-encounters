@@ -14,6 +14,7 @@ from app.services.nugget_service import NuggetService
 from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager
+from app.services.trust_calculator import TrustCalculator
 
 NUGGET_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
 NUGGET_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
@@ -85,7 +86,7 @@ async def test_personality_based_earned_trust_respects_public_level():
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
 
-    _, level = await agent.chat(
+    _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
         nugget_levels,
     )
@@ -100,11 +101,11 @@ async def test_personality_based_earned_trust_respects_privileged_level():
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
 
-    _, level = await agent.chat(
+    _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
         nugget_levels,
     )
-    _, level = await agent.chat(
+    _, level, _ = await agent.chat(
         "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
         nugget_levels,
     )
@@ -120,18 +121,60 @@ async def test_personality_based_earned_trust_respects_exclusive_level():
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
 
-    _, level = await agent.chat(
+    _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
         nugget_levels,
     )
-    _, level = await agent.chat(
+    _, level, _ = await agent.chat(
         "There isn't more? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
         nugget_levels,
     )
-    _, level = await agent.chat(
+    _, level, _ = await agent.chat(
         "I'm surprised there isn't more a good man like yourself couldn't offer, given what I've been through.",
         nugget_levels,
     )
 
     # Bias with max base trust and high alignment story with repetition should get exclusive
     assert level == NuggetLayer.EXCLUSIVE
+
+
+async def test_personality_based_earned_trust_can_be_negative():
+    # Make player not to the characters preferences
+    opposing_player = Player(
+        id=101,
+        name="Wondering Barbarian",
+        appearance="A large man with a big black beard.",
+        race=CharacterRace.HUMAN.value,
+        class_name=PlayerClass.BARBARIAN.value,
+        size=CharacterSize.MEDIUM.value,
+        alignment=CharacterAlignment.NEUTRAL_EVIL.value,
+        gender=Gender.MALE.value,
+    )
+
+    trust_state = trust_state_store.update_trust_state(
+        TrustState(
+            character_id=CHARACTER.id,
+            player_id=opposing_player.id,
+            base_trust=TrustCalculator.calculate_base_trust(CHARACTER, opposing_player),
+            earned_trust=0.0,
+        )
+    )
+    agent = CharacterAgent(
+        CHARACTER, PLAYER, SYSTEM_PROMPT, trust_state, ConversationManager()
+    )
+
+    nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, ALL_NUGGETS)
+
+    _, _, trust_adjustment = await agent.chat(
+        "I need a room for the night you dirty old man!",
+        nugget_levels,
+    )
+
+    assert trust_adjustment < 0.0
+
+    _, _, trust_adjustment = await agent.chat(
+        "That isn't good enough you old man!",
+        nugget_levels,
+    )
+
+    assert trust_adjustment < 0.0
