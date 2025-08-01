@@ -32,7 +32,7 @@ class TrustCalculatorAgent:
         load_dotenv()
 
         agent = Agent(
-            OpenAIModel(model_name="gpt-4o"),
+            OpenAIModel(model_name="gpt-4o-mini"),
             system_prompt=system_prompt + "\n" + self.character.to_prompt(),
             instructions=self._build_base_instruction(),
             history_processors=[self._keep_recent_messages],
