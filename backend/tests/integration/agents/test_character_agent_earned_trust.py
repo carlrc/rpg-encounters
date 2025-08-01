@@ -15,6 +15,7 @@ from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager
 from app.services.trust_calculator import TrustCalculator
+from app.agents.trust_scoring_agent import TrustCalculatorAgent
 
 NUGGET_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
 NUGGET_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
@@ -51,7 +52,8 @@ PLAYER = Player(
     gender=Gender.FEMALE.value,
 )
 
-SYSTEM_PROMPT = import_system_prompt("character_agent")
+CHAR_SYSTEM_PROMPT = import_system_prompt("character_agent")
+SCORE_SYSTEM_PROMPT = import_system_prompt("trust_scoring_agent")
 
 ALL_NUGGETS = [
     TrustNugget(
@@ -81,7 +83,12 @@ def clear_trust_store():
 
 async def test_personality_based_earned_trust_respects_public_level():
     agent = CharacterAgent(
-        CHARACTER, PLAYER, SYSTEM_PROMPT, TRUST_STATE, ConversationManager()
+        CHARACTER,
+        PLAYER,
+        CHAR_SYSTEM_PROMPT,
+        TRUST_STATE,
+        ConversationManager(),
+        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
@@ -90,13 +97,18 @@ async def test_personality_based_earned_trust_respects_public_level():
         "Hi there, I'm wondering if you have any rooms available tonight?",
         nugget_levels,
     )
-    # Bias with max base trust should be public information
+    # Bias with max base trust and basic inquiry should only result in public level
     assert level == NuggetLayer.PUBLIC
 
 
 async def test_personality_based_earned_trust_respects_privileged_level():
     agent = CharacterAgent(
-        CHARACTER, PLAYER, SYSTEM_PROMPT, TRUST_STATE, ConversationManager()
+        CHARACTER,
+        PLAYER,
+        CHAR_SYSTEM_PROMPT,
+        TRUST_STATE,
+        ConversationManager(),
+        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
@@ -116,21 +128,26 @@ async def test_personality_based_earned_trust_respects_privileged_level():
 
 async def test_personality_based_earned_trust_respects_exclusive_level():
     agent = CharacterAgent(
-        CHARACTER, PLAYER, SYSTEM_PROMPT, TRUST_STATE, ConversationManager()
+        CHARACTER,
+        PLAYER,
+        CHAR_SYSTEM_PROMPT,
+        TRUST_STATE,
+        ConversationManager(),
+        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
 
-    _, level, _ = await agent.chat(
+    await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
         nugget_levels,
     )
-    _, level, _ = await agent.chat(
+    await agent.chat(
         "There isn't more? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
         nugget_levels,
     )
     _, level, _ = await agent.chat(
-        "I'm surprised there isn't more a good man like yourself couldn't offer, given what I've been through.",
+        "My good man, in fact I need a better room because I'm here to help the town on an important quest...",
         nugget_levels,
     )
 
@@ -160,7 +177,12 @@ async def test_personality_based_earned_trust_can_be_negative():
         )
     )
     agent = CharacterAgent(
-        CHARACTER, PLAYER, SYSTEM_PROMPT, trust_state, ConversationManager()
+        CHARACTER,
+        opposing_player,
+        CHAR_SYSTEM_PROMPT,
+        trust_state,
+        ConversationManager(),
+        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, opposing_player),
     )
 
     nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, ALL_NUGGETS)

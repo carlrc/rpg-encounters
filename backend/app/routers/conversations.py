@@ -86,6 +86,8 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
                 trust_state, all_nuggets
             )
 
+            # TODO: Convo manager should control this?
+
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(
                 player_id, character_id, character, player, system_prompt, trust_state
