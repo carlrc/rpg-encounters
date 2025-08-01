@@ -4,6 +4,7 @@ from app.models.player import Player
 import logging
 from app.models.trust import TrustState
 from app.services.conversation_manager import ConversationManager
+from app.agents.trust_scoring_agent import TrustCalculatorAgent
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,8 @@ class AgentManager:
         character_id: int,
         character: Character,
         player: Player,
-        system_prompt: str,
+        char_system_prompt: str,
+        scoring_system_prompt: str,
         trust_state: TrustState,
     ) -> CharacterAgent:
 
@@ -31,7 +33,16 @@ class AgentManager:
                 f"Creating new agent for player {player_id} and character {character_id}"
             )
             self._agents[key] = CharacterAgent(
-                character, player, system_prompt, trust_state, ConversationManager()
+                character=character,
+                player=player,
+                char_system_prompt=char_system_prompt,
+                trust_state=trust_state,
+                conversation_manager=ConversationManager(),
+                trust_calculator_agent=TrustCalculatorAgent(
+                    scoring_system_prompt=scoring_system_prompt,
+                    character=character,
+                    player=player,
+                ),
             )
         else:
             logger.debug(

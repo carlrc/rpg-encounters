@@ -80,7 +80,7 @@ class CharacterAgent:
     ) -> tuple[str, NuggetLayer, int]:
         try:
             agent_task = self.agent.run(
-                player_transcript,
+                user_prompt=player_transcript,
                 deps=nugget_levels,
                 message_history=self.convo_manager.get_history(),
             )

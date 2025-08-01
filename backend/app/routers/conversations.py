@@ -21,7 +21,8 @@ audio_processor = AudioProcessor()
 transcription_service = WhisperTranscriptionService(model_size="base")
 tts_service = ElevenLabsTTS()
 agent_manager = AgentManager()
-system_prompt = import_system_prompt("character_agent")
+char_system_prompt = import_system_prompt("character_agent")
+scoring_system_prompt = import_system_prompt("trust_scoring_agent")
 
 
 @router.websocket("/{player_id}/{character_id}")
@@ -86,11 +87,15 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
                 trust_state, all_nuggets
             )
 
-            # TODO: Convo manager should control this?
-
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(
-                player_id, character_id, character, player, system_prompt, trust_state
+                player_id=player_id,
+                character_id=character_id,
+                character=character,
+                player=player,
+                char_system_prompt=char_system_prompt,
+                scoring_system_prompt=scoring_system_prompt,
+                trust_state=trust_state,
             )
 
             # Generate AI response using character agent
