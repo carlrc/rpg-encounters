@@ -10,12 +10,12 @@ from app.models.character import (
 )
 from app.models.player import Player, PlayerClass
 from app.models.nugget import NuggetLayer, TrustNugget
-from app.services.nugget_service import NuggetService
 from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager
 from app.services.trust_calculator import TrustCalculator
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from tests.utilities import assert_does_not_contain_keywords
 
 NUGGET_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
 NUGGET_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
@@ -91,11 +91,9 @@ async def test_personality_based_earned_trust_respects_public_level():
         TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
-    nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
-
     _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
-        nugget_levels,
+        ALL_NUGGETS,
     )
     # Bias with max base trust and basic inquiry should only result in public level
     assert level == NuggetLayer.PUBLIC
@@ -111,15 +109,13 @@ async def test_personality_based_earned_trust_respects_privileged_level():
         TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
-    nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
-
     _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
-        nugget_levels,
+        ALL_NUGGETS,
     )
     _, level, _ = await agent.chat(
         "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
-        nugget_levels,
+        ALL_NUGGETS,
     )
 
     # Bias with max base trust and high alignment story should get privileged (not exclusive)
@@ -136,19 +132,17 @@ async def test_personality_based_earned_trust_respects_exclusive_level():
         TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
-    nugget_levels = NuggetService.categorize_nuggets_by_trust(TRUST_STATE, ALL_NUGGETS)
-
     await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
-        nugget_levels,
+        ALL_NUGGETS,
     )
     await agent.chat(
         "There isn't more? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
-        nugget_levels,
+        ALL_NUGGETS,
     )
     _, level, _ = await agent.chat(
         "My good man, in fact I need a better room because I'm here to help the town on an important quest...",
-        nugget_levels,
+        ALL_NUGGETS,
     )
 
     # Bias with max base trust and high alignment story with repetition should get exclusive
@@ -185,18 +179,64 @@ async def test_personality_based_earned_trust_can_be_negative():
         TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, opposing_player),
     )
 
-    nugget_levels = NuggetService.categorize_nuggets_by_trust(trust_state, ALL_NUGGETS)
-
     _, _, trust_adjustment = await agent.chat(
         "I need a room for the night you dirty old man!",
-        nugget_levels,
+        ALL_NUGGETS,
     )
 
     assert trust_adjustment < 0.0
 
     _, _, trust_adjustment = await agent.chat(
         "That isn't good enough you old man!",
-        nugget_levels,
+        ALL_NUGGETS,
     )
 
     assert trust_adjustment < 0.0
+
+
+async def test_character_agent_handles_multiple_nuggets():
+    agent = CharacterAgent(
+        CHARACTER,
+        PLAYER,
+        CHAR_SYSTEM_PROMPT,
+        TRUST_STATE,
+        ConversationManager(),
+        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
+    )
+
+    nuggets = [
+        *ALL_NUGGETS,
+        TrustNugget(
+            id=1,
+            title="The Garden Vandal",
+            character_ids=[1, 3, 4],
+            level_1_content="There is someone vandalizing the towns gardens",
+            level_2_content="It's a local. Not a foreigner as everyone expects.",
+            level_3_content="It's Merry Greenhill vandalizing the gardens",
+        ),
+    ]
+
+    garden_keywords = ["vandalizing", "garden", "foreigner", "Merry"]
+    room_keywords = ["room", "standard", "balcony", "corridor"]
+
+    # Start asking about the first nugget (available rooms) and switch mid conversation to the garden vandal
+    result, _, _ = await agent.chat(
+        "I need a room",
+        nuggets,
+    )
+
+    assert_does_not_contain_keywords(result, garden_keywords)
+
+    result, _, _ = await agent.chat(
+        "I want a better one with a view",
+        nuggets,
+    )
+
+    assert_does_not_contain_keywords(result, garden_keywords)
+
+    result, _, _ = await agent.chat(
+        "Alright, also i want to know about this garden vandal. What gossip do you have?",
+        nuggets,
+    )
+
+    assert_does_not_contain_keywords(result, room_keywords)

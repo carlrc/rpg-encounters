@@ -8,7 +8,7 @@ from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
 from app.models.trust import TrustState
-from app.models.nugget import NuggetLayer, NuggetLevelInfo
+from app.models.nugget import NuggetLayer, TrustNugget
 from app.services.nugget_service import NuggetService
 from app.services.conversation_manager import ConversationManager
 import logging
@@ -61,14 +61,24 @@ class CharacterAgent:
 
         # Decorator does not work on self.agent.instructions
         @agent.instructions
-        def add_nuggets(ctx: RunContext[list[NuggetLevelInfo]]) -> str:
+        def add_nuggets(ctx: RunContext[list[TrustNugget]]) -> str:
             all_nuggets = [nugget for nugget in ctx.deps]
 
             instruction_parts = []
+            instruction_parts.append("\n# Available Nuggets")
+            instruction_parts.append(
+                "**IMPORTANT**: Select the nugget which is most relevant to the players message"
+            )
 
             for nugget in all_nuggets:
-                instruction_parts.append("\n# Nuggets")
-                instruction_parts.append("".join(f"- {nugget.level}: {nugget.content}"))
+                instruction_parts.append(
+                    f"""
+                    \n## {nugget.title}
+                    **{NuggetLayer.PUBLIC.name}:** {nugget.level_1_content}
+                    **{NuggetLayer.PRIVILEGED.name}:** {nugget.level_2_content or 'NONE'}
+                    **{NuggetLayer.EXCLUSIVE.name}:** {nugget.level_3_content or 'NONE'}
+                    """
+                )
 
             return "".join(instruction_parts)
 
@@ -76,12 +86,12 @@ class CharacterAgent:
         self.agent = agent
 
     async def chat(
-        self, player_transcript: str, nugget_levels: list[NuggetLevelInfo]
+        self, player_transcript: str, nuggets: list[TrustNugget]
     ) -> tuple[str, NuggetLayer, int]:
         try:
             agent_task = self.agent.run(
                 user_prompt=player_transcript,
-                deps=nugget_levels,
+                deps=nuggets,
                 message_history=self.convo_manager.get_history(),
             )
             trust_task = self.trust_calculator_agent.process(player_transcript)
