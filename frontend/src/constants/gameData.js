@@ -49,3 +49,18 @@ export const NAVIGATION_TABS = [
   { id: 'memories', label: 'Memories' },
   { id: 'encounters', label: 'Encounters' },
 ]
+
+// Trust threshold constants (matching backend defaults)
+export const DEFAULT_THRESHOLDS = {
+  public: 0.0,
+  privileged: 0.55,
+  exclusive: 0.8,
+}
+
+// Threshold validation constants
+export const THRESHOLD_LIMITS = {
+  min: 0.0,
+  max: 1.0,
+  step: 0.25,
+  minGap: 0.25, // Minimum gap between privileged and exclusive
+}

@@ -75,26 +75,111 @@
             />
           </div>
 
-          <!-- Level 3 Toggle -->
-          <div class="level-toggle">
-            <label class="level-toggle-option">
-              <input
-                type="checkbox"
-                v-model="createForm.enable_level_3"
-                @change="handleLevel3Toggle"
-              />
-              <span>Add Level 3: Exclusive Content</span>
-            </label>
+          <!-- Level 2 Trust Threshold -->
+          <div v-if="createForm.enable_level_2" class="threshold-section">
+            <div class="threshold-options">
+              <label class="threshold-option">
+                <input
+                  type="radio"
+                  value="default"
+                  v-model="createForm.threshold_mode"
+                  @change="handleThresholdModeChange"
+                />
+                <span>Use Default Threshold</span>
+              </label>
+
+              <label class="threshold-option">
+                <input
+                  type="radio"
+                  value="custom"
+                  v-model="createForm.threshold_mode"
+                  @change="handleThresholdModeChange"
+                />
+                <span>Custom Threshold</span>
+              </label>
+            </div>
+
+            <!-- Level 2 Custom Threshold Slider -->
+            <div v-if="createForm.threshold_mode === 'custom'" class="custom-thresholds">
+              <div class="threshold-slider">
+                <label class="threshold-label">
+                  Privileged Content: {{ (createForm.privileged_threshold * 100).toFixed(0) }}%
+                </label>
+                <input
+                  type="range"
+                  v-model.number="createForm.privileged_threshold"
+                  :min="THRESHOLD_LIMITS.min"
+                  :max="THRESHOLD_LIMITS.max"
+                  :step="THRESHOLD_LIMITS.step"
+                  class="slider"
+                />
+              </div>
+            </div>
           </div>
 
           <!-- Level 3 Content -->
-          <div v-if="createForm.enable_level_3" class="shared-field shared-field-full-width">
-            <label class="shared-field-label">Level 3: Exclusive Content</label>
-            <BaseTextareaWithCharacterCounter
-              v-model="createForm.level_3_content"
-              placeholder="Enter exclusive content (maximum trust required)..."
-              :max-characters="500"
-            />
+          <div class="shared-field shared-field-full-width">
+            <div class="level-toggle level-toggle-in-divider">
+              <label class="level-toggle-option">
+                <input
+                  type="checkbox"
+                  v-model="createForm.enable_level_3"
+                  @change="handleLevel3Toggle"
+                />
+                <span>Add Level 3: Exclusive Content</span>
+              </label>
+            </div>
+
+            <div v-if="createForm.enable_level_3">
+              <label class="shared-field-label">Level 3: Exclusive Content</label>
+              <BaseTextareaWithCharacterCounter
+                v-model="createForm.level_3_content"
+                placeholder="Enter exclusive content (maximum trust required)..."
+                :max-characters="500"
+              />
+            </div>
+          </div>
+
+          <!-- Level 3 Trust Threshold -->
+          <div v-if="createForm.enable_level_3" class="threshold-section">
+            <div class="threshold-options">
+              <label class="threshold-option">
+                <input
+                  type="radio"
+                  value="default"
+                  v-model="createForm.threshold_mode"
+                  @change="handleThresholdModeChange"
+                />
+                <span>Use Default Threshold</span>
+              </label>
+
+              <label class="threshold-option">
+                <input
+                  type="radio"
+                  value="custom"
+                  v-model="createForm.threshold_mode"
+                  @change="handleThresholdModeChange"
+                />
+                <span>Custom Threshold</span>
+              </label>
+            </div>
+
+            <!-- Level 3 Custom Threshold Slider -->
+            <div v-if="createForm.threshold_mode === 'custom'" class="custom-thresholds">
+              <div class="threshold-slider">
+                <label class="threshold-label">
+                  Exclusive Content: {{ (createForm.exclusive_threshold * 100).toFixed(0) }}%
+                </label>
+                <input
+                  type="range"
+                  v-model.number="createForm.exclusive_threshold"
+                  :min="THRESHOLD_LIMITS.min"
+                  :max="THRESHOLD_LIMITS.max"
+                  :step="THRESHOLD_LIMITS.step"
+                  class="slider"
+                />
+              </div>
+            </div>
           </div>
 
           <!-- Actions -->
@@ -131,6 +216,7 @@
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import apiService from '../services/api.js'
+  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS } from '../constants/gameData.js'
 
   export default {
     name: 'NuggetsPage',
@@ -166,6 +252,9 @@
         level_3_content: '',
         enable_level_2: false,
         enable_level_3: false,
+        threshold_mode: 'default',
+        privileged_threshold: DEFAULT_THRESHOLDS.privileged,
+        exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
       })
 
       const isCreateFormValid = computed(() => {
@@ -183,30 +272,18 @@
           !createForm.enable_level_3 ||
           (createForm.level_3_content.trim() && createForm.level_3_content.length <= 500)
 
-        return baseValid && level2Valid && level3Valid
+        const thresholdValid =
+          createForm.threshold_mode === 'default' ||
+          (createForm.privileged_threshold < createForm.exclusive_threshold &&
+            createForm.exclusive_threshold - createForm.privileged_threshold >=
+              THRESHOLD_LIMITS.minGap)
+
+        return baseValid && level2Valid && level3Valid && thresholdValid
       })
 
       const selectedNugget = computed(() => {
         return entities.value.find((n) => n.id === selectedEntityId.value) || null
       })
-
-      const getLevelName = (level) => {
-        const names = {
-          1: 'Public',
-          2: 'Privileged',
-          3: 'Exclusive',
-        }
-        return names[level] || 'Unknown'
-      }
-
-      const getLevelDescription = (level) => {
-        const descriptions = {
-          1: 'Always accessible',
-          2: 'High trust required',
-          3: 'Maximum trust required',
-        }
-        return descriptions[level] || 'Unknown level'
-      }
 
       const loadCharacters = async () => {
         try {
@@ -225,6 +302,9 @@
           level_3_content: '',
           enable_level_2: false,
           enable_level_3: false,
+          threshold_mode: 'default',
+          privileged_threshold: DEFAULT_THRESHOLDS.privileged,
+          exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
         })
       }
 
@@ -237,6 +317,16 @@
               level_1_content: createForm.level_1_content.trim(),
               level_2_content: createForm.enable_level_2 ? createForm.level_2_content.trim() : null,
               level_3_content: createForm.enable_level_3 ? createForm.level_3_content.trim() : null,
+            }
+
+            // Add custom thresholds if using custom mode
+            if (createForm.threshold_mode === 'custom') {
+              if (createForm.enable_level_2) {
+                nuggetData.privileged_threshold = createForm.privileged_threshold
+              }
+              if (createForm.enable_level_3) {
+                nuggetData.exclusive_threshold = createForm.exclusive_threshold
+              }
             }
 
             await createEntity(nuggetData)
@@ -256,6 +346,13 @@
       const handleLevel3Toggle = () => {
         if (!createForm.enable_level_3) {
           createForm.level_3_content = ''
+        }
+      }
+
+      const handleThresholdModeChange = () => {
+        if (createForm.threshold_mode === 'default') {
+          createForm.privileged_threshold = DEFAULT_THRESHOLDS.privileged
+          createForm.exclusive_threshold = DEFAULT_THRESHOLDS.exclusive
         }
       }
 
@@ -283,12 +380,13 @@
         startCreate,
         updateEntity,
         deleteEntity,
-        getLevelName,
-        getLevelDescription,
         saveCreate,
         cancelCreate: handleCancelCreate,
         handleLevel2Toggle,
         handleLevel3Toggle,
+        handleThresholdModeChange,
+        DEFAULT_THRESHOLDS,
+        THRESHOLD_LIMITS,
       }
     },
   }
@@ -318,60 +416,8 @@
     line-height: 1.5;
   }
 
-  .character-field,
-  .trust-level-field,
-  .content-field {
+  .character-field {
     margin-bottom: 1.5rem;
-  }
-
-  .trust-level-options {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .trust-level-option {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .trust-level-option:hover {
-    border-color: #007bff;
-    background: #f8f9fa;
-  }
-
-  .trust-level-option.active {
-    border-color: #007bff;
-    background: #e3f2fd;
-  }
-
-  .trust-level-option input[type='radio'] {
-    margin: 0;
-  }
-
-  .trust-level-info {
-    flex: 1;
-  }
-
-  .trust-level-name {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.25rem;
-  }
-
-  .trust-level-desc {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-
-  .trust-level-option.active .trust-level-name {
-    color: #007bff;
   }
 
   .character-selection {
@@ -447,9 +493,123 @@
     transform: scale(1.1);
   }
 
+  /* Threshold section styles using shared design tokens */
+  .threshold-section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .threshold-options {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .threshold-option {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    cursor: pointer;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+    font-size: var(--font-size-base);
+    color: var(--text-primary);
+  }
+
+  .threshold-option:hover {
+    background-color: var(--bg-light);
+  }
+
+  .threshold-option input[type='radio'] {
+    margin: 0;
+  }
+
+  .threshold-option span {
+    color: var(--text-primary);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .custom-thresholds {
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-light);
+  }
+
+  .threshold-slider {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .threshold-slider:last-child {
+    margin-bottom: 0;
+  }
+
+  .threshold-label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+  }
+
+  .slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-default);
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+  }
+
   .required {
     color: #dc3545;
     font-weight: bold;
+  }
+
+  /* Level 3 divider toggle styles */
+  .level-toggle-in-divider {
+    position: relative;
+    margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
+  }
+
+  .level-toggle-in-divider::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--border-default);
+    z-index: 1;
+  }
+
+  .level-toggle-in-divider .level-toggle-option {
+    position: relative;
+    z-index: 2;
+    background: var(--bg-white);
+    margin: 0 auto;
+    width: fit-content;
+    padding: var(--spacing-sm) var(--spacing-lg);
   }
 
   /* Ensure text areas take full width */

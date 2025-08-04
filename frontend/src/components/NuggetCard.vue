@@ -69,7 +69,7 @@
           <label class="shared-field-label">Characters</label>
           <div class="character-selection">
             <div v-for="character in characters" :key="character.id" class="character-checkbox">
-              <label class="character-option">
+              <label class="shared-checkbox-option">
                 <input type="checkbox" :value="character.id" v-model="editForm.character_ids" />
                 <span>{{ character.name }}</span>
               </label>
@@ -79,9 +79,7 @@
 
         <!-- Level 1 Content (Always Required) -->
         <div class="shared-field shared-field-full-width">
-          <label class="shared-field-label"
-            >Level 1: Public Content <span class="required">*</span></label
-          >
+          <label class="shared-field-label">Level 1: Public Content</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.level_1_content"
             placeholder="Enter public content (always accessible)..."
@@ -89,40 +87,134 @@
           />
         </div>
 
-        <!-- Level 2 Toggle -->
-        <div class="level-toggle">
-          <label class="level-toggle-option">
-            <input type="checkbox" v-model="editForm.enable_level_2" @change="handleLevel2Toggle" />
-            <span>Add Level 2: Privileged Content</span>
-          </label>
-        </div>
-
         <!-- Level 2 Content -->
-        <div v-if="editForm.enable_level_2" class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Level 2: Privileged Content</label>
-          <BaseTextareaWithCharacterCounter
-            v-model="editForm.level_2_content"
-            placeholder="Enter privileged content (high trust required)..."
-            :max-characters="500"
-          />
+        <div class="shared-field shared-field-full-width">
+          <div class="shared-toggle">
+            <label class="shared-toggle-option">
+              <input
+                type="checkbox"
+                v-model="editForm.enable_level_2"
+                @change="handleLevel2Toggle"
+              />
+              <span>Add Level 2: Privileged Content</span>
+            </label>
+          </div>
+
+          <div v-if="editForm.enable_level_2">
+            <label class="shared-field-label">Level 2: Privileged Content</label>
+            <BaseTextareaWithCharacterCounter
+              v-model="editForm.level_2_content"
+              placeholder="Enter privileged content (high trust required)..."
+              :max-characters="500"
+            />
+          </div>
         </div>
 
-        <!-- Level 3 Toggle -->
-        <div class="level-toggle">
-          <label class="level-toggle-option">
-            <input type="checkbox" v-model="editForm.enable_level_3" @change="handleLevel3Toggle" />
-            <span>Add Level 3: Exclusive Content</span>
-          </label>
+        <!-- Level 2 Trust Threshold -->
+        <div v-if="editForm.enable_level_2" class="threshold-section">
+          <div class="threshold-options">
+            <label class="shared-radio-option">
+              <input
+                type="radio"
+                value="default"
+                v-model="editForm.threshold_mode"
+                @change="handleThresholdModeChange"
+              />
+              <span>Use Default Threshold</span>
+            </label>
+
+            <label class="shared-radio-option">
+              <input
+                type="radio"
+                value="custom"
+                v-model="editForm.threshold_mode"
+                @change="handleThresholdModeChange"
+              />
+              <span>Custom Threshold</span>
+            </label>
+          </div>
+
+          <!-- Level 2 Custom Threshold Slider -->
+          <div v-if="editForm.threshold_mode === 'custom'" class="custom-thresholds">
+            <div class="threshold-slider">
+              <label class="threshold-label">
+                Privileged Content: {{ (editForm.privileged_threshold * 100).toFixed(0) }}%
+              </label>
+              <input
+                type="range"
+                v-model.number="editForm.privileged_threshold"
+                :min="THRESHOLD_LIMITS.min"
+                :max="THRESHOLD_LIMITS.max"
+                :step="THRESHOLD_LIMITS.step"
+                class="slider"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Level 3 Content -->
-        <div v-if="editForm.enable_level_3" class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Level 3: Exclusive Content</label>
-          <BaseTextareaWithCharacterCounter
-            v-model="editForm.level_3_content"
-            placeholder="Enter exclusive content (maximum trust required)..."
-            :max-characters="500"
-          />
+        <div class="shared-field shared-field-full-width">
+          <div class="shared-toggle">
+            <label class="shared-toggle-option">
+              <input
+                type="checkbox"
+                v-model="editForm.enable_level_3"
+                @change="handleLevel3Toggle"
+              />
+              <span>Add Level 3: Exclusive Content</span>
+            </label>
+          </div>
+
+          <div v-if="editForm.enable_level_3">
+            <label class="shared-field-label">Level 3: Exclusive Content</label>
+            <BaseTextareaWithCharacterCounter
+              v-model="editForm.level_3_content"
+              placeholder="Enter exclusive content (maximum trust required)..."
+              :max-characters="500"
+            />
+          </div>
+        </div>
+
+        <!-- Level 3 Trust Threshold -->
+        <div v-if="editForm.enable_level_3" class="threshold-section">
+          <div class="threshold-options">
+            <label class="shared-radio-option">
+              <input
+                type="radio"
+                value="default"
+                v-model="editForm.threshold_mode"
+                @change="handleThresholdModeChange"
+              />
+              <span>Use Default Threshold</span>
+            </label>
+
+            <label class="shared-radio-option">
+              <input
+                type="radio"
+                value="custom"
+                v-model="editForm.threshold_mode"
+                @change="handleThresholdModeChange"
+              />
+              <span>Custom Threshold</span>
+            </label>
+          </div>
+
+          <!-- Level 3 Custom Threshold Slider -->
+          <div v-if="editForm.threshold_mode === 'custom'" class="custom-thresholds">
+            <div class="threshold-slider">
+              <label class="threshold-label">
+                Exclusive Content: {{ (editForm.exclusive_threshold * 100).toFixed(0) }}%
+              </label>
+              <input
+                type="range"
+                v-model.number="editForm.exclusive_threshold"
+                :min="THRESHOLD_LIMITS.min"
+                :max="THRESHOLD_LIMITS.max"
+                :step="THRESHOLD_LIMITS.step"
+                class="slider"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Actions -->
@@ -140,6 +232,7 @@
 <script>
   import { ref, reactive, computed } from 'vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
+  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS } from '../constants/gameData.js'
 
   export default {
     name: 'NuggetCard',
@@ -171,6 +264,9 @@
         level_3_content: '',
         enable_level_2: false,
         enable_level_3: false,
+        threshold_mode: 'default',
+        privileged_threshold: DEFAULT_THRESHOLDS.privileged,
+        exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
       })
 
       const isFormValid = computed(() => {
@@ -188,7 +284,12 @@
           !editForm.enable_level_3 ||
           (editForm.level_3_content.trim() && editForm.level_3_content.length <= 500)
 
-        return baseValid && level2Valid && level3Valid
+        const thresholdValid =
+          editForm.threshold_mode === 'default' ||
+          (editForm.privileged_threshold < editForm.exclusive_threshold &&
+            editForm.exclusive_threshold - editForm.privileged_threshold >= THRESHOLD_LIMITS.minGap)
+
+        return baseValid && level2Valid && level3Valid && thresholdValid
       })
 
       const getCharacterName = (characterId) => {
@@ -205,6 +306,10 @@
       }
 
       const startEdit = () => {
+        // Determine if nugget has custom thresholds
+        const hasCustomThresholds =
+          props.nugget.privileged_threshold !== null || props.nugget.exclusive_threshold !== null
+
         Object.assign(editForm, {
           title: props.nugget.title,
           character_ids: [...props.nugget.character_ids],
@@ -213,6 +318,9 @@
           level_3_content: props.nugget.level_3_content || '',
           enable_level_2: !!props.nugget.level_2_content,
           enable_level_3: !!props.nugget.level_3_content,
+          threshold_mode: hasCustomThresholds ? 'custom' : 'default',
+          privileged_threshold: props.nugget.privileged_threshold,
+          exclusive_threshold: props.nugget.exclusive_threshold,
         })
         isEditing.value = true
       }
@@ -231,6 +339,16 @@
             level_3_content: editForm.enable_level_3 ? editForm.level_3_content.trim() : null,
           }
 
+          // Add custom thresholds if using custom mode
+          if (editForm.threshold_mode === 'custom') {
+            if (editForm.enable_level_2) {
+              updateData.privileged_threshold = editForm.privileged_threshold
+            }
+            if (editForm.enable_level_3) {
+              updateData.exclusive_threshold = editForm.exclusive_threshold
+            }
+          }
+
           emit('update', props.nugget.id, updateData)
           isEditing.value = false
         }
@@ -245,6 +363,13 @@
       const handleLevel3Toggle = () => {
         if (!editForm.enable_level_3) {
           editForm.level_3_content = ''
+        }
+      }
+
+      const handleThresholdModeChange = () => {
+        if (editForm.threshold_mode === 'default') {
+          editForm.privileged_threshold = DEFAULT_THRESHOLDS.privileged
+          editForm.exclusive_threshold = DEFAULT_THRESHOLDS.exclusive
         }
       }
 
@@ -267,6 +392,9 @@
         confirmDelete,
         handleLevel2Toggle,
         handleLevel3Toggle,
+        handleThresholdModeChange,
+        DEFAULT_THRESHOLDS,
+        THRESHOLD_LIMITS,
       }
     },
   }
@@ -281,13 +409,13 @@
   .character-selection {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--spacing-xs);
     max-height: 150px;
     overflow-y: auto;
-    padding: 0.75rem;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    background: #f8f9fa;
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-light);
   }
 
   .character-checkbox {
@@ -295,65 +423,67 @@
     align-items: center;
   }
 
-  .character-option {
+  /* Threshold section styles using shared design tokens */
+  .threshold-section {
+    margin-bottom: var(--spacing-xl);
+  }
+
+  .threshold-options {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .custom-thresholds {
+    padding: var(--spacing-lg);
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-light);
+  }
+
+  .threshold-slider {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .threshold-slider:last-child {
+    margin-bottom: 0;
+  }
+
+  .threshold-label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+  }
+
+  .slider {
     width: 100%;
-    font-size: 0.9rem;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-default);
+    outline: none;
+    -webkit-appearance: none;
   }
 
-  .character-option:hover {
-    background-color: #e9ecef;
-  }
-
-  .character-option input[type='checkbox'] {
-    margin: 0;
-    transform: scale(0.9);
-  }
-
-  .character-option span {
-    font-weight: 500;
-    color: #495057;
-  }
-
-  /* Level toggle styles */
-  .level-toggle {
-    margin-bottom: 1rem;
-  }
-
-  .level-toggle-option {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
     cursor: pointer;
-    padding: 0.75rem;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    background: #f8f9fa;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #495057;
   }
 
-  .level-toggle-option:hover {
-    border-color: #007bff;
-    background: #e3f2fd;
-  }
-
-  .level-toggle-option input[type='checkbox'] {
-    margin: 0;
-    transform: scale(1.1);
-  }
-
-  .required {
-    color: #dc3545;
-    font-weight: bold;
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
   }
 
   /* Ensure text areas take full width */
