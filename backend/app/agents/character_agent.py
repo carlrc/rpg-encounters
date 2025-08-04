@@ -24,6 +24,7 @@ class CharacterAgentOutput(BaseModel):
     public_response: str
     privileged_response: Optional[str] = None
     exclusive_response: Optional[str] = None
+    nugget_id: int
 
 
 class CharacterAgent:
@@ -54,7 +55,7 @@ class CharacterAgent:
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 CharacterAgentOutput,
-                description="Fill in the different response levels",
+                description="Fill in the different response levels and return the ID of the nugget you used.",
             ),
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
@@ -73,7 +74,7 @@ class CharacterAgent:
             for nugget in all_nuggets:
                 instruction_parts.append(
                     f"""
-                    \n## {nugget.title}
+                    \n## ID {nugget.id} - {nugget.title}
                     **{NuggetLayer.PUBLIC.name}:** {nugget.level_1_content}
                     **{NuggetLayer.PRIVILEGED.name}:** {nugget.level_2_content or 'NONE'}
                     **{NuggetLayer.EXCLUSIVE.name}:** {nugget.level_3_content or 'NONE'}

@@ -207,7 +207,7 @@ async def test_character_agent_handles_multiple_nuggets():
     nuggets = [
         *ALL_NUGGETS,
         TrustNugget(
-            id=1,
+            id=2,
             title="The Garden Vandal",
             character_ids=[1, 3, 4],
             level_1_content="There is someone vandalizing the towns gardens",
