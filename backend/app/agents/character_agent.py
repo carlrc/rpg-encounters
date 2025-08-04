@@ -103,11 +103,24 @@ class CharacterAgent:
 
         self.trust.earned_trust += trust_result.score
 
+        # Find the selected nugget by ID
+        selected_nugget = None
+        for nugget in nuggets:
+            if nugget.id == self.run_result.output.nugget_id:
+                selected_nugget = nugget
+                break
+
+        if selected_nugget is None:
+            raise RuntimeError(
+                f"Nugget with ID {self.run_result.output.nugget_id} not found in available nuggets"
+            )
+
         selected_response, level = NuggetService.select_response_by_trust(
             public_response=self.run_result.output.public_response,
             privileged_response=self.run_result.output.privileged_response,
             exclusive_response=self.run_result.output.exclusive_response,
             total_trust=self.trust.total_trust,
+            nugget=selected_nugget,
         )
 
         messages = self.run_result.new_messages()
