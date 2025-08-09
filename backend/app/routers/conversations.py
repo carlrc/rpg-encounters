@@ -7,7 +7,7 @@ from app.services.agent_manager import AgentManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
 from app.data.trust_store import trust_state_store
-from app.data.nugget_store import truth_store
+from app.data.nugget_store import reveal_store
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.services.trust_calculator import TrustCalculator
 
@@ -81,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
                 character_id, player_id, base_trust
             )
             # Get information tied to character
-            all_truths = truth_store.get_by_character_id(character_id)
+            all_reveals = reveal_store.get_by_character_id(character_id)
 
             # Get or create persistent character agent
             agent = agent_manager.get_or_create_agent(
@@ -95,7 +95,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             )
 
             # Generate AI response using character agent
-            response, level, _ = await agent.chat(transcription, all_truths)
+            response, level, _ = await agent.chat(transcription, all_reveals)
             logger.debug(
                 f"Generated character response for level ${level.name}: {response}"
             )

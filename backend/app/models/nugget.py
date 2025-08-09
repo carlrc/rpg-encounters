@@ -4,20 +4,20 @@ from enum import Enum
 from app.models.trust import BASE_TRUST_MIN, TOTAL_TRUST_MAX
 
 
-class TruthLayer(Enum):
+class RevealLayer(Enum):
     PUBLIC = 1
     PRIVILEGED = 2
     EXCLUSIVE = 3
 
 
-TRUTH_DEFAULT_THRESHOLDS = {
-    TruthLayer.PUBLIC: 0.0,  # Always accessible
-    TruthLayer.PRIVILEGED: 0.55,  # Requires almost perfect static base trust
-    TruthLayer.EXCLUSIVE: 0.8,  # Requires base + earned trust
+REVEAL_DEFAULT_THRESHOLDS = {
+    RevealLayer.PUBLIC: 0.0,  # Always accessible
+    RevealLayer.PRIVILEGED: 0.55,  # Requires almost perfect static base trust
+    RevealLayer.EXCLUSIVE: 0.8,  # Requires base + earned trust
 }
 
 
-class TruthBase(BaseModel):
+class RevealBase(BaseModel):
     title: str
     character_ids: List[int]
     level_1_content: str  # Public level content (always required)
@@ -39,19 +39,19 @@ class TruthBase(BaseModel):
             )
         return v
 
-    def get_threshold(self, layer: TruthLayer) -> float:
-        """Get the effective threshold for a truth layer, with fallback to defaults"""
-        if self.exclusive_threshold is not None and layer == TruthLayer.EXCLUSIVE:
+    def get_threshold(self, layer: RevealLayer) -> float:
+        """Get the effective threshold for a reveal layer, with fallback to defaults"""
+        if self.exclusive_threshold is not None and layer == RevealLayer.EXCLUSIVE:
             return self.exclusive_threshold
-        elif self.privileged_threshold is not None and layer == TruthLayer.PRIVILEGED:
+        elif self.privileged_threshold is not None and layer == RevealLayer.PRIVILEGED:
             return self.privileged_threshold
         else:
-            return TRUTH_DEFAULT_THRESHOLDS[layer]
+            return REVEAL_DEFAULT_THRESHOLDS[layer]
 
 
-class Truth(TruthBase):
+class Reveal(RevealBase):
     id: int
 
 
-class TruthCreate(TruthBase):
+class RevealCreate(RevealBase):
     pass

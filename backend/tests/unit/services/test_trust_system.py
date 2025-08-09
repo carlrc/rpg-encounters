@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import logging
-from app.models.nugget import TruthCreate
-from app.data.nugget_store import truth_store
+from app.models.nugget import RevealCreate
+from app.data.nugget_store import reveal_store
 from app.services.trust_calculator import TrustCalculator
 from tests.fixtures.characters import characters_db
 from tests.fixtures.players import players_db
@@ -17,8 +17,8 @@ def setup_test_data():
 
     player = players_db[2]  # Pippin Greenhill - Halfling Rogue
 
-    truths_data = [
-        TruthCreate(
+    reveals_data = [
+        RevealCreate(
             title="Tavern Knowledge",
             character_ids=[character.id],
             level_1_content="I've been running this tavern for over twenty years and know everyone in town.",
@@ -27,8 +27,8 @@ def setup_test_data():
         )
     ]
 
-    for truth_data in truths_data:
-        truth_store.create_truth(truth_data)
+    for reveal_data in reveals_data:
+        reveal_store.create_reveal(reveal_data)
 
     return character, player
 

@@ -1,64 +1,64 @@
 from typing import Optional, List
-from app.models.nugget import Truth, TruthCreate
-from tests.fixtures.nuggets import truth_db, next_truth_id
+from app.models.nugget import Reveal, RevealCreate
+from tests.fixtures.nuggets import reveal_db, next_reveal_id
 
 
-class TruthStore:
+class RevealStore:
     def __init__(self):
-        self.truths = truth_db
-        self.next_id = next_truth_id
+        self.reveals = reveal_db
+        self.next_id = next_reveal_id
 
-    def get_all_truths(self) -> List[Truth]:
-        """Get all truths across all characters"""
-        return list(self.truths.values())
+    def get_all_reveals(self) -> List[Reveal]:
+        """Get all reveals across all characters"""
+        return list(self.reveals.values())
 
-    def get_by_character_id(self, character_id: int) -> List[Truth]:
-        """Get all truths for a character"""
+    def get_by_character_id(self, character_id: int) -> List[Reveal]:
+        """Get all reveals for a character"""
         return [
-            truth
-            for truth in self.truths.values()
-            if character_id in truth.character_ids
+            reveal
+            for reveal in self.reveals.values()
+            if character_id in reveal.character_ids
         ]
 
-    def get_truth(self, truth_id: int) -> Optional[Truth]:
-        """Get a specific truth by ID"""
-        return self.truths.get(truth_id)
+    def get_reveal(self, reveal_id: int) -> Optional[Reveal]:
+        """Get a specific reveal by ID"""
+        return self.reveals.get(reveal_id)
 
-    def get_by_id(self, truth_id: int) -> Optional[Truth]:
-        """Get a specific truth by ID (alias for get_truth)"""
-        return self.truths.get(truth_id)
+    def get_by_id(self, reveal_id: int) -> Optional[Reveal]:
+        """Get a specific reveal by ID (alias for get_reveal)"""
+        return self.reveals.get(reveal_id)
 
-    def create_truth(self, truth_data: TruthCreate) -> Truth:
-        """Create a new truth"""
-        truth_dict = truth_data.model_dump()
-        truth_dict["id"] = self.next_id
+    def create_reveal(self, reveal_data: RevealCreate) -> Reveal:
+        """Create a new reveal"""
+        reveal_dict = reveal_data.model_dump()
+        reveal_dict["id"] = self.next_id
 
-        truth = Truth(**truth_dict)
-        self.truths[self.next_id] = truth
+        reveal = Reveal(**reveal_dict)
+        self.reveals[self.next_id] = reveal
         self.next_id += 1
 
-        return truth
+        return reveal
 
-    def update_truth(self, truth_id: int, updates: dict) -> Optional[Truth]:
-        """Update an existing truth"""
-        if truth_id not in self.truths:
+    def update_reveal(self, reveal_id: int, updates: dict) -> Optional[Reveal]:
+        """Update an existing reveal"""
+        if reveal_id not in self.reveals:
             return None
 
-        existing_truth = self.truths[truth_id]
-        update_data = existing_truth.model_dump()
+        existing_reveal = self.reveals[reveal_id]
+        update_data = existing_reveal.model_dump()
         update_data.update(updates)
 
-        updated_truth = Truth(**update_data)
-        self.truths[truth_id] = updated_truth
-        return updated_truth
+        updated_reveal = Reveal(**update_data)
+        self.reveals[reveal_id] = updated_reveal
+        return updated_reveal
 
-    def delete_truth(self, truth_id: int) -> bool:
-        """Delete a truth"""
-        if truth_id not in self.truths:
+    def delete_reveal(self, reveal_id: int) -> bool:
+        """Delete a reveal"""
+        if reveal_id not in self.reveals:
             return False
-        del self.truths[truth_id]
+        del self.reveals[reveal_id]
         return True
 
 
 # Create singleton instance
-truth_store = TruthStore()
+reveal_store = RevealStore()

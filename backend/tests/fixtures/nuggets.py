@@ -1,8 +1,8 @@
 from typing import Dict
-from app.models.nugget import Truth
+from app.models.nugget import Reveal
 
-truth_db: Dict[int, Truth] = {
-    1: Truth(
+reveal_db: Dict[int, Reveal] = {
+    1: Reveal(
         id=1,
         title="The Garden Vandal",
         character_ids=[1, 3, 4],
@@ -10,7 +10,7 @@ truth_db: Dict[int, Truth] = {
         level_2_content="It's a local. Not a foreigner as everyone expects.",
         level_3_content="It's Merry Greenhill vandalizing the gardens",
     ),
-    2: Truth(
+    2: Reveal(
         id=2,
         title="Available Rooms",
         character_ids=[1],
@@ -21,4 +21,4 @@ truth_db: Dict[int, Truth] = {
 }
 
 
-next_truth_id = 2
+next_reveal_id = 2
