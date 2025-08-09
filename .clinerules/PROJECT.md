@@ -30,4 +30,4 @@ This project provides a real-time, voice-based AI character interaction system f
 - Trust scoring system for dynamic character relationships
 - Text response generation layer (OpenAI GPT-4)
 - Audio response generation layer (ElevenLabs TTS)
-- Character, player, and nugget (trust elements) management
+- Character, player, and reveals (trust elements) management

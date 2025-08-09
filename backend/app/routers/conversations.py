@@ -7,7 +7,7 @@ from app.services.agent_manager import AgentManager
 from app.data.character_store import character_store
 from app.data.player_store import player_store
 from app.data.trust_store import trust_state_store
-from app.data.nugget_store import reveal_store
+from app.data.reveal_store import reveal_store
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.services.trust_calculator import TrustCalculator
 

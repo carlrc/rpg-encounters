@@ -8,8 +8,8 @@ from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
 from app.models.trust import TrustState
-from app.models.nugget import RevealLayer, Reveal
-from app.services.nugget_service import RevealService
+from app.models.reveal import RevealLayer, Reveal
+from app.services.reveal_service import RevealService
 from app.services.conversation_manager import ConversationManager
 import logging
 from app.agents.trust_scoring_agent import TrustCalculatorAgent

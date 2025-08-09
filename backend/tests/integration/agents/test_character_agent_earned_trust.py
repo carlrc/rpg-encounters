@@ -9,7 +9,7 @@ from app.models.character import (
     Gender,
 )
 from app.models.player import Player, PlayerClass
-from app.models.nugget import RevealLayer, Reveal
+from app.models.reveal import RevealLayer, Reveal
 from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager

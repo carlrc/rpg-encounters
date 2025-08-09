@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models.nugget import Reveal, RevealCreate
-from app.data.nugget_store import reveal_store
+from app.models.reveal import Reveal, RevealCreate
+from app.data.reveal_store import reveal_store
 from app.data.character_store import character_store
 
 router = APIRouter(prefix="/api/reveals", tags=["reveals"])

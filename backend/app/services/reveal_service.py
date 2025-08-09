@@ -1,4 +1,4 @@
-from app.models.nugget import RevealLayer, Reveal
+from app.models.reveal import RevealLayer, Reveal
 
 
 class RevealService:

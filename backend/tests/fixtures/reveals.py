@@ -1,5 +1,5 @@
 from typing import Dict
-from app.models.nugget import Reveal
+from app.models.reveal import Reveal
 
 reveal_db: Dict[int, Reveal] = {
     1: Reveal(

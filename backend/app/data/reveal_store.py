@@ -1,6 +1,6 @@
 from typing import Optional, List
-from app.models.nugget import Reveal, RevealCreate
-from tests.fixtures.nuggets import reveal_db, next_reveal_id
+from app.models.reveal import Reveal, RevealCreate
+from tests.fixtures.reveals import reveal_db, next_reveal_id
 
 
 class RevealStore:

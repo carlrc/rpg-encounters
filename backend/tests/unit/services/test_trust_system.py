@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import logging
-from app.models.nugget import RevealCreate
-from app.data.nugget_store import reveal_store
+from app.models.reveal import RevealCreate
+from app.data.reveal_store import reveal_store
 from app.services.trust_calculator import TrustCalculator
 from tests.fixtures.characters import characters_db
 from tests.fixtures.players import players_db
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def setup_test_data():
-    """Set up test characters, players, and nuggets"""
+    """Set up test characters, players, and reveals"""
 
     character = characters_db[1]  # Bingo Bracegirdle - Halfling Barkeep
 
