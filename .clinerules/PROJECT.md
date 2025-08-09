@@ -1,14 +1,14 @@
 # Project Guidelines
 
-This project provides a real-time, voice-based AI character interaction system for tabletop RPGs. Users speak into their mic, and the AI character responds with streamed speech.
+This project provides a real-time, voice-based AI character interaction system for tabletop RPGs. Users speak into their mic, and the AI character responds with streamed speech, featuring dynamic character personalities and trust-based interactions.
 
 ## Dependencies
 
-- Vue.js + vite frontend
+- Vue.js + Vite frontend
 - FastAPI backend
-- Whisper.cpp for transcribing
-- OpenAI 4o API for text response generation
-- ElevanLab for TTS
+- Whisper.cpp for speech transcription
+- OpenAI GPT-4 API for character response generation
+- ElevenLabs for text-to-speech synthesis
 
 ## Architecture
 
@@ -17,12 +17,17 @@ This project provides a real-time, voice-based AI character interaction system f
 ### Frontend
 
 - Button to start and stop recording audio
-- Send audio chunks via websockets
+- Send audio chunks via WebSockets
 - Receive audio response chunks and play them as they arrive
+- Character and player selection interface
+- Real-time conversation status indicators
 
 ### Backend
 
-- Websocket to accept audio chunks
-- Transcription layer (Whisper)
-- Text response generation layer (OpenAI API)
-- Audio response generation layer (ElevanLab)
+- WebSocket endpoint for real-time audio streaming (`/conversation/{player_id}/{character_id}`)
+- Transcription layer (Whisper.cpp)
+- Character agent system with personality-driven responses
+- Trust scoring system for dynamic character relationships
+- Text response generation layer (OpenAI GPT-4)
+- Audio response generation layer (ElevenLabs TTS)
+- Character, player, and nugget (trust elements) management

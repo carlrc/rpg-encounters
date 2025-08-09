@@ -24,6 +24,7 @@ class CharacterAgentOutput(BaseModel):
     public_response: str
     privileged_response: Optional[str] = None
     exclusive_response: Optional[str] = None
+    nugget_id: int
 
 
 class CharacterAgent:
@@ -54,7 +55,7 @@ class CharacterAgent:
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 CharacterAgentOutput,
-                description="Fill in the different response levels",
+                description="Fill in the different response levels and return the ID of the nugget you used.",
             ),
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
@@ -73,7 +74,7 @@ class CharacterAgent:
             for nugget in all_nuggets:
                 instruction_parts.append(
                     f"""
-                    \n## {nugget.title}
+                    \n## ID {nugget.id} - {nugget.title}
                     **{NuggetLayer.PUBLIC.name}:** {nugget.level_1_content}
                     **{NuggetLayer.PRIVILEGED.name}:** {nugget.level_2_content or 'NONE'}
                     **{NuggetLayer.EXCLUSIVE.name}:** {nugget.level_3_content or 'NONE'}
@@ -102,11 +103,24 @@ class CharacterAgent:
 
         self.trust.earned_trust += trust_result.score
 
+        # Find the selected nugget by ID
+        selected_nugget = None
+        for nugget in nuggets:
+            if nugget.id == self.run_result.output.nugget_id:
+                selected_nugget = nugget
+                break
+
+        if selected_nugget is None:
+            raise RuntimeError(
+                f"Nugget with ID {self.run_result.output.nugget_id} not found in available nuggets"
+            )
+
         selected_response, level = NuggetService.select_response_by_trust(
             public_response=self.run_result.output.public_response,
             privileged_response=self.run_result.output.privileged_response,
             exclusive_response=self.run_result.output.exclusive_response,
             total_trust=self.trust.total_trust,
+            nugget=selected_nugget,
         )
 
         messages = self.run_result.new_messages()

@@ -16,8 +16,8 @@ Apply the scoring system below. Consider that actions towards an evil person, by
 ## Scoring System
 
 - (-0.3): Strong distrust and hostility (e.g., opposing moral alignments based on character actions)
-- (-0.2): Significant distrust and suspicion (e.g., opposing traits based on character features)
-- (-0.1): Mild distrust or wariness (e.g., opposing traits based on character features or non familiarity)
+- (-0.2): Significant distrust and suspicion (e.g., opposing traits based on character features or non familiarity)
+- (-0.1): Mild distrust or wariness (e.g., opposing traits based on character features)
 - (0.0): Neutral stance with no particular bias (e.g., first meetings, standard interactions)
 - (0.1): Mild trust or familiarity (e.g., aligned traits based on character features or familiarity)
 - (0.2): Significant trust and confidence (e.g., aligned traits based on character features)

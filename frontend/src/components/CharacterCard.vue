@@ -222,7 +222,7 @@
           />
           <button
             @click="addBiasPreference('race_preferences')"
-            class="bias-add-btn"
+            class="shared-add-btn"
             type="button"
             v-if="editForm.biases.race_preferences.length < races.length"
           >
@@ -246,7 +246,7 @@
           />
           <button
             @click="addBiasPreference('class_preferences')"
-            class="bias-add-btn"
+            class="shared-add-btn"
             type="button"
             v-if="editForm.biases.class_preferences.length < classes.length"
           >
@@ -272,7 +272,7 @@
           />
           <button
             @click="addBiasPreference('gender_preferences')"
-            class="bias-add-btn"
+            class="shared-add-btn"
             type="button"
             v-if="editForm.biases.gender_preferences.length < genders.length"
           >
@@ -296,7 +296,7 @@
           />
           <button
             @click="addBiasPreference('size_preferences')"
-            class="bias-add-btn"
+            class="shared-add-btn"
             type="button"
             v-if="editForm.biases.size_preferences.length < sizes.length"
           >
@@ -650,27 +650,6 @@
     color: #495057;
     margin-bottom: 0.75rem;
     font-size: 0.9rem;
-  }
-
-  .bias-add-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    margin-top: 0.5rem;
-  }
-
-  .bias-add-btn:hover {
-    background: #0056b3;
-  }
-
-  .bias-add-btn:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
   }
 
   /* Bias Display Styles */
