@@ -35,11 +35,11 @@ class AgentManager:
             self._agents[key] = CharacterAgent(
                 character=character,
                 player=player,
-                char_system_prompt=char_system_prompt,
+                system_prompt=char_system_prompt,
                 trust_state=trust_state,
                 conversation_manager=ConversationManager(),
                 trust_calculator_agent=TrustCalculatorAgent(
-                    scoring_system_prompt=scoring_system_prompt,
+                    system_prompt=scoring_system_prompt,
                     character=character,
                     player=player,
                 ),
