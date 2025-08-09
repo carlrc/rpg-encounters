@@ -1,64 +1,64 @@
 from typing import Optional, List
-from app.models.nugget import TrustNugget, TrustNuggetCreate
-from tests.fixtures.nuggets import nugget_db, next_nugget_id
+from app.models.nugget import Truth, TruthCreate
+from tests.fixtures.nuggets import truth_db, next_truth_id
 
 
-class NuggetStore:
+class TruthStore:
     def __init__(self):
-        self.nuggets = nugget_db
-        self.next_id = next_nugget_id
+        self.truths = truth_db
+        self.next_id = next_truth_id
 
-    def get_all_nuggets(self) -> List[TrustNugget]:
-        """Get all nuggets across all characters"""
-        return list(self.nuggets.values())
+    def get_all_truths(self) -> List[Truth]:
+        """Get all truths across all characters"""
+        return list(self.truths.values())
 
-    def get_by_character_id(self, character_id: int) -> List[TrustNugget]:
-        """Get all nuggets for a character"""
+    def get_by_character_id(self, character_id: int) -> List[Truth]:
+        """Get all truths for a character"""
         return [
-            nugget
-            for nugget in self.nuggets.values()
-            if character_id in nugget.character_ids
+            truth
+            for truth in self.truths.values()
+            if character_id in truth.character_ids
         ]
 
-    def get_nugget(self, nugget_id: int) -> Optional[TrustNugget]:
-        """Get a specific nugget by ID"""
-        return self.nuggets.get(nugget_id)
+    def get_truth(self, truth_id: int) -> Optional[Truth]:
+        """Get a specific truth by ID"""
+        return self.truths.get(truth_id)
 
-    def get_by_id(self, nugget_id: int) -> Optional[TrustNugget]:
-        """Get a specific nugget by ID (alias for get_nugget)"""
-        return self.nuggets.get(nugget_id)
+    def get_by_id(self, truth_id: int) -> Optional[Truth]:
+        """Get a specific truth by ID (alias for get_truth)"""
+        return self.truths.get(truth_id)
 
-    def create_nugget(self, nugget_data: TrustNuggetCreate) -> TrustNugget:
-        """Create a new nugget"""
-        nugget_dict = nugget_data.model_dump()
-        nugget_dict["id"] = self.next_id
+    def create_truth(self, truth_data: TruthCreate) -> Truth:
+        """Create a new truth"""
+        truth_dict = truth_data.model_dump()
+        truth_dict["id"] = self.next_id
 
-        nugget = TrustNugget(**nugget_dict)
-        self.nuggets[self.next_id] = nugget
+        truth = Truth(**truth_dict)
+        self.truths[self.next_id] = truth
         self.next_id += 1
 
-        return nugget
+        return truth
 
-    def update_nugget(self, nugget_id: int, updates: dict) -> Optional[TrustNugget]:
-        """Update an existing nugget"""
-        if nugget_id not in self.nuggets:
+    def update_truth(self, truth_id: int, updates: dict) -> Optional[Truth]:
+        """Update an existing truth"""
+        if truth_id not in self.truths:
             return None
 
-        existing_nugget = self.nuggets[nugget_id]
-        update_data = existing_nugget.model_dump()
+        existing_truth = self.truths[truth_id]
+        update_data = existing_truth.model_dump()
         update_data.update(updates)
 
-        updated_nugget = TrustNugget(**update_data)
-        self.nuggets[nugget_id] = updated_nugget
-        return updated_nugget
+        updated_truth = Truth(**update_data)
+        self.truths[truth_id] = updated_truth
+        return updated_truth
 
-    def delete_nugget(self, nugget_id: int) -> bool:
-        """Delete a nugget"""
-        if nugget_id not in self.nuggets:
+    def delete_truth(self, truth_id: int) -> bool:
+        """Delete a truth"""
+        if truth_id not in self.truths:
             return False
-        del self.nuggets[nugget_id]
+        del self.truths[truth_id]
         return True
 
 
 # Create singleton instance
-nugget_store = NuggetStore()
+truth_store = TruthStore()

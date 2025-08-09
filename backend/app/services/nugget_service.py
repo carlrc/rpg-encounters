@@ -1,36 +1,36 @@
-from app.models.nugget import NuggetLayer, TrustNugget
+from app.models.nugget import TruthLayer, Truth
 
 
-class NuggetService:
+class TruthService:
     @staticmethod
     def select_response_by_trust(
         public_response: str,
         privileged_response: str | None,
         exclusive_response: str | None,
         total_trust: float,
-        nugget: TrustNugget,
-    ) -> tuple[str, NuggetLayer]:
+        truth: Truth,
+    ) -> tuple[str, TruthLayer]:
         """
-        Select appropriate response based on trust levels and nugget-specific thresholds.
+        Select appropriate response based on trust levels and truth-specific thresholds.
 
         Args:
             public_response: Public level response
             privileged_response: Privileged level response (optional)
             exclusive_response: Exclusive level response (optional)
             total_trust: Current total trust level
-            nugget: The nugget being used (contains threshold info)
+            truth: The truth being used (contains threshold info)
 
         Returns:
             Tuple of (selected_response, response_level)
         """
-        # Select response based on trust levels and nugget-specific thresholds
-        if exclusive_response and total_trust >= nugget.get_threshold(
-            NuggetLayer.EXCLUSIVE
+        # Select response based on trust levels and truth-specific thresholds
+        if exclusive_response and total_trust >= truth.get_threshold(
+            TruthLayer.EXCLUSIVE
         ):
-            return exclusive_response, NuggetLayer.EXCLUSIVE
-        elif privileged_response and total_trust >= nugget.get_threshold(
-            NuggetLayer.PRIVILEGED
+            return exclusive_response, TruthLayer.EXCLUSIVE
+        elif privileged_response and total_trust >= truth.get_threshold(
+            TruthLayer.PRIVILEGED
         ):
-            return privileged_response, NuggetLayer.PRIVILEGED
+            return privileged_response, TruthLayer.PRIVILEGED
         else:
-            return public_response, NuggetLayer.PUBLIC
+            return public_response, TruthLayer.PUBLIC

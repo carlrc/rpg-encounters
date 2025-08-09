@@ -8,8 +8,8 @@ from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
 from app.models.trust import TrustState
-from app.models.nugget import NuggetLayer, TrustNugget
-from app.services.nugget_service import NuggetService
+from app.models.nugget import TruthLayer, Truth
+from app.services.nugget_service import TruthService
 from app.services.conversation_manager import ConversationManager
 import logging
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
@@ -24,7 +24,7 @@ class CharacterAgentOutput(BaseModel):
     public_response: str
     privileged_response: Optional[str] = None
     exclusive_response: Optional[str] = None
-    nugget_id: int
+    truth_id: int
 
 
 class CharacterAgent:
@@ -55,29 +55,29 @@ class CharacterAgent:
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 CharacterAgentOutput,
-                description="Fill in the different response levels and return the ID of the nugget you used.",
+                description="Fill in the different response levels and return the ID of the truth you used.",
             ),
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
 
         # Decorator does not work on self.agent.instructions
         @agent.instructions
-        def add_nuggets(ctx: RunContext[list[TrustNugget]]) -> str:
-            all_nuggets = [nugget for nugget in ctx.deps]
+        def add_truths(ctx: RunContext[list[Truth]]) -> str:
+            all_truths = [truth for truth in ctx.deps]
 
             instruction_parts = []
-            instruction_parts.append("\n# Available Nuggets")
+            instruction_parts.append("\n# Available Truths")
             instruction_parts.append(
-                "**IMPORTANT**: Select the nugget which is most relevant to the players message"
+                "**IMPORTANT**: Select the truth which is most relevant to the players message"
             )
 
-            for nugget in all_nuggets:
+            for truth in all_truths:
                 instruction_parts.append(
                     f"""
-                    \n## ID {nugget.id} - {nugget.title}
-                    **{NuggetLayer.PUBLIC.name}:** {nugget.level_1_content}
-                    **{NuggetLayer.PRIVILEGED.name}:** {nugget.level_2_content or 'NONE'}
-                    **{NuggetLayer.EXCLUSIVE.name}:** {nugget.level_3_content or 'NONE'}
+                    \n## ID {truth.id} - {truth.title}
+                    **{TruthLayer.PUBLIC.name}:** {truth.level_1_content}
+                    **{TruthLayer.PRIVILEGED.name}:** {truth.level_2_content or 'NONE'}
+                    **{TruthLayer.EXCLUSIVE.name}:** {truth.level_3_content or 'NONE'}
                     """
                 )
 
@@ -87,12 +87,12 @@ class CharacterAgent:
         self.agent = agent
 
     async def chat(
-        self, player_transcript: str, nuggets: list[TrustNugget]
-    ) -> tuple[str, NuggetLayer, int]:
+        self, player_transcript: str, truths: list[Truth]
+    ) -> tuple[str, TruthLayer, int]:
         try:
             agent_task = self.agent.run(
                 user_prompt=player_transcript,
-                deps=nuggets,
+                deps=truths,
                 message_history=self.convo_manager.get_history(),
             )
             trust_task = self.trust_calculator_agent.process(player_transcript)
@@ -103,24 +103,24 @@ class CharacterAgent:
 
         self.trust.earned_trust += trust_result.score
 
-        # Find the selected nugget by ID
-        selected_nugget = None
-        for nugget in nuggets:
-            if nugget.id == self.run_result.output.nugget_id:
-                selected_nugget = nugget
+        # Find the selected truth by ID
+        selected_truth = None
+        for truth in truths:
+            if truth.id == self.run_result.output.truth_id:
+                selected_truth = truth
                 break
 
-        if selected_nugget is None:
+        if selected_truth is None:
             raise RuntimeError(
-                f"Nugget with ID {self.run_result.output.nugget_id} not found in available nuggets"
+                f"Truth with ID {self.run_result.output.truth_id} not found in available truths"
             )
 
-        selected_response, level = NuggetService.select_response_by_trust(
+        selected_response, level = TruthService.select_response_by_trust(
             public_response=self.run_result.output.public_response,
             privileged_response=self.run_result.output.privileged_response,
             exclusive_response=self.run_result.output.exclusive_response,
             total_trust=self.trust.total_trust,
-            nugget=selected_nugget,
+            truth=selected_truth,
         )
 
         messages = self.run_result.new_messages()

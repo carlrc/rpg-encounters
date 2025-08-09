@@ -4,20 +4,20 @@ from enum import Enum
 from app.models.trust import BASE_TRUST_MIN, TOTAL_TRUST_MAX
 
 
-class NuggetLayer(Enum):
+class TruthLayer(Enum):
     PUBLIC = 1
     PRIVILEGED = 2
     EXCLUSIVE = 3
 
 
-NUGGET_DEFAULT_THRESHOLDS = {
-    NuggetLayer.PUBLIC: 0.0,  # Always accessible
-    NuggetLayer.PRIVILEGED: 0.55,  # Requires almost perfect static base trust
-    NuggetLayer.EXCLUSIVE: 0.8,  # Requires base + earned trust
+TRUTH_DEFAULT_THRESHOLDS = {
+    TruthLayer.PUBLIC: 0.0,  # Always accessible
+    TruthLayer.PRIVILEGED: 0.55,  # Requires almost perfect static base trust
+    TruthLayer.EXCLUSIVE: 0.8,  # Requires base + earned trust
 }
 
 
-class TrustNuggetBase(BaseModel):
+class TruthBase(BaseModel):
     title: str
     character_ids: List[int]
     level_1_content: str  # Public level content (always required)
@@ -39,19 +39,19 @@ class TrustNuggetBase(BaseModel):
             )
         return v
 
-    def get_threshold(self, layer: NuggetLayer) -> float:
-        """Get the effective threshold for a nugget layer, with fallback to defaults"""
-        if self.exclusive_threshold is not None and layer == NuggetLayer.EXCLUSIVE:
+    def get_threshold(self, layer: TruthLayer) -> float:
+        """Get the effective threshold for a truth layer, with fallback to defaults"""
+        if self.exclusive_threshold is not None and layer == TruthLayer.EXCLUSIVE:
             return self.exclusive_threshold
-        elif self.privileged_threshold is not None and layer == NuggetLayer.PRIVILEGED:
+        elif self.privileged_threshold is not None and layer == TruthLayer.PRIVILEGED:
             return self.privileged_threshold
         else:
-            return NUGGET_DEFAULT_THRESHOLDS[layer]
+            return TRUTH_DEFAULT_THRESHOLDS[layer]
 
 
-class TrustNugget(TrustNuggetBase):
+class Truth(TruthBase):
     id: int
 
 
-class TrustNuggetCreate(TrustNuggetBase):
+class TruthCreate(TruthBase):
     pass
