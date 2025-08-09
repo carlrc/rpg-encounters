@@ -7,7 +7,7 @@ class RevealService:
         public_response: str,
         privileged_response: str | None,
         exclusive_response: str | None,
-        total_trust: float,
+        total_trust: int,
         reveal: Reveal,
     ) -> tuple[str, RevealLayer]:
         """
@@ -17,7 +17,7 @@ class RevealService:
             public_response: Public level response
             privileged_response: Privileged level response (optional)
             exclusive_response: Exclusive level response (optional)
-            total_trust: Current total trust level
+            total_trust: Current total trust level (DC scale 0-30)
             reveal: The reveal being used (contains threshold info)
 
         Returns:

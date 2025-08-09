@@ -103,7 +103,11 @@
             <div v-if="createForm.threshold_mode === 'custom'" class="custom-thresholds">
               <div class="threshold-slider">
                 <label class="threshold-label">
-                  Privileged Content: {{ (createForm.privileged_threshold * 100).toFixed(0) }}%
+                  Privileged Content:
+                  {{
+                    DC_LABELS[createForm.privileged_threshold] ||
+                    `DC ${createForm.privileged_threshold}`
+                  }}
                 </label>
                 <input
                   type="range"
@@ -168,7 +172,11 @@
             <div v-if="createForm.threshold_mode === 'custom'" class="custom-thresholds">
               <div class="threshold-slider">
                 <label class="threshold-label">
-                  Exclusive Content: {{ (createForm.exclusive_threshold * 100).toFixed(0) }}%
+                  Exclusive Content:
+                  {{
+                    DC_LABELS[createForm.exclusive_threshold] ||
+                    `DC ${createForm.exclusive_threshold}`
+                  }}
                 </label>
                 <input
                   type="range"
@@ -200,7 +208,7 @@
         v-else-if="selectedReveal"
         :reveal="selectedReveal"
         :characters="characters"
-        :current-trust-level="0.6"
+        :current-trust-level="18"
         @update="updateEntity"
         @delete="deleteEntity"
       />
@@ -216,7 +224,7 @@
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import apiService from '../services/api.js'
-  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS } from '../constants/gameData.js'
+  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../constants/gameData.js'
 
   export default {
     name: 'RevealsPage',
@@ -387,6 +395,7 @@
         handleThresholdModeChange,
         DEFAULT_THRESHOLDS,
         THRESHOLD_LIMITS,
+        DC_LABELS,
       }
     },
   }

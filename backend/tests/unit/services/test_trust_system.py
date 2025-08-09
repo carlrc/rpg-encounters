@@ -41,4 +41,5 @@ def test_trust_calculation():
     base_trust = TrustCalculator.calculate_base_trust(character, player)
 
     # Assert that trust calculation works correctly
-    assert base_trust == 0.3
+    # Two matching full bias (e.g., 5+) traits
+    assert base_trust == 10
