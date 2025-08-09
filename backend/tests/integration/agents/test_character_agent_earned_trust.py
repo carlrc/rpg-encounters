@@ -9,7 +9,7 @@ from app.models.character import (
     Gender,
 )
 from app.models.player import Player, PlayerClass
-from app.models.nugget import NuggetLayer, TrustNugget
+from app.models.reveal import RevealLayer, Reveal
 from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager
@@ -17,9 +17,9 @@ from app.services.trust_calculator import TrustCalculator
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 from tests.utilities import assert_does_not_contain_keywords
 
-NUGGET_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
-NUGGET_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
-NUGGET_LEVEL_3 = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
+REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
+REVEAL_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
+REVEAL_LEVEL_3 = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
 
 CHARACTER = Character(
     id=100,
@@ -55,14 +55,14 @@ PLAYER = Player(
 CHAR_SYSTEM_PROMPT = import_system_prompt("character_agent")
 SCORE_SYSTEM_PROMPT = import_system_prompt("trust_scoring_agent")
 
-ALL_NUGGETS = [
-    TrustNugget(
+ALL_REVEALS = [
+    Reveal(
         id=1,  # Static ID since we're not persisting
         title="Inn Secrets",
         character_ids=[CHARACTER.id],
-        level_1_content=NUGGET_LEVEL_1,
-        level_2_content=NUGGET_LEVEL_2,
-        level_3_content=NUGGET_LEVEL_3,
+        level_1_content=REVEAL_LEVEL_1,
+        level_2_content=REVEAL_LEVEL_2,
+        level_3_content=REVEAL_LEVEL_3,
     )
 ]
 
@@ -93,10 +93,10 @@ async def test_personality_based_earned_trust_respects_public_level():
 
     _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
     # Bias with max base trust and basic inquiry should only result in public level
-    assert level == NuggetLayer.PUBLIC
+    assert level == RevealLayer.PUBLIC
 
 
 async def test_personality_based_earned_trust_respects_privileged_level():
@@ -111,15 +111,15 @@ async def test_personality_based_earned_trust_respects_privileged_level():
 
     _, level, _ = await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
     _, level, _ = await agent.chat(
         "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
 
     # Bias with max base trust and high alignment story should get privileged (not exclusive)
-    assert level == NuggetLayer.PRIVILEGED
+    assert level == RevealLayer.PRIVILEGED
 
 
 async def test_personality_based_earned_trust_respects_exclusive_level():
@@ -134,19 +134,19 @@ async def test_personality_based_earned_trust_respects_exclusive_level():
 
     await agent.chat(
         "Hi there, I'm wondering if you have any rooms available tonight?",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
     await agent.chat(
         "There isn't more? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
     _, level, _ = await agent.chat(
         "My good man, in fact I need a better room because I'm here to help the town on an important quest...",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
 
     # Bias with max base trust and high alignment story with repetition should get exclusive
-    assert level == NuggetLayer.EXCLUSIVE
+    assert level == RevealLayer.EXCLUSIVE
 
 
 async def test_personality_based_earned_trust_can_be_negative():
@@ -181,20 +181,20 @@ async def test_personality_based_earned_trust_can_be_negative():
 
     _, _, trust_adjustment = await agent.chat(
         "I need a room for the night you dirty old man!",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
 
     assert trust_adjustment < 0.0
 
     _, _, trust_adjustment = await agent.chat(
         "That isn't good enough you old man!",
-        ALL_NUGGETS,
+        ALL_REVEALS,
     )
 
     assert trust_adjustment < 0.0
 
 
-async def test_character_agent_handles_multiple_nuggets():
+async def test_character_agent_handles_multiple_reveals():
     agent = CharacterAgent(
         CHARACTER,
         PLAYER,
@@ -204,9 +204,9 @@ async def test_character_agent_handles_multiple_nuggets():
         TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
-    nuggets = [
-        *ALL_NUGGETS,
-        TrustNugget(
+    reveals = [
+        *ALL_REVEALS,
+        Reveal(
             id=2,
             title="The Garden Vandal",
             character_ids=[1, 3, 4],
@@ -219,24 +219,24 @@ async def test_character_agent_handles_multiple_nuggets():
     garden_keywords = ["vandalizing", "garden", "foreigner", "Merry"]
     room_keywords = ["room", "standard", "balcony", "corridor"]
 
-    # Start asking about the first nugget (available rooms) and switch mid conversation to the garden vandal
+    # Start asking about the first reveal (available rooms) and switch mid conversation to the garden vandal
     result, _, _ = await agent.chat(
         "I need a room",
-        nuggets,
+        reveals,
     )
 
     assert_does_not_contain_keywords(result, garden_keywords)
 
     result, _, _ = await agent.chat(
         "I want a better one with a view",
-        nuggets,
+        reveals,
     )
 
     assert_does_not_contain_keywords(result, garden_keywords)
 
     result, _, _ = await agent.chat(
         "Alright, also i want to know about this garden vandal. What gossip do you have?",
-        nuggets,
+        reveals,
     )
 
     assert_does_not_contain_keywords(result, room_keywords)

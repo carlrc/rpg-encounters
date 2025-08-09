@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import logging
-from app.models.nugget import TrustNuggetCreate
-from app.data.nugget_store import nugget_store
+from app.models.reveal import RevealCreate
+from app.data.reveal_store import reveal_store
 from app.services.trust_calculator import TrustCalculator
 from tests.fixtures.characters import characters_db
 from tests.fixtures.players import players_db
@@ -11,14 +11,14 @@ logger = logging.getLogger(__name__)
 
 
 def setup_test_data():
-    """Set up test characters, players, and nuggets"""
+    """Set up test characters, players, and reveals"""
 
     character = characters_db[1]  # Bingo Bracegirdle - Halfling Barkeep
 
     player = players_db[2]  # Pippin Greenhill - Halfling Rogue
 
-    nuggets_data = [
-        TrustNuggetCreate(
+    reveals_data = [
+        RevealCreate(
             title="Tavern Knowledge",
             character_ids=[character.id],
             level_1_content="I've been running this tavern for over twenty years and know everyone in town.",
@@ -27,8 +27,8 @@ def setup_test_data():
         )
     ]
 
-    for nugget_data in nuggets_data:
-        nugget_store.create_nugget(nugget_data)
+    for reveal_data in reveals_data:
+        reveal_store.create_reveal(reveal_data)
 
     return character, player
 

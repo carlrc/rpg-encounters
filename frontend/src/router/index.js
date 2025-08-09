@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import PlayersPage from '../views/PlayersPage.vue'
 import CharactersPage from '../views/CharactersPage.vue'
-import NuggetsPage from '../views/NuggetsPage.vue'
+import RevealsPage from '../views/NuggetsPage.vue'
 import EncountersPage from '../views/EncountersPage.vue'
 
 const routes = [
@@ -20,9 +20,9 @@ const routes = [
     component: CharactersPage,
   },
   {
-    path: '/nuggets',
-    name: 'Trust Nuggets',
-    component: NuggetsPage,
+    path: '/reveals',
+    name: 'Reveals',
+    component: RevealsPage,
   },
   {
     path: '/encounters',
