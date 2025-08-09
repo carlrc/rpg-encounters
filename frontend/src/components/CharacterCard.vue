@@ -202,7 +202,7 @@
       <div class="bias-section">
         <h4 class="bias-section-title">Character Biases</h4>
         <p class="bias-section-description">
-          Configure how this character feels about different player characteristics (±0.3 trust
+          Configure how this character feels about different player characteristics (±5 DC trust
           modifier each)
         </p>
 
@@ -452,16 +452,13 @@
             storytelling_keywords: [],
           })
 
-          // Refresh display biases to show the updated biases
-          loadDisplayBiases()
-
           isEditing.value = false
         }
       }
 
       const addBiasPreference = (category) => {
         // Add a new empty preference object to the array
-        editForm.biases[category].push({ option: '', value: 0.0 })
+        editForm.biases[category].push({ option: '', value: 0 })
       }
 
       const updateBiasPreference = (category, index, option, value) => {
@@ -519,7 +516,7 @@
 
       const formatBiasValue = (value) => {
         const sign = value >= 0 ? '+' : ''
-        return `${sign}${value.toFixed(1)}`
+        return `${sign}${value}`
       }
 
       const getBiasClass = (value) => {
@@ -562,6 +559,20 @@
         () => {
           loadDisplayBiases()
         }
+      )
+
+      // Watch for changes in character bias properties
+      watch(
+        () => [
+          props.character.race_preferences,
+          props.character.class_preferences,
+          props.character.gender_preferences,
+          props.character.size_preferences,
+        ],
+        () => {
+          loadDisplayBiases()
+        },
+        { deep: true }
       )
 
       return {

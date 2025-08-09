@@ -14,13 +14,13 @@
       <input
         type="range"
         v-model.number="sliderValue"
-        min="-0.3"
-        max="0.3"
-        step="0.1"
+        min="-5"
+        max="5"
+        step="1"
         class="bias-slider"
         @input="onSliderChange"
       />
-      <span class="bias-value">{{ sliderValue.toFixed(1) }}</span>
+      <span class="bias-value">{{ formatDCValue(sliderValue) }}</span>
       <button @click="onRemove" class="bias-remove-btn" type="button">×</button>
     </div>
   </div>
@@ -87,6 +87,11 @@
         emit('remove', selectedOption.value)
       }
 
+      const formatDCValue = (value) => {
+        const sign = value >= 0 ? '+' : ''
+        return `${sign}${value}`
+      }
+
       // Watch for changes in initialOption and initialValue (for editing existing preferences)
       watch(
         () => props.initialOption,
@@ -114,6 +119,7 @@
         onOptionChange,
         onSliderChange,
         onRemove,
+        formatDCValue,
       }
     },
   }

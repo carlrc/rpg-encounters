@@ -138,7 +138,10 @@
           <div v-if="editForm.threshold_mode === 'custom'" class="custom-thresholds">
             <div class="threshold-slider">
               <label class="threshold-label">
-                Privileged Content: {{ (editForm.privileged_threshold * 100).toFixed(0) }}%
+                Privileged Content:
+                {{
+                  DC_LABELS[editForm.privileged_threshold] || `DC ${editForm.privileged_threshold}`
+                }}
               </label>
               <input
                 type="range"
@@ -203,7 +206,10 @@
           <div v-if="editForm.threshold_mode === 'custom'" class="custom-thresholds">
             <div class="threshold-slider">
               <label class="threshold-label">
-                Exclusive Content: {{ (editForm.exclusive_threshold * 100).toFixed(0) }}%
+                Exclusive Content:
+                {{
+                  DC_LABELS[editForm.exclusive_threshold] || `DC ${editForm.exclusive_threshold}`
+                }}
               </label>
               <input
                 type="range"
@@ -232,7 +238,7 @@
 <script>
   import { ref, reactive, computed } from 'vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
-  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS } from '../constants/gameData.js'
+  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../constants/gameData.js'
 
   export default {
     name: 'RevealCard',
@@ -395,6 +401,7 @@
         handleThresholdModeChange,
         DEFAULT_THRESHOLDS,
         THRESHOLD_LIMITS,
+        DC_LABELS,
       }
     },
   }
