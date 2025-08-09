@@ -21,4 +21,4 @@ reveal_db: Dict[int, Reveal] = {
 }
 
 
-next_reveal_id = 2
+next_reveal_id = 3

@@ -88,31 +88,31 @@ class ApiService {
     })
   }
 
-  // Nugget CRUD operations
-  async getNuggets() {
-    return this.request('/nuggets')
+  // Reveal CRUD operations
+  async getReveals() {
+    return this.request('/reveals')
   }
 
-  async getNugget(id) {
-    return this.request(`/nuggets/${id}`)
+  async getReveal(id) {
+    return this.request(`/reveals/${id}`)
   }
 
-  async createNugget(nuggetData) {
-    return this.request('/nuggets', {
+  async createReveal(revealData) {
+    return this.request('/reveals', {
       method: 'POST',
-      body: JSON.stringify(nuggetData),
+      body: JSON.stringify(revealData),
     })
   }
 
-  async updateNugget(id, nuggetData) {
-    return this.request(`/nuggets/${id}`, {
+  async updateReveal(id, revealData) {
+    return this.request(`/reveals/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(nuggetData),
+      body: JSON.stringify(revealData),
     })
   }
 
-  async deleteNugget(id) {
-    return this.request(`/nuggets/${id}`, {
+  async deleteReveal(id) {
+    return this.request(`/reveals/${id}`, {
       method: 'DELETE',
     })
   }

@@ -11,7 +11,7 @@ export function useEntityCRUD(entityType) {
   // API method names based on entity type
   const getPlural = (type) => {
     if (type === 'Memory') return 'Memories'
-    if (type === 'Nugget') return 'Nuggets'
+    if (type === 'Reveal') return 'Reveals'
     return `${type}s`
   }
 

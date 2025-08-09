@@ -2,21 +2,21 @@
   <SplitViewLayout
     :items="entities"
     :selected-item-id="selectedEntityId"
-    list-title="Trust Nuggets"
-    create-button-text="Add Nugget"
-    empty-message="No trust nuggets yet"
+    list-title="Reveals"
+    create-button-text="Add Reveal"
+    empty-message="No reveals yet"
     @select-item="selectEntity"
     @create-item="startCreate"
   >
     <template #detail-content>
-      <div v-if="loading" class="loading">Loading nuggets...</div>
+      <div v-if="loading" class="loading">Loading reveals...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
 
       <EmptyState
-        v-else-if="!selectedNugget && !showCreateForm"
+        v-else-if="!selectedReveal && !showCreateForm"
         icon="🧠"
-        title="No Nugget Selected"
-        message="Select a trust nugget from the list to view details, or create a new one."
+        title="No Reveal Selected"
+        message="Select a trust reveal from the list to view details, or create a new one."
       />
 
       <div v-else-if="showCreateForm" class="shared-card">
@@ -24,7 +24,7 @@
           <!-- Title -->
           <input
             v-model="createForm.title"
-            placeholder="Nugget title"
+            placeholder="Reveal title"
             class="shared-input shared-input-name"
           />
 
@@ -196,9 +196,9 @@
         </div>
       </div>
 
-      <NuggetCard
-        v-else-if="selectedNugget"
-        :nugget="selectedNugget"
+      <RevealCard
+        v-else-if="selectedReveal"
+        :reveal="selectedReveal"
         :characters="characters"
         :current-trust-level="0.6"
         @update="updateEntity"
@@ -212,18 +212,18 @@
   import { ref, reactive, computed, onMounted } from 'vue'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
-  import NuggetCard from '../components/NuggetCard.vue'
+  import RevealCard from '../components/NuggetCard.vue'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import apiService from '../services/api.js'
   import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS } from '../constants/gameData.js'
 
   export default {
-    name: 'NuggetsPage',
+    name: 'RevealsPage',
     components: {
       SplitViewLayout,
       EmptyState,
-      NuggetCard,
+      RevealCard,
       BaseTextareaWithCharacterCounter,
     },
     setup() {
@@ -240,7 +240,7 @@
         selectEntity,
         startCreate,
         cancelCreate,
-      } = useEntityCRUD('Nugget')
+      } = useEntityCRUD('Reveal')
 
       const characters = ref([])
 
@@ -281,7 +281,7 @@
         return baseValid && level2Valid && level3Valid && thresholdValid
       })
 
-      const selectedNugget = computed(() => {
+      const selectedReveal = computed(() => {
         return entities.value.find((n) => n.id === selectedEntityId.value) || null
       })
 
@@ -311,7 +311,7 @@
       const saveCreate = async () => {
         if (isCreateFormValid.value) {
           try {
-            const nuggetData = {
+            const revealData = {
               title: createForm.title.trim(),
               character_ids: createForm.character_ids.map((id) => parseInt(id)),
               level_1_content: createForm.level_1_content.trim(),
@@ -322,14 +322,14 @@
             // Add custom thresholds if using custom mode
             if (createForm.threshold_mode === 'custom') {
               if (createForm.enable_level_2) {
-                nuggetData.privileged_threshold = createForm.privileged_threshold
+                revealData.privileged_threshold = createForm.privileged_threshold
               }
               if (createForm.enable_level_3) {
-                nuggetData.exclusive_threshold = createForm.exclusive_threshold
+                revealData.exclusive_threshold = createForm.exclusive_threshold
               }
             }
 
-            await createEntity(nuggetData)
+            await createEntity(revealData)
             resetCreateForm()
           } catch (err) {
             // Error handling is done in useEntityCRUD
@@ -372,7 +372,7 @@
         error,
         selectedEntityId,
         showCreateForm,
-        selectedNugget,
+        selectedReveal,
         characters,
         createForm,
         isCreateFormValid,

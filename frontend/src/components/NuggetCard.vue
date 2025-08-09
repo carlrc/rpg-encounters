@@ -1,8 +1,8 @@
 <template>
   <div class="shared-card">
-    <div v-if="!isEditing" class="nugget-display">
+    <div v-if="!isEditing" class="reveal-display">
       <!-- Title -->
-      <h2 class="shared-title">{{ nugget.title }}</h2>
+      <h2 class="shared-title">{{ reveal.title }}</h2>
 
       <!-- Trust Level Display -->
       <div class="shared-field-columns">
@@ -10,23 +10,23 @@
           <div class="shared-field">
             <div class="shared-field-label">Level 1: Public</div>
             <div class="shared-field-value">
-              <div class="shared-text-display">{{ nugget.level_1_content }}</div>
+              <div class="shared-text-display">{{ reveal.level_1_content }}</div>
             </div>
           </div>
 
-          <div v-if="nugget.level_2_content" class="shared-field">
+          <div v-if="reveal.level_2_content" class="shared-field">
             <div class="shared-field-label">Level 2: Privileged</div>
             <div class="shared-field-value">
-              <div class="shared-text-display">{{ nugget.level_2_content }}</div>
+              <div class="shared-text-display">{{ reveal.level_2_content }}</div>
             </div>
           </div>
         </div>
 
         <div class="shared-field-column">
-          <div v-if="nugget.level_3_content" class="shared-field">
+          <div v-if="reveal.level_3_content" class="shared-field">
             <div class="shared-field-label">Level 3: Exclusive</div>
             <div class="shared-field-value">
-              <div class="shared-text-display">{{ nugget.level_3_content }}</div>
+              <div class="shared-text-display">{{ reveal.level_3_content }}</div>
             </div>
           </div>
 
@@ -35,7 +35,7 @@
             <div class="shared-field-value">
               <div class="shared-tags-display">
                 <span
-                  v-for="characterId in nugget.character_ids"
+                  v-for="characterId in reveal.character_ids"
                   :key="characterId"
                   class="shared-tag-bubble"
                 >
@@ -54,13 +54,13 @@
       </div>
     </div>
 
-    <div v-else class="nugget-edit">
+    <div v-else class="reveal-edit">
       <!-- Edit Form -->
       <div class="shared-form">
         <!-- Title -->
         <input
           v-model="editForm.title"
-          placeholder="Nugget title"
+          placeholder="Reveal title"
           class="shared-input shared-input-name"
         />
 
@@ -235,12 +235,12 @@
   import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS } from '../constants/gameData.js'
 
   export default {
-    name: 'NuggetCard',
+    name: 'RevealCard',
     components: {
       BaseTextareaWithCharacterCounter,
     },
     props: {
-      nugget: {
+      reveal: {
         type: Object,
         required: true,
       },
@@ -306,21 +306,21 @@
       }
 
       const startEdit = () => {
-        // Determine if nugget has custom thresholds
+        // Determine if reveal has custom thresholds
         const hasCustomThresholds =
-          props.nugget.privileged_threshold !== null || props.nugget.exclusive_threshold !== null
+          props.reveal.privileged_threshold !== null || props.reveal.exclusive_threshold !== null
 
         Object.assign(editForm, {
-          title: props.nugget.title,
-          character_ids: [...props.nugget.character_ids],
-          level_1_content: props.nugget.level_1_content || '',
-          level_2_content: props.nugget.level_2_content || '',
-          level_3_content: props.nugget.level_3_content || '',
-          enable_level_2: !!props.nugget.level_2_content,
-          enable_level_3: !!props.nugget.level_3_content,
+          title: props.reveal.title,
+          character_ids: [...props.reveal.character_ids],
+          level_1_content: props.reveal.level_1_content || '',
+          level_2_content: props.reveal.level_2_content || '',
+          level_3_content: props.reveal.level_3_content || '',
+          enable_level_2: !!props.reveal.level_2_content,
+          enable_level_3: !!props.reveal.level_3_content,
           threshold_mode: hasCustomThresholds ? 'custom' : 'default',
-          privileged_threshold: props.nugget.privileged_threshold,
-          exclusive_threshold: props.nugget.exclusive_threshold,
+          privileged_threshold: props.reveal.privileged_threshold,
+          exclusive_threshold: props.reveal.exclusive_threshold,
         })
         isEditing.value = true
       }
@@ -349,7 +349,7 @@
             }
           }
 
-          emit('update', props.nugget.id, updateData)
+          emit('update', props.reveal.id, updateData)
           isEditing.value = false
         }
       }
@@ -374,9 +374,9 @@
       }
 
       const confirmDelete = () => {
-        const characterNames = getCharacterNames(props.nugget.character_ids)
-        if (confirm(`Are you sure you want to delete the nugget for ${characterNames}?`)) {
-          emit('delete', props.nugget.id)
+        const characterNames = getCharacterNames(props.reveal.character_ids)
+        if (confirm(`Are you sure you want to delete the reveal for ${characterNames}?`)) {
+          emit('delete', props.reveal.id)
         }
       }
 
