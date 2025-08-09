@@ -212,7 +212,7 @@
   import { ref, reactive, computed, onMounted } from 'vue'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
-  import RevealCard from '../components/NuggetCard.vue'
+  import RevealCard from '../components/RevealCard.vue'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import apiService from '../services/api.js'
