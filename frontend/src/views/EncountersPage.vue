@@ -9,8 +9,8 @@
     @create-item="() => {}"
   >
     <template #detail-content>
-      <div v-if="loading" class="loading">Loading characters...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-if="loading" class="shared-loading">Loading characters...</div>
+      <div v-else-if="error" class="shared-error">{{ error }}</div>
 
       <EmptyState
         v-else-if="!selectedCharacter"
@@ -75,6 +75,7 @@
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
+  import { getInitials } from '../utils/avatarUtils.js'
   import apiService from '../services/api.js'
 
   export default {
@@ -112,16 +113,6 @@
         if (!selectedPlayerId.value) return 'Select a player to begin'
         return 'Click Speak to start conversation'
       })
-
-      const getInitials = (name) => {
-        if (!name) return '?'
-        return name
-          .split(' ')
-          .map((word) => word[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2)
-      }
 
       const loadCharacters = async () => {
         try {
@@ -350,29 +341,6 @@
 </script>
 
 <style scoped>
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
-    font-size: 1.1em;
-  }
-
-  .error {
-    text-align: left;
-    padding: 20px;
-    color: #dc3545;
-    font-size: 0.95em;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    margin: 20px;
-    white-space: pre-line;
-    max-height: 400px;
-    overflow-y: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.5;
-  }
-
   .encounter-interface {
     max-width: 600px;
     margin: 0 auto;

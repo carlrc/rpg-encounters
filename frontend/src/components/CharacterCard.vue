@@ -320,6 +320,7 @@
   import { RACES, SIZES, ALIGNMENTS, CLASSES } from '../constants/gameData.js'
   import { CHARACTER_LIMITS } from '../constants/validation.js'
   import { useFormValidation } from '../utils/useFormValidation.js'
+  import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
@@ -364,18 +365,7 @@
 
       const { isFormValid } = useFormValidation(editForm, 'CHARACTER')
 
-      // Gender options (not in gameData.js)
-      const genders = ['male', 'female', 'nonbinary']
-
-      // Helper function to get gender emoji
-      const getGenderEmoji = (gender) => {
-        const genderEmojis = {
-          male: '♂️',
-          female: '♀️',
-          nonbinary: '⚧️',
-        }
-        return genderEmojis[gender] || ''
-      }
+      const { genders, getGenderEmoji } = useDropdownOptions()
 
       const loadTrustProfile = () => {
         // Trust profiles are now part of the character model

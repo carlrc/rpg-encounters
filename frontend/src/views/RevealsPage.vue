@@ -9,8 +9,8 @@
     @create-item="startCreate"
   >
     <template #detail-content>
-      <div v-if="loading" class="loading">Loading reveals...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
+      <div v-if="loading" class="shared-loading">Loading reveals...</div>
+      <div v-else-if="error" class="shared-error">{{ error }}</div>
 
       <EmptyState
         v-else-if="!selectedReveal && !showCreateForm"
@@ -29,17 +29,11 @@
           />
 
           <!-- Character Selection -->
-          <div class="character-field">
-            <label class="shared-field-label">Characters</label>
-            <div class="character-selection">
-              <div v-for="character in characters" :key="character.id" class="character-checkbox">
-                <label class="character-option">
-                  <input type="checkbox" :value="character.id" v-model="createForm.character_ids" />
-                  <span>{{ character.name }}</span>
-                </label>
-              </div>
-            </div>
-          </div>
+          <CharacterSelector
+            v-model="createForm.character_ids"
+            :characters="characters"
+            label="Characters"
+          />
 
           <!-- Level 1 Content (Always Required) -->
           <div class="shared-field shared-field-full-width">
@@ -75,32 +69,26 @@
             />
           </div>
 
-          <!-- Level 2 Trust Threshold -->
+          <!-- Level 2 Threshold Options -->
           <div v-if="createForm.enable_level_2" class="threshold-section">
+            <h4 class="threshold-title">Level 2: Privileged Content Threshold</h4>
             <div class="threshold-options">
-              <label class="threshold-option">
+              <label class="shared-radio-option">
                 <input
                   type="radio"
                   value="default"
-                  v-model="createForm.threshold_mode"
-                  @change="handleThresholdModeChange"
+                  v-model="createForm.privileged_threshold_mode"
+                  @change="handlePrivilegedThresholdModeChange"
                 />
                 <span>Use Default Threshold</span>
               </label>
-
-              <label class="threshold-option">
-                <input
-                  type="radio"
-                  value="custom"
-                  v-model="createForm.threshold_mode"
-                  @change="handleThresholdModeChange"
-                />
+              <label class="shared-radio-option">
+                <input type="radio" value="custom" v-model="createForm.privileged_threshold_mode" />
                 <span>Custom Threshold</span>
               </label>
             </div>
 
-            <!-- Level 2 Custom Threshold Slider -->
-            <div v-if="createForm.threshold_mode === 'custom'" class="custom-thresholds">
+            <div v-if="createForm.privileged_threshold_mode === 'custom'" class="custom-thresholds">
               <div class="threshold-slider">
                 <label class="threshold-label">
                   Privileged Content:
@@ -144,32 +132,26 @@
             </div>
           </div>
 
-          <!-- Level 3 Trust Threshold -->
+          <!-- Level 3 Threshold Options -->
           <div v-if="createForm.enable_level_3" class="threshold-section">
+            <h4 class="threshold-title">Level 3: Exclusive Content Threshold</h4>
             <div class="threshold-options">
-              <label class="threshold-option">
+              <label class="shared-radio-option">
                 <input
                   type="radio"
                   value="default"
-                  v-model="createForm.threshold_mode"
-                  @change="handleThresholdModeChange"
+                  v-model="createForm.exclusive_threshold_mode"
+                  @change="handleExclusiveThresholdModeChange"
                 />
                 <span>Use Default Threshold</span>
               </label>
-
-              <label class="threshold-option">
-                <input
-                  type="radio"
-                  value="custom"
-                  v-model="createForm.threshold_mode"
-                  @change="handleThresholdModeChange"
-                />
+              <label class="shared-radio-option">
+                <input type="radio" value="custom" v-model="createForm.exclusive_threshold_mode" />
                 <span>Custom Threshold</span>
               </label>
             </div>
 
-            <!-- Level 3 Custom Threshold Slider -->
-            <div v-if="createForm.threshold_mode === 'custom'" class="custom-thresholds">
+            <div v-if="createForm.exclusive_threshold_mode === 'custom'" class="custom-thresholds">
               <div class="threshold-slider">
                 <label class="threshold-label">
                   Exclusive Content:
@@ -222,7 +204,9 @@
   import EmptyState from '../components/ui/EmptyState.vue'
   import RevealCard from '../components/RevealCard.vue'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
+  import CharacterSelector from '../components/entity/CharacterSelector.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
+  import { useRevealValidation } from '../composables/useRevealValidation.js'
   import apiService from '../services/api.js'
   import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../constants/gameData.js'
 
@@ -233,6 +217,7 @@
       EmptyState,
       RevealCard,
       BaseTextareaWithCharacterCounter,
+      CharacterSelector,
     },
     setup() {
       const {
@@ -260,34 +245,13 @@
         level_3_content: '',
         enable_level_2: false,
         enable_level_3: false,
-        threshold_mode: 'default',
+        privileged_threshold_mode: 'default',
+        exclusive_threshold_mode: 'default',
         privileged_threshold: DEFAULT_THRESHOLDS.privileged,
         exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
       })
 
-      const isCreateFormValid = computed(() => {
-        const baseValid =
-          createForm.title.trim() &&
-          createForm.character_ids.length > 0 &&
-          createForm.level_1_content.trim() &&
-          createForm.level_1_content.length <= 500
-
-        const level2Valid =
-          !createForm.enable_level_2 ||
-          (createForm.level_2_content.trim() && createForm.level_2_content.length <= 500)
-
-        const level3Valid =
-          !createForm.enable_level_3 ||
-          (createForm.level_3_content.trim() && createForm.level_3_content.length <= 500)
-
-        const thresholdValid =
-          createForm.threshold_mode === 'default' ||
-          (createForm.privileged_threshold < createForm.exclusive_threshold &&
-            createForm.exclusive_threshold - createForm.privileged_threshold >=
-              THRESHOLD_LIMITS.minGap)
-
-        return baseValid && level2Valid && level3Valid && thresholdValid
-      })
+      const { isFormValid: isCreateFormValid } = useRevealValidation(createForm)
 
       const selectedReveal = computed(() => {
         return entities.value.find((n) => n.id === selectedEntityId.value) || null
@@ -310,7 +274,8 @@
           level_3_content: '',
           enable_level_2: false,
           enable_level_3: false,
-          threshold_mode: 'default',
+          privileged_threshold_mode: 'default',
+          exclusive_threshold_mode: 'default',
           privileged_threshold: DEFAULT_THRESHOLDS.privileged,
           exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
         })
@@ -327,14 +292,12 @@
               level_3_content: createForm.enable_level_3 ? createForm.level_3_content.trim() : null,
             }
 
-            // Add custom thresholds if using custom mode
-            if (createForm.threshold_mode === 'custom') {
-              if (createForm.enable_level_2) {
-                revealData.privileged_threshold = createForm.privileged_threshold
-              }
-              if (createForm.enable_level_3) {
-                revealData.exclusive_threshold = createForm.exclusive_threshold
-              }
+            // Add custom thresholds based on individual modes
+            if (createForm.enable_level_2 && createForm.privileged_threshold_mode === 'custom') {
+              revealData.privileged_threshold = createForm.privileged_threshold
+            }
+            if (createForm.enable_level_3 && createForm.exclusive_threshold_mode === 'custom') {
+              revealData.exclusive_threshold = createForm.exclusive_threshold
             }
 
             await createEntity(revealData)
@@ -357,9 +320,14 @@
         }
       }
 
-      const handleThresholdModeChange = () => {
-        if (createForm.threshold_mode === 'default') {
+      const handlePrivilegedThresholdModeChange = () => {
+        if (createForm.privileged_threshold_mode === 'default') {
           createForm.privileged_threshold = DEFAULT_THRESHOLDS.privileged
+        }
+      }
+
+      const handleExclusiveThresholdModeChange = () => {
+        if (createForm.exclusive_threshold_mode === 'default') {
           createForm.exclusive_threshold = DEFAULT_THRESHOLDS.exclusive
         }
       }
@@ -392,7 +360,8 @@
         cancelCreate: handleCancelCreate,
         handleLevel2Toggle,
         handleLevel3Toggle,
-        handleThresholdModeChange,
+        handlePrivilegedThresholdModeChange,
+        handleExclusiveThresholdModeChange,
         DEFAULT_THRESHOLDS,
         THRESHOLD_LIMITS,
         DC_LABELS,
@@ -402,29 +371,6 @@
 </script>
 
 <style scoped>
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
-    font-size: 1.1em;
-  }
-
-  .error {
-    text-align: left;
-    padding: 20px;
-    color: #dc3545;
-    font-size: 0.95em;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    margin: 20px;
-    white-space: pre-line;
-    max-height: 400px;
-    overflow-y: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.5;
-  }
-
   .character-field {
     margin-bottom: 1.5rem;
   }
