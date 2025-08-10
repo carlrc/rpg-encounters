@@ -5,6 +5,7 @@ CONTENT_LIMIT = 200
 
 
 class MemoryBase(BaseModel):
+    title: str = Field(..., description="Title of the memory")
     content: str = Field(..., description="Static memories to assign to characters")
     character_ids: List[int]
 

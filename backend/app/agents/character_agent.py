@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from dotenv import load_dotenv
 from app.models.character import Character
 from pydantic_ai import Agent, NativeOutput, RunContext
@@ -14,6 +14,7 @@ from app.services.conversation_manager import ConversationManager
 import logging
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 import asyncio
+from app.models.memory import Memory
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ class CharacterAgentOutput(BaseModel):
     public_response: str
     privileged_response: Optional[str] = None
     exclusive_response: Optional[str] = None
-    reveal_id: int
+    reveal_id: Optional[int] = None
 
 
 class CharacterAgent:
@@ -33,6 +34,7 @@ class CharacterAgent:
         character: Character,
         player: Player,
         system_prompt: str,
+        memories: List[Memory],
         # TODO: Trust should not be in this class
         trust_state: TrustState,
         conversation_manager: ConversationManager,
@@ -41,21 +43,19 @@ class CharacterAgent:
         load_dotenv()
         self.character = character
         self.player = player
+        self.memories = memories
         self.trust = trust_state
         self.convo_manager = conversation_manager
         self.trust_calculator_agent = trust_calculator_agent
 
-        # Build trust-aware instructions
-        trust_instruction = self._build_base_instruction(self.player)
-
         agent = Agent(
             OpenAIModel(model_name="gpt-4o"),
             system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=trust_instruction,
+            instructions=self._build_base_instruction(self.player),
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 CharacterAgentOutput,
-                description="Fill in the different response levels and return the ID of the reveal you used.",
+                description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
             ),
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
@@ -68,7 +68,7 @@ class CharacterAgent:
             instruction_parts = []
             instruction_parts.append("\n# Available Reveals")
             instruction_parts.append(
-                "**IMPORTANT**: Select the reveal which is most relevant to the players message"
+                "**IMPORTANT**: Select the reveal which is most relevant to the players message. If none available return None."
             )
 
             for reveal in all_reveals:
@@ -103,25 +103,43 @@ class CharacterAgent:
 
         self.trust.earned_trust += trust_result.score
 
-        # Find the selected reveal by ID
-        selected_reveal = None
-        for reveal in reveals:
-            if reveal.id == self.run_result.output.reveal_id:
-                selected_reveal = reveal
-                break
-
-        if selected_reveal is None:
-            raise RuntimeError(
-                f"Reveal with ID {self.run_result.output.reveal_id} not found in available reveals"
+        # TODO: This if/else cascade needs to be tested with mocks
+        selected_response = None
+        level = None
+        # If there are no reveals assigned to the character default to public response
+        if not reveals:
+            logger.info(
+                f"No reveals setup for Character {self.character.id}. Defaulting to PUBLIC response."
             )
+            selected_response = self.run_result.output.public_response
+            level = RevealLayer.PUBLIC
+        else:
+            # If reveals are assigned to this character find what the LLM returned
+            selected_reveal = None
+            for reveal in reveals:
+                if reveal.id == self.run_result.output.reveal_id:
+                    selected_reveal = reveal
+                    break
 
-        selected_response, level = RevealService.select_response_by_trust(
-            public_response=self.run_result.output.public_response,
-            privileged_response=self.run_result.output.privileged_response,
-            exclusive_response=self.run_result.output.exclusive_response,
-            total_trust=self.trust.total_trust,
-            reveal=selected_reveal,
-        )
+            # If the LLM returns an invalid reveal_id, default to the public response and log the error
+            if selected_reveal is None:
+                logger.error(
+                    f"reveal_id {self.run_result.output.reveal_id} for Character {self.character.id} not found in available list"
+                )
+                logger.info(
+                    f"Defaulting to PUBLIC response for Character {self.character.id}. Invalid reveal_id returned."
+                )
+                selected_response = self.run_result.output.public_response
+                level = RevealLayer.PUBLIC
+            else:
+                # If the reveal_id is found select the response based on trust
+                selected_response, level = RevealService.select_response_by_trust(
+                    public_response=self.run_result.output.public_response,
+                    privileged_response=self.run_result.output.privileged_response,
+                    exclusive_response=self.run_result.output.exclusive_response,
+                    total_trust=self.trust.total_trust,
+                    reveal=selected_reveal,
+                )
 
         messages = self.run_result.new_messages()
 
@@ -133,9 +151,19 @@ class CharacterAgent:
         return selected_response, level, trust_result.score
 
     def _build_base_instruction(self, player: Player) -> str:
-        """Build streamlined trust-aware instruction for the AI"""
+        base_instruction = """
+            # World Context
+            The following are important memories that shape your understanding of the world and past events:
+            """
 
-        base_instruction = f"""# Current Interaction Context
+        if self.memories:
+            for memory in self.memories:
+                base_instruction += f"""
+            - {memory.content}
+            """
+
+        base_instruction += f"""
+            # Current Interaction Context
             You are speaking with **{player.name}**: a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}."""
 
         return base_instruction

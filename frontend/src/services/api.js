@@ -117,6 +117,35 @@ class ApiService {
     })
   }
 
+  // Memory CRUD operations
+  async getMemories() {
+    return this.request('/memories')
+  }
+
+  async getMemory(id) {
+    return this.request(`/memories/${id}`)
+  }
+
+  async createMemory(memoryData) {
+    return this.request('/memories', {
+      method: 'POST',
+      body: JSON.stringify(memoryData),
+    })
+  }
+
+  async updateMemory(id, memoryData) {
+    return this.request(`/memories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(memoryData),
+    })
+  }
+
+  async deleteMemory(id) {
+    return this.request(`/memories/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
   // Note: Trust profiles are now integrated into character model
   // Trust profile data is managed through character endpoints
 }

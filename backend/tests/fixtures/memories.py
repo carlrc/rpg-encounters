@@ -2,14 +2,16 @@ from app.models.memory import Memory
 
 memories_db = {
     1: Memory(
-        id=1, 
-        content="Remembers the ancient prophecy about the chosen one who will unite the kingdoms",
+        id=1,
+        title="The Old Took's Tale",
+        content="Recalls the story of Old Took's adventure beyond the Shire, when he ventured to the Lonely Mountain and returned with tales of dwarven halls and distant lands",
         character_ids=[1, 2]
     ),
     2: Memory(
         id=2,
-        content="Witnessed the great battle at Silverbrook where the dragon was defeated",
-        character_ids=[1]
+        title="The Great Harvest Festival",
+        content="Remembers the legendary harvest festival at Hobbiton where the entire Shire gathered, and Farmer Maggot's prize-winning pumpkins were stolen by mysterious folk",
+        character_ids=[1, 2]
     ),
 }
 
