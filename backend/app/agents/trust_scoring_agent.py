@@ -16,7 +16,7 @@ MAX_MESSAGE_HISTORY = 10
 
 
 class TrustCalculatorAgentOutput(BaseModel):
-    score: float
+    score: int
     reason: str
 
 

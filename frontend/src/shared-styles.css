@@ -652,3 +652,326 @@
     width: 100%;
   }
 }
+
+/* ===== ADDITIONAL SHARED STYLES FOR REFACTORED COMPONENTS ===== */
+
+/* Character limit info - previously duplicated in multiple components */
+.character-limit-info {
+  font-size: 0.8em;
+  color: #6c757d;
+  text-align: right;
+  margin-top: 4px;
+}
+
+/* Field wrapper styles for form components */
+.field-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Enhanced error states */
+.field-has-errors .shared-input,
+.field-has-errors .shared-textarea,
+.field-has-errors .shared-select {
+  border-color: var(--danger-color);
+  background-color: rgba(220, 53, 69, 0.05);
+}
+
+.field-has-errors .shared-input:focus,
+.field-has-errors .shared-textarea:focus,
+.field-has-errors .shared-select:focus {
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+/* Field error messages */
+.field-errors {
+  margin-top: var(--spacing-xs);
+}
+
+.field-error {
+  color: var(--danger-color);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.field-error:last-child {
+  margin-bottom: 0;
+}
+
+.field-error::before {
+  content: '⚠';
+  font-size: var(--font-size-xs);
+}
+
+/* Field help text */
+.field-help {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+  line-height: 1.4;
+}
+
+/* Compact field variant */
+.field-variant-compact .shared-field-label {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-xs);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Disabled field state */
+.field-disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Character selection styles (for reveals) */
+.character-field {
+  margin-bottom: 1.5rem;
+}
+
+.character-selection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-height: 150px;
+  overflow-y: auto;
+  padding: var(--spacing-lg);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-light);
+}
+
+.character-checkbox {
+  display: flex;
+  align-items: center;
+}
+
+/* Level content sections for reveals */
+.level-content-section {
+  border-top: 2px solid var(--border-default);
+  padding-top: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+/* Threshold section styles */
+.threshold-section {
+  margin-bottom: var(--spacing-xl);
+}
+
+.threshold-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.custom-thresholds {
+  padding: var(--spacing-lg);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-light);
+}
+
+.threshold-slider {
+  margin-bottom: var(--spacing-lg);
+}
+
+.threshold-slider:last-child {
+  margin-bottom: 0;
+}
+
+.threshold-label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-default);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: var(--primary-color);
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: var(--primary-color);
+  cursor: pointer;
+  border: none;
+}
+
+/* Enhanced word counter positioning */
+.shared-word-counter-field {
+  position: relative;
+  width: 100%;
+}
+
+.shared-word-counter-field .shared-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 2.5rem;
+  /* Make room for counter */
+}
+
+/* Bias management styles */
+.bias-section {
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.bias-section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.bias-section-description {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.875rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.bias-category {
+  margin-bottom: 1.5rem;
+}
+
+.bias-category:last-child {
+  margin-bottom: 0;
+}
+
+.bias-category-label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* Bias display grid */
+.bias-display-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.bias-category-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  min-height: 80px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.bias-category-title {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.bias-preferences-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+.bias-preference-item {
+  display: inline-block;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.bias-preference-item.bias-positive {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.bias-preference-item.bias-negative {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.bias-preference-item.bias-neutral {
+  background-color: #e2e3e5;
+  border-color: #d6d8db;
+  color: #383d41;
+}
+
+/* Enhanced responsive design */
+@media (max-width: 768px) {
+  .shared-field-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .shared-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .shared-btn {
+    width: 100%;
+  }
+
+  .bias-display-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .bias-category-display {
+    padding: 0.5rem;
+    min-height: 60px;
+  }
+
+  .bias-preference-item {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.3rem;
+  }
+}

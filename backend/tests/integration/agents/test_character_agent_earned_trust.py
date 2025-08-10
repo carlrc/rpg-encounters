@@ -9,6 +9,7 @@ from app.models.character import (
     Gender,
 )
 from app.models.player import Player, PlayerClass
+from app.models.reveal import DifficultyClass
 from app.models.reveal import RevealLayer, Reveal
 from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
@@ -33,10 +34,10 @@ CHARACTER = Character(
     communication_style="Chatty and welcoming, always ready with a story or bit of news.",
     motivation="To keep the tavern running smoothly, keep customers happy and make money.",
     personality="Appreciates friendly conversation and local gossip sharing.",
-    race_preferences={CharacterRace.HALFLING.value: 0.3},
-    class_preferences={PlayerClass.BARD.value: 0.3},
-    gender_preferences={Gender.FEMALE.value: 0.3},
-    size_preferences={CharacterSize.SMALL.value: 0.3},
+    race_preferences={CharacterRace.HALFLING.value: DifficultyClass.VERY_EASY.value},
+    class_preferences={PlayerClass.BARD.value: DifficultyClass.VERY_EASY.value},
+    gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
+    size_preferences={CharacterSize.SMALL.value: DifficultyClass.VERY_EASY.value},
     appearance_keywords=None,
     storytelling_keywords=None,
 )
@@ -71,7 +72,7 @@ TRUST_STATE = trust_state_store.update_trust_state(
         character_id=CHARACTER.id,
         player_id=PLAYER.id,
         base_trust=BASE_TRUST_MAX,  # Force max base trust
-        earned_trust=0.0,
+        earned_trust=0,
     )
 )
 
@@ -113,8 +114,9 @@ async def test_personality_based_earned_trust_respects_privileged_level():
         "Hi there, I'm wondering if you have any rooms available tonight?",
         ALL_REVEALS,
     )
+    # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
     _, level, _ = await agent.chat(
-        "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
+        "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! And my fame will drive customers to you...",
         ALL_REVEALS,
     )
 
@@ -123,25 +125,26 @@ async def test_personality_based_earned_trust_respects_privileged_level():
 
 
 async def test_personality_based_earned_trust_respects_exclusive_level():
+    trust_state = trust_state_store.update_trust_state(
+        TrustState(
+            character_id=CHARACTER.id,
+            player_id=PLAYER.id,
+            base_trust=BASE_TRUST_MAX,  # Force max base trust
+            earned_trust=5,  # Start above PRIVILEGED when combined with base
+        )
+    )
+
     agent = CharacterAgent(
         CHARACTER,
         PLAYER,
         CHAR_SYSTEM_PROMPT,
-        TRUST_STATE,
+        trust_state,
         ConversationManager(),
         TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
     )
 
-    await agent.chat(
-        "Hi there, I'm wondering if you have any rooms available tonight?",
-        ALL_REVEALS,
-    )
-    await agent.chat(
-        "There isn't more? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia!",
-        ALL_REVEALS,
-    )
     _, level, _ = await agent.chat(
-        "My good man, in fact I need a better room because I'm here to help the town on an important quest...",
+        "My good man, in fact I need the best room because I'm here to help the town on an important quest...",
         ALL_REVEALS,
     )
 
@@ -167,7 +170,7 @@ async def test_personality_based_earned_trust_can_be_negative():
             character_id=CHARACTER.id,
             player_id=opposing_player.id,
             base_trust=TrustCalculator.calculate_base_trust(CHARACTER, opposing_player),
-            earned_trust=0.0,
+            earned_trust=0,
         )
     )
     agent = CharacterAgent(
@@ -184,14 +187,14 @@ async def test_personality_based_earned_trust_can_be_negative():
         ALL_REVEALS,
     )
 
-    assert trust_adjustment < 0.0
+    assert trust_adjustment < 0
 
     _, _, trust_adjustment = await agent.chat(
         "That isn't good enough you old man!",
         ALL_REVEALS,
     )
 
-    assert trust_adjustment < 0.0
+    assert trust_adjustment < 0
 
 
 async def test_character_agent_handles_multiple_reveals():

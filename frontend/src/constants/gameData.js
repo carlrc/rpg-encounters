@@ -50,17 +50,39 @@ export const NAVIGATION_TABS = [
   { id: 'encounters', label: 'Encounters' },
 ]
 
-// Trust threshold constants (matching backend defaults)
-export const DEFAULT_THRESHOLDS = {
-  public: 0.0,
-  privileged: 0.55,
-  exclusive: 0.8,
+// D&D Difficulty Class constants
+export const DIFFICULTY_CLASS = {
+  ALWAYS: 0,
+  VERY_EASY: 5,
+  EASY: 10,
+  MEDIUM: 15,
+  HARD: 20,
+  VERY_HARD: 25,
+  NEARLY_IMPOSSIBLE: 30,
 }
 
-// Threshold validation constants
+// DC threshold constants (matching backend defaults)
+export const DEFAULT_THRESHOLDS = {
+  public: DIFFICULTY_CLASS.ALWAYS,
+  privileged: DIFFICULTY_CLASS.MEDIUM,
+  exclusive: DIFFICULTY_CLASS.HARD,
+}
+
+// Threshold validation constants (DC scale)
 export const THRESHOLD_LIMITS = {
-  min: 0.0,
-  max: 1.0,
-  step: 0.25,
-  minGap: 0.25, // Minimum gap between privileged and exclusive
+  min: DIFFICULTY_CLASS.ALWAYS,
+  max: DIFFICULTY_CLASS.NEARLY_IMPOSSIBLE,
+  step: 5,
+  minGap: 5, // Minimum gap between privileged and exclusive
+}
+
+// DC labels for UI display
+export const DC_LABELS = {
+  [DIFFICULTY_CLASS.ALWAYS]: 'Always (0)',
+  [DIFFICULTY_CLASS.VERY_EASY]: 'Very Easy (5)',
+  [DIFFICULTY_CLASS.EASY]: 'Easy (10)',
+  [DIFFICULTY_CLASS.MEDIUM]: 'Medium (15)',
+  [DIFFICULTY_CLASS.HARD]: 'Hard (20)',
+  [DIFFICULTY_CLASS.VERY_HARD]: 'Very Hard (25)',
+  [DIFFICULTY_CLASS.NEARLY_IMPOSSIBLE]: 'Nearly Impossible (30)',
 }

@@ -9,21 +9,7 @@
     @create-item="startCreate"
   >
     <template #footer-actions>
-      <input
-        ref="playerFileInput"
-        type="file"
-        accept=".md,.markdown,.json"
-        @change="handleImportFile"
-        style="display: none"
-      />
-      <button
-        @click="$refs.playerFileInput.click()"
-        class="shared-import-btn"
-        :disabled="importing"
-      >
-        <span v-if="importing">Importing...</span>
-        <span v-else>Import Players</span>
-      </button>
+      <ImportButton entity-type="Player" :importing="importing" @import="handleImportFile" />
     </template>
 
     <template #detail-content>
@@ -40,39 +26,7 @@
       <div v-else-if="showCreateForm" class="shared-card">
         <div class="shared-form">
           <!-- Avatar Upload -->
-          <div class="shared-avatar-edit-section">
-            <div class="shared-avatar-container">
-              <img
-                v-if="createForm.avatar"
-                :src="createForm.avatar"
-                :alt="createForm.name"
-                class="shared-avatar-image"
-              />
-              <div v-else class="shared-avatar-placeholder">
-                <span class="shared-avatar-initials">{{ getInitials(createForm.name) }}</span>
-              </div>
-            </div>
-            <input
-              ref="playerAvatarInput"
-              type="file"
-              accept="image/*"
-              @change="handlePlayerAvatarUpload"
-              style="display: none"
-            />
-            <button
-              @click="$refs.playerAvatarInput.click()"
-              class="shared-avatar-btn shared-avatar-upload-btn"
-            >
-              {{ createForm.avatar ? 'Change Avatar' : 'Add Avatar' }}
-            </button>
-            <button
-              v-if="createForm.avatar"
-              @click="removePlayerAvatar"
-              class="shared-avatar-btn shared-avatar-remove-btn"
-            >
-              Remove
-            </button>
-          </div>
+          <EntityAvatarSection v-model="createForm.avatar" :name="createForm.name" />
 
           <!-- Name -->
           <input
@@ -190,10 +144,12 @@
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import PlayerCard from '../components/PlayerCard.vue'
+  import EntityAvatarSection from '../components/entity/EntityAvatarSection.vue'
+  import ImportButton from '../components/ui/ImportButton.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import { useFileImport } from '../utils/useFileImport.js'
   import { useFormValidation } from '../utils/useFormValidation.js'
-  import { getInitials, handleAvatarUpload } from '../utils/avatarUtils.js'
+  import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
 
   export default {
@@ -202,6 +158,8 @@
       SplitViewLayout,
       EmptyState,
       PlayerCard,
+      EntityAvatarSection,
+      ImportButton,
     },
     setup() {
       const {
@@ -238,8 +196,7 @@
 
       const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'PLAYER')
 
-      // Gender options (not in gameData.js)
-      const genders = ['male', 'female', 'nonbinary']
+      const { genders } = useDropdownOptions()
 
       const selectedPlayer = computed(() => {
         return entities.value.find((p) => p.id === selectedEntityId.value) || null
@@ -268,16 +225,6 @@
 
       const removeCreateTag = (index) => {
         createForm.tags.splice(index, 1)
-      }
-
-      const handlePlayerAvatarUpload = (event) => {
-        handleAvatarUpload(event, (result) => {
-          createForm.avatar = result
-        })
-      }
-
-      const removePlayerAvatar = () => {
-        createForm.avatar = null
       }
 
       const resetCreateForm = () => {
@@ -359,12 +306,9 @@
         startCreate,
         updateEntity,
         deleteEntity,
-        getInitials,
         updateCreateWordCount,
         addCreateTag,
         removeCreateTag,
-        handlePlayerAvatarUpload,
-        removePlayerAvatar,
         saveCreate,
         cancelCreate: handleCancelCreate,
         handleImportFile,
@@ -374,55 +318,5 @@
 </script>
 
 <style scoped>
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #666;
-    font-size: 1.1em;
-  }
-
-  .error {
-    text-align: left;
-    padding: 20px;
-    color: #dc3545;
-    font-size: 0.95em;
-    background-color: #f8d7da;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    margin: 20px;
-    white-space: pre-line;
-    max-height: 400px;
-    overflow-y: auto;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.5;
-  }
-
-  .import-players-btn {
-    width: 100%;
-    padding: 10px 16px;
-    background: linear-gradient(135deg, #007bff, #0056b3);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.85em;
-    font-weight: 600;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
-    margin-top: 8px;
-  }
-
-  .import-players-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0056b3, #004085);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
-  }
-
-  .import-players-btn:disabled {
-    background: #6c757d;
-    cursor: not-allowed;
-    opacity: 0.6;
-    transform: none;
-    box-shadow: none;
-  }
+  /* No custom styles needed - everything comes from shared-styles.css */
 </style>

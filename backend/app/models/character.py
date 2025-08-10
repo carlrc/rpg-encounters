@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict
 from enum import Enum
+from app.models.reveal import DifficultyClass
 
 
 class CharacterRace(Enum):
@@ -48,10 +49,8 @@ VALID_GENDERS = [gender.value for gender in Gender]
 CHARACTER_BACKGROUND_LIMIT = 240
 CHARACTER_COMMUNICATION_LIMIT = 180
 CHARACTER_MOTIVATION_LIMIT = 300
-
-# Trust limits
-PREFERENCE_VALUE_MIN = -0.3
-PREFERENCE_VALUE_MAX = 0.3
+PREFERENCE_VALUE_MIN = -DifficultyClass.VERY_EASY.value
+PREFERENCE_VALUE_MAX = DifficultyClass.VERY_EASY.value
 
 
 # Shared validation functions
@@ -94,16 +93,16 @@ class CharacterBase(BaseModel):
     )
 
     # Bias
-    race_preferences: Optional[Dict[str, float]] = Field(
+    race_preferences: Optional[Dict[str, int]] = Field(
         None, description="Race preferences for trust calculation"
     )
-    class_preferences: Optional[Dict[str, float]] = Field(
+    class_preferences: Optional[Dict[str, int]] = Field(
         None, description="Class preferences for trust calculation"
     )
-    gender_preferences: Optional[Dict[str, float]] = Field(
+    gender_preferences: Optional[Dict[str, int]] = Field(
         None, description="Gender preferences for trust calculation"
     )
-    size_preferences: Optional[Dict[str, float]] = Field(
+    size_preferences: Optional[Dict[str, int]] = Field(
         None, description="Size preferences for trust calculation"
     )
     appearance_keywords: Optional[List[str]] = Field(
@@ -203,10 +202,10 @@ class CharacterUpdate(CharacterBase):
     motivation: Optional[str] = None
     personality: Optional[str] = None
     voice: Optional[str] = None
-    race_preferences: Optional[Dict[str, float]] = None
-    class_preferences: Optional[Dict[str, float]] = None
-    gender_preferences: Optional[Dict[str, float]] = None
-    size_preferences: Optional[Dict[str, float]] = None
+    race_preferences: Optional[Dict[str, int]] = None
+    class_preferences: Optional[Dict[str, int]] = None
+    gender_preferences: Optional[Dict[str, int]] = None
+    size_preferences: Optional[Dict[str, int]] = None
     appearance_keywords: Optional[List[str]] = None
     storytelling_keywords: Optional[List[str]] = None
 

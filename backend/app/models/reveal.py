@@ -1,7 +1,6 @@
 from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from enum import Enum
-from app.models.trust import BASE_TRUST_MIN, TOTAL_TRUST_MAX
 
 
 class RevealLayer(Enum):
@@ -10,10 +9,20 @@ class RevealLayer(Enum):
     EXCLUSIVE = 3
 
 
+class DifficultyClass(Enum):
+    ALWAYS = 0
+    VERY_EASY = 5
+    EASY = 10
+    MEDIUM = 15
+    HARD = 20
+    VERY_HARD = 25
+    NEARLY_IMPOSSIBLE = 30
+
+
 REVEAL_DEFAULT_THRESHOLDS = {
-    RevealLayer.PUBLIC: 0.0,  # Always accessible
-    RevealLayer.PRIVILEGED: 0.55,  # Requires almost perfect static base trust
-    RevealLayer.EXCLUSIVE: 0.8,  # Requires base + earned trust
+    RevealLayer.PUBLIC: DifficultyClass.ALWAYS.value,
+    RevealLayer.PRIVILEGED: DifficultyClass.MEDIUM.value,
+    RevealLayer.EXCLUSIVE: DifficultyClass.HARD.value,
 }
 
 
@@ -23,23 +32,23 @@ class RevealBase(BaseModel):
     level_1_content: str  # Public level content (always required)
     level_2_content: Optional[str] = None  # Privileged level content (optional)
     level_3_content: Optional[str] = None  # Exclusive level content (optional)
-    privileged_threshold: Optional[float] = (
+    privileged_threshold: Optional[int] = (
         None  # Custom threshold for privileged content
     )
-    exclusive_threshold: Optional[float] = (
-        None  # Custom threshold for exclusive content
-    )
+    exclusive_threshold: Optional[int] = None  # Custom threshold for exclusive content
 
     @field_validator("privileged_threshold", "exclusive_threshold")
     @classmethod
     def validate_thresholds(cls, v):
-        if v is not None and not (BASE_TRUST_MIN <= v <= TOTAL_TRUST_MAX):
+        if v is not None and not (
+            DifficultyClass.ALWAYS.value <= v <= DifficultyClass.NEARLY_IMPOSSIBLE.value
+        ):
             raise ValueError(
-                f"Thresholds must be between {BASE_TRUST_MIN} and {TOTAL_TRUST_MAX}"
+                f"Thresholds must be between {DifficultyClass.ALWAYS.value} and {DifficultyClass.NEARLY_IMPOSSIBLE.value}"
             )
         return v
 
-    def get_threshold(self, layer: RevealLayer) -> float:
+    def get_threshold(self, layer: RevealLayer) -> int:
         """Get the effective threshold for a reveal layer, with fallback to defaults"""
         if self.exclusive_threshold is not None and layer == RevealLayer.EXCLUSIVE:
             return self.exclusive_threshold
