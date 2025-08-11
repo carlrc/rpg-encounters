@@ -76,7 +76,7 @@ class CharacterAgent:
                 instruction_parts.append(
                     f"""
                     \n## ID {reveal.id} - {reveal.title}
-                    **{RevealLayer.PUBLIC.name}:** {reveal.level_1_content}
+                    **{RevealLayer.STANDARD.name}:** {reveal.level_1_content}
                     **{RevealLayer.PRIVILEGED.name}:** {reveal.level_2_content or 'NONE'}
                     **{RevealLayer.EXCLUSIVE.name}:** {reveal.level_3_content or 'NONE'}
                     """

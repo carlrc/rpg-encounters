@@ -58,8 +58,8 @@
       <BaseFormField
         v-model="localData.level_1_content"
         type="textarea"
-        label="Level 1: Public Content"
-        placeholder="Enter public content (always accessible)..."
+        label="Level 1: Standard Content"
+        placeholder="Enter standard content (always accessible)..."
         :max-length="500"
         show-counter
         required

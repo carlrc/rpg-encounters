@@ -12,9 +12,8 @@ from app.models.player import Player, PlayerClass
 from app.models.reveal import DifficultyClass
 from app.models.reveal import RevealLayer, Reveal
 from app.data.trust_store import trust_state_store
-from app.models.trust import BASE_TRUST_MAX, TrustState
+from app.models.trust import BASE_TRUST_MAX, BASE_TRUST_MIN, TrustState
 from app.services.conversation_manager import ConversationManager
-from app.services.trust_calculator import calculate_base_trust
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 from app.models.memory import Memory
 from tests.utilities import assert_does_not_contain_keywords
@@ -92,7 +91,7 @@ def clear_trust_store():
     trust_state_store.clear()
 
 
-async def test_personality_based_earned_trust_respects_public_level():
+async def test_personality_based_earned_trust_respects_standard_level():
     agent = CharacterAgent(
         character=CHARACTER,
         player=PLAYER,
@@ -109,8 +108,8 @@ async def test_personality_based_earned_trust_respects_public_level():
         "Hi there, I'm wondering if you have any rooms available tonight?",
         ALL_REVEALS,
     )
-    # Bias with max base trust and basic inquiry should only result in public level
-    assert level == RevealLayer.PUBLIC
+    # Bias with max base trust and basic inquiry should only result in standard level
+    assert level == RevealLayer.STANDARD
 
 
 async def test_personality_based_earned_trust_respects_privileged_level():
@@ -188,7 +187,7 @@ async def test_personality_based_earned_trust_can_be_negative():
         TrustState(
             character_id=CHARACTER.id,
             player_id=opposing_player.id,
-            base_trust=calculate_base_trust(CHARACTER, opposing_player),
+            base_trust=BASE_TRUST_MIN,
             earned_trust=0,
         )
     )
@@ -206,19 +205,21 @@ async def test_personality_based_earned_trust_can_be_negative():
         memories=ALL_MEMORIES,
     )
 
-    _, _, trust_adjustment = await agent.chat(
+    _, level, trust_adjustment = await agent.chat(
         "I need a room for the night you dirty old man!",
         ALL_REVEALS,
     )
 
     assert trust_adjustment < 0
+    assert level == RevealLayer.NEGATIVE
 
-    _, _, trust_adjustment = await agent.chat(
+    _, level, trust_adjustment = await agent.chat(
         "That isn't good enough you old man!",
         ALL_REVEALS,
     )
 
     assert trust_adjustment < 0
+    assert level == RevealLayer.NEGATIVE
 
 
 async def test_character_agent_handles_multiple_reveals():

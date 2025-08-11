@@ -1,15 +1,12 @@
 from pydantic import BaseModel, field_validator
 from app.models.reveal import DifficultyClass
 
-BASE_TRUST_MIN = DifficultyClass.ALWAYS.value
-BASE_TRUST_MAX = DifficultyClass.MEDIUM.value - 3  # Just below MEDIUM threshold
+BASE_TRUST_MIN = -DifficultyClass.EASY.value + 2
+BASE_TRUST_MAX = DifficultyClass.EASY.value + 2  # Just below MEDIUM threshold
+TRUST_CHANGE_MIN = -DifficultyClass.EASY.value
+TRUST_CHANGE_MAX = DifficultyClass.EASY.value
 EARNED_TRUST_MIN = -18
 EARNED_TRUST_MAX = 12
-TOTAL_TRUST_MIN = DifficultyClass.ALWAYS.value
-TOTAL_TRUST_MAX = DifficultyClass.NEARLY_IMPOSSIBLE.value
-
-TRUST_CHANGE_MIN = -DifficultyClass.HARD.value
-TRUST_CHANGE_MAX = DifficultyClass.HARD.value
 
 
 class TrustStateBase(BaseModel):
@@ -41,9 +38,7 @@ class TrustState(TrustStateBase):
     @property
     def total_trust(self) -> int:
         """Calculate total trust, clamped between 0 and 30 DC"""
-        return max(
-            TOTAL_TRUST_MIN, min(TOTAL_TRUST_MAX, self.base_trust + self.earned_trust)
-        )
+        return self.base_trust + self.earned_trust
 
 
 class TrustStateCreate(TrustStateBase):

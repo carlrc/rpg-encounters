@@ -38,11 +38,11 @@
           <!-- Level 1 Content (Always Required) -->
           <div class="shared-field shared-field-full-width">
             <label class="shared-field-label"
-              >Level 1: Public Content <span class="required">*</span></label
+              >Level 1: Standard Content <span class="required">*</span></label
             >
             <BaseTextareaWithCharacterCounter
               v-model="createForm.level_1_content"
-              placeholder="Enter public content (always accessible)..."
+              placeholder="Enter standard content (always accessible)..."
               :max-characters="500"
             />
           </div>

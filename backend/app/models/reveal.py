@@ -4,7 +4,8 @@ from enum import Enum
 
 
 class RevealLayer(Enum):
-    PUBLIC = 1
+    NEGATIVE = 0
+    STANDARD = 1
     PRIVILEGED = 2
     EXCLUSIVE = 3
 
@@ -20,7 +21,7 @@ class DifficultyClass(Enum):
 
 
 REVEAL_DEFAULT_THRESHOLDS = {
-    RevealLayer.PUBLIC: DifficultyClass.ALWAYS.value,
+    RevealLayer.STANDARD: DifficultyClass.ALWAYS.value,
     RevealLayer.PRIVILEGED: DifficultyClass.MEDIUM.value,
     RevealLayer.EXCLUSIVE: DifficultyClass.HARD.value,
 }
@@ -29,11 +30,10 @@ REVEAL_DEFAULT_THRESHOLDS = {
 class RevealBase(BaseModel):
     title: str
     character_ids: List[int]
-    level_1_content: str  # Public level content (always required)
-    level_2_content: str | None = None  # Privileged level content (optional)
-    level_3_content: str | None = None  # Exclusive level content (optional)
+    level_1_content: str  # Standard level content
+    level_2_content: str | None = None  # Privileged level content
+    level_3_content: str | None = None  # Exclusive level content
     privileged_threshold: int | None = None  # Custom threshold for privileged content
-
     exclusive_threshold: int | None = None  # Custom threshold for exclusive content
 
     @field_validator("privileged_threshold", "exclusive_threshold")
