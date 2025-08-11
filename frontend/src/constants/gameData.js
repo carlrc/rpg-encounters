@@ -63,7 +63,7 @@ export const DIFFICULTY_CLASS = {
 
 // DC threshold constants (matching backend defaults)
 export const DEFAULT_THRESHOLDS = {
-  public: DIFFICULTY_CLASS.ALWAYS,
+  standard: DIFFICULTY_CLASS.ALWAYS,
   privileged: DIFFICULTY_CLASS.MEDIUM,
   exclusive: DIFFICULTY_CLASS.HARD,
 }

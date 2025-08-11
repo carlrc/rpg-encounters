@@ -8,7 +8,7 @@
       <div class="shared-field-columns">
         <div class="shared-field-column">
           <div class="shared-field">
-            <div class="shared-field-label">Level 1: Public</div>
+            <div class="shared-field-label">Level 1: Standard</div>
             <div class="shared-field-value">
               <div class="shared-text-display">{{ reveal.level_1_content }}</div>
             </div>
@@ -73,10 +73,10 @@
 
         <!-- Level 1 Content (Always Required) -->
         <div class="shared-field shared-field-full-width">
-          <label class="shared-field-label">Level 1: Public Content</label>
+          <label class="shared-field-label">Level 1: Standard Content</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.level_1_content"
-            placeholder="Enter public content (always accessible)..."
+            placeholder="Enter standard content (always accessible)..."
             :max-characters="500"
           />
         </div>

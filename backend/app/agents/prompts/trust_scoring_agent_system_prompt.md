@@ -8,11 +8,11 @@ Apply the DC-based scoring system below. Consider that actions towards an evil p
 
 ### Distribution Guidelines
 
-Impressive deeds (e.g., destroyed or saved a town) that match your characters moral alignment and personality should receive notable scoring.
+Impressive deeds (e.g., destroyed or saved a town) that match your characters moral alignment (e.g., good vs evil) and personality should receive notable scoring.
 
-- **±10 (~5% of interactions)**: Extraordinary
-- **±5 (~15% of interactions)**: Notable
-- **±2 (~25% of interactions)**: Common
+- **+/- 10 (~5% of interactions)**: Extraordinary
+- **+/- 5 (~15% of interactions)**: Notable
+- **+/- 2 (~25% of interactions)**: Common
 - **0 (~50% of interactions)**: Typical
 
 ## DC-Based Scoring System

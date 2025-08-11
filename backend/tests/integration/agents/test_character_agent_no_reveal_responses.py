@@ -81,5 +81,5 @@ async def test_agent_handles_no_reveals():
         "Hi there, I'm wondering if you have any rooms available tonight?",
         [],
     )
-    # No reveals linked to character should result in public response
-    assert level == RevealLayer.PUBLIC
+    # No reveals linked to character should result in standard response
+    assert level == RevealLayer.STANDARD
