@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 from app.models.memory import Memory, MemoryCreate
 from tests.fixtures.memories import memories_db, next_memory_id
 
@@ -20,11 +20,11 @@ class MemoryStore:
             if character_id in memory.character_ids
         ]
 
-    def get_memory(self, memory_id: int) -> Optional[Memory]:
+    def get_memory(self, memory_id: int) -> Memory | None:
         """Get a specific memory by ID"""
         return self.memories.get(memory_id)
 
-    def get_by_id(self, memory_id: int) -> Optional[Memory]:
+    def get_by_id(self, memory_id: int) -> Memory | None:
         """Get a specific memory by ID (alias for get_memory)"""
         return self.memories.get(memory_id)
 
@@ -39,7 +39,7 @@ class MemoryStore:
 
         return memory
 
-    def update_memory(self, memory_id: int, updates: dict) -> Optional[Memory]:
+    def update_memory(self, memory_id: int, updates: dict) -> Memory | None:
         """Update an existing memory"""
         if memory_id not in self.memories:
             return None

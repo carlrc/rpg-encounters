@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 from app.models.character import Character, CharacterCreate, CharacterUpdate
 from tests.fixtures.characters import characters_db, next_character_id
 
@@ -12,7 +12,7 @@ class CharacterStore:
         """Get all characters"""
         return list(self.characters.values())
 
-    def get_character_by_id(self, character_id: int) -> Optional[Character]:
+    def get_character_by_id(self, character_id: int) -> Character | None:
         """Get a specific character by ID"""
         return self.characters.get(character_id)
 
@@ -29,7 +29,7 @@ class CharacterStore:
 
     def update_character(
         self, character_id: int, character_update: CharacterUpdate
-    ) -> Optional[Character]:
+    ) -> Character | None:
         """Update an existing character"""
         if character_id not in self.characters:
             return None

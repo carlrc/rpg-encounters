@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 from app.models.reveal import Reveal, RevealCreate
 from tests.fixtures.reveals import reveal_db, next_reveal_id
 
@@ -20,11 +20,11 @@ class RevealStore:
             if character_id in reveal.character_ids
         ]
 
-    def get_reveal(self, reveal_id: int) -> Optional[Reveal]:
+    def get_reveal(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID"""
         return self.reveals.get(reveal_id)
 
-    def get_by_id(self, reveal_id: int) -> Optional[Reveal]:
+    def get_by_id(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID (alias for get_reveal)"""
         return self.reveals.get(reveal_id)
 
@@ -39,7 +39,7 @@ class RevealStore:
 
         return reveal
 
-    def update_reveal(self, reveal_id: int, updates: dict) -> Optional[Reveal]:
+    def update_reveal(self, reveal_id: int, updates: dict) -> Reveal | None:
         """Update an existing reveal"""
         if reveal_id not in self.reveals:
             return None

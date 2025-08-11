@@ -2,7 +2,7 @@
 import logging
 from app.models.reveal import RevealCreate
 from app.data.reveal_store import reveal_store
-from app.services.trust_calculator import TrustCalculator
+from app.services.trust_calculator import calculate_base_trust
 from tests.fixtures.characters import characters_db
 from tests.fixtures.players import players_db
 
@@ -38,7 +38,7 @@ def test_trust_calculation():
     character, player = setup_test_data()
 
     # Calculate base trust using character directly
-    base_trust = TrustCalculator.calculate_base_trust(character, player)
+    base_trust = calculate_base_trust(character, player)
 
     # Assert that trust calculation works correctly
     # Two matching full bias (e.g., 5+) traits

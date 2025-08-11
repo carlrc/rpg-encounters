@@ -14,8 +14,9 @@ from app.models.reveal import RevealLayer, Reveal
 from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager
-from app.services.trust_calculator import TrustCalculator
+from app.services.trust_calculator import calculate_base_trust
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from app.models.memory import Memory
 from tests.utilities import assert_does_not_contain_keywords
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
@@ -67,6 +68,15 @@ ALL_REVEALS = [
     )
 ]
 
+ALL_MEMORIES = [
+    Memory(
+        id=1,
+        title="Oldest Inn",
+        character_ids=[CHARACTER.id],
+        content="This inn is the oldest in the city.",
+    )
+]
+
 TRUST_STATE = trust_state_store.update_trust_state(
     TrustState(
         character_id=CHARACTER.id,
@@ -84,12 +94,15 @@ def clear_trust_store():
 
 async def test_personality_based_earned_trust_respects_public_level():
     agent = CharacterAgent(
-        CHARACTER,
-        PLAYER,
-        CHAR_SYSTEM_PROMPT,
-        TRUST_STATE,
-        ConversationManager(),
-        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
+        character=CHARACTER,
+        player=PLAYER,
+        system_prompt=CHAR_SYSTEM_PROMPT,
+        trust_state=TRUST_STATE,
+        conversation_manager=ConversationManager(),
+        trust_calculator_agent=TrustCalculatorAgent(
+            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
+        ),
+        memories=ALL_MEMORIES,
     )
 
     _, level, _ = await agent.chat(
@@ -102,12 +115,15 @@ async def test_personality_based_earned_trust_respects_public_level():
 
 async def test_personality_based_earned_trust_respects_privileged_level():
     agent = CharacterAgent(
-        CHARACTER,
-        PLAYER,
-        CHAR_SYSTEM_PROMPT,
-        TRUST_STATE,
-        ConversationManager(),
-        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
+        character=CHARACTER,
+        player=PLAYER,
+        system_prompt=CHAR_SYSTEM_PROMPT,
+        trust_state=TRUST_STATE,
+        conversation_manager=ConversationManager(),
+        trust_calculator_agent=TrustCalculatorAgent(
+            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
+        ),
+        memories=ALL_MEMORIES,
     )
 
     _, level, _ = await agent.chat(
@@ -135,12 +151,15 @@ async def test_personality_based_earned_trust_respects_exclusive_level():
     )
 
     agent = CharacterAgent(
-        CHARACTER,
-        PLAYER,
-        CHAR_SYSTEM_PROMPT,
-        trust_state,
-        ConversationManager(),
-        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
+        character=CHARACTER,
+        player=PLAYER,
+        system_prompt=CHAR_SYSTEM_PROMPT,
+        trust_state=trust_state,
+        conversation_manager=ConversationManager(),
+        trust_calculator_agent=TrustCalculatorAgent(
+            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
+        ),
+        memories=ALL_MEMORIES,
     )
 
     _, level, _ = await agent.chat(
@@ -169,17 +188,22 @@ async def test_personality_based_earned_trust_can_be_negative():
         TrustState(
             character_id=CHARACTER.id,
             player_id=opposing_player.id,
-            base_trust=TrustCalculator.calculate_base_trust(CHARACTER, opposing_player),
+            base_trust=calculate_base_trust(CHARACTER, opposing_player),
             earned_trust=0,
         )
     )
     agent = CharacterAgent(
-        CHARACTER,
-        opposing_player,
-        CHAR_SYSTEM_PROMPT,
-        trust_state,
-        ConversationManager(),
-        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, opposing_player),
+        character=CHARACTER,
+        player=opposing_player,
+        system_prompt=CHAR_SYSTEM_PROMPT,
+        trust_state=trust_state,
+        conversation_manager=ConversationManager(),
+        trust_calculator_agent=TrustCalculatorAgent(
+            system_prompt=SCORE_SYSTEM_PROMPT,
+            character=CHARACTER,
+            player=opposing_player,
+        ),
+        memories=ALL_MEMORIES,
     )
 
     _, _, trust_adjustment = await agent.chat(
@@ -199,12 +223,15 @@ async def test_personality_based_earned_trust_can_be_negative():
 
 async def test_character_agent_handles_multiple_reveals():
     agent = CharacterAgent(
-        CHARACTER,
-        PLAYER,
-        CHAR_SYSTEM_PROMPT,
-        TRUST_STATE,
-        ConversationManager(),
-        TrustCalculatorAgent(SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER),
+        character=CHARACTER,
+        player=PLAYER,
+        system_prompt=CHAR_SYSTEM_PROMPT,
+        trust_state=TRUST_STATE,
+        memories=ALL_MEMORIES,
+        conversation_manager=ConversationManager(),
+        trust_calculator_agent=TrustCalculatorAgent(
+            SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
+        ),
     )
 
     reveals = [
