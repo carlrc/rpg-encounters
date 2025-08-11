@@ -1,4 +1,4 @@
-from typing import Optional, Dict
+from typing import Dict
 from app.models.trust import TrustState
 
 
@@ -28,9 +28,7 @@ class TrustStateStore:
         self.trust_states[key] = trust_state
         return trust_state
 
-    def get_trust_state(
-        self, character_id: int, player_id: int
-    ) -> Optional[TrustState]:
+    def get_trust_state(self, character_id: int, player_id: int) -> TrustState | None:
         """Get trust state for character-player pair"""
         key = (character_id, player_id)
         return self.trust_states.get(key)

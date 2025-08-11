@@ -1,30 +1,25 @@
-from typing import Optional
+from typing import List
 from dotenv import load_dotenv
 from app.models.character import Character
-from pydantic_ai import Agent, NativeOutput, RunContext
+from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
 from app.models.trust import TrustState
 from app.models.reveal import RevealLayer, Reveal
-from app.services.reveal_service import RevealService
 from app.services.conversation_manager import ConversationManager
 import logging
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 import asyncio
+from app.models.memory import Memory
+from app.agents.character_agent_output import CharacterAgentOutput
+from pydantic_ai.providers.openai import OpenAIProvider
+from app.http import create_retrying_client
 
 logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_HISTORY = 10
-
-
-class CharacterAgentOutput(BaseModel):
-    public_response: str
-    privileged_response: Optional[str] = None
-    exclusive_response: Optional[str] = None
-    reveal_id: int
 
 
 class CharacterAgent:
@@ -33,6 +28,7 @@ class CharacterAgent:
         character: Character,
         player: Player,
         system_prompt: str,
+        memories: List[Memory],
         # TODO: Trust should not be in this class
         trust_state: TrustState,
         conversation_manager: ConversationManager,
@@ -41,21 +37,23 @@ class CharacterAgent:
         load_dotenv()
         self.character = character
         self.player = player
+        self.memories = memories
         self.trust = trust_state
         self.convo_manager = conversation_manager
         self.trust_calculator_agent = trust_calculator_agent
 
-        # Build trust-aware instructions
-        trust_instruction = self._build_base_instruction(self.player)
-
         agent = Agent(
-            OpenAIModel(model_name="gpt-4o"),
+            OpenAIModel(
+                model_name="gpt-4o",
+                provider=OpenAIProvider(http_client=create_retrying_client()),
+            ),
+            # Moving character.to_prompt() to instructions caused instability in output validation
             system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=trust_instruction,
+            instructions=self._build_base_instruction(self.player),
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 CharacterAgentOutput,
-                description="Fill in the different response levels and return the ID of the reveal you used.",
+                description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
             ),
         )
         self.run_result: AgentRunResult[CharacterAgentOutput] = None
@@ -65,10 +63,13 @@ class CharacterAgent:
         def add_reveals(ctx: RunContext[list[Reveal]]) -> str:
             all_reveals = [reveal for reveal in ctx.deps]
 
+            if not all_reveals:
+                return """**IMPORTANT**: No reveals available for this character. Refer to memories and character background."""
+
             instruction_parts = []
             instruction_parts.append("\n# Available Reveals")
             instruction_parts.append(
-                "**IMPORTANT**: Select the reveal which is most relevant to the players message"
+                "**IMPORTANT**: Select the reveal which is most relevant to the players message."
             )
 
             for reveal in all_reveals:
@@ -82,6 +83,16 @@ class CharacterAgent:
                 )
 
             return "".join(instruction_parts)
+
+        # Decorator does not work on self.agent.output_validator
+        @agent.output_validator
+        def validate_reveal_id(
+            ctx: RunContext[list[Reveal]], output: CharacterAgentOutput
+        ) -> CharacterAgentOutput:
+            # If empty array of reveals, don't allow hallucinations of reveal_id
+            if not ctx.deps:
+                output.reveal_id = None
+            return output
 
         # Set instance variable after decorators defined
         self.agent = agent
@@ -97,45 +108,42 @@ class CharacterAgent:
             )
             trust_task = self.trust_calculator_agent.process(player_transcript)
             self.run_result, trust_result = await asyncio.gather(agent_task, trust_task)
+        except UnexpectedModelBehavior as e:
+            logger.error(f"Agent failure. {e.message}")
+            raise
         except Exception as e:
             logger.error(f"Response generation failed. {e}")
             raise
 
         self.trust.earned_trust += trust_result.score
 
-        # Find the selected reveal by ID
-        selected_reveal = None
-        for reveal in reveals:
-            if reveal.id == self.run_result.output.reveal_id:
-                selected_reveal = reveal
-                break
-
-        if selected_reveal is None:
-            raise RuntimeError(
-                f"Reveal with ID {self.run_result.output.reveal_id} not found in available reveals"
-            )
-
-        selected_response, level = RevealService.select_response_by_trust(
-            public_response=self.run_result.output.public_response,
-            privileged_response=self.run_result.output.privileged_response,
-            exclusive_response=self.run_result.output.exclusive_response,
+        selected_response, level = self.convo_manager.select_response(
+            reveals=reveals,
+            agent_result=self.run_result.output,
             total_trust=self.trust.total_trust,
-            reveal=selected_reveal,
         )
-
-        messages = self.run_result.new_messages()
 
         # Persist messages in custom history
         # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
-        self.convo_manager.add_user_message(messages[0])
+        self.convo_manager.add_user_message(message=self.run_result.new_messages()[0])
         self.convo_manager.add_agent_response(response=selected_response)
 
         return selected_response, level, trust_result.score
 
     def _build_base_instruction(self, player: Player) -> str:
-        """Build streamlined trust-aware instruction for the AI"""
+        base_instruction = """
+            # World Context
+            The following are memories that shape your understanding of the world:
+            """
 
-        base_instruction = f"""# Current Interaction Context
+        if self.memories:
+            for memory in self.memories:
+                base_instruction += f"""
+            - {memory.content}
+            """
+
+        base_instruction += f"""
+            # Current Interaction Context
             You are speaking with **{player.name}**: a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}."""
 
         return base_instruction

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import List
 from app.models.player import Player, PlayerCreate, PlayerUpdate
 from tests.fixtures.players import players_db, next_player_id
 
@@ -12,7 +12,7 @@ class PlayerStore:
         """Get all players"""
         return list(self.players.values())
 
-    def get_player_by_id(self, player_id: int) -> Optional[Player]:
+    def get_player_by_id(self, player_id: int) -> Player | None:
         """Get a specific player by ID"""
         return self.players.get(player_id)
 
@@ -29,7 +29,7 @@ class PlayerStore:
 
     def update_player(
         self, player_id: int, player_update: PlayerUpdate
-    ) -> Optional[Player]:
+    ) -> Player | None:
         """Update an existing player"""
         if player_id not in self.players:
             return None

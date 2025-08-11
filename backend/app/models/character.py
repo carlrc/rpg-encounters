@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Dict
+from typing import List, Dict
 from enum import Enum
 from app.models.reveal import DifficultyClass
 
@@ -74,7 +74,7 @@ def validate_choice(value: str, valid_choices: List[str], field_name: str) -> st
 
 class CharacterBase(BaseModel):
     name: str
-    avatar: Optional[str] = Field(
+    avatar: str | None = Field(
         None, description="Character avatar image (base64 or URL)"
     )
     race: str = Field(..., description="Character race")
@@ -88,27 +88,27 @@ class CharacterBase(BaseModel):
     personality: str = Field(
         "", description="AI-generated personality profile for trust decisions"
     )
-    voice: Optional[str] = Field(
+    voice: str | None = Field(
         "JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS"
     )
 
     # Bias
-    race_preferences: Optional[Dict[str, int]] = Field(
+    race_preferences: Dict[str, int] | None = Field(
         None, description="Race preferences for trust calculation"
     )
-    class_preferences: Optional[Dict[str, int]] = Field(
+    class_preferences: Dict[str, int] | None = Field(
         None, description="Class preferences for trust calculation"
     )
-    gender_preferences: Optional[Dict[str, int]] = Field(
+    gender_preferences: Dict[str, int] | None = Field(
         None, description="Gender preferences for trust calculation"
     )
-    size_preferences: Optional[Dict[str, int]] = Field(
+    size_preferences: Dict[str, int] | None = Field(
         None, description="Size preferences for trust calculation"
     )
-    appearance_keywords: Optional[List[str]] = Field(
+    appearance_keywords: List[str] | None = Field(
         None, description="Appearance keywords for trust calculation"
     )
-    storytelling_keywords: Optional[List[str]] = Field(
+    storytelling_keywords: List[str] | None = Field(
         None, description="Storytelling keywords for trust calculation"
     )
 
@@ -191,23 +191,23 @@ class CharacterCreate(CharacterBase):
 class CharacterUpdate(CharacterBase):
     """Character update model - all fields optional with same validation rules."""
 
-    name: Optional[str] = None
-    race: Optional[str] = None
-    size: Optional[str] = None
-    alignment: Optional[str] = None
-    gender: Optional[str] = None
-    profession: Optional[str] = None
-    background: Optional[str] = None
-    communication_style: Optional[str] = None
-    motivation: Optional[str] = None
-    personality: Optional[str] = None
-    voice: Optional[str] = None
-    race_preferences: Optional[Dict[str, int]] = None
-    class_preferences: Optional[Dict[str, int]] = None
-    gender_preferences: Optional[Dict[str, int]] = None
-    size_preferences: Optional[Dict[str, int]] = None
-    appearance_keywords: Optional[List[str]] = None
-    storytelling_keywords: Optional[List[str]] = None
+    name: str | None = None
+    race: str | None = None
+    size: str | None = None
+    alignment: str | None = None
+    gender: str | None = None
+    profession: str | None = None
+    background: str | None = None
+    communication_style: str | None = None
+    motivation: str | None = None
+    personality: str | None = None
+    voice: str | None = None
+    race_preferences: Dict[str, int] | None = None
+    class_preferences: Dict[str, int] | None = None
+    gender_preferences: Dict[str, int] | None = None
+    size_preferences: Dict[str, int] | None = None
+    appearance_keywords: List[str] | None = None
+    storytelling_keywords: List[str] | None = None
 
 
 class Character(CharacterBase):

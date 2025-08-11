@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from typing import Optional, List
+from typing import List
 from enum import Enum
 
 
@@ -30,12 +30,11 @@ class RevealBase(BaseModel):
     title: str
     character_ids: List[int]
     level_1_content: str  # Public level content (always required)
-    level_2_content: Optional[str] = None  # Privileged level content (optional)
-    level_3_content: Optional[str] = None  # Exclusive level content (optional)
-    privileged_threshold: Optional[int] = (
-        None  # Custom threshold for privileged content
-    )
-    exclusive_threshold: Optional[int] = None  # Custom threshold for exclusive content
+    level_2_content: str | None = None  # Privileged level content (optional)
+    level_3_content: str | None = None  # Exclusive level content (optional)
+    privileged_threshold: int | None = None  # Custom threshold for privileged content
+
+    exclusive_threshold: int | None = None  # Custom threshold for exclusive content
 
     @field_validator("privileged_threshold", "exclusive_threshold")
     @classmethod

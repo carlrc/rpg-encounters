@@ -1,3 +1,4 @@
+from typing import List
 from app.agents.character_agent import CharacterAgent
 from app.models.character import Character
 from app.models.player import Player
@@ -5,6 +6,7 @@ import logging
 from app.models.trust import TrustState
 from app.services.conversation_manager import ConversationManager
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from app.models.memory import Memory
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,7 @@ class AgentManager:
         player: Player,
         char_system_prompt: str,
         scoring_system_prompt: str,
+        memories: List[Memory],
         trust_state: TrustState,
     ) -> CharacterAgent:
 
@@ -36,6 +39,7 @@ class AgentManager:
                 character=character,
                 player=player,
                 system_prompt=char_system_prompt,
+                memories=memories,
                 trust_state=trust_state,
                 conversation_manager=ConversationManager(),
                 trust_calculator_agent=TrustCalculatorAgent(

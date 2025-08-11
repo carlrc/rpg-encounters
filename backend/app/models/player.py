@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
 from enum import Enum
 from .character import CharacterRace, CharacterSize, CharacterAlignment, Gender
 
@@ -85,13 +84,13 @@ class PlayerCreate(PlayerBase):
 class PlayerUpdate(PlayerBase):
     """Player update model - all fields optional with same validation rules."""
 
-    name: Optional[str] = None
-    appearance: Optional[str] = None
-    race: Optional[str] = None
-    class_name: Optional[str] = None
-    size: Optional[str] = None
-    alignment: Optional[str] = None
-    gender: Optional[str] = None
+    name: str | None = None
+    appearance: str | None = None
+    race: str | None = None
+    class_name: str | None = None
+    size: str | None = None
+    alignment: str | None = None
+    gender: str | None = None
 
 
 class Player(PlayerBase):
