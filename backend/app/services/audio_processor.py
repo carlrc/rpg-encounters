@@ -36,8 +36,8 @@ def save_chunks_to_wav(chunks: List[bytes]) -> str:
         # Run ffmpeg with audio data piped to stdin
         subprocess.run(cmd, input=audio_data, check=True, capture_output=True)
         return wav_path
-    except subprocess.CalledProcessError as e:
-        logger.error(f"FFmpeg WAV conversion failed: {e.stderr}")
+    except Exception as e:
+        logger.error(f"FFmpeg WAV conversion failed: {e}")
         raise
 
 
@@ -47,5 +47,6 @@ def cleanup_files(*file_paths: str) -> None:
             try:
                 os.unlink(path)
                 logger.debug(f"Cleaned up temporary file: {path}")
-            except OSError as e:
+            except Exception as e:
                 logger.warning(f"Failed to cleanup file {path}: {e}")
+                raise

@@ -1,8 +1,8 @@
 from app.models.character import Character
 from app.models.race import Race, Size, Gender
 from app.models.alignment import Alignment
-from app.models.player import PlayerClass
 from app.models.reveal import DifficultyClass
+from app.models.class_traits import Class
 
 characters_db = {
     1: Character(
@@ -31,7 +31,7 @@ characters_db = {
             Race.TIEFLING.value: -DifficultyClass.VERY_EASY.value,
         },
         gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
-        class_preferences={PlayerClass.BARD.value: DifficultyClass.VERY_EASY.value},
+        class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
         appearance_keywords=None,
         storytelling_keywords=None,
     ),
@@ -60,7 +60,7 @@ characters_db = {
             Race.HALF_ORC.value: -DifficultyClass.VERY_EASY.value,
             Race.TIEFLING.value: -DifficultyClass.VERY_EASY.value,
         },
-        class_preferences={PlayerClass.BARD.value: DifficultyClass.VERY_EASY.value},
+        class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
         gender_preferences={Gender.MALE.value: DifficultyClass.VERY_EASY.value},
         appearance_keywords=[],
         storytelling_keywords=[],
@@ -118,7 +118,7 @@ characters_db = {
             Race.HALF_ORC.value: -DifficultyClass.VERY_EASY.value,
             Race.TIEFLING.value: -DifficultyClass.VERY_EASY.value,
         },
-        class_preferences={PlayerClass.DRUID.value: DifficultyClass.VERY_EASY.value},
+        class_preferences={Class.DRUID.value: DifficultyClass.VERY_EASY.value},
         appearance_keywords=[],
         storytelling_keywords=[],
     ),

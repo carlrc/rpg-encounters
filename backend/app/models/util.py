@@ -7,7 +7,7 @@ def validate_character_count(text: str, max_characters: int, field_name: str) ->
         character_count = len(text)
         if character_count > max_characters:
             raise ValueError(
-                f"{field_name} must be {max_characters} characters or less"
+                f"{field_name} must be {max_characters} characters or less. Got {character_count}"
             )
     return text
 

@@ -14,7 +14,7 @@ from .class_traits import (
     SKILL_SCORE_MAX,
 )
 
-APPEARANCE_MAX_LIMIT = 40
+APPEARANCE_MAX_LIMIT = 100
 
 
 class PlayerBase(BaseModel):
@@ -77,11 +77,12 @@ class PlayerBase(BaseModel):
         if v is None:
             return v
         for key, value in v.items():
+            validate_choice(key, VALID_ABILITIES, "Ability")
             if not (ABILITY_SCORE_MIN <= value <= ABILITY_SCORE_MAX):
                 raise ValueError(
                     f"Abilities must be between {ABILITY_SCORE_MIN} and {ABILITY_SCORE_MAX}. Got {value} for {key}"
                 )
-        return validate_choice(v, VALID_ABILITIES, "Ability")
+        return v
 
     @field_validator("skills")
     @classmethod
@@ -90,11 +91,12 @@ class PlayerBase(BaseModel):
         if v is None:
             return v
         for key, value in v.items():
+            validate_choice(key, VALID_SKILLS, "Skill")
             if not (SKILL_SCORE_MIN <= value <= SKILL_SCORE_MAX):
                 raise ValueError(
                     f"Skills must be between {SKILL_SCORE_MIN} and {SKILL_SCORE_MAX}. Got {value} for {key}"
                 )
-        return validate_choice(v, VALID_SKILLS, "Skill")
+        return v
 
 
 class PlayerCreate(PlayerBase):

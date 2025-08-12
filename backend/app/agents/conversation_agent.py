@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from app.models.character import Character
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
 from app.models.player import Player
 from app.models.trust import TrustState
@@ -13,16 +12,15 @@ import logging
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 import asyncio
 from app.models.memory import Memory
-from app.agents.character_agent_output import CharacterAgentOutput
+from app.agents.agent_output import ConversationAgentOutput
 from pydantic_ai.providers.openai import OpenAIProvider
 from app.http import create_retrying_client
+from app.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
-MAX_MESSAGE_HISTORY = 10
 
-
-class CharacterAgent:
+class ConversationAgent(BaseAgent):
     def __init__(
         self,
         character: Character,
@@ -34,10 +32,8 @@ class CharacterAgent:
         conversation_manager: ConversationManager,
         trust_calculator_agent: TrustCalculatorAgent,
     ):
+        super().__init__(character=character, player=player, memories=memories)
         load_dotenv()
-        self.character = character
-        self.player = player
-        self.memories = memories
         self.trust = trust_state
         self.convo_manager = conversation_manager
         self.trust_calculator_agent = trust_calculator_agent
@@ -49,14 +45,14 @@ class CharacterAgent:
             ),
             # Moving character.to_prompt() to instructions caused instability in output validation
             system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=self._build_base_instruction(self.player),
+            instructions=self._build_base_instruction(),
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
-                CharacterAgentOutput,
+                ConversationAgentOutput,
                 description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
             ),
         )
-        self.run_result: AgentRunResult[CharacterAgentOutput] = None
+        self.run_result: AgentRunResult[ConversationAgentOutput] = None
 
         # Decorator does not work on self.agent.instructions
         @agent.instructions
@@ -87,8 +83,8 @@ class CharacterAgent:
         # Decorator does not work on self.agent.output_validator
         @agent.output_validator
         def validate_reveal_id(
-            ctx: RunContext[list[Reveal]], output: CharacterAgentOutput
-        ) -> CharacterAgentOutput:
+            ctx: RunContext[list[Reveal]], output: ConversationAgentOutput
+        ) -> ConversationAgentOutput:
             # If empty array of reveals, don't allow hallucinations of reveal_id
             if not ctx.deps:
                 output.reveal_id = None
@@ -129,31 +125,3 @@ class CharacterAgent:
         self.convo_manager.add_agent_response(response=selected_response)
 
         return selected_response, level, trust_result.score
-
-    def _build_base_instruction(self, player: Player) -> str:
-        base_instruction = """
-            # World Context
-            The following are memories that shape your understanding of the world:
-            """
-
-        if self.memories:
-            for memory in self.memories:
-                base_instruction += f"""
-            - {memory.content}
-            """
-
-        base_instruction += f"""
-            # Current Interaction Context
-            You are speaking with **{player.name}**: a {player.race} {player.gender} {player.class_name} who looks like {player.appearance}."""
-
-        return base_instruction
-
-    async def _keep_recent_messages(
-        self, messages: list[ModelMessage]
-    ) -> list[ModelMessage]:
-        """Keep only the last N messages to manage token usage."""
-        return (
-            messages[-MAX_MESSAGE_HISTORY:]
-            if len(messages) > MAX_MESSAGE_HISTORY
-            else messages
-        )
