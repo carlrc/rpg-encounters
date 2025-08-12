@@ -1,21 +1,20 @@
+from typing import Dict
 from pydantic import BaseModel, Field, field_validator
-from enum import Enum
-from .character import CharacterRace, CharacterSize, CharacterAlignment, Gender
 
+from .util import validate_character_count, validate_choice
+from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
+from .alignment import VALID_ALIGNMENTS
+from .class_traits import (
+    VALID_ABILITIES,
+    VALID_CLASSES,
+    VALID_SKILLS,
+    ABILITY_SCORE_MAX,
+    ABILITY_SCORE_MIN,
+    SKILL_SCORE_MIN,
+    SKILL_SCORE_MAX,
+)
 
-class PlayerClass(Enum):
-    BARBARIAN = "Barbarian"
-    BARD = "Bard"
-    CLERIC = "Cleric"
-    DRUID = "Druid"
-    FIGHTER = "Fighter"
-    MONK = "Monk"
-    PALADIN = "Paladin"
-    RANGER = "Ranger"
-    ROGUE = "Rogue"
-    SORCERER = "Sorcerer"
-    WARLOCK = "Warlock"
-    WIZARD = "Wizard"
+APPEARANCE_MAX_LIMIT = 40
 
 
 class PlayerBase(BaseModel):
@@ -26,55 +25,76 @@ class PlayerBase(BaseModel):
     size: str = Field(..., description="Player size")
     alignment: str = Field(..., description="Player alignment")
     gender: str = Field(..., description="Player gender")
+    abilities: Dict[str, int] = Field(..., description="Abilities of the player")
+    skills: Dict[str, int] = Field(..., description="Skills of the player")
 
     @field_validator("appearance")
     @classmethod
-    def validate_appearance_word_count(cls, appearance_text):
-        if appearance_text:
-            word_count = len(appearance_text.split())
-            if word_count > 40:
-                raise ValueError("Appearance must be 40 words or less")
-        return appearance_text
+    def validate_appearance_word_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, APPEARANCE_MAX_LIMIT, "Appearance")
+        return v
 
     @field_validator("race")
     @classmethod
-    def validate_race(cls, race_value):
-        valid_races = [race.value for race in CharacterRace]
-        if race_value not in valid_races:
-            raise ValueError(f'Race must be one of: {", ".join(valid_races)}')
-        return race_value
+    def validate_race(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_RACES, "Race")
+        return v
 
     @field_validator("class_name")
     @classmethod
-    def validate_class_name(cls, class_value):
-        valid_classes = [player_class.value for player_class in PlayerClass]
-        if class_value not in valid_classes:
-            raise ValueError(f'Class must be one of: {", ".join(valid_classes)}')
-        return class_value
+    def validate_class(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_CLASSES, "Class")
+        return v
 
     @field_validator("size")
     @classmethod
-    def validate_size(cls, size_value):
-        valid_sizes = [size.value for size in CharacterSize]
-        if size_value not in valid_sizes:
-            raise ValueError(f'Size must be one of: {", ".join(valid_sizes)}')
-        return size_value
+    def validate_size(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_SIZES, "Size")
+        return v
 
     @field_validator("alignment")
     @classmethod
-    def validate_alignment(cls, alignment_value):
-        valid_alignments = [alignment.value for alignment in CharacterAlignment]
-        if alignment_value not in valid_alignments:
-            raise ValueError(f'Alignment must be one of: {", ".join(valid_alignments)}')
-        return alignment_value
+    def validate_alignment(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_ALIGNMENTS, "Alignment")
+        return v
 
     @field_validator("gender")
     @classmethod
-    def validate_gender(cls, gender_value):
-        valid_genders = [gender.value for gender in Gender]
-        if gender_value not in valid_genders:
-            raise ValueError(f'Gender must be one of: {", ".join(valid_genders)}')
-        return gender_value
+    def validate_gender(cls, v):
+        if v is not None:
+            return validate_choice(v, VALID_GENDERS, "Gender")
+        return v
+
+    @field_validator("abilities")
+    @classmethod
+    def validate_abilities(cls, v):
+        """Ensure abilities values are within range"""
+        if v is None:
+            return v
+        for key, value in v.items():
+            if not (ABILITY_SCORE_MIN <= value <= ABILITY_SCORE_MAX):
+                raise ValueError(
+                    f"Abilities must be between {ABILITY_SCORE_MIN} and {ABILITY_SCORE_MAX}. Got {value} for {key}"
+                )
+        return validate_choice(v, VALID_ABILITIES, "Ability")
+
+    @field_validator("skills")
+    @classmethod
+    def validate_skills(cls, v):
+        """Ensure skills values are within range"""
+        if v is None:
+            return v
+        for key, value in v.items():
+            if not (SKILL_SCORE_MIN <= value <= SKILL_SCORE_MAX):
+                raise ValueError(
+                    f"Skills must be between {SKILL_SCORE_MIN} and {SKILL_SCORE_MAX}. Got {value} for {key}"
+                )
+        return validate_choice(v, VALID_SKILLS, "Skill")
 
 
 class PlayerCreate(PlayerBase):
@@ -91,6 +111,8 @@ class PlayerUpdate(PlayerBase):
     size: str | None = None
     alignment: str | None = None
     gender: str | None = None
+    abilities: Dict[str, int] | None = None
+    skills: Dict[str, int] | None = None
 
 
 class Player(PlayerBase):

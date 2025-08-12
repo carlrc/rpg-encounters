@@ -1,49 +1,9 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import List, Dict
-from enum import Enum
-from app.models.reveal import DifficultyClass
-
-
-class CharacterRace(Enum):
-    HUMAN = "Human"
-    ELF = "Elf"
-    DWARF = "Dwarf"
-    HALFLING = "Halfling"
-    DRAGONBORN = "Dragonborn"
-    GNOME = "Gnome"
-    HALF_ELF = "Half-Elf"
-    HALF_ORC = "Half-Orc"
-    TIEFLING = "Tiefling"
-
-
-class CharacterSize(Enum):
-    SMALL = "Small"
-    MEDIUM = "Medium"
-
-
-class CharacterAlignment(Enum):
-    LAWFUL_GOOD = "Lawful Good"
-    NEUTRAL_GOOD = "Neutral Good"
-    CHAOTIC_GOOD = "Chaotic Good"
-    LAWFUL_NEUTRAL = "Lawful Neutral"
-    TRUE_NEUTRAL = "True Neutral"
-    CHAOTIC_NEUTRAL = "Chaotic Neutral"
-    LAWFUL_EVIL = "Lawful Evil"
-    NEUTRAL_EVIL = "Neutral Evil"
-    CHAOTIC_EVIL = "Chaotic Evil"
-
-
-class Gender(Enum):
-    MALE = "male"
-    FEMALE = "female"
-    NONBINARY = "nonbinary"
-
-
-# Constants for backward compatibility and validation
-VALID_RACES = [race.value for race in CharacterRace]
-VALID_SIZES = [size.value for size in CharacterSize]
-VALID_ALIGNMENTS = [alignment.value for alignment in CharacterAlignment]
-VALID_GENDERS = [gender.value for gender in Gender]
+from .util import validate_character_count, validate_choice
+from .reveal import DifficultyClass
+from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
+from .alignment import VALID_ALIGNMENTS
 
 # Character field limits
 CHARACTER_BACKGROUND_LIMIT = 240
@@ -51,25 +11,6 @@ CHARACTER_COMMUNICATION_LIMIT = 180
 CHARACTER_MOTIVATION_LIMIT = 300
 PREFERENCE_VALUE_MIN = -DifficultyClass.VERY_EASY.value
 PREFERENCE_VALUE_MAX = DifficultyClass.VERY_EASY.value
-
-
-# Shared validation functions
-def validate_character_count(text: str, max_characters: int, field_name: str) -> str:
-    """Validate character count for text fields."""
-    if text:
-        character_count = len(text)
-        if character_count > max_characters:
-            raise ValueError(
-                f"{field_name} must be {max_characters} characters or less"
-            )
-    return text
-
-
-def validate_choice(value: str, valid_choices: List[str], field_name: str) -> str:
-    """Validate that a value is in the list of valid choices."""
-    if value not in valid_choices:
-        raise ValueError(f'{field_name} must be one of: {", ".join(valid_choices)}')
-    return value
 
 
 class CharacterBase(BaseModel):
@@ -88,6 +29,7 @@ class CharacterBase(BaseModel):
     personality: str = Field(
         "", description="AI-generated personality profile for trust decisions"
     )
+    # TODO: This can't be here ultimately
     voice: str | None = Field(
         "JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS"
     )

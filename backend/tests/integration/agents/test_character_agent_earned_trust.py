@@ -1,13 +1,9 @@
 import pytest
 from app.agents.character_agent import CharacterAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.models.character import (
-    Character,
-    CharacterRace,
-    CharacterSize,
-    CharacterAlignment,
-    Gender,
-)
+from app.models.character import Character
+from app.models.race import Race, Size, Gender
+from app.models.alignment import Alignment
 from app.models.player import Player, PlayerClass
 from app.models.reveal import DifficultyClass
 from app.models.reveal import RevealLayer, Reveal
@@ -16,6 +12,7 @@ from app.models.trust import BASE_TRUST_MAX, BASE_TRUST_MIN, TrustState
 from app.services.conversation_manager import ConversationManager
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 from app.models.memory import Memory
+from backend.app.models.class_traits import Abilities, Skills
 from tests.utilities import assert_does_not_contain_keywords
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
@@ -25,19 +22,19 @@ REVEAL_LEVEL_3 = "For important customers, a secret suite is available with a se
 CHARACTER = Character(
     id=100,
     name="Bingo Bracegirdle",
-    race=CharacterRace.HALFLING.value,
-    size=CharacterSize.SMALL.value,
-    alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+    race=Race.LIGHTFOOT_HALFLING.value,
+    size=Size.SMALL.value,
+    alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.MALE.value,
     profession="Inn Owner",
     background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
     communication_style="Chatty and welcoming, always ready with a story or bit of news.",
     motivation="To keep the tavern running smoothly, keep customers happy and make money.",
     personality="Appreciates friendly conversation and local gossip sharing.",
-    race_preferences={CharacterRace.HALFLING.value: DifficultyClass.VERY_EASY.value},
+    race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
     class_preferences={PlayerClass.BARD.value: DifficultyClass.VERY_EASY.value},
     gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
-    size_preferences={CharacterSize.SMALL.value: DifficultyClass.VERY_EASY.value},
+    size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
     appearance_keywords=None,
     storytelling_keywords=None,
 )
@@ -46,11 +43,13 @@ PLAYER = Player(
     id=100,
     name="Wondering Bard",
     appearance="A small women with long brown hair with strong cheek bones.",
-    race=CharacterRace.HALFLING.value,
+    race=Race.LIGHTFOOT_HALFLING.value,
     class_name=PlayerClass.BARD.value,
-    size=CharacterSize.SMALL.value,
-    alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+    size=Size.SMALL.value,
+    alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.FEMALE.value,
+    abilities={Abilities.CHARISMA: +1},
+    skills={Skills.PERSUASION: +1},
 )
 
 CHAR_SYSTEM_PROMPT = import_system_prompt("character_agent")
@@ -176,11 +175,13 @@ async def test_personality_based_earned_trust_can_be_negative():
         id=101,
         name="Wondering Barbarian",
         appearance="A large man with a big black beard.",
-        race=CharacterRace.HUMAN.value,
+        race=Race.HUMAN.value,
         class_name=PlayerClass.BARBARIAN.value,
-        size=CharacterSize.MEDIUM.value,
-        alignment=CharacterAlignment.NEUTRAL_EVIL.value,
+        size=Size.MEDIUM.value,
+        alignment=Alignment.NEUTRAL_EVIL.value,
         gender=Gender.MALE.value,
+        abilities={Abilities.CHARISMA: +1},
+        skills={Skills.PERSUASION: +1},
     )
 
     trust_state = trust_state_store.update_trust_state(

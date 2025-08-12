@@ -1,31 +1,39 @@
-from app.models.player import Player, PlayerClass
-from app.models.character import (
-    CharacterRace,
-    CharacterSize,
-    CharacterAlignment,
-    Gender,
-)
+from app.models.player import Abilities, Player, PlayerClass, Skills
+from app.models.race import Race, Size, Gender
+from app.models.alignment import Alignment
 
 players_db = {
     1: Player(
         id=1,
         name="Silviana Moonleaf",
         appearance="Graceful elf with silver hair braided with leaves, violet eyes, and elegant elven robes",
-        race=CharacterRace.ELF.value,
+        race=Race.HIGH_ELF.value,
         class_name=PlayerClass.WIZARD.value,
-        size=CharacterSize.MEDIUM.value,
-        alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+        size=Size.MEDIUM.value,
+        alignment=Alignment.NEUTRAL_GOOD.value,
         gender=Gender.FEMALE.value,
+        abilities={
+            Abilities.CHARISMA: +1
+        },
+        skills={
+            Skills.PERSUASION: +1
+        }
     ),
     2: Player(
         id=2,
         name="Pippin Greenhill",
         appearance="Cheerful hobbit with curly auburn hair, bright brown eyes, and well-worn traveling clothes",
-        race=CharacterRace.HALFLING.value,
+        race=Race.LIGHTFOOT_HALFLING.value,
         class_name=PlayerClass.BARD.value,
-        size=CharacterSize.SMALL.value,
-        alignment=CharacterAlignment.CHAOTIC_GOOD.value,
+        size=Size.SMALL.value,
+        alignment=Alignment.CHAOTIC_GOOD.value,
         gender=Gender.MALE.value,
+        abilities={
+            Abilities.CHARISMA: +1
+        },
+        skills={
+            Skills.PERSUASION: +1
+        }
     ),
 }
 

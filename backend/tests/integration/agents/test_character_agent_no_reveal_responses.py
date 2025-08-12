@@ -1,11 +1,7 @@
 import pytest
-from app.models.character import (
-    Character,
-    CharacterAlignment,
-    CharacterRace,
-    CharacterSize,
-    Gender,
-)
+from app.models.character import Character
+from app.models.race import Race, Size, Gender
+from app.models.alignment import Alignment
 from app.models.player import Player, PlayerClass
 from app.models.reveal import DifficultyClass, RevealLayer
 from app.agents.prompts.import_prompts import import_system_prompt
@@ -18,19 +14,19 @@ from app.services.conversation_manager import ConversationManager
 CHARACTER = Character(
     id=100,
     name="Bingo Bracegirdle",
-    race=CharacterRace.HALFLING.value,
-    size=CharacterSize.SMALL.value,
-    alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+    race=Race.LIGHTFOOT_HALFLING.value,
+    size=Size.SMALL.value,
+    alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.MALE.value,
     profession="Inn Owner",
     background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
     communication_style="Chatty and welcoming, always ready with a story or bit of news.",
     motivation="To keep the tavern running smoothly, keep customers happy and make money.",
     personality="Appreciates friendly conversation and local gossip sharing.",
-    race_preferences={CharacterRace.HALFLING.value: DifficultyClass.VERY_EASY.value},
+    race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
     class_preferences={PlayerClass.BARD.value: DifficultyClass.VERY_EASY.value},
     gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
-    size_preferences={CharacterSize.SMALL.value: DifficultyClass.VERY_EASY.value},
+    size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
     appearance_keywords=None,
     storytelling_keywords=None,
 )
@@ -39,10 +35,10 @@ PLAYER = Player(
     id=100,
     name="Wondering Bard",
     appearance="A small women with long brown hair with strong cheek bones.",
-    race=CharacterRace.HALFLING.value,
+    race=Race.LIGHTFOOT_HALFLING.value,
     class_name=PlayerClass.BARD.value,
-    size=CharacterSize.SMALL.value,
-    alignment=CharacterAlignment.NEUTRAL_GOOD.value,
+    size=Size.SMALL.value,
+    alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.FEMALE.value,
 )
 
