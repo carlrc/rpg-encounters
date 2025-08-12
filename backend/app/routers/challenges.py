@@ -10,7 +10,6 @@ from app.services.ability_challenge import (
     calculate_skill_check,
     filter_reveals_by_roll,
 )
-from backend.app.services.conversation_manager import ConversationManager
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +48,12 @@ async def websocket_endpoint(
             player=player,
             system_prompt=challenge_system_prompt,
             memories=all_memories,
-            conversation_manager=ConversationManager(),
+            reveals=filtered_reveals,
         )
         agent.chat(player_transcript=transcription, reveals=filtered_reveals)
 
-        # TODO: Pass all memories and filtered reveals to agent
         # TODO: Need to incorporate sentiment based on the success or failure of this
+        # TODO: Need to pass back the D20 roll somehow
 
     except Exception as e:
         logger.error(f"Processing challenge failed: {e}")
