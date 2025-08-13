@@ -107,7 +107,7 @@
   import EmptyState from '../components/ui/EmptyState.vue'
   import { getInitials } from '../utils/avatarUtils.js'
   import apiService from '../services/api.js'
-  import { SKILLS } from '../constants/gameData.js'
+  import { useGameData } from '../composables/useGameData.js'
 
   export default {
     name: 'EncountersPage',
@@ -116,6 +116,7 @@
       EmptyState,
     },
     setup() {
+      const { gameData, loadGameData } = useGameData()
       const characters = ref([])
       const players = ref([])
       const loading = ref(true)
@@ -392,7 +393,8 @@
         }
       }
 
-      onMounted(() => {
+      onMounted(async () => {
+        await loadGameData()
         loadData()
       })
 
@@ -415,6 +417,7 @@
       })
 
       return {
+        gameData,
         characters,
         players,
         loading,
@@ -430,7 +433,7 @@
         selectCharacter,
         toggleRecording,
         // Challenge mode properties
-        skills: SKILLS,
+        skills: computed(() => gameData.value.skills),
         isChallengeMode,
         selectedSkill,
         diceRoll,

@@ -34,10 +34,13 @@ class RevealBase(BaseModel):
     level_1_content: str  # Standard level content
     level_2_content: str | None = None  # Privileged level content
     level_3_content: str | None = None  # Exclusive level content
-    privileged_threshold: int | None = None  # Custom threshold for privileged content
-    exclusive_threshold: int | None = None  # Custom threshold for exclusive content
+    standard_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
+    privileged_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED]
+    exclusive_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE]
 
-    @field_validator("privileged_threshold", "exclusive_threshold")
+    @field_validator(
+        "standard_threshold", "privileged_threshold", "exclusive_threshold"
+    )
     @classmethod
     def validate_thresholds(cls, v):
         if v is not None and not (
@@ -50,10 +53,12 @@ class RevealBase(BaseModel):
 
     def get_threshold(self, layer: RevealLayer) -> int:
         """Get the effective threshold for a reveal layer, with fallback to defaults"""
-        if self.exclusive_threshold is not None and layer == RevealLayer.EXCLUSIVE:
+        if layer == RevealLayer.EXCLUSIVE and self.exclusive_threshold is not None:
             return self.exclusive_threshold
-        elif self.privileged_threshold is not None and layer == RevealLayer.PRIVILEGED:
+        elif layer == RevealLayer.PRIVILEGED and self.privileged_threshold is not None:
             return self.privileged_threshold
+        elif layer == RevealLayer.STANDARD and self.standard_threshold is not None:
+            return self.standard_threshold
         else:
             return REVEAL_DEFAULT_THRESHOLDS[layer]
 

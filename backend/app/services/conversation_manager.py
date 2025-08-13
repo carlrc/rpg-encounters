@@ -50,8 +50,9 @@ class ConversationManager:
                 selected_reveal = reveal
                 break
 
-        # If the LLM returns an invalid     reveal_id or stringified None, default to the standard response
+        # If the LLM returns an invalid reveal_id or stringified None, default to the standard response
         if selected_reveal is None:
+            # Often if the LLM doesn't reference a reveal it will return "None", so we use standard assuming it doesn't contain sensitive information
             logger.debug(
                 f"reveal_id {agent_result.reveal_id} not found in available list. Defaulting to standard answer..."
             )
@@ -62,12 +63,12 @@ class ConversationManager:
                 return agent_result.negative_response, RevealLayer.NEGATIVE
             elif (
                 agent_result.exclusive_response
-                and total_trust >= reveal.get_threshold(RevealLayer.EXCLUSIVE)
+                and total_trust >= selected_reveal.get_threshold(RevealLayer.EXCLUSIVE)
             ):
                 return agent_result.exclusive_response, RevealLayer.EXCLUSIVE
             elif (
                 agent_result.privileged_response
-                and total_trust >= reveal.get_threshold(RevealLayer.PRIVILEGED)
+                and total_trust >= selected_reveal.get_threshold(RevealLayer.PRIVILEGED)
             ):
                 return agent_result.privileged_response, RevealLayer.PRIVILEGED
             else:

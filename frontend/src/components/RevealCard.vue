@@ -8,14 +8,18 @@
       <div class="shared-field-columns">
         <div class="shared-field-column">
           <div class="shared-field">
-            <div class="shared-field-label">Level 1: Standard</div>
+            <div class="shared-field-label">
+              Level 1: Standard (DC {{ getEffectiveThreshold('standard') }})
+            </div>
             <div class="shared-field-value">
               <div class="shared-text-display">{{ reveal.level_1_content }}</div>
             </div>
           </div>
 
           <div v-if="reveal.level_2_content" class="shared-field">
-            <div class="shared-field-label">Level 2: Privileged</div>
+            <div class="shared-field-label">
+              Level 2: Privileged (DC {{ getEffectiveThreshold('privileged') }})
+            </div>
             <div class="shared-field-value">
               <div class="shared-text-display">{{ reveal.level_2_content }}</div>
             </div>
@@ -24,7 +28,9 @@
 
         <div class="shared-field-column">
           <div v-if="reveal.level_3_content" class="shared-field">
-            <div class="shared-field-label">Level 3: Exclusive</div>
+            <div class="shared-field-label">
+              Level 3: Exclusive (DC {{ getEffectiveThreshold('exclusive') }})
+            </div>
             <div class="shared-field-value">
               <div class="shared-text-display">{{ reveal.level_3_content }}</div>
             </div>
@@ -76,9 +82,27 @@
           <label class="shared-field-label">Level 1: Standard Content</label>
           <BaseTextareaWithCharacterCounter
             v-model="editForm.level_1_content"
-            placeholder="Enter standard content (always accessible)..."
+            placeholder="Enter standard content..."
             :max-characters="500"
           />
+        </div>
+
+        <!-- Level 1 Threshold -->
+        <div class="threshold-section">
+          <div class="threshold-slider">
+            <label class="threshold-label">
+              Standard Content:
+              {{ getDCLabel(editForm.standard_threshold) || `DC ${editForm.standard_threshold}` }}
+            </label>
+            <input
+              type="range"
+              v-model.number="editForm.standard_threshold"
+              :min="gameData.threshold_limits.min"
+              :max="gameData.threshold_limits.max"
+              :step="gameData.threshold_limits.step"
+              class="slider"
+            />
+          </div>
         </div>
 
         <!-- Level 2 Content -->
@@ -104,42 +128,23 @@
           </div>
         </div>
 
-        <!-- Level 2 Threshold Options -->
+        <!-- Level 2 Threshold -->
         <div v-if="editForm.enable_level_2" class="threshold-section">
-          <h4 class="threshold-title">Level 2: Privileged Content Threshold</h4>
-          <div class="threshold-options">
-            <label class="shared-radio-option">
-              <input
-                type="radio"
-                value="default"
-                v-model="editForm.privileged_threshold_mode"
-                @change="handlePrivilegedThresholdModeChange"
-              />
-              <span>Use Default Threshold</span>
+          <div class="threshold-slider">
+            <label class="threshold-label">
+              Privileged Content:
+              {{
+                getDCLabel(editForm.privileged_threshold) || `DC ${editForm.privileged_threshold}`
+              }}
             </label>
-            <label class="shared-radio-option">
-              <input type="radio" value="custom" v-model="editForm.privileged_threshold_mode" />
-              <span>Custom Threshold</span>
-            </label>
-          </div>
-
-          <div v-if="editForm.privileged_threshold_mode === 'custom'" class="custom-thresholds">
-            <div class="threshold-slider">
-              <label class="threshold-label">
-                Privileged Content:
-                {{
-                  DC_LABELS[editForm.privileged_threshold] || `DC ${editForm.privileged_threshold}`
-                }}
-              </label>
-              <input
-                type="range"
-                v-model.number="editForm.privileged_threshold"
-                :min="THRESHOLD_LIMITS.min"
-                :max="THRESHOLD_LIMITS.max"
-                :step="THRESHOLD_LIMITS.step"
-                class="slider"
-              />
-            </div>
+            <input
+              type="range"
+              v-model.number="editForm.privileged_threshold"
+              :min="gameData.threshold_limits.min"
+              :max="gameData.threshold_limits.max"
+              :step="gameData.threshold_limits.step"
+              class="slider"
+            />
           </div>
         </div>
 
@@ -166,42 +171,21 @@
           </div>
         </div>
 
-        <!-- Level 3 Threshold Options -->
+        <!-- Level 3 Threshold -->
         <div v-if="editForm.enable_level_3" class="threshold-section">
-          <h4 class="threshold-title">Level 3: Exclusive Content Threshold</h4>
-          <div class="threshold-options">
-            <label class="shared-radio-option">
-              <input
-                type="radio"
-                value="default"
-                v-model="editForm.exclusive_threshold_mode"
-                @change="handleExclusiveThresholdModeChange"
-              />
-              <span>Use Default Threshold</span>
+          <div class="threshold-slider">
+            <label class="threshold-label">
+              Exclusive Content:
+              {{ getDCLabel(editForm.exclusive_threshold) || `DC ${editForm.exclusive_threshold}` }}
             </label>
-            <label class="shared-radio-option">
-              <input type="radio" value="custom" v-model="editForm.exclusive_threshold_mode" />
-              <span>Custom Threshold</span>
-            </label>
-          </div>
-
-          <div v-if="editForm.exclusive_threshold_mode === 'custom'" class="custom-thresholds">
-            <div class="threshold-slider">
-              <label class="threshold-label">
-                Exclusive Content:
-                {{
-                  DC_LABELS[editForm.exclusive_threshold] || `DC ${editForm.exclusive_threshold}`
-                }}
-              </label>
-              <input
-                type="range"
-                v-model.number="editForm.exclusive_threshold"
-                :min="THRESHOLD_LIMITS.min"
-                :max="THRESHOLD_LIMITS.max"
-                :step="THRESHOLD_LIMITS.step"
-                class="slider"
-              />
-            </div>
+            <input
+              type="range"
+              v-model.number="editForm.exclusive_threshold"
+              :min="gameData.threshold_limits.min"
+              :max="gameData.threshold_limits.max"
+              :step="gameData.threshold_limits.step"
+              class="slider"
+            />
           </div>
         </div>
 
@@ -222,7 +206,8 @@
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
-  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../constants/gameData.js'
+  import { useGameData } from '../composables/useGameData.js'
+  import { getDCLabel } from '../utils/dcUtils.js'
 
   export default {
     name: 'RevealCard',
@@ -246,6 +231,7 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
+      const { gameData } = useGameData()
       const isEditing = ref(false)
       const editForm = reactive({
         title: '',
@@ -255,13 +241,12 @@
         level_3_content: '',
         enable_level_2: false,
         enable_level_3: false,
-        privileged_threshold_mode: 'default',
-        exclusive_threshold_mode: 'default',
-        privileged_threshold: DEFAULT_THRESHOLDS.privileged,
-        exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
+        standard_threshold: 0, // Will be set from gameData
+        privileged_threshold: 0, // Will be set from gameData
+        exclusive_threshold: 0, // Will be set from gameData
       })
 
-      // Pass the form directly to validation since it now handles separate threshold modes
+      // Pass the form directly to validation
       const { isFormValid } = useRevealValidation(editForm)
 
       const getCharacterName = (characterId) => {
@@ -278,10 +263,6 @@
       }
 
       const startEdit = () => {
-        // Determine if reveal has custom thresholds for each level
-        const hasCustomPrivilegedThreshold = props.reveal.privileged_threshold !== null
-        const hasCustomExclusiveThreshold = props.reveal.exclusive_threshold !== null
-
         Object.assign(editForm, {
           title: props.reveal.title,
           character_ids: [...props.reveal.character_ids],
@@ -290,10 +271,9 @@
           level_3_content: props.reveal.level_3_content || '',
           enable_level_2: !!props.reveal.level_2_content,
           enable_level_3: !!props.reveal.level_3_content,
-          privileged_threshold_mode: hasCustomPrivilegedThreshold ? 'custom' : 'default',
-          exclusive_threshold_mode: hasCustomExclusiveThreshold ? 'custom' : 'default',
-          privileged_threshold: props.reveal.privileged_threshold ?? DEFAULT_THRESHOLDS.privileged,
-          exclusive_threshold: props.reveal.exclusive_threshold ?? DEFAULT_THRESHOLDS.exclusive,
+          standard_threshold: props.reveal.standard_threshold,
+          privileged_threshold: props.reveal.privileged_threshold,
+          exclusive_threshold: props.reveal.exclusive_threshold,
         })
         isEditing.value = true
       }
@@ -312,19 +292,14 @@
             level_3_content: editForm.enable_level_3 ? editForm.level_3_content.trim() : null,
           }
 
-          // Handle privileged threshold based on its mode
-          if (editForm.enable_level_2 && editForm.privileged_threshold_mode === 'custom') {
-            updateData.privileged_threshold = editForm.privileged_threshold
-          } else {
-            updateData.privileged_threshold = null
-          }
-
-          // Handle exclusive threshold based on its mode
-          if (editForm.enable_level_3 && editForm.exclusive_threshold_mode === 'custom') {
-            updateData.exclusive_threshold = editForm.exclusive_threshold
-          } else {
-            updateData.exclusive_threshold = null
-          }
+          // Always include all thresholds since we always show sliders
+          updateData.standard_threshold = editForm.standard_threshold
+          updateData.privileged_threshold = editForm.enable_level_2
+            ? editForm.privileged_threshold
+            : null
+          updateData.exclusive_threshold = editForm.enable_level_3
+            ? editForm.exclusive_threshold
+            : null
 
           emit('update', props.reveal.id, updateData)
           isEditing.value = false
@@ -343,18 +318,6 @@
         }
       }
 
-      const handlePrivilegedThresholdModeChange = () => {
-        if (editForm.privileged_threshold_mode === 'default') {
-          editForm.privileged_threshold = DEFAULT_THRESHOLDS.privileged
-        }
-      }
-
-      const handleExclusiveThresholdModeChange = () => {
-        if (editForm.exclusive_threshold_mode === 'default') {
-          editForm.exclusive_threshold = DEFAULT_THRESHOLDS.exclusive
-        }
-      }
-
       const confirmDelete = () => {
         const characterNames = getCharacterNames(props.reveal.character_ids)
         if (confirm(`Are you sure you want to delete the reveal for ${characterNames}?`)) {
@@ -362,7 +325,21 @@
         }
       }
 
+      const getEffectiveThreshold = (level) => {
+        switch (level) {
+          case 'standard':
+            return props.reveal.standard_threshold
+          case 'privileged':
+            return props.reveal.privileged_threshold
+          case 'exclusive':
+            return props.reveal.exclusive_threshold
+          default:
+            return 0
+        }
+      }
+
       return {
+        gameData,
         isEditing,
         editForm,
         isFormValid,
@@ -374,11 +351,8 @@
         confirmDelete,
         handleLevel2Toggle,
         handleLevel3Toggle,
-        handlePrivilegedThresholdModeChange,
-        handleExclusiveThresholdModeChange,
-        DEFAULT_THRESHOLDS,
-        THRESHOLD_LIMITS,
-        DC_LABELS,
+        getEffectiveThreshold,
+        getDCLabel: (value) => getDCLabel(value, gameData.value?.difficulty_classes),
       }
     },
   }
@@ -392,27 +366,6 @@
   /* Threshold section styles using shared design tokens */
   .threshold-section {
     margin-bottom: var(--spacing-xl);
-  }
-
-  .threshold-title {
-    margin: 0 0 var(--spacing-md) 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .threshold-options {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .custom-thresholds {
-    padding: var(--spacing-lg);
-    border: 2px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--bg-light);
   }
 
   .threshold-slider {

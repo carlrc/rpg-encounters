@@ -150,7 +150,7 @@
   import { useFileImport } from '../utils/useFileImport.js'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
+  import { useGameData } from '../composables/useGameData.js'
 
   export default {
     name: 'PlayersPage',
@@ -178,6 +178,8 @@
       } = useEntityCRUD('Player')
 
       const { importing, handleImportFile: handleFileImport } = useFileImport('Player')
+
+      const { gameData, loadGameData } = useGameData()
 
       const createForm = reactive({
         name: '',
@@ -281,11 +283,13 @@
         )
       }
 
-      onMounted(() => {
+      onMounted(async () => {
+        await loadGameData()
         loadEntities()
       })
 
       return {
+        gameData,
         entities,
         loading,
         error,
@@ -296,11 +300,11 @@
         newCreateTagInput,
         createWordCount,
         importing,
-        races: RACES,
-        classes: CLASSES,
+        races: computed(() => gameData.value.races),
+        classes: computed(() => gameData.value.classes),
         genders,
-        sizes: SIZES.PLAYER,
-        alignments: ALIGNMENTS,
+        sizes: computed(() => gameData.value.sizes.player),
+        alignments: computed(() => gameData.value.alignments),
         isCreateFormValid,
         selectEntity,
         startCreate,

@@ -1,11 +1,13 @@
 import { computed, ref, watch } from 'vue'
-import { FORM_FIELDS, CHARACTER_LIMITS } from '../constants/validation.js'
+import { FORM_FIELDS } from '../constants/validation.js'
+import { useGameData } from './useGameData.js'
 
 /**
  * Enhanced entity validation composable
  * Provides comprehensive validation with detailed error messages
  */
 export function useEntityValidation(formData, entityType = 'PLAYER') {
+  const { gameData } = useGameData()
   const errors = ref({})
   const touched = ref({})
 
@@ -44,38 +46,38 @@ export function useEntityValidation(formData, entityType = 'PLAYER') {
     // Entity-specific validations
     switch (entityType) {
       case 'PLAYER':
-        if (fieldName === 'appearance') {
+        if (fieldName === 'appearance' && gameData.value) {
           const words = value?.trim() ? value.trim().split(/\s+/).length : 0
-          if (words > CHARACTER_LIMITS.PLAYER_APPEARANCE) {
+          if (words > gameData.value.validation_limits.player_appearance) {
             fieldErrors.push(
-              `Appearance must be ${CHARACTER_LIMITS.PLAYER_APPEARANCE} words or less (currently ${words} words)`
+              `Appearance must be ${gameData.value.validation_limits.player_appearance} words or less (currently ${words} words)`
             )
           }
         }
         break
 
       case 'CHARACTER':
-        if (fieldName === 'background') {
+        if (fieldName === 'background' && gameData.value) {
           const chars = value?.length || 0
-          if (chars > CHARACTER_LIMITS.CHARACTER_BACKGROUND) {
+          if (chars > gameData.value.validation_limits.character_background) {
             fieldErrors.push(
-              `Background must be ${CHARACTER_LIMITS.CHARACTER_BACKGROUND} characters or less (currently ${chars} characters)`
+              `Background must be ${gameData.value.validation_limits.character_background} characters or less (currently ${chars} characters)`
             )
           }
         }
-        if (fieldName === 'communication_style') {
+        if (fieldName === 'communication_style' && gameData.value) {
           const chars = value?.length || 0
-          if (chars > CHARACTER_LIMITS.CHARACTER_COMMUNICATION) {
+          if (chars > gameData.value.validation_limits.character_communication) {
             fieldErrors.push(
-              `Communication style must be ${CHARACTER_LIMITS.CHARACTER_COMMUNICATION} characters or less (currently ${chars} characters)`
+              `Communication style must be ${gameData.value.validation_limits.character_communication} characters or less (currently ${chars} characters)`
             )
           }
         }
-        if (fieldName === 'motivation') {
+        if (fieldName === 'motivation' && gameData.value) {
           const chars = value?.length || 0
-          if (chars > CHARACTER_LIMITS.CHARACTER_MOTIVATION) {
+          if (chars > gameData.value.validation_limits.character_motivation) {
             fieldErrors.push(
-              `Motivation must be ${CHARACTER_LIMITS.CHARACTER_MOTIVATION} characters or less (currently ${chars} characters)`
+              `Motivation must be ${gameData.value.validation_limits.character_motivation} characters or less (currently ${chars} characters)`
             )
           }
         }

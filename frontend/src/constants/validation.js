@@ -1,12 +1,4 @@
-// Validation rules and limits
-export const CHARACTER_LIMITS = {
-  MEMORY_TEXT: 500,
-  PLAYER_APPEARANCE: 180,
-  CHARACTER_BACKGROUND: 240,
-  CHARACTER_COMMUNICATION: 180,
-  CHARACTER_MOTIVATION: 300,
-}
-
+// UI-specific validation constants (kept in frontend)
 export const VALIDATION_MESSAGES = {
   REQUIRED_FIELD: 'This field is required',
   WORD_LIMIT_EXCEEDED: 'Word limit exceeded',
@@ -43,3 +35,6 @@ export const FORM_FIELDS = {
     ],
   },
 }
+
+// Note: CHARACTER_LIMITS are now loaded dynamically from the backend via /api/game
+// as validation_limits

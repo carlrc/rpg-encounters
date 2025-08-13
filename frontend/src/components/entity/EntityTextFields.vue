@@ -101,7 +101,7 @@
 <script>
   import { reactive, computed, watch } from 'vue'
   import BaseFormField from '../base/BaseFormField.vue'
-  import { CHARACTER_LIMITS } from '../../constants/validation.js'
+  import { useGameData } from '../../composables/useGameData.js'
 
   export default {
     name: 'EntityTextFields',
@@ -125,6 +125,8 @@
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
+      const { gameData } = useGameData()
+
       // Local reactive copy of the data
       const localData = reactive({
         background: '',
@@ -144,13 +146,13 @@
         switch (props.entityType.toLowerCase()) {
           case 'character':
             return {
-              background: CHARACTER_LIMITS.CHARACTER_BACKGROUND,
-              communication_style: CHARACTER_LIMITS.CHARACTER_COMMUNICATION,
-              motivation: CHARACTER_LIMITS.CHARACTER_MOTIVATION,
+              background: gameData.value.validation_limits.character_background,
+              communication_style: gameData.value.validation_limits.character_communication,
+              motivation: gameData.value.validation_limits.character_motivation,
             }
           case 'player':
             return {
-              appearance: CHARACTER_LIMITS.PLAYER_APPEARANCE, // This is in words
+              appearance: gameData.value.validation_limits.player_appearance, // This is in words
             }
           case 'reveal':
             return {
@@ -209,6 +211,7 @@
       )
 
       return {
+        gameData,
         localData,
         limits,
         fieldConfig,

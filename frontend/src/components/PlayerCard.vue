@@ -55,7 +55,9 @@
           <div class="shared-field-value">
             <div class="shared-text-display">{{ player.appearance }}</div>
             <div class="character-limit-info">
-              {{ (player.appearance || '').length }}/{{ CHARACTER_LIMITS.PLAYER_APPEARANCE }}
+              {{ (player.appearance || '').length }}/{{
+                gameData.validation_limits.player_appearance
+              }}
               characters
             </div>
           </div>
@@ -123,8 +125,8 @@
         <label class="shared-field-label">Appearance</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.appearance"
-          :placeholder="`Player appearance (max ${appearanceCharacterLimit} characters)`"
-          :max-characters="appearanceCharacterLimit"
+          :placeholder="`Player appearance (max ${gameData.validation_limits.player_appearance} characters)`"
+          :max-characters="gameData.validation_limits.player_appearance"
         />
       </div>
 
@@ -139,11 +141,10 @@
 </template>
 
 <script>
-  import { ref, reactive } from 'vue'
-  import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
-  import { CHARACTER_LIMITS } from '../constants/validation.js'
+  import { ref, reactive, computed, inject } from 'vue'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
+  import { useGameData } from '../composables/useGameData.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
@@ -162,6 +163,7 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
+      const { gameData } = useGameData()
       const isEditing = ref(false)
 
       const editForm = reactive({
@@ -218,15 +220,14 @@
       }
 
       return {
+        gameData,
         isEditing,
         editForm,
-        races: RACES,
-        classes: CLASSES,
+        races: computed(() => gameData.value.races),
+        classes: computed(() => gameData.value.classes),
         genders,
-        sizes: SIZES.PLAYER,
-        alignments: ALIGNMENTS,
-        appearanceCharacterLimit: CHARACTER_LIMITS.PLAYER_APPEARANCE,
-        CHARACTER_LIMITS,
+        sizes: computed(() => gameData.value.sizes.player),
+        alignments: computed(() => gameData.value.alignments),
         isFormValid,
         getInitials,
         getGenderEmoji,
