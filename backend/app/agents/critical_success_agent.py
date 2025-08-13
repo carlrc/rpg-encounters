@@ -15,7 +15,7 @@ from app.agents.base_agent import BaseAgent
 logger = logging.getLogger(__name__)
 
 
-class ChallengeAgent(BaseAgent):
+class CriticalSuccessAgent(BaseAgent):
     def __init__(
         self,
         character: Character,
@@ -27,7 +27,7 @@ class ChallengeAgent(BaseAgent):
         super().__init__(character=character, player=player, memories=memories)
         load_dotenv()
         self.reveals = reveals
-        agent = Agent(
+        self.agent = Agent(
             OpenAIModel(
                 model_name="gpt-4o",
                 provider=OpenAIProvider(http_client=create_retrying_client()),
@@ -44,9 +44,6 @@ class ChallengeAgent(BaseAgent):
         )
         self.run_result: AgentRunResult[ChallengeAgentOutput] = None
 
-        # Set instance variable after decorators defined
-        self.agent = agent
-
     async def chat(self, player_transcript: str) -> str:
         try:
             history = self.run_result.all_messages() if self.run_result else None
@@ -56,7 +53,7 @@ class ChallengeAgent(BaseAgent):
             )
             return self.run_result.output.response
         except Exception as e:
-            logger.error(f"Challenge agent error. {e}")
+            logger.error(f"Critical success agent error. {e}")
             raise
 
     def _add_reveals(self) -> str:

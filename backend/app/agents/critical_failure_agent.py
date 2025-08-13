@@ -15,18 +15,16 @@ from app.agents.base_agent import BaseAgent
 logger = logging.getLogger(__name__)
 
 
-class ChallengeAgent(BaseAgent):
+class CriticalFailureAgent(BaseAgent):
     def __init__(
         self,
         character: Character,
         player: Player,
         system_prompt: str,
         memories: List[Memory],
-        reveals: List[str],
     ):
         super().__init__(character=character, player=player, memories=memories)
         load_dotenv()
-        self.reveals = reveals
         agent = Agent(
             OpenAIModel(
                 model_name="gpt-4o",
@@ -35,8 +33,6 @@ class ChallengeAgent(BaseAgent):
             instructions=system_prompt
             + "\n"
             + self.character.to_prompt()
-            + "\n"
-            + self._add_reveals()
             + "\n"
             + self._build_base_instruction(),
             history_processors=[self._keep_recent_messages],
@@ -56,19 +52,5 @@ class ChallengeAgent(BaseAgent):
             )
             return self.run_result.output.response
         except Exception as e:
-            logger.error(f"Challenge agent error. {e}")
+            logger.error(f"Critical failure agent error. {e}")
             raise
-
-    def _add_reveals(self) -> str:
-        reveal_context = """
-        # Reveals
-        The following information should be used in your response.
-        """
-
-        if self.reveals:
-            for reveal in self.reveals:
-                reveal_context += f"""
-            - {reveal}
-            """
-
-        return reveal_context

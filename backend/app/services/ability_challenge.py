@@ -1,7 +1,6 @@
 from enum import Enum
-import random
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List
 from app.models.class_traits import VALID_SKILLS
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
@@ -29,20 +28,17 @@ def get_skill_bonus(skill: str, player_skills: Dict[str, int]) -> int:
     return player_skills[skill]
 
 
-def calculate_skill_check(skill: str, player: Player) -> Tuple[int, int, int]:
+def calculate_skill_check(skill: str, player: Player, d20_roll: int) -> int:
     """
     Calculate a skill check: d20 + skill bonus.
     """
-    d20_roll = random.randint(
-        D20Outcomes.CRITICAL_FAILURE, D20Outcomes.CRITICAL_SUCCESS
-    )
     skill_bonus = get_skill_bonus(skill, player.skills)
     total = d20_roll + skill_bonus
 
     logger.info(
         f"Skill check for {player.name}: {skill} - d20: {d20_roll}, skill bonus: {skill_bonus}, total: {total}"
     )
-    return d20_roll, skill_bonus, total
+    return total
 
 
 def filter_reveals_by_roll(reveals: List[Reveal], total_roll: int) -> List[str]:

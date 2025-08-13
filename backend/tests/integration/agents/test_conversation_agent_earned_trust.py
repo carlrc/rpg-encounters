@@ -7,13 +7,13 @@ from app.models.alignment import Alignment
 from app.models.player import Player
 from app.models.reveal import DifficultyClass
 from app.models.reveal import RevealLayer, Reveal
-from app.data.trust_store import trust_state_store
 from app.models.trust import BASE_TRUST_MAX, BASE_TRUST_MIN, TrustState
 from app.services.conversation_manager import ConversationManager
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
 from app.models.memory import Memory
 from app.models.class_traits import Abilities, Skills, Class
 from tests.utilities import assert_does_not_contain_keywords
+from app.dependencies import get_trust_state_store
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
 REVEAL_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
@@ -75,7 +75,7 @@ ALL_MEMORIES = [
     )
 ]
 
-TRUST_STATE = trust_state_store.update_trust_state(
+TRUST_STATE = get_trust_state_store().update_trust_state(
     TrustState(
         character_id=CHARACTER.id,
         player_id=PLAYER.id,
@@ -87,7 +87,7 @@ TRUST_STATE = trust_state_store.update_trust_state(
 
 @pytest.fixture(autouse=True)
 def clear_trust_store():
-    trust_state_store.clear()
+    get_trust_state_store().clear()
 
 
 async def test_personality_based_earned_trust_respects_standard_level():
@@ -139,7 +139,7 @@ async def test_personality_based_earned_trust_respects_privileged_level():
 
 
 async def test_personality_based_earned_trust_respects_exclusive_level():
-    trust_state = trust_state_store.update_trust_state(
+    trust_state = get_trust_state_store().update_trust_state(
         TrustState(
             character_id=CHARACTER.id,
             player_id=PLAYER.id,
@@ -184,7 +184,7 @@ async def test_personality_based_earned_trust_can_be_negative():
         skills={Skills.PERSUASION: +1},
     )
 
-    trust_state = trust_state_store.update_trust_state(
+    trust_state = get_trust_state_store().update_trust_state(
         TrustState(
             character_id=CHARACTER.id,
             player_id=opposing_player.id,

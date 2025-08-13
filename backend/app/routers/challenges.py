@@ -1,26 +1,41 @@
 import logging
 from fastapi import APIRouter, WebSocket
 from app.services.websocket import get_audio_chunks
-from app.dependencies import get_transcription_service
+from app.dependencies import (
+    get_transcription_service,
+    get_character_store,
+    get_player_store,
+    get_memory_store,
+    get_reveal_store,
+    get_tts_service,
+)
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
-from app.data import character_store, player_store, reveal_store, memory_store
 from app.agents.challenge_agent import ChallengeAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.services.ability_challenge import (
+    D20Outcomes,
     calculate_skill_check,
     filter_reveals_by_roll,
 )
+from app.agents.critical_failure_agent import CriticalFailureAgent
+from app.agents.critical_success_agent import CriticalSuccessAgent
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/challenge", tags=["challenges"])
 
-challenge_system_prompt = import_system_prompt("challenge_agent")
+challenge_agent_system_prompt = import_system_prompt("challenge_agent")
+challenge_agent_critical_success_system_prompt = import_system_prompt(
+    "challenge_agent_critical_success"
+)
+challenge_agent_critical_failure_system_prompt = import_system_prompt(
+    "challenge_agent_critical_failure"
+)
 
 
 @router.websocket("/{player_id}/{character_id}")
 async def websocket_endpoint(
-    websocket: WebSocket, player_id: int, character_id: int, skill: str
+    websocket: WebSocket, player_id: int, character_id: int, skill: str, d20_roll: int
 ):
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
@@ -31,30 +46,61 @@ async def websocket_endpoint(
 
     try:
         # Get player and character data
-        character = character_store.get_character_by_id(character_id)
-        player = player_store.get_player_by_id(player_id)
+        character = get_character_store().get_character_by_id(character_id)
+        player = get_player_store().get_player_by_id(player_id=player_id)
         # Calculate skill check: d20 + player skill bonus
-        d20_roll, skill_bonus, total_roll = calculate_skill_check(skill, player)
+        total_roll = calculate_skill_check(
+            skill=skill, player=player, d20_roll=d20_roll
+        )
 
         # Get information tied to character
-        all_reveals = reveal_store.get_by_character_id(character_id)
-        # TODO: This would need to be lazy updated across instances in case DM wants to update information on the fly
-        all_memories = memory_store.get_by_character_id(character_id)
-
+        all_reveals = get_reveal_store().get_by_character_id(character_id)
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
+        all_memories = get_memory_store().get_by_character_id(character_id)
 
-        agent = ChallengeAgent(
-            character=character,
-            player=player,
-            system_prompt=challenge_system_prompt,
-            memories=all_memories,
-            d20_value=total_roll,
+        if d20_roll == D20Outcomes.CRITICAL_SUCCESS:
+            agent = CriticalSuccessAgent(
+                character=character,
+                player=player,
+                system_prompt=challenge_agent_critical_success_system_prompt,
+                memories=all_memories,
+                reveals=filtered_reveals,
+            )
+        elif d20_roll == D20Outcomes.CRITICAL_FAILURE:
+            agent = CriticalFailureAgent(
+                character=character,
+                player=player,
+                system_prompt=challenge_agent_critical_failure_system_prompt,
+                memories=all_memories,
+            )
+        else:
+            agent = ChallengeAgent(
+                character=character,
+                player=player,
+                system_prompt=challenge_agent_system_prompt,
+                memories=all_memories,
+                reveals=filtered_reveals,
+            )
+
+        response = agent.chat(player_transcript=transcription)
+        logger.debug(
+            f"Generated character response for D20 roll {d20_roll}: {response}"
         )
-        agent.chat(player_transcript=transcription, filtered_reveals=filtered_reveals)
+        # Stream TTS audio chunks back to frontend
+        for audio_chunk in get_tts_service().text_to_speech_stream(
+            response, character.voice
+        ):
+            try:
+                await websocket.send_bytes(audio_chunk)
+            except Exception as e:
+                logger.error(f"Failed to send audio chunk: {e}")
+                break
 
-        # TODO: Need to incorporate sentiment based on the success or failure of this
-        # TODO: Need to pass back the D20 roll somehow
-
+        # Send completion signal
+        try:
+            await websocket.send_text("AUDIO_COMPLETE")
+        except Exception as e:
+            logger.error(f"Failed to send completion signal: {e}")
     except Exception as e:
         logger.error(f"Processing challenge failed: {e}")
     finally:

@@ -58,7 +58,3 @@ class RevealStore:
             return False
         del self.reveals[reveal_id]
         return True
-
-
-# Create singleton instance
-reveal_store = RevealStore()

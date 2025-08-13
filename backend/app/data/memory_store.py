@@ -58,7 +58,3 @@ class MemoryStore:
             return False
         del self.memories[memory_id]
         return True
-
-
-# Create singleton instance
-memory_store = MemoryStore()

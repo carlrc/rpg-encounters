@@ -1,4 +1,3 @@
-from app.agents.challenge_agent import ChallengeAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.character import Character
 from app.models.race import Race, Size, Gender
@@ -7,15 +6,16 @@ from app.models.player import Player
 from app.models.reveal import DifficultyClass
 from app.models.memory import Memory
 from app.models.class_traits import Abilities, Skills, Class
-from app.services.ability_challenge import D20Outcomes
+from app.agents.critical_failure_agent import CriticalFailureAgent
+from app.agents.critical_success_agent import CriticalSuccessAgent
+from app.agents.challenge_agent import ChallengeAgent
 from tests.utilities import (
     assert_does_not_contain_keywords,
     assert_contains_any_keywords,
 )
 
-REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
-REVEAL_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
-REVEAL_LEVEL_3 = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
+SECRET_CORRIDOR = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
+MAYOR_SECRET = "The mayor used to bring foreign diplomats to this secret suite without his wife knowing."
 
 CHARACTER = Character(
     id=100,
@@ -68,38 +68,55 @@ ALL_MEMORIES = [
 ]
 
 
-async def test_challenge_agent_critical_success():
+async def test_challenge_agent_standard():
     """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
     agent = ChallengeAgent(
         character=CHARACTER,
         player=PLAYER,
-        system_prompt=CHALLENGE_SYSTEM_PROMPT,
+        system_prompt=import_system_prompt("challenge_agent"),
         memories=ALL_MEMORIES,
-        reveals=[REVEAL_LEVEL_3],
-        d20_value=D20Outcomes.CRITICAL_SUCCESS.value,
+        reveals=[MAYOR_SECRET],
     )
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn"
     )
 
-    assert_contains_any_keywords(text=response, keywords=["secret", "corridor"])
+    assert_contains_any_keywords(text=response, keywords=["mayor"])
+
+
+async def test_challenge_agent_critical_success():
+    """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
+    agent = CriticalSuccessAgent(
+        character=CHARACTER,
+        player=PLAYER,
+        system_prompt=import_system_prompt("challenge_agent_critical_success"),
+        memories=ALL_MEMORIES,
+        reveals=[SECRET_CORRIDOR, MAYOR_SECRET],
+    )
+
+    response = await agent.chat(
+        player_transcript="I want to know everything about your inn"
+    )
+
+    assert_contains_any_keywords(
+        text=response, keywords=["secret", "corridor", "diplomats"]
+    )
 
 
 async def test_challenge_agent_critical_failure():
     """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
-    agent = ChallengeAgent(
+    agent = CriticalFailureAgent(
         character=CHARACTER,
         player=PLAYER,
-        system_prompt=CHALLENGE_SYSTEM_PROMPT,
+        system_prompt=import_system_prompt("challenge_agent_critical_failure"),
         memories=ALL_MEMORIES,
-        reveals=[REVEAL_LEVEL_1],
-        d20_value=D20Outcomes.CRITICAL_FAILURE.value,
     )
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn"
     )
 
-    # TODO: This isn't a real test
-    assert_does_not_contain_keywords(text=response, keywords=["secret", "corridor"])
+    # TODO: How to assert against negativity?
+    # Assert does not give up memories
+    assert_does_not_contain_keywords(response, ["mayor", "oldest"])

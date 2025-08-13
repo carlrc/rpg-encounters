@@ -1,11 +1,6 @@
 from fastapi import APIRouter, WebSocket
 import logging
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
-from app.data.character_store import character_store
-from app.data.player_store import player_store
-from app.data.trust_store import trust_state_store
-from app.data.reveal_store import reveal_store
-from app.data.memory_store import memory_store
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.services.trust_calculator import calculate_base_trust
 from app.services.websocket import get_audio_chunks
@@ -13,6 +8,11 @@ from app.dependencies import (
     get_agent_manager,
     get_transcription_service,
     get_tts_service,
+    get_memory_store,
+    get_character_store,
+    get_player_store,
+    get_reveal_store,
+    get_trust_state_store,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,19 +35,19 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
 
     try:
         # Get character and player information
-        character = character_store.get_character_by_id(character_id)
-        player = player_store.get_player_by_id(player_id)
+        character = get_character_store().get_character_by_id(character_id)
+        player = get_player_store().get_player_by_id(player_id)
 
         # Get static trust metric between character and player
         base_trust = calculate_base_trust(character, player)
         # Get or create persistent trust state
-        trust_state = trust_state_store.get_or_create(
+        trust_state = get_trust_state_store().get_or_create(
             character_id, player_id, base_trust
         )
         # Get information tied to character
-        all_reveals = reveal_store.get_by_character_id(character_id)
+        all_reveals = get_reveal_store().get_by_character_id(character_id)
         # TODO: This would need to be lazy updated across instances in case DM wants to update information on the fly
-        all_memories = memory_store.get_by_character_id(character_id)
+        all_memories = get_memory_store().get_by_character_id(character_id)
 
         # Get or create persistent character agent
         agent = get_agent_manager().get_or_create_agent(
