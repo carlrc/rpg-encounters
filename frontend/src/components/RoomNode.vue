@@ -1,33 +1,54 @@
 <template>
   <div class="room-node" :style="roomStyle">
-    <!-- Connection handles - positioned on each side -->
+    <!-- Connection handles - one per side, each can be both source and target -->
     <Handle
+      id="right"
       type="source"
       position="right"
-      class="connection-handle source-handle right-handle"
+      class="connection-handle right-handle"
       :style="{ right: '-6px', top: '50%', transform: 'translateY(-50%)' }"
     />
     <Handle
-      type="target"
+      id="left"
+      type="source"
       position="left"
-      class="connection-handle target-handle left-handle"
+      class="connection-handle left-handle"
       :style="{ left: '-6px', top: '50%', transform: 'translateY(-50%)' }"
     />
     <Handle
+      id="bottom"
       type="source"
       position="bottom"
-      class="connection-handle source-handle bottom-handle"
+      class="connection-handle bottom-handle"
       :style="{ bottom: '-6px', left: '50%', transform: 'translateX(-50%)' }"
     />
     <Handle
-      type="target"
+      id="top"
+      type="source"
       position="top"
-      class="connection-handle target-handle top-handle"
+      class="connection-handle top-handle"
       :style="{ top: '-6px', left: '50%', transform: 'translateX(-50%)' }"
     />
 
     <div class="room-header">
-      <h4>{{ room.name }}</h4>
+      <h4
+        v-if="!isEditingName"
+        @click="startEditingName"
+        class="room-name"
+        :title="'Click to edit room name'"
+      >
+        {{ room.name }}
+      </h4>
+      <input
+        v-else
+        v-model="editingName"
+        @blur="saveRoomName"
+        @keyup.enter="saveRoomName"
+        @keyup.escape="cancelEditingName"
+        class="room-name-input"
+        ref="nameInput"
+        :placeholder="room.name"
+      />
       <div class="room-actions">
         <button
           v-if="availableCharacters.length > 0"
@@ -100,7 +121,7 @@
 </template>
 
 <script>
-  import { ref } from 'vue'
+  import { ref, nextTick } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { getInitials } from '../utils/avatarUtils.js'
 
@@ -119,9 +140,12 @@
         default: () => [],
       },
     },
-    emits: ['open-encounter', 'add-character', 'remove-character'],
+    emits: ['open-encounter', 'add-character', 'remove-character', 'update-room-name'],
     setup(props, { emit }) {
       const showAddCharacter = ref(false)
+      const isEditingName = ref(false)
+      const editingName = ref('')
+      const nameInput = ref(null)
 
       const addCharacter = (characterId) => {
         emit('add-character', props.room.id, characterId)
@@ -132,10 +156,41 @@
         emit('remove-character', props.room.id, characterId)
       }
 
+      const startEditingName = () => {
+        isEditingName.value = true
+        editingName.value = props.room.name
+        // Focus the input on next tick
+        nextTick(() => {
+          if (nameInput.value) {
+            nameInput.value.focus()
+            nameInput.value.select()
+          }
+        })
+      }
+
+      const saveRoomName = () => {
+        if (editingName.value.trim() && editingName.value.trim() !== props.room.name) {
+          emit('update-room-name', props.room.id, editingName.value.trim())
+        }
+        isEditingName.value = false
+        editingName.value = ''
+      }
+
+      const cancelEditingName = () => {
+        isEditingName.value = false
+        editingName.value = ''
+      }
+
       return {
         showAddCharacter,
+        isEditingName,
+        editingName,
+        nameInput,
         addCharacter,
         removeCharacter,
+        startEditingName,
+        saveRoomName,
+        cancelEditingName,
         getInitials,
       }
     },
@@ -203,6 +258,36 @@
     font-size: 14px;
     font-weight: 600;
     color: #2c3e50;
+  }
+
+  .room-name {
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+  }
+
+  .room-name:hover {
+    background-color: #f8f9fa;
+  }
+
+  .room-name-input {
+    margin: 0;
+    padding: 2px 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    background: white;
+    outline: none;
+    min-width: 80px;
+    max-width: 200px;
+  }
+
+  .room-name-input:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 
   .room-actions {
@@ -467,26 +552,6 @@
     border-width: 3px;
     background: #007bff;
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
-  }
-
-  .source-handle {
-    background: #007bff;
-    border-color: #0056b3;
-  }
-
-  .source-handle:hover {
-    background: #0056b3;
-    border-color: #004085;
-  }
-
-  .target-handle {
-    background: white;
-    border-color: #007bff;
-  }
-
-  .target-handle:hover {
-    background: #e3f2fd;
-    border-color: #0056b3;
   }
 
   /* Ensure room node has relative positioning for absolute handles */

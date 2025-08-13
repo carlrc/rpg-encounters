@@ -95,6 +95,12 @@
   import { useGameData } from '../composables/useGameData.js'
   import apiService from '../services/api.js'
 
+  // Constants to replace magic numbers
+  const WEBSOCKET_BASE_URL = 'ws://localhost:8000'
+  const AUDIO_SAMPLE_RATE = 16000
+  const AUDIO_CHANNEL_COUNT = 1
+  const MEDIA_RECORDER_TIMESLICE = 250
+
   export default {
     name: 'CharacterEncounterPopup',
     props: {
@@ -218,8 +224,8 @@
         }
 
         const wsUrl = isChallengeMode.value
-          ? `ws://localhost:8000/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
-          : `ws://localhost:8000/conversation/${selectedPlayerId.value}/${props.character.id}`
+          ? `${WEBSOCKET_BASE_URL}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
+          : `${WEBSOCKET_BASE_URL}/conversation/${selectedPlayerId.value}/${props.character.id}`
 
         try {
           websocket.value = new WebSocket(wsUrl)
@@ -293,8 +299,8 @@
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
-              sampleRate: 16000,
-              channelCount: 1,
+              sampleRate: AUDIO_SAMPLE_RATE,
+              channelCount: AUDIO_CHANNEL_COUNT,
               echoCancellation: true,
               noiseSuppression: true,
             },
@@ -310,7 +316,7 @@
             }
           }
 
-          mediaRecorder.value.start(250)
+          mediaRecorder.value.start(MEDIA_RECORDER_TIMESLICE)
           isRecording.value = true
         } catch (error) {
           console.error('Microphone access failed')
