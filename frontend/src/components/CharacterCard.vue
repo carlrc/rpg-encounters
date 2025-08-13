@@ -98,25 +98,11 @@
         >
           <div class="shared-field-label">Character Biases</div>
           <div class="shared-field-value">
-            <div class="bias-display-grid">
-              <div
-                v-for="(preferences, category) in displayBiases"
-                :key="category"
-                class="bias-category-display"
-              >
-                <div class="bias-category-title">{{ formatCategoryName(category) }}</div>
-                <div class="bias-preferences-list">
-                  <span
-                    v-for="(value, option) in preferences"
-                    :key="option"
-                    class="bias-preference-item"
-                    :class="getBiasClass(value)"
-                  >
-                    {{ option }}: {{ formatBiasValue(value) }}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <TraitsDisplay
+              :traits="displayBiases"
+              :category-names="biasesCategoryNames"
+              :value-classifier="getBiasClass"
+            />
           </div>
         </div>
       </div>
@@ -328,6 +314,7 @@
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
+  import TraitsDisplay from './base/TraitsDisplay.vue'
   import apiService from '../services/api.js'
 
   export default {
@@ -336,6 +323,7 @@
       AvatarUpload,
       BaseTextareaWithCharacterCounter,
       BiasPreferenceRow,
+      TraitsDisplay,
     },
     props: {
       character: {
@@ -497,20 +485,12 @@
         displayBiases.value = biases
       }
 
-      const formatCategoryName = (category) => {
-        const names = {
-          race_preferences: 'Race',
-          class_preferences: 'Class',
-          gender_preferences: 'Gender',
-          alignment_preferences: 'Alignment',
-          size_preferences: 'Size',
-        }
-        return names[category] || category
-      }
-
-      const formatBiasValue = (value) => {
-        const sign = value >= 0 ? '+' : ''
-        return `${sign}${value}`
+      const biasesCategoryNames = {
+        race_preferences: 'Race',
+        class_preferences: 'Class',
+        gender_preferences: 'Gender',
+        alignment_preferences: 'Alignment',
+        size_preferences: 'Size',
       }
 
       const getBiasClass = (value) => {
@@ -519,28 +499,7 @@
         return 'bias-neutral'
       }
 
-      // Computed properties for two-column layout
-      const leftColumnBiases = computed(() => {
-        const entries = Object.entries(displayBiases.value)
-        const leftEntries = {}
-        entries.forEach(([category, preferences], index) => {
-          if (index % 2 === 0) {
-            leftEntries[category] = preferences
-          }
-        })
-        return leftEntries
-      })
-
-      const rightColumnBiases = computed(() => {
-        const entries = Object.entries(displayBiases.value)
-        const rightEntries = {}
-        entries.forEach(([category, preferences], index) => {
-          if (index % 2 === 1) {
-            rightEntries[category] = preferences
-          }
-        })
-        return rightEntries
-      })
+      // Computed properties removed - layout handled by TraitsDisplay component
 
       // Load display biases when component mounts and when character changes
       onMounted(() => {
@@ -589,10 +548,7 @@
         removeBiasPreference,
         deleteCharacter,
         displayBiases,
-        leftColumnBiases,
-        rightColumnBiases,
-        formatCategoryName,
-        formatBiasValue,
+        biasesCategoryNames,
         getBiasClass,
       }
     },
@@ -654,97 +610,5 @@
     font-size: 0.9rem;
   }
 
-  /* Bias Display Styles */
-  .bias-display-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-  }
-
-  .bias-category-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding: 0.75rem;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #e9ecef;
-    min-height: 80px;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .bias-category-title {
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
-  }
-
-  .bias-preferences-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem;
-    justify-content: center;
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .bias-preference-item {
-    display: inline-block;
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    border: 1px solid;
-    white-space: nowrap;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-sizing: border-box;
-  }
-
-  /* Responsive design for bias grid */
-  @media (max-width: 768px) {
-    .bias-display-grid {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
-    }
-
-    .bias-category-display {
-      padding: 0.5rem;
-      min-height: 60px;
-    }
-
-    .bias-preference-item {
-      font-size: 0.7rem;
-      padding: 0.15rem 0.3rem;
-    }
-  }
-
-  .bias-preference-item.bias-positive {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
-  }
-
-  .bias-preference-item.bias-negative {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-  }
-
-  .bias-preference-item.bias-neutral {
-    background-color: #e2e3e5;
-    border-color: #d6d8db;
-    color: #383d41;
-  }
+  /* TraitsDisplay component handles the display styling */
 </style>

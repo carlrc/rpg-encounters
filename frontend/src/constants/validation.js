@@ -7,7 +7,16 @@ export const VALIDATION_MESSAGES = {
 
 export const FORM_FIELDS = {
   PLAYER: {
-    REQUIRED: ['name', 'appearance', 'race', 'class_name', 'size', 'alignment'],
+    REQUIRED: [
+      'name',
+      'appearance',
+      'race',
+      'class_name',
+      'size',
+      'alignment',
+      'abilities',
+      'skills',
+    ],
     OPTIONAL: ['avatar'],
   },
   CHARACTER: {
