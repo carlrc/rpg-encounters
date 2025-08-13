@@ -1,0 +1,420 @@
+<template>
+  <div class="room-node" :style="roomStyle">
+    <div class="room-header">
+      <h4>{{ room.name }}</h4>
+      <div class="room-actions">
+        <button
+          v-if="availableCharacters.length > 0"
+          @click="showAddCharacter = !showAddCharacter"
+          class="add-character-btn"
+          :class="{ active: showAddCharacter }"
+        >
+          +
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Character Dropdown -->
+    <div v-if="showAddCharacter" class="add-character-dropdown">
+      <div class="dropdown-header">Add Character:</div>
+      <div class="character-options">
+        <div
+          v-for="character in availableCharacters"
+          :key="character.id"
+          class="character-option"
+          @click="addCharacter(character.id)"
+        >
+          <div class="option-avatar">
+            <img
+              v-if="character.avatar"
+              :src="character.avatar"
+              :alt="character.name"
+              class="option-avatar-image"
+            />
+            <div v-else class="option-avatar-placeholder">
+              <span class="option-avatar-initials">{{ getInitials(character.name) }}</span>
+            </div>
+          </div>
+          <div class="option-info">
+            <div class="option-name">{{ character.name }}</div>
+            <div class="option-race">{{ character.race }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="character-grid">
+      <div
+        v-for="character in room.characters"
+        :key="character.id"
+        class="character-avatar"
+        @click="$emit('open-encounter', character)"
+        :title="character.name"
+      >
+        <button
+          class="remove-character-btn"
+          @click.stop="removeCharacter(character.id)"
+          title="Remove character"
+        >
+          ×
+        </button>
+        <img
+          v-if="character.avatar"
+          :src="character.avatar"
+          :alt="character.name"
+          class="avatar-image"
+        />
+        <div v-else class="avatar-placeholder">
+          <span class="avatar-initials">{{ getInitials(character.name) }}</span>
+        </div>
+        <span class="character-name">{{ character.name }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  import { ref } from 'vue'
+  import { getInitials } from '../utils/avatarUtils.js'
+
+  export default {
+    name: 'RoomNode',
+    props: {
+      room: {
+        type: Object,
+        required: true,
+      },
+      availableCharacters: {
+        type: Array,
+        default: () => [],
+      },
+    },
+    emits: ['open-encounter', 'add-character', 'remove-character'],
+    setup(props, { emit }) {
+      const showAddCharacter = ref(false)
+
+      const addCharacter = (characterId) => {
+        emit('add-character', props.room.id, characterId)
+        showAddCharacter.value = false
+      }
+
+      const removeCharacter = (characterId) => {
+        emit('remove-character', props.room.id, characterId)
+      }
+
+      return {
+        showAddCharacter,
+        addCharacter,
+        removeCharacter,
+        getInitials,
+      }
+    },
+    computed: {
+      roomStyle() {
+        const baseHeight = 150
+        const charWidth = 120 // Fixed character width from CSS
+        const roomPadding = 24 // 12px padding on each side
+        const gapBetweenChars = 12 // Gap between characters
+
+        if (!this.room.characters || this.room.characters.length === 0) {
+          return {
+            width: `300px`,
+            height: `${baseHeight}px`,
+            minHeight: `${baseHeight}px`,
+          }
+        }
+
+        // Calculate room width to fit at least 2 characters per row
+        const minWidthFor2Chars = charWidth * 2 + gapBetweenChars + roomPadding
+        const calculatedWidth = Math.max(minWidthFor2Chars, 300)
+
+        // Calculate dynamic height based on number of characters
+        const characterCount = this.room.characters.length
+        const availableWidth = calculatedWidth - roomPadding
+        const charactersPerRow = Math.floor(availableWidth / (charWidth + gapBetweenChars))
+        const rows = Math.ceil(characterCount / Math.max(1, charactersPerRow))
+
+        // Add extra height for each row of characters (80px per row)
+        const extraHeight = Math.max(0, (rows - 1) * 80)
+
+        return {
+          width: `${calculatedWidth}px`,
+          height: `${baseHeight + extraHeight}px`,
+          minHeight: `${baseHeight}px`,
+        }
+      },
+    },
+  }
+</script>
+
+<style scoped>
+  .room-node {
+    background: #ffffff;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    position: relative;
+    min-width: 150px;
+    min-height: 100px;
+  }
+
+  .room-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 4px;
+  }
+
+  .room-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .room-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .add-character-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: #28a745;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .add-character-btn:hover {
+    background: #218838;
+    transform: scale(1.1);
+  }
+
+  .add-character-btn.active {
+    background: #dc3545;
+    transform: rotate(45deg);
+  }
+
+  .add-character-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .dropdown-header {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    font-size: 12px;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .character-options {
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .character-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-bottom: 1px solid #f8f9fa;
+  }
+
+  .character-option:hover {
+    background: #e3f2fd;
+  }
+
+  .character-option:last-child {
+    border-bottom: none;
+  }
+
+  .option-avatar {
+    flex-shrink: 0;
+  }
+
+  .option-avatar-image {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #007bff;
+  }
+
+  .option-avatar-placeholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #004085;
+  }
+
+  .option-avatar-initials {
+    color: white;
+    font-size: 10px;
+    font-weight: bold;
+  }
+
+  .option-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .option-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2c3e50;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .option-race {
+    font-size: 10px;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .character-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    min-height: 60px;
+    margin-top: 8px;
+  }
+
+  .character-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    position: relative;
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  .character-avatar:hover {
+    background: #f8f9fa;
+    transform: scale(1.05);
+  }
+
+  .character-avatar:hover .remove-character-btn {
+    opacity: 1;
+  }
+
+  .remove-character-btn {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: #dc3545;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: all 0.2s ease;
+    z-index: 10;
+  }
+
+  .remove-character-btn:hover {
+    background: #c82333;
+    transform: scale(1.1);
+  }
+
+  .avatar-image {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #007bff;
+    margin-bottom: 2px;
+  }
+
+  .avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #004085;
+    margin-bottom: 2px;
+  }
+
+  .avatar-initials {
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .character-name {
+    font-size: 10px;
+    color: #6c757d;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+    hyphens: auto;
+  }
+
+  /* Scrollbar styling for dropdown */
+  .character-options::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .character-options::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+
+  .character-options::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+  }
+
+  .character-options::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+</style>
