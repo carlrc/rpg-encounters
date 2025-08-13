@@ -48,11 +48,10 @@ class ConversationManager:
                 selected_reveal = reveal
                 break
 
-        # If the LLM returns an invalid reveal_id, default to the standard response and log the error
+        # If the LLM returns an invalid     reveal_id or stringified None, default to the standard response
         if selected_reveal is None:
-            # TODO: Could a error response be added to agent output (e.g., I'm sorry I can't talk right now) instead of defaulting to standard
-            logger.warning(
-                f"reveal_id {agent_result.reveal_id} not found in available list"
+            logger.debug(
+                f"reveal_id {agent_result.reveal_id} not found in available list. Defaulting to standard answer..."
             )
             return agent_result.standard_response, RevealLayer.STANDARD
         else:

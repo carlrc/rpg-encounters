@@ -17,7 +17,10 @@ players_db = {
             Abilities.CHARISMA.value: +1
         },
         skills={
-            Skills.PERSUASION.value: +1
+            Skills.PERSUASION.value: +3,
+            Skills.DECEPTION.value: 0,
+            Skills.INTIMIDATION.value: + 1,
+            Skills.PERFORMANCE.value: 0
         }
     ),
     2: Player(
@@ -33,7 +36,10 @@ players_db = {
             Abilities.CHARISMA.value: +1
         },
         skills={
-            Skills.PERSUASION.value: +1
+            Skills.PERSUASION.value: +3,
+            Skills.DECEPTION.value: 0,
+            Skills.INTIMIDATION.value: + 1,
+            Skills.PERFORMANCE.value: 0
         }
     ),
 }

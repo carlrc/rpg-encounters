@@ -62,7 +62,9 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
         )
 
         # Generate AI response using character agent
-        response, level, _ = await agent.chat(transcription, all_reveals)
+        response, level, _ = await agent.chat(
+            player_transcript=transcription, reveals=all_reveals
+        )
         logger.debug(
             f"Generated character response for level ${level.name}: {response}"
         )

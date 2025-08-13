@@ -58,7 +58,8 @@ async def websocket_endpoint(
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
         all_memories = get_memory_store().get_by_character_id(character_id)
 
-        if d20_roll == D20Outcomes.CRITICAL_SUCCESS:
+        if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
+            logger.info(f"Player {player_id} rolled critical success {d20_roll}.")
             agent = CriticalSuccessAgent(
                 character=character,
                 player=player,
@@ -66,7 +67,8 @@ async def websocket_endpoint(
                 memories=all_memories,
                 reveals=filtered_reveals,
             )
-        elif d20_roll == D20Outcomes.CRITICAL_FAILURE:
+        elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
+            logger.info(f"Player {player_id} rolled critical failure {d20_roll}.")
             agent = CriticalFailureAgent(
                 character=character,
                 player=player,
@@ -82,7 +84,7 @@ async def websocket_endpoint(
                 reveals=filtered_reveals,
             )
 
-        response = agent.chat(player_transcript=transcription)
+        response = await agent.chat(player_transcript=transcription)
         logger.debug(
             f"Generated character response for D20 roll {d20_roll}: {response}"
         )
