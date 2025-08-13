@@ -1,86 +1,56 @@
 <template>
-  <div v-if="enableLevel2 || enableLevel3" class="threshold-manager">
+  <div v-if="enableLevel1 || enableLevel2 || enableLevel3" class="threshold-manager">
+    <!-- Level 1 Threshold -->
+    <div v-if="enableLevel1" class="threshold-section">
+      <div class="threshold-slider">
+        <label class="threshold-label">
+          Standard Content: {{ getDCLabel(standardThreshold) || `DC ${standardThreshold}` }}
+        </label>
+        <input
+          type="range"
+          :value="standardThreshold"
+          @input="$emit('update:standardThreshold', parseInt($event.target.value))"
+          :min="gameData.threshold_limits.min"
+          :max="gameData.threshold_limits.max"
+          :step="gameData.threshold_limits.step"
+          class="slider"
+        />
+      </div>
+    </div>
+
     <!-- Level 2 Threshold -->
     <div v-if="enableLevel2" class="threshold-section">
-      <h4 class="threshold-title">Level 2: Privileged Content Threshold</h4>
-      <div class="threshold-options">
-        <label class="shared-radio-option">
-          <input
-            type="radio"
-            value="default"
-            :checked="privilegedMode === 'default'"
-            @change="$emit('update:privilegedMode', 'default')"
-          />
-          <span>Use Default Threshold</span>
+      <div class="threshold-slider">
+        <label class="threshold-label">
+          Privileged Content: {{ getDCLabel(privilegedThreshold) || `DC ${privilegedThreshold}` }}
         </label>
-        <label class="shared-radio-option">
-          <input
-            type="radio"
-            value="custom"
-            :checked="privilegedMode === 'custom'"
-            @change="$emit('update:privilegedMode', 'custom')"
-          />
-          <span>Custom Threshold</span>
-        </label>
-      </div>
-
-      <div v-if="privilegedMode === 'custom'" class="custom-thresholds">
-        <div class="threshold-slider">
-          <label class="threshold-label">
-            Privileged Content: {{ getDCLabel(privilegedThreshold) || `DC ${privilegedThreshold}` }}
-          </label>
-          <input
-            type="range"
-            :value="privilegedThreshold"
-            @input="$emit('update:privilegedThreshold', parseInt($event.target.value))"
-            :min="gameData.threshold_limits.min"
-            :max="gameData.threshold_limits.max"
-            :step="gameData.threshold_limits.step"
-            class="slider"
-          />
-        </div>
+        <input
+          type="range"
+          :value="privilegedThreshold"
+          @input="$emit('update:privilegedThreshold', parseInt($event.target.value))"
+          :min="gameData.threshold_limits.min"
+          :max="gameData.threshold_limits.max"
+          :step="gameData.threshold_limits.step"
+          class="slider"
+        />
       </div>
     </div>
 
     <!-- Level 3 Threshold -->
     <div v-if="enableLevel3" class="threshold-section">
-      <h4 class="threshold-title">Level 3: Exclusive Content Threshold</h4>
-      <div class="threshold-options">
-        <label class="shared-radio-option">
-          <input
-            type="radio"
-            value="default"
-            :checked="exclusiveMode === 'default'"
-            @change="$emit('update:exclusiveMode', 'default')"
-          />
-          <span>Use Default Threshold</span>
+      <div class="threshold-slider">
+        <label class="threshold-label">
+          Exclusive Content: {{ getDCLabel(exclusiveThreshold) || `DC ${exclusiveThreshold}` }}
         </label>
-        <label class="shared-radio-option">
-          <input
-            type="radio"
-            value="custom"
-            :checked="exclusiveMode === 'custom'"
-            @change="$emit('update:exclusiveMode', 'custom')"
-          />
-          <span>Custom Threshold</span>
-        </label>
-      </div>
-
-      <div v-if="exclusiveMode === 'custom'" class="custom-thresholds">
-        <div class="threshold-slider">
-          <label class="threshold-label">
-            Exclusive Content: {{ getDCLabel(exclusiveThreshold) || `DC ${exclusiveThreshold}` }}
-          </label>
-          <input
-            type="range"
-            :value="exclusiveThreshold"
-            @input="$emit('update:exclusiveThreshold', parseInt($event.target.value))"
-            :min="gameData.threshold_limits.min"
-            :max="gameData.threshold_limits.max"
-            :step="gameData.threshold_limits.step"
-            class="slider"
-          />
-        </div>
+        <input
+          type="range"
+          :value="exclusiveThreshold"
+          @input="$emit('update:exclusiveThreshold', parseInt($event.target.value))"
+          :min="gameData.threshold_limits.min"
+          :max="gameData.threshold_limits.max"
+          :step="gameData.threshold_limits.step"
+          class="slider"
+        />
       </div>
     </div>
   </div>
@@ -88,12 +58,18 @@
 
 <script>
   import { useGameData } from '../../composables/useGameData.js'
+  import { getDCLabel } from '../../utils/dcUtils.js'
 
   export default {
     name: 'ThresholdManager',
     props: {
+      enableLevel1: Boolean,
       enableLevel2: Boolean,
       enableLevel3: Boolean,
+      standardThreshold: {
+        type: Number,
+        required: true,
+      },
       privilegedThreshold: {
         type: Number,
         required: true,
@@ -102,33 +78,14 @@
         type: Number,
         required: true,
       },
-      privilegedMode: {
-        type: String,
-        default: 'default',
-      },
-      exclusiveMode: {
-        type: String,
-        default: 'default',
-      },
     },
-    emits: [
-      'update:privilegedThreshold',
-      'update:exclusiveThreshold',
-      'update:privilegedMode',
-      'update:exclusiveMode',
-    ],
+    emits: ['update:standardThreshold', 'update:privilegedThreshold', 'update:exclusiveThreshold'],
     setup() {
       const { gameData } = useGameData()
 
-      const getDCLabel = (value) => {
-        const dcEntries = Object.entries(gameData.value.difficulty_classes)
-        const entry = dcEntries.find(([key, dcValue]) => dcValue === value)
-        return entry ? `${entry[0].replace(/_/g, ' ')} (${value})` : `DC ${value}`
-      }
-
       return {
         gameData,
-        getDCLabel,
+        getDCLabel: (value) => getDCLabel(value, gameData.value?.difficulty_classes),
       }
     },
   }
@@ -141,27 +98,6 @@
 
   .threshold-section {
     margin-bottom: var(--spacing-xl);
-  }
-
-  .threshold-title {
-    margin: 0 0 var(--spacing-md) 0;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-  }
-
-  .threshold-options {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .custom-thresholds {
-    padding: var(--spacing-lg);
-    border: 2px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--bg-light);
   }
 
   .threshold-slider {

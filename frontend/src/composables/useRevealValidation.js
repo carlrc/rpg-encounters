@@ -17,28 +17,23 @@ export function useRevealValidation(form) {
     const level3Valid =
       !form.enable_level_3 || (form.level_3_content.trim() && form.level_3_content.length <= 500)
 
-    // Threshold validation: only validate gap when both levels use custom thresholds
+    // Threshold validation: ensure thresholds are in ascending order
     const thresholdValid = (() => {
-      const privilegedMode = form.privileged_threshold_mode || 'default'
-      const exclusiveMode = form.exclusive_threshold_mode || 'default'
+      // Validate ascending order: standard ≤ privileged ≤ exclusive
+      let valid = true
 
-      // If both levels are enabled and both use custom thresholds, validate the gap
-      if (
-        form.enable_level_2 &&
-        form.enable_level_3 &&
-        privilegedMode === 'custom' &&
-        exclusiveMode === 'custom' &&
-        gameData.value
-      ) {
-        return (
-          form.privileged_threshold < form.exclusive_threshold &&
-          form.exclusive_threshold - form.privileged_threshold >=
-            gameData.value.threshold_limits.min_gap
-        )
+      if (form.enable_level_2) {
+        valid = valid && form.standard_threshold <= form.privileged_threshold
       }
 
-      // Otherwise, thresholds are valid (using defaults or only one level enabled)
-      return true
+      if (form.enable_level_3) {
+        valid = valid && form.standard_threshold <= form.exclusive_threshold
+        if (form.enable_level_2) {
+          valid = valid && form.privileged_threshold <= form.exclusive_threshold
+        }
+      }
+
+      return valid
     })()
 
     return baseValid && level2Valid && level3Valid && thresholdValid

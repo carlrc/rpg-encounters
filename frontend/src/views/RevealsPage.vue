@@ -42,9 +42,29 @@
             >
             <BaseTextareaWithCharacterCounter
               v-model="createForm.level_1_content"
-              placeholder="Enter standard content (always accessible)..."
+              placeholder="Enter standard content..."
               :max-characters="500"
             />
+          </div>
+
+          <!-- Level 1 Threshold -->
+          <div class="threshold-section">
+            <div class="threshold-slider">
+              <label class="threshold-label">
+                Standard Content:
+                {{
+                  getDCLabel(createForm.standard_threshold) || `DC ${createForm.standard_threshold}`
+                }}
+              </label>
+              <input
+                type="range"
+                v-model.number="createForm.standard_threshold"
+                :min="gameData.threshold_limits.min"
+                :max="gameData.threshold_limits.max"
+                :step="gameData.threshold_limits.step"
+                class="slider"
+              />
+            </div>
           </div>
 
           <!-- Level 2 Toggle -->
@@ -69,43 +89,24 @@
             />
           </div>
 
-          <!-- Level 2 Threshold Options -->
+          <!-- Level 2 Threshold -->
           <div v-if="createForm.enable_level_2" class="threshold-section">
-            <h4 class="threshold-title">Level 2: Privileged Content Threshold</h4>
-            <div class="threshold-options">
-              <label class="shared-radio-option">
-                <input
-                  type="radio"
-                  value="default"
-                  v-model="createForm.privileged_threshold_mode"
-                  @change="handlePrivilegedThresholdModeChange"
-                />
-                <span>Use Default Threshold</span>
+            <div class="threshold-slider">
+              <label class="threshold-label">
+                Privileged Content:
+                {{
+                  getDCLabel(createForm.privileged_threshold) ||
+                  `DC ${createForm.privileged_threshold}`
+                }}
               </label>
-              <label class="shared-radio-option">
-                <input type="radio" value="custom" v-model="createForm.privileged_threshold_mode" />
-                <span>Custom Threshold</span>
-              </label>
-            </div>
-
-            <div v-if="createForm.privileged_threshold_mode === 'custom'" class="custom-thresholds">
-              <div class="threshold-slider">
-                <label class="threshold-label">
-                  Privileged Content:
-                  {{
-                    getDCLabel(createForm.privileged_threshold) ||
-                    `DC ${createForm.privileged_threshold}`
-                  }}
-                </label>
-                <input
-                  type="range"
-                  v-model.number="createForm.privileged_threshold"
-                  :min="gameData.threshold_limits.min"
-                  :max="gameData.threshold_limits.max"
-                  :step="gameData.threshold_limits.step"
-                  class="slider"
-                />
-              </div>
+              <input
+                type="range"
+                v-model.number="createForm.privileged_threshold"
+                :min="gameData.threshold_limits.min"
+                :max="gameData.threshold_limits.max"
+                :step="gameData.threshold_limits.step"
+                class="slider"
+              />
             </div>
           </div>
 
@@ -132,43 +133,24 @@
             </div>
           </div>
 
-          <!-- Level 3 Threshold Options -->
+          <!-- Level 3 Threshold -->
           <div v-if="createForm.enable_level_3" class="threshold-section">
-            <h4 class="threshold-title">Level 3: Exclusive Content Threshold</h4>
-            <div class="threshold-options">
-              <label class="shared-radio-option">
-                <input
-                  type="radio"
-                  value="default"
-                  v-model="createForm.exclusive_threshold_mode"
-                  @change="handleExclusiveThresholdModeChange"
-                />
-                <span>Use Default Threshold</span>
+            <div class="threshold-slider">
+              <label class="threshold-label">
+                Exclusive Content:
+                {{
+                  getDCLabel(createForm.exclusive_threshold) ||
+                  `DC ${createForm.exclusive_threshold}`
+                }}
               </label>
-              <label class="shared-radio-option">
-                <input type="radio" value="custom" v-model="createForm.exclusive_threshold_mode" />
-                <span>Custom Threshold</span>
-              </label>
-            </div>
-
-            <div v-if="createForm.exclusive_threshold_mode === 'custom'" class="custom-thresholds">
-              <div class="threshold-slider">
-                <label class="threshold-label">
-                  Exclusive Content:
-                  {{
-                    getDCLabel(createForm.exclusive_threshold) ||
-                    `DC ${createForm.exclusive_threshold}`
-                  }}
-                </label>
-                <input
-                  type="range"
-                  v-model.number="createForm.exclusive_threshold"
-                  :min="gameData.threshold_limits.min"
-                  :max="gameData.threshold_limits.max"
-                  :step="gameData.threshold_limits.step"
-                  class="slider"
-                />
-              </div>
+              <input
+                type="range"
+                v-model.number="createForm.exclusive_threshold"
+                :min="gameData.threshold_limits.min"
+                :max="gameData.threshold_limits.max"
+                :step="gameData.threshold_limits.step"
+                class="slider"
+              />
             </div>
           </div>
 
@@ -209,6 +191,7 @@
   import { useRevealValidation } from '../composables/useRevealValidation.js'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { getDCLabel } from '../utils/dcUtils.js'
 
   export default {
     name: 'RevealsPage',
@@ -246,8 +229,7 @@
         level_3_content: '',
         enable_level_2: false,
         enable_level_3: false,
-        privileged_threshold_mode: 'default',
-        exclusive_threshold_mode: 'default',
+        standard_threshold: 0, // Will be set from gameData
         privileged_threshold: 0, // Will be set from gameData
         exclusive_threshold: 0, // Will be set from gameData
       })
@@ -275,8 +257,7 @@
           level_3_content: '',
           enable_level_2: false,
           enable_level_3: false,
-          privileged_threshold_mode: 'default',
-          exclusive_threshold_mode: 'default',
+          standard_threshold: gameData.value.default_thresholds.standard,
           privileged_threshold: gameData.value.default_thresholds.privileged,
           exclusive_threshold: gameData.value.default_thresholds.exclusive,
         })
@@ -293,13 +274,14 @@
               level_3_content: createForm.enable_level_3 ? createForm.level_3_content.trim() : null,
             }
 
-            // Add custom thresholds based on individual modes
-            if (createForm.enable_level_2 && createForm.privileged_threshold_mode === 'custom') {
-              revealData.privileged_threshold = createForm.privileged_threshold
-            }
-            if (createForm.enable_level_3 && createForm.exclusive_threshold_mode === 'custom') {
-              revealData.exclusive_threshold = createForm.exclusive_threshold
-            }
+            // Always include all thresholds since we always show sliders
+            revealData.standard_threshold = createForm.standard_threshold
+            revealData.privileged_threshold = createForm.enable_level_2
+              ? createForm.privileged_threshold
+              : null
+            revealData.exclusive_threshold = createForm.enable_level_3
+              ? createForm.exclusive_threshold
+              : null
 
             await createEntity(revealData)
             resetCreateForm()
@@ -321,18 +303,6 @@
         }
       }
 
-      const handlePrivilegedThresholdModeChange = () => {
-        if (createForm.privileged_threshold_mode === 'default') {
-          createForm.privileged_threshold = gameData.value.default_thresholds.privileged
-        }
-      }
-
-      const handleExclusiveThresholdModeChange = () => {
-        if (createForm.exclusive_threshold_mode === 'default') {
-          createForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
-        }
-      }
-
       const handleCancelCreate = () => {
         cancelCreate()
         resetCreateForm()
@@ -341,6 +311,7 @@
       onMounted(async () => {
         await loadGameData()
         // Update form defaults after game data is loaded
+        createForm.standard_threshold = gameData.value.default_thresholds.standard
         createForm.privileged_threshold = gameData.value.default_thresholds.privileged
         createForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
         await loadEntities()
@@ -366,13 +337,7 @@
         cancelCreate: handleCancelCreate,
         handleLevel2Toggle,
         handleLevel3Toggle,
-        handlePrivilegedThresholdModeChange,
-        handleExclusiveThresholdModeChange,
-        getDCLabel: (value) => {
-          const dcEntries = Object.entries(gameData.value.difficulty_classes)
-          const entry = dcEntries.find(([key, dcValue]) => dcValue === value)
-          return entry ? `${entry[0].replace(/_/g, ' ')} (${value})` : `DC ${value}`
-        },
+        getDCLabel: (value) => getDCLabel(value, gameData.value?.difficulty_classes),
       }
     },
   }
@@ -459,45 +424,6 @@
   /* Threshold section styles using shared design tokens */
   .threshold-section {
     margin-bottom: var(--spacing-xl);
-  }
-
-  .threshold-options {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .threshold-option {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    cursor: pointer;
-    padding: var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    transition: background-color var(--transition-fast);
-    font-size: var(--font-size-base);
-    color: var(--text-primary);
-  }
-
-  .threshold-option:hover {
-    background-color: var(--bg-light);
-  }
-
-  .threshold-option input[type='radio'] {
-    margin: 0;
-  }
-
-  .threshold-option span {
-    color: var(--text-primary);
-    font-weight: var(--font-weight-medium);
-  }
-
-  .custom-thresholds {
-    padding: var(--spacing-lg);
-    border: 2px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--bg-light);
   }
 
   .threshold-slider {
