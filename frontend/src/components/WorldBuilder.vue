@@ -10,14 +10,17 @@
 
     <div v-else class="world-builder-container">
       <!-- Add Room Button -->
-      <button
-        @click="addNewRoom"
-        class="add-room-btn"
-        title="Add Room"
-        aria-label="Add new room to world"
-      >
-        +
-      </button>
+      <div class="add-room-container">
+        <button
+          @click="addNewRoom"
+          class="add-room-btn"
+          title="Add Room"
+          aria-label="Add new room to world"
+        >
+          +
+        </button>
+        <span class="add-room-label">Add Room</span>
+      </div>
 
       <VueFlow
         v-model="elements"
@@ -45,6 +48,7 @@
             @add-character="addCharacterToRoom"
             @remove-character="removeCharacterFromRoom"
             @update-room-name="updateRoomName"
+            @update-room-description="updateRoomDescription"
           />
         </template>
       </VueFlow>
@@ -108,6 +112,8 @@
               position: { x: 200, y: 150 },
               data: {
                 name: 'Tavern',
+                description:
+                  'A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale.',
                 characters: [],
               },
             },
@@ -117,6 +123,8 @@
               position: { x: 500, y: 150 },
               data: {
                 name: 'Forest',
+                description:
+                  'A dense woodland with towering ancient trees whose branches form a natural canopy. Dappled sunlight filters through the leaves, creating dancing shadows on the forest floor.',
                 characters: [],
               },
             },
@@ -133,6 +141,8 @@
             position: { x: 200, y: 150 },
             data: {
               name: 'Tavern',
+              description:
+                'A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale.',
               characters: characters.value.slice(0, 2), // First 2 characters
             },
           },
@@ -142,6 +152,8 @@
             position: { x: 500, y: 150 },
             data: {
               name: 'Forest',
+              description:
+                'A dense woodland with towering ancient trees whose branches form a natural canopy. Dappled sunlight filters through the leaves, creating dancing shadows on the forest floor.',
               characters: characters.value.slice(2, 4), // Next 2 characters
             },
           },
@@ -335,6 +347,7 @@
           },
           data: {
             name: 'New Room',
+            description: 'A mysterious new location waiting to be explored and described.',
             characters: [],
           },
         }
@@ -348,6 +361,14 @@
         const roomIndex = elements.value.findIndex((el) => el.id === roomId)
         if (roomIndex !== -1) {
           elements.value[roomIndex].data.name = newName
+        }
+      }
+
+      // Update room description
+      const updateRoomDescription = (roomId, newDescription) => {
+        const roomIndex = elements.value.findIndex((el) => el.id === roomId)
+        if (roomIndex !== -1) {
+          elements.value[roomIndex].data.description = newDescription
         }
       }
 
@@ -383,6 +404,7 @@
         isValidConnection,
         addNewRoom,
         updateRoomName,
+        updateRoomDescription,
         onEdgeClick,
       }
     },
@@ -408,11 +430,18 @@
     background: #f8f9fa;
   }
 
-  /* Add Room Button */
-  .add-room-btn {
+  /* Add Room Button Container */
+  .add-room-container {
     position: absolute;
     top: 20px;
     right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .add-room-btn {
     width: 40px;
     height: 40px;
     border: none;
@@ -427,7 +456,7 @@
     justify-content: center;
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
-    z-index: 1000;
+    margin-bottom: 4px;
   }
 
   .add-room-btn:hover {
@@ -438,6 +467,15 @@
 
   .add-room-btn:active {
     transform: scale(1.05);
+  }
+
+  .add-room-label {
+    font-size: 10px;
+    color: #6c757d;
+    text-align: center;
+    line-height: 1.2;
+    font-weight: 500;
+    white-space: nowrap;
   }
 
   /* Edge styling for better interaction */

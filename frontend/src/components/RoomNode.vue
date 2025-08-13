@@ -51,14 +51,37 @@
       />
       <div class="room-actions">
         <button
-          v-if="availableCharacters.length > 0"
-          @click="showAddCharacter = !showAddCharacter"
-          class="add-character-btn"
-          :class="{ active: showAddCharacter }"
+          @click="toggleDescription"
+          class="info-btn"
+          :class="{ active: showDescription }"
+          :title="showDescription ? 'Hide description' : 'Show description'"
         >
-          +
+          ⓘ
         </button>
       </div>
+    </div>
+
+    <!-- Room Description Section -->
+    <div v-if="showDescription" class="room-description-section">
+      <div
+        v-if="!isEditingDescription"
+        @click="startEditingDescription"
+        class="room-description"
+        :title="'Click to edit room description'"
+      >
+        {{ room.description || 'No description available. Click to add one.' }}
+      </div>
+      <textarea
+        v-else
+        v-model="editingDescription"
+        @blur="saveRoomDescription"
+        @keyup.ctrl.enter="saveRoomDescription"
+        @keyup.escape="cancelEditingDescription"
+        class="room-description-input"
+        ref="descriptionInput"
+        placeholder="Enter room description..."
+        rows="3"
+      />
     </div>
 
     <!-- Add Character Dropdown -->
@@ -116,6 +139,22 @@
         </div>
         <span class="character-name">{{ character.name }}</span>
       </div>
+
+      <!-- Add Character Button (reusing add room button styling) -->
+      <div
+        v-if="availableCharacters.length > 0"
+        class="character-avatar"
+        title="Add character to room"
+      >
+        <button
+          @click="showAddCharacter = !showAddCharacter"
+          class="add-room-btn add-character-btn"
+          :class="{ active: showAddCharacter }"
+        >
+          +
+        </button>
+        <span class="character-name">Add Character</span>
+      </div>
     </div>
   </div>
 </template>
@@ -140,12 +179,22 @@
         default: () => [],
       },
     },
-    emits: ['open-encounter', 'add-character', 'remove-character', 'update-room-name'],
+    emits: [
+      'open-encounter',
+      'add-character',
+      'remove-character',
+      'update-room-name',
+      'update-room-description',
+    ],
     setup(props, { emit }) {
       const showAddCharacter = ref(false)
+      const showDescription = ref(false)
       const isEditingName = ref(false)
       const editingName = ref('')
       const nameInput = ref(null)
+      const isEditingDescription = ref(false)
+      const editingDescription = ref('')
+      const descriptionInput = ref(null)
 
       const addCharacter = (characterId) => {
         emit('add-character', props.room.id, characterId)
@@ -181,16 +230,53 @@
         editingName.value = ''
       }
 
+      const toggleDescription = () => {
+        showDescription.value = !showDescription.value
+      }
+
+      const startEditingDescription = () => {
+        isEditingDescription.value = true
+        editingDescription.value = props.room.description || ''
+        // Focus the textarea on next tick
+        nextTick(() => {
+          if (descriptionInput.value) {
+            descriptionInput.value.focus()
+            descriptionInput.value.select()
+          }
+        })
+      }
+
+      const saveRoomDescription = () => {
+        // Always emit the update, even if it's empty (allows clearing descriptions)
+        const newDescription = editingDescription.value.trim()
+        emit('update-room-description', props.room.id, newDescription)
+        isEditingDescription.value = false
+        editingDescription.value = ''
+      }
+
+      const cancelEditingDescription = () => {
+        isEditingDescription.value = false
+        editingDescription.value = ''
+      }
+
       return {
         showAddCharacter,
+        showDescription,
         isEditingName,
         editingName,
         nameInput,
+        isEditingDescription,
+        editingDescription,
+        descriptionInput,
         addCharacter,
         removeCharacter,
         startEditingName,
         saveRoomName,
         cancelEditingName,
+        toggleDescription,
+        startEditingDescription,
+        saveRoomDescription,
+        cancelEditingDescription,
         getInitials,
       }
     },
@@ -200,31 +286,35 @@
         const charWidth = 120 // Fixed character width from CSS
         const roomPadding = 24 // 12px padding on each side
         const gapBetweenChars = 12 // Gap between characters
+        const descriptionHeight = this.showDescription ? 80 : 0 // Height for description section
 
-        if (!this.room.characters || this.room.characters.length === 0) {
+        // Count characters + add character button if available
+        const totalItems =
+          (this.room.characters?.length || 0) + (this.availableCharacters.length > 0 ? 1 : 0)
+
+        if (totalItems === 0) {
           return {
             width: `300px`,
-            height: `${baseHeight}px`,
+            height: `${baseHeight + descriptionHeight}px`,
             minHeight: `${baseHeight}px`,
           }
         }
 
-        // Calculate room width to fit at least 2 characters per row
-        const minWidthFor2Chars = charWidth * 2 + gapBetweenChars + roomPadding
-        const calculatedWidth = Math.max(minWidthFor2Chars, 300)
+        // Calculate room width to fit at least 2 items per row
+        const minWidthFor2Items = charWidth * 2 + gapBetweenChars + roomPadding
+        const calculatedWidth = Math.max(minWidthFor2Items, 300)
 
-        // Calculate dynamic height based on number of characters
-        const characterCount = this.room.characters.length
+        // Calculate dynamic height based on number of items (characters + add button)
         const availableWidth = calculatedWidth - roomPadding
-        const charactersPerRow = Math.floor(availableWidth / (charWidth + gapBetweenChars))
-        const rows = Math.ceil(characterCount / Math.max(1, charactersPerRow))
+        const itemsPerRow = Math.floor(availableWidth / (charWidth + gapBetweenChars))
+        const rows = Math.ceil(totalItems / Math.max(1, itemsPerRow))
 
-        // Add extra height for each row of characters (80px per row)
+        // Add extra height for each row of items (80px per row)
         const extraHeight = Math.max(0, (rows - 1) * 80)
 
         return {
           width: `${calculatedWidth}px`,
-          height: `${baseHeight + extraHeight}px`,
+          height: `${baseHeight + extraHeight + descriptionHeight}px`,
           minHeight: `${baseHeight}px`,
         }
       },
@@ -295,14 +385,14 @@
     gap: 4px;
   }
 
-  .add-character-btn {
+  .info-btn {
     width: 20px;
     height: 20px;
     border: none;
     border-radius: 50%;
-    background: #28a745;
+    background: #007bff;
     color: white;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: bold;
     cursor: pointer;
     display: flex;
@@ -311,14 +401,57 @@
     transition: all 0.2s ease;
   }
 
-  .add-character-btn:hover {
-    background: #218838;
+  .info-btn:hover {
+    background: #0056b3;
     transform: scale(1.1);
   }
 
-  .add-character-btn.active {
-    background: #dc3545;
-    transform: rotate(45deg);
+  .info-btn.active {
+    background: #28a745;
+  }
+
+  /* Room Description Section */
+  .room-description-section {
+    margin-top: 8px;
+    margin-bottom: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #e9ecef;
+  }
+
+  .room-description {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    font-size: 12px;
+    color: #495057;
+    line-height: 1.4;
+    min-height: 20px;
+  }
+
+  .room-description:hover {
+    background-color: #e9ecef;
+  }
+
+  .room-description-input {
+    width: 100%;
+    padding: 4px;
+    font-size: 12px;
+    color: #495057;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    background: white;
+    outline: none;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+  }
+
+  .room-description-input:focus {
+    border-color: #0056b3;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 
   .add-character-dropdown {
@@ -513,6 +646,39 @@
     overflow-wrap: break-word;
     white-space: normal;
     hyphens: auto;
+  }
+
+  /* Add Room Button (reused from WorldBuilder) */
+  .add-room-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: #28a745;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+  }
+
+  .add-room-btn:hover {
+    background: #218838;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+  }
+
+  .add-character-btn.active {
+    background: #dc3545;
+    transform: rotate(45deg);
+  }
+
+  .add-character-btn.active:hover {
+    background: #c82333;
   }
 
   /* Scrollbar styling for dropdown */
