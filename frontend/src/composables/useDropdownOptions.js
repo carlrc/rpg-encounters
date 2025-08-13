@@ -1,22 +1,24 @@
 import { computed } from 'vue'
-import { RACES, CLASSES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
+import { useGameData } from './useGameData.js'
 
 /**
  * Centralized dropdown options composable
  * Eliminates duplication of gender arrays and provides consistent dropdown data
  */
 export function useDropdownOptions() {
+  const { gameData } = useGameData()
+
   // Gender options (previously duplicated across multiple components)
   const genders = ['male', 'female', 'nonbinary']
 
-  // Game data from constants
-  const races = RACES
-  const classes = CLASSES
-  const alignments = ALIGNMENTS
+  // Game data from backend
+  const races = computed(() => gameData.value?.races || [])
+  const classes = computed(() => gameData.value?.classes || [])
+  const alignments = computed(() => gameData.value?.alignments || [])
 
   // Size options for different entity types
-  const characterSizes = SIZES.CHARACTER
-  const playerSizes = SIZES.PLAYER
+  const characterSizes = computed(() => gameData.value?.sizes?.character || [])
+  const playerSizes = computed(() => gameData.value?.sizes?.player || [])
 
   // Gender emoji mapping for display
   const genderEmojis = {
@@ -32,17 +34,17 @@ export function useDropdownOptions() {
 
   // Computed options for different entity types
   const characterOptions = computed(() => ({
-    races,
-    sizes: characterSizes,
-    alignments,
+    races: races.value,
+    sizes: characterSizes.value,
+    alignments: alignments.value,
     genders,
   }))
 
   const playerOptions = computed(() => ({
-    races,
-    classes,
-    sizes: playerSizes,
-    alignments,
+    races: races.value,
+    classes: classes.value,
+    sizes: playerSizes.value,
+    alignments: alignments.value,
     genders,
   }))
 
@@ -55,10 +57,10 @@ export function useDropdownOptions() {
         return playerOptions.value
       default:
         return {
-          races,
-          classes,
-          sizes: characterSizes,
-          alignments,
+          races: races.value,
+          classes: classes.value,
+          sizes: characterSizes.value,
+          alignments: alignments.value,
           genders,
         }
     }

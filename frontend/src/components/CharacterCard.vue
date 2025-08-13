@@ -55,7 +55,9 @@
           <div class="shared-field-value">
             <div class="shared-text-display">{{ character.background }}</div>
             <div class="character-limit-info">
-              {{ (character.background || '').length }}/{{ CHARACTER_LIMITS.CHARACTER_BACKGROUND }}
+              {{ (character.background || '').length }}/{{
+                gameData.validation_limits.character_background
+              }}
               characters
             </div>
           </div>
@@ -68,7 +70,7 @@
             <div class="shared-text-display">{{ character.communication_style }}</div>
             <div class="character-limit-info">
               {{ (character.communication_style || '').length }}/{{
-                CHARACTER_LIMITS.CHARACTER_COMMUNICATION
+                gameData.validation_limits.character_communication
               }}
               characters
             </div>
@@ -81,7 +83,9 @@
           <div class="shared-field-value">
             <div class="shared-text-display">{{ character.motivation }}</div>
             <div class="character-limit-info">
-              {{ (character.motivation || '').length }}/{{ CHARACTER_LIMITS.CHARACTER_MOTIVATION }}
+              {{ (character.motivation || '').length }}/{{
+                gameData.validation_limits.character_motivation
+              }}
               characters
             </div>
           </div>
@@ -173,8 +177,8 @@
         <label class="shared-field-label">Background</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.background"
-          :placeholder="`Character background (max ${backgroundCharacterLimit} characters)`"
-          :max-characters="backgroundCharacterLimit"
+          :placeholder="`Character background (max ${gameData.validation_limits.character_background} characters)`"
+          :max-characters="gameData.validation_limits.character_background"
         />
       </div>
 
@@ -183,8 +187,8 @@
         <label class="shared-field-label">Communication Style</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.communication_style"
-          :placeholder="`Communication style (max ${communicationCharacterLimit} characters)`"
-          :max-characters="communicationCharacterLimit"
+          :placeholder="`Communication style (max ${gameData.validation_limits.character_communication} characters)`"
+          :max-characters="gameData.validation_limits.character_communication"
         />
       </div>
 
@@ -193,8 +197,8 @@
         <label class="shared-field-label">Motivation</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.motivation"
-          :placeholder="`Character motivation (max ${motivationCharacterLimit} characters)`"
-          :max-characters="motivationCharacterLimit"
+          :placeholder="`Character motivation (max ${gameData.validation_limits.character_motivation} characters)`"
+          :max-characters="gameData.validation_limits.character_motivation"
         />
       </div>
 
@@ -212,7 +216,7 @@
           <BiasPreferenceRow
             v-for="(bias, index) in editForm.biases.race_preferences"
             :key="`race-${index}`"
-            :options="races"
+            :options="gameData.races"
             :used-options="editForm.biases.race_preferences.map((b) => b.option)"
             :initial-option="bias.option"
             :initial-value="bias.value"
@@ -224,7 +228,7 @@
             @click="addBiasPreference('race_preferences')"
             class="shared-add-btn"
             type="button"
-            v-if="editForm.biases.race_preferences.length < races.length"
+            v-if="editForm.biases.race_preferences.length < gameData.races.length"
           >
             + Add Race Preference
           </button>
@@ -236,7 +240,7 @@
           <BiasPreferenceRow
             v-for="(bias, index) in editForm.biases.class_preferences"
             :key="`class-${index}`"
-            :options="classes"
+            :options="gameData.classes"
             :used-options="editForm.biases.class_preferences.map((b) => b.option)"
             :initial-option="bias.option"
             :initial-value="bias.value"
@@ -248,7 +252,7 @@
             @click="addBiasPreference('class_preferences')"
             class="shared-add-btn"
             type="button"
-            v-if="editForm.biases.class_preferences.length < classes.length"
+            v-if="editForm.biases.class_preferences.length < gameData.classes.length"
           >
             + Add Class Preference
           </button>
@@ -286,7 +290,7 @@
           <BiasPreferenceRow
             v-for="(bias, index) in editForm.biases.size_preferences"
             :key="`size-${index}`"
-            :options="sizes"
+            :options="gameData.sizes.character"
             :used-options="editForm.biases.size_preferences.map((b) => b.option)"
             :initial-option="bias.option"
             :initial-value="bias.value"
@@ -298,7 +302,7 @@
             @click="addBiasPreference('size_preferences')"
             class="shared-add-btn"
             type="button"
-            v-if="editForm.biases.size_preferences.length < sizes.length"
+            v-if="editForm.biases.size_preferences.length < gameData.sizes.character.length"
           >
             + Add Size Preference
           </button>
@@ -317,10 +321,9 @@
 
 <script>
   import { ref, reactive, computed, onMounted, watch } from 'vue'
-  import { RACES, SIZES, ALIGNMENTS, CLASSES } from '../constants/gameData.js'
-  import { CHARACTER_LIMITS } from '../constants/validation.js'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
+  import { useGameData } from '../composables/useGameData.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
@@ -342,6 +345,7 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
+      const { gameData } = useGameData()
       const isEditing = ref(false)
 
       const editForm = reactive({
@@ -566,17 +570,14 @@
       )
 
       return {
+        gameData,
         isEditing,
         editForm,
-        races: RACES,
-        classes: CLASSES,
+        races: computed(() => gameData.value.races),
+        classes: computed(() => gameData.value.classes),
         genders,
-        sizes: SIZES.CHARACTER,
-        alignments: ALIGNMENTS,
-        backgroundCharacterLimit: CHARACTER_LIMITS.CHARACTER_BACKGROUND,
-        communicationCharacterLimit: CHARACTER_LIMITS.CHARACTER_COMMUNICATION,
-        motivationCharacterLimit: CHARACTER_LIMITS.CHARACTER_MOTIVATION,
-        CHARACTER_LIMITS,
+        sizes: computed(() => gameData.value.sizes.character),
+        alignments: computed(() => gameData.value.alignments),
         isFormValid,
         getInitials,
         getGenderEmoji,

@@ -1,7 +1,9 @@
 import { computed } from 'vue'
-import { THRESHOLD_LIMITS } from '../constants/gameData.js'
+import { useGameData } from './useGameData.js'
 
 export function useRevealValidation(form) {
+  const { gameData } = useGameData()
+
   const isFormValid = computed(() => {
     const baseValid =
       form.title.trim() &&
@@ -25,11 +27,13 @@ export function useRevealValidation(form) {
         form.enable_level_2 &&
         form.enable_level_3 &&
         privilegedMode === 'custom' &&
-        exclusiveMode === 'custom'
+        exclusiveMode === 'custom' &&
+        gameData.value
       ) {
         return (
           form.privileged_threshold < form.exclusive_threshold &&
-          form.exclusive_threshold - form.privileged_threshold >= THRESHOLD_LIMITS.minGap
+          form.exclusive_threshold - form.privileged_threshold >=
+            gameData.value.threshold_limits.min_gap
         )
       }
 

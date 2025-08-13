@@ -53,8 +53,8 @@
 
               <BaseTextareaWithCharacterCounter
                 v-model="createForm.background"
-                :placeholder="`Character background (max ${CHARACTER_LIMITS.CHARACTER_BACKGROUND} characters)`"
-                :max-characters="CHARACTER_LIMITS.CHARACTER_BACKGROUND"
+                :placeholder="`Character background (max ${gameData.validation_limits.character_background} characters)`"
+                :max-characters="gameData.validation_limits.character_background"
               />
             </div>
 
@@ -82,15 +82,15 @@
           <!-- Communication Style Field (Full Width) -->
           <BaseTextareaWithCharacterCounter
             v-model="createForm.communication_style"
-            :placeholder="`Communication style (max ${CHARACTER_LIMITS.CHARACTER_COMMUNICATION} characters)`"
-            :max-characters="CHARACTER_LIMITS.CHARACTER_COMMUNICATION"
+            :placeholder="`Communication style (max ${gameData.validation_limits.character_communication} characters)`"
+            :max-characters="gameData.validation_limits.character_communication"
           />
 
           <!-- Motivation Field (Full Width) -->
           <BaseTextareaWithCharacterCounter
             v-model="createForm.motivation"
-            :placeholder="`Character motivation (max ${CHARACTER_LIMITS.CHARACTER_MOTIVATION} characters)`"
-            :max-characters="CHARACTER_LIMITS.CHARACTER_MOTIVATION"
+            :placeholder="`Character motivation (max ${gameData.validation_limits.character_motivation} characters)`"
+            :max-characters="gameData.validation_limits.character_motivation"
           />
 
           <div class="shared-actions">
@@ -127,8 +127,7 @@
   import { useFileImport } from '../utils/useFileImport.js'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { RACES, SIZES, ALIGNMENTS } from '../constants/gameData.js'
-  import { CHARACTER_LIMITS } from '../constants/validation.js'
+  import { useGameData } from '../composables/useGameData.js'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
 
   export default {
@@ -158,6 +157,8 @@
       } = useEntityCRUD('Character')
 
       const { importing, handleImportFile: handleFileImport } = useFileImport('Character')
+
+      const { gameData, loadGameData } = useGameData()
 
       const createForm = reactive({
         name: '',
@@ -241,11 +242,13 @@
         )
       }
 
-      onMounted(() => {
+      onMounted(async () => {
+        await loadGameData()
         loadEntities()
       })
 
       return {
+        gameData,
         entities,
         loading,
         error,
@@ -254,11 +257,10 @@
         selectedCharacter,
         createForm,
         importing,
-        races: RACES,
-        characterSizes: SIZES.CHARACTER,
-        alignments: ALIGNMENTS,
+        races: computed(() => gameData.value.races),
+        characterSizes: computed(() => gameData.value.sizes.character),
+        alignments: computed(() => gameData.value.alignments),
         genders,
-        CHARACTER_LIMITS,
         isCreateFormValid,
         selectEntity,
         startCreate,

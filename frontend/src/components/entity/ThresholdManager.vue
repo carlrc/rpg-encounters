@@ -27,15 +27,15 @@
       <div v-if="privilegedMode === 'custom'" class="custom-thresholds">
         <div class="threshold-slider">
           <label class="threshold-label">
-            Privileged Content: {{ DC_LABELS[privilegedThreshold] || `DC ${privilegedThreshold}` }}
+            Privileged Content: {{ getDCLabel(privilegedThreshold) || `DC ${privilegedThreshold}` }}
           </label>
           <input
             type="range"
             :value="privilegedThreshold"
             @input="$emit('update:privilegedThreshold', parseInt($event.target.value))"
-            :min="THRESHOLD_LIMITS.min"
-            :max="THRESHOLD_LIMITS.max"
-            :step="THRESHOLD_LIMITS.step"
+            :min="gameData.threshold_limits.min"
+            :max="gameData.threshold_limits.max"
+            :step="gameData.threshold_limits.step"
             class="slider"
           />
         </div>
@@ -69,15 +69,15 @@
       <div v-if="exclusiveMode === 'custom'" class="custom-thresholds">
         <div class="threshold-slider">
           <label class="threshold-label">
-            Exclusive Content: {{ DC_LABELS[exclusiveThreshold] || `DC ${exclusiveThreshold}` }}
+            Exclusive Content: {{ getDCLabel(exclusiveThreshold) || `DC ${exclusiveThreshold}` }}
           </label>
           <input
             type="range"
             :value="exclusiveThreshold"
             @input="$emit('update:exclusiveThreshold', parseInt($event.target.value))"
-            :min="THRESHOLD_LIMITS.min"
-            :max="THRESHOLD_LIMITS.max"
-            :step="THRESHOLD_LIMITS.step"
+            :min="gameData.threshold_limits.min"
+            :max="gameData.threshold_limits.max"
+            :step="gameData.threshold_limits.step"
             class="slider"
           />
         </div>
@@ -87,7 +87,7 @@
 </template>
 
 <script>
-  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../../constants/gameData.js'
+  import { useGameData } from '../../composables/useGameData.js'
 
   export default {
     name: 'ThresholdManager',
@@ -96,11 +96,11 @@
       enableLevel3: Boolean,
       privilegedThreshold: {
         type: Number,
-        default: () => DEFAULT_THRESHOLDS.privileged,
+        required: true,
       },
       exclusiveThreshold: {
         type: Number,
-        default: () => DEFAULT_THRESHOLDS.exclusive,
+        required: true,
       },
       privilegedMode: {
         type: String,
@@ -118,10 +118,17 @@
       'update:exclusiveMode',
     ],
     setup() {
+      const { gameData } = useGameData()
+
+      const getDCLabel = (value) => {
+        const dcEntries = Object.entries(gameData.value.difficulty_classes)
+        const entry = dcEntries.find(([key, dcValue]) => dcValue === value)
+        return entry ? `${entry[0].replace(/_/g, ' ')} (${value})` : `DC ${value}`
+      }
+
       return {
-        DEFAULT_THRESHOLDS,
-        THRESHOLD_LIMITS,
-        DC_LABELS,
+        gameData,
+        getDCLabel,
       }
     },
   }

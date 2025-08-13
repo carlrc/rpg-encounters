@@ -128,15 +128,15 @@
               <label class="threshold-label">
                 Privileged Content:
                 {{
-                  DC_LABELS[editForm.privileged_threshold] || `DC ${editForm.privileged_threshold}`
+                  getDCLabel(editForm.privileged_threshold) || `DC ${editForm.privileged_threshold}`
                 }}
               </label>
               <input
                 type="range"
                 v-model.number="editForm.privileged_threshold"
-                :min="THRESHOLD_LIMITS.min"
-                :max="THRESHOLD_LIMITS.max"
-                :step="THRESHOLD_LIMITS.step"
+                :min="gameData.threshold_limits.min"
+                :max="gameData.threshold_limits.max"
+                :step="gameData.threshold_limits.step"
                 class="slider"
               />
             </div>
@@ -190,15 +190,15 @@
               <label class="threshold-label">
                 Exclusive Content:
                 {{
-                  DC_LABELS[editForm.exclusive_threshold] || `DC ${editForm.exclusive_threshold}`
+                  getDCLabel(editForm.exclusive_threshold) || `DC ${editForm.exclusive_threshold}`
                 }}
               </label>
               <input
                 type="range"
                 v-model.number="editForm.exclusive_threshold"
-                :min="THRESHOLD_LIMITS.min"
-                :max="THRESHOLD_LIMITS.max"
-                :step="THRESHOLD_LIMITS.step"
+                :min="gameData.threshold_limits.min"
+                :max="gameData.threshold_limits.max"
+                :step="gameData.threshold_limits.step"
                 class="slider"
               />
             </div>
@@ -222,7 +222,7 @@
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
-  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../constants/gameData.js'
+  import { useGameData } from '../composables/useGameData.js'
 
   export default {
     name: 'RevealCard',
@@ -246,6 +246,7 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
+      const { gameData } = useGameData()
       const isEditing = ref(false)
       const editForm = reactive({
         title: '',
@@ -257,8 +258,8 @@
         enable_level_3: false,
         privileged_threshold_mode: 'default',
         exclusive_threshold_mode: 'default',
-        privileged_threshold: DEFAULT_THRESHOLDS.privileged,
-        exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
+        privileged_threshold: 0, // Will be set from gameData
+        exclusive_threshold: 0, // Will be set from gameData
       })
 
       // Pass the form directly to validation since it now handles separate threshold modes
@@ -292,8 +293,10 @@
           enable_level_3: !!props.reveal.level_3_content,
           privileged_threshold_mode: hasCustomPrivilegedThreshold ? 'custom' : 'default',
           exclusive_threshold_mode: hasCustomExclusiveThreshold ? 'custom' : 'default',
-          privileged_threshold: props.reveal.privileged_threshold ?? DEFAULT_THRESHOLDS.privileged,
-          exclusive_threshold: props.reveal.exclusive_threshold ?? DEFAULT_THRESHOLDS.exclusive,
+          privileged_threshold:
+            props.reveal.privileged_threshold ?? gameData.value.default_thresholds.privileged,
+          exclusive_threshold:
+            props.reveal.exclusive_threshold ?? gameData.value.default_thresholds.exclusive,
         })
         isEditing.value = true
       }
@@ -345,13 +348,13 @@
 
       const handlePrivilegedThresholdModeChange = () => {
         if (editForm.privileged_threshold_mode === 'default') {
-          editForm.privileged_threshold = DEFAULT_THRESHOLDS.privileged
+          editForm.privileged_threshold = gameData.value.default_thresholds.privileged
         }
       }
 
       const handleExclusiveThresholdModeChange = () => {
         if (editForm.exclusive_threshold_mode === 'default') {
-          editForm.exclusive_threshold = DEFAULT_THRESHOLDS.exclusive
+          editForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
         }
       }
 
@@ -363,6 +366,7 @@
       }
 
       return {
+        gameData,
         isEditing,
         editForm,
         isFormValid,
@@ -376,9 +380,11 @@
         handleLevel3Toggle,
         handlePrivilegedThresholdModeChange,
         handleExclusiveThresholdModeChange,
-        DEFAULT_THRESHOLDS,
-        THRESHOLD_LIMITS,
-        DC_LABELS,
+        getDCLabel: (value) => {
+          const dcEntries = Object.entries(gameData.value.difficulty_classes)
+          const entry = dcEntries.find(([key, dcValue]) => dcValue === value)
+          return entry ? `${entry[0].replace(/_/g, ' ')} (${value})` : `DC ${value}`
+        },
       }
     },
   }

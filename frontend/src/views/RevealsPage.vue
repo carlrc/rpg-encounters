@@ -93,16 +93,16 @@
                 <label class="threshold-label">
                   Privileged Content:
                   {{
-                    DC_LABELS[createForm.privileged_threshold] ||
+                    getDCLabel(createForm.privileged_threshold) ||
                     `DC ${createForm.privileged_threshold}`
                   }}
                 </label>
                 <input
                   type="range"
                   v-model.number="createForm.privileged_threshold"
-                  :min="THRESHOLD_LIMITS.min"
-                  :max="THRESHOLD_LIMITS.max"
-                  :step="THRESHOLD_LIMITS.step"
+                  :min="gameData.threshold_limits.min"
+                  :max="gameData.threshold_limits.max"
+                  :step="gameData.threshold_limits.step"
                   class="slider"
                 />
               </div>
@@ -156,16 +156,16 @@
                 <label class="threshold-label">
                   Exclusive Content:
                   {{
-                    DC_LABELS[createForm.exclusive_threshold] ||
+                    getDCLabel(createForm.exclusive_threshold) ||
                     `DC ${createForm.exclusive_threshold}`
                   }}
                 </label>
                 <input
                   type="range"
                   v-model.number="createForm.exclusive_threshold"
-                  :min="THRESHOLD_LIMITS.min"
-                  :max="THRESHOLD_LIMITS.max"
-                  :step="THRESHOLD_LIMITS.step"
+                  :min="gameData.threshold_limits.min"
+                  :max="gameData.threshold_limits.max"
+                  :step="gameData.threshold_limits.step"
                   class="slider"
                 />
               </div>
@@ -208,7 +208,7 @@
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
   import apiService from '../services/api.js'
-  import { DEFAULT_THRESHOLDS, THRESHOLD_LIMITS, DC_LABELS } from '../constants/gameData.js'
+  import { useGameData } from '../composables/useGameData.js'
 
   export default {
     name: 'RevealsPage',
@@ -235,6 +235,7 @@
         cancelCreate,
       } = useEntityCRUD('Reveal')
 
+      const { gameData, loadGameData } = useGameData()
       const characters = ref([])
 
       const createForm = reactive({
@@ -247,8 +248,8 @@
         enable_level_3: false,
         privileged_threshold_mode: 'default',
         exclusive_threshold_mode: 'default',
-        privileged_threshold: DEFAULT_THRESHOLDS.privileged,
-        exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
+        privileged_threshold: 0, // Will be set from gameData
+        exclusive_threshold: 0, // Will be set from gameData
       })
 
       const { isFormValid: isCreateFormValid } = useRevealValidation(createForm)
@@ -276,8 +277,8 @@
           enable_level_3: false,
           privileged_threshold_mode: 'default',
           exclusive_threshold_mode: 'default',
-          privileged_threshold: DEFAULT_THRESHOLDS.privileged,
-          exclusive_threshold: DEFAULT_THRESHOLDS.exclusive,
+          privileged_threshold: gameData.value.default_thresholds.privileged,
+          exclusive_threshold: gameData.value.default_thresholds.exclusive,
         })
       }
 
@@ -322,13 +323,13 @@
 
       const handlePrivilegedThresholdModeChange = () => {
         if (createForm.privileged_threshold_mode === 'default') {
-          createForm.privileged_threshold = DEFAULT_THRESHOLDS.privileged
+          createForm.privileged_threshold = gameData.value.default_thresholds.privileged
         }
       }
 
       const handleExclusiveThresholdModeChange = () => {
         if (createForm.exclusive_threshold_mode === 'default') {
-          createForm.exclusive_threshold = DEFAULT_THRESHOLDS.exclusive
+          createForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
         }
       }
 
@@ -338,11 +339,16 @@
       }
 
       onMounted(async () => {
+        await loadGameData()
+        // Update form defaults after game data is loaded
+        createForm.privileged_threshold = gameData.value.default_thresholds.privileged
+        createForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
         await loadEntities()
         await loadCharacters()
       })
 
       return {
+        gameData,
         entities,
         loading,
         error,
@@ -362,9 +368,11 @@
         handleLevel3Toggle,
         handlePrivilegedThresholdModeChange,
         handleExclusiveThresholdModeChange,
-        DEFAULT_THRESHOLDS,
-        THRESHOLD_LIMITS,
-        DC_LABELS,
+        getDCLabel: (value) => {
+          const dcEntries = Object.entries(gameData.value.difficulty_classes)
+          const entry = dcEntries.find(([key, dcValue]) => dcValue === value)
+          return entry ? `${entry[0].replace(/_/g, ' ')} (${value})` : `DC ${value}`
+        },
       }
     },
   }
