@@ -8,6 +8,7 @@ from app.routers import (
     challenges,
     characters,
     conversations,
+    game,
     memories,
     players,
     reveals,
@@ -25,6 +26,7 @@ app.include_router(memories.router)
 app.include_router(conversations.router)
 app.include_router(reveals.router)
 app.include_router(challenges.router)
+app.include_router(game.router)
 
 # TODO: This can't be here
 # Add CORS middleware to allow frontend connections

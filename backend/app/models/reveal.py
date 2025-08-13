@@ -34,8 +34,8 @@ class RevealBase(BaseModel):
     level_1_content: str  # Standard level content
     level_2_content: str | None = None  # Privileged level content
     level_3_content: str | None = None  # Exclusive level content
-    privileged_threshold: int | None = None  # Custom threshold for privileged content
-    exclusive_threshold: int | None = None  # Custom threshold for exclusive content
+    privileged_threshold: int | None = None  # Threshold for privileged content
+    exclusive_threshold: int | None = None  # Threshold for exclusive content
 
     @field_validator("privileged_threshold", "exclusive_threshold")
     @classmethod
