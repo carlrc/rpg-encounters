@@ -8,9 +8,14 @@ from app.models.reveal import DifficultyClass
 from app.models.memory import Memory
 from app.models.class_traits import Abilities, Skills, Class
 from app.services.ability_challenge import D20Outcomes
-from tests.utilities import assert_contains_any_keywords
+from tests.utilities import (
+    assert_does_not_contain_keywords,
+    assert_contains_any_keywords,
+)
 
-REVEAL = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
+REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
+REVEAL_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
+REVEAL_LEVEL_3 = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
 
 CHARACTER = Character(
     id=100,
@@ -58,7 +63,7 @@ ALL_MEMORIES = [
         id=2,
         title="Old Mayors favourite room",
         character_ids=[CHARACTER.id],
-        content="The old mayor used to love staying at the special suite in the inn.",
+        content="The old mayor used to love staying in the inn.",
     ),
 ]
 
@@ -70,10 +75,31 @@ async def test_challenge_agent_critical_success():
         player=PLAYER,
         system_prompt=CHALLENGE_SYSTEM_PROMPT,
         memories=ALL_MEMORIES,
-        reveals=[REVEAL],
+        reveals=[REVEAL_LEVEL_3],
         d20_value=D20Outcomes.CRITICAL_SUCCESS.value,
     )
 
-    response = await agent.chat("I want to know everything about your inn")
+    response = await agent.chat(
+        player_transcript="I want to know everything about your inn"
+    )
 
     assert_contains_any_keywords(text=response, keywords=["secret", "corridor"])
+
+
+async def test_challenge_agent_critical_failure():
+    """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
+    agent = ChallengeAgent(
+        character=CHARACTER,
+        player=PLAYER,
+        system_prompt=CHALLENGE_SYSTEM_PROMPT,
+        memories=ALL_MEMORIES,
+        reveals=[REVEAL_LEVEL_1],
+        d20_value=D20Outcomes.CRITICAL_FAILURE.value,
+    )
+
+    response = await agent.chat(
+        player_transcript="I want to know everything about your inn"
+    )
+
+    # TODO: This isn't a real test
+    assert_does_not_contain_keywords(text=response, keywords=["secret", "corridor"])

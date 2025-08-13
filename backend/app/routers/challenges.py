@@ -48,9 +48,9 @@ async def websocket_endpoint(
             player=player,
             system_prompt=challenge_system_prompt,
             memories=all_memories,
-            reveals=filtered_reveals,
+            d20_value=total_roll,
         )
-        agent.chat(player_transcript=transcription, reveals=filtered_reveals)
+        agent.chat(player_transcript=transcription, filtered_reveals=filtered_reveals)
 
         # TODO: Need to incorporate sentiment based on the success or failure of this
         # TODO: Need to pass back the D20 roll somehow

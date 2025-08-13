@@ -28,18 +28,20 @@ class ChallengeAgent(BaseAgent):
     ):
         super().__init__(character=character, player=player, memories=memories)
         load_dotenv()
-        self.reveals = reveals
         self.d20_value = d20_value
-        self.agent = Agent(
+        self.reveals = reveals
+        agent = Agent(
             OpenAIModel(
                 model_name="gpt-4o",
                 provider=OpenAIProvider(http_client=create_retrying_client()),
             ),
-            # Moving character.to_prompt() to instructions caused instability in output validation
-            system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=self._build_base_instruction()
+            instructions=system_prompt
             + "\n"
-            + self._build_reveal_context()
+            + self.character.to_prompt()
+            + "\n"
+            + self._build_base_instruction()
+            + "\n"
+            + self._add_reveals()
             + "\n"
             + self._build_response_instructions(),
             history_processors=[self._keep_recent_messages],
@@ -47,10 +49,10 @@ class ChallengeAgent(BaseAgent):
         )
         self.run_result: AgentRunResult[ChallengeAgentOutput] = None
 
-    async def chat(
-        self,
-        player_transcript: str,
-    ) -> str:
+        # Set instance variable after decorators defined
+        self.agent = agent
+
+    async def chat(self, player_transcript: str) -> str:
         try:
             history = self.run_result.all_messages() if self.run_result else None
             self.run_result = await self.agent.run(
@@ -62,27 +64,12 @@ class ChallengeAgent(BaseAgent):
             logger.error(f"Challenge agent failure. {e}")
             raise
 
-    def _build_reveal_context(self) -> str:
-        """Build reveal context"""
-        reveal_context = """
-            # Reveals
-            The following information should be used in your response.
-            """
-
-        if self.memories:
-            for reveal in self.reveals:
-                reveal_context += f"""
-            - {reveal}
-            """
-
-        return reveal_context
-
     def _build_response_instructions(self) -> str:
         """Build reveal context"""
-        if self.d20_value == D20Outcomes.CRITICAL_SUCCESS:
+        if self.d20_value == D20Outcomes.CRITICAL_SUCCESS.value:
             instructions = "**CRITICAL SUCCESS**: should be a VERY enthusiastic response to the players inquiry and contain as much information (e.g., reveals, memories) as possible, and can ignore character limits."
-        elif self.d20_value == D20Outcomes.CRITICAL_FAILURE:
-            instructions = "**CRITICAL FAILURE**: should be a VERY negative response (e.g., total rejection) to the players inquiry and be harsh (e.g., include profanity)."
+        elif self.d20_value == D20Outcomes.CRITICAL_FAILURE.value:
+            instructions = "**CRITICAL FAILURE**: should be a VERY negative response (e.g., total rejection) to the players inquiry and be harsh"
         else:
             instructions = "**STANDARD**: should be generic and without much depth."
 
@@ -91,3 +78,17 @@ class ChallengeAgent(BaseAgent):
             **IMPORTANT**: Follow these speaking style instructions closely.
             {instructions}
             """
+
+    def _add_reveals(self) -> str:
+        reveal_context = """
+        # Reveals
+        The following information should be used in your response.
+        """
+
+        if self.reveals:
+            for reveal in self.reveals:
+                reveal_context += f"""
+            - {reveal}
+            """
+
+        return reveal_context
