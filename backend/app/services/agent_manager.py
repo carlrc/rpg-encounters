@@ -1,5 +1,5 @@
 from typing import List
-from app.agents.character_agent import CharacterAgent
+from app.agents.conversation_agent import ConversationAgent
 from app.models.character import Character
 from app.models.player import Player
 import logging
@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class AgentManager:
-    """Manages persistent CharacterAgent instances to maintain conversation history."""
+    """Manages persistent ConversationAgent instances to maintain conversation history."""
 
     def __init__(self):
-        self._agents: dict[tuple[int, int], CharacterAgent] = {}
+        self._agents: dict[tuple[int, int], ConversationAgent] = {}
 
     def get_or_create_agent(
         self,
@@ -27,7 +27,7 @@ class AgentManager:
         scoring_system_prompt: str,
         memories: List[Memory],
         trust_state: TrustState,
-    ) -> CharacterAgent:
+    ) -> ConversationAgent:
 
         key = (player_id, character_id)
 
@@ -35,7 +35,7 @@ class AgentManager:
             logger.info(
                 f"Creating new agent for player {player_id} and character {character_id}"
             )
-            self._agents[key] = CharacterAgent(
+            self._agents[key] = ConversationAgent(
                 character=character,
                 player=player,
                 system_prompt=char_system_prompt,

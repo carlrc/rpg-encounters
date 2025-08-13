@@ -57,7 +57,3 @@ class CharacterStore:
     def character_exists(self, character_id: int) -> bool:
         """Check if a character exists"""
         return character_id in self.characters
-
-
-# Create a singleton instance
-character_store = CharacterStore()

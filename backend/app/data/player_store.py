@@ -57,7 +57,3 @@ class PlayerStore:
     def player_exists(self, player_id: int) -> bool:
         """Check if a player exists"""
         return player_id in self.players
-
-
-# Create a singleton instance
-player_store = PlayerStore()

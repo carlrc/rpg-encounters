@@ -86,3 +86,6 @@ export const DC_LABELS = {
   [DIFFICULTY_CLASS.VERY_HARD]: 'Very Hard (25)',
   [DIFFICULTY_CLASS.NEARLY_IMPOSSIBLE]: 'Nearly Impossible (30)',
 }
+
+// D&D Skills (matching backend VALID_SKILLS)
+export const SKILLS = ['Deception', 'Intimidation', 'Performance', 'Persuasion']

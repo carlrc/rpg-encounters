@@ -1,5 +1,5 @@
 from pydantic import BaseModel, field_validator
-from app.models.reveal import DifficultyClass
+from .reveal import DifficultyClass
 
 BASE_TRUST_MIN = -DifficultyClass.EASY.value + 2
 BASE_TRUST_MAX = DifficultyClass.EASY.value + 2  # Just below MEDIUM threshold

@@ -54,13 +54,43 @@
             </select>
           </div>
 
-          <button
-            @click="toggleRecording"
-            :class="['speak-button', { recording: isRecording, processing: isProcessing }]"
-            :disabled="!selectedPlayerId || isProcessing"
-          >
-            {{ buttonText }}
-          </button>
+          <div class="control-buttons">
+            <button
+              @click="toggleRecording"
+              :class="['speak-button', { recording: isRecording, processing: isProcessing }]"
+              :disabled="!selectedPlayerId || isProcessing || (isChallengeMode && !selectedSkill)"
+            >
+              {{ buttonText }}
+            </button>
+
+            <button
+              @click="toggleChallengeMode"
+              :class="['challenge-button', { active: isChallengeMode }]"
+              :disabled="isRecording || isProcessing"
+            >
+              Challenge
+            </button>
+          </div>
+
+          <div v-if="isChallengeMode" class="skill-selection">
+            <label for="skill-select">Skill:</label>
+            <select
+              id="skill-select"
+              v-model="selectedSkill"
+              class="shared-select"
+              :disabled="isRecording || isProcessing"
+            >
+              <option value="">Select a skill</option>
+              <option v-for="skill in skills" :key="skill" :value="skill">
+                {{ skill }}
+              </option>
+            </select>
+          </div>
+
+          <div v-if="showDiceRoll && diceRoll !== null" class="dice-result">
+            <div class="dice-number">{{ diceRoll }}</div>
+            <div class="dice-label">D20 Roll</div>
+          </div>
 
           <div :class="['status', { recording: isRecording, processing: isProcessing }]">
             {{ statusText }}
@@ -77,6 +107,7 @@
   import EmptyState from '../components/ui/EmptyState.vue'
   import { getInitials } from '../utils/avatarUtils.js'
   import apiService from '../services/api.js'
+  import { SKILLS } from '../constants/gameData.js'
 
   export default {
     name: 'EncountersPage',
@@ -98,6 +129,12 @@
       const audioContext = ref(null)
       const audioChunks = ref([])
 
+      // Challenge mode state
+      const isChallengeMode = ref(false)
+      const selectedSkill = ref('')
+      const diceRoll = ref(null)
+      const showDiceRoll = ref(false)
+
       const selectedCharacter = computed(() => {
         return characters.value.find((c) => c.id === selectedCharacterId.value) || null
       })
@@ -111,6 +148,9 @@
         if (isProcessing.value) return 'Processing your message...'
         if (isRecording.value) return 'Listening... Click Stop when done'
         if (!selectedPlayerId.value) return 'Select a player to begin'
+        if (isChallengeMode.value && !selectedSkill.value)
+          return 'Select a skill for challenge mode'
+        if (isChallengeMode.value) return 'Click Speak to start challenge'
         return 'Click Speak to start conversation'
       })
 
@@ -119,7 +159,7 @@
           characters.value = await apiService.getCharacters()
         } catch (err) {
           error.value = 'Failed to load characters'
-          console.error('Error loading characters:', err)
+          console.error('Character loading failed')
         }
       }
 
@@ -128,7 +168,7 @@
           players.value = await apiService.getPlayers()
         } catch (err) {
           error.value = 'Failed to load players'
-          console.error('Error loading players:', err)
+          console.error('Player loading failed')
         }
       }
 
@@ -145,6 +185,13 @@
         }
       }
 
+      // Helper function to reset challenge state (DRY principle)
+      const resetChallengeState = () => {
+        selectedSkill.value = ''
+        diceRoll.value = null
+        showDiceRoll.value = false
+      }
+
       const selectCharacter = (characterId) => {
         selectedCharacterId.value = characterId
         // Reset states when switching characters
@@ -152,66 +199,86 @@
           stopRecording()
         }
         selectedPlayerId.value = ''
+        // Reset challenge mode state
+        isChallengeMode.value = false
+        resetChallengeState()
+      }
+
+      const toggleChallengeMode = () => {
+        if (isRecording.value || isProcessing.value) return
+
+        isChallengeMode.value = !isChallengeMode.value
+        // Reset challenge-specific state when toggling
+        resetChallengeState()
+      }
+
+      // Helper function to close WebSocket safely
+      const closeWebSocket = () => {
+        if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
+          websocket.value.close()
+        }
+        websocket.value = null
       }
 
       const connectWebSocket = () => {
         if (!selectedPlayerId.value || !selectedCharacterId.value) return
 
-        const wsUrl = `ws://localhost:8000/conversation/${selectedPlayerId.value}/${selectedCharacterId.value}`
-        websocket.value = new WebSocket(wsUrl)
-
-        websocket.value.onopen = () => {
-          console.log('WebSocket connected')
+        // Validate challenge mode requirements
+        if (isChallengeMode.value && (!selectedSkill.value || diceRoll.value === null)) {
+          return
         }
 
-        websocket.value.onmessage = (event) => {
-          if (event.data instanceof Blob) {
-            // Received binary audio chunk
-            console.log('Received audio chunk:', event.data.size, 'bytes')
-            processAudioChunk(event.data)
-          } else if (typeof event.data === 'string') {
-            // Received text message
-            if (event.data === 'AUDIO_COMPLETE') {
-              console.log('Audio streaming complete')
-              playAccumulatedAudio()
-              isProcessing.value = false
-              // Close WebSocket after receiving completion signal
-              if (websocket.value) {
-                websocket.value.close()
-                websocket.value = null
+        // Build WebSocket URL based on mode
+        const wsUrl = isChallengeMode.value
+          ? `ws://localhost:8000/challenge/${selectedPlayerId.value}/${selectedCharacterId.value}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
+          : `ws://localhost:8000/conversation/${selectedPlayerId.value}/${selectedCharacterId.value}`
+
+        try {
+          websocket.value = new WebSocket(wsUrl)
+
+          websocket.value.onopen = () => {
+            // WebSocket connected
+          }
+
+          websocket.value.onmessage = (event) => {
+            if (event.data instanceof Blob) {
+              processAudioChunk(event.data)
+            } else if (typeof event.data === 'string') {
+              if (event.data === 'AUDIO_COMPLETE') {
+                playAccumulatedAudio()
+                isProcessing.value = false
+                closeWebSocket()
               }
-            } else {
-              console.log('Received text message:', event.data)
             }
           }
-        }
 
-        websocket.value.onerror = (error) => {
-          console.error('WebSocket error:', error)
+          websocket.value.onerror = (error) => {
+            console.error('WebSocket connection error')
+            isProcessing.value = false
+            closeWebSocket()
+          }
+
+          websocket.value.onclose = () => {
+            websocket.value = null
+          }
+        } catch (error) {
+          console.error('WebSocket creation failed')
           isProcessing.value = false
-        }
-
-        websocket.value.onclose = () => {
-          console.log('WebSocket disconnected')
         }
       }
 
       const processAudioChunk = (audioBlob) => {
-        // Simply collect audio chunks
         audioChunks.value.push(audioBlob)
-        console.log('Collected audio chunk:', audioBlob.size, 'bytes')
       }
 
       const playAccumulatedAudio = () => {
         if (audioChunks.value.length === 0) {
-          console.log('No audio chunks to play')
           return
         }
 
         try {
           // Combine all chunks into single blob
           const audioBlob = new Blob(audioChunks.value, { type: 'audio/mpeg' })
-          console.log('Playing combined audio:', audioBlob.size, 'bytes')
 
           // Create object URL and play with Audio element
           const audioUrl = URL.createObjectURL(audioBlob)
@@ -219,20 +286,19 @@
 
           audio.onended = () => {
             URL.revokeObjectURL(audioUrl)
-            console.log('Audio playback completed')
           }
 
-          audio.onerror = (error) => {
-            console.error('Audio playback error:', error)
+          audio.onerror = () => {
+            console.error('Audio playback error')
             URL.revokeObjectURL(audioUrl)
           }
 
-          audio.play().catch((error) => {
-            console.error('Failed to play audio:', error)
+          audio.play().catch(() => {
+            console.error('Audio play failed')
             URL.revokeObjectURL(audioUrl)
           })
         } catch (error) {
-          console.error('Error creating audio blob:', error)
+          console.error('Audio processing error')
         }
 
         // Clear chunks for next response
@@ -266,7 +332,7 @@
           mediaRecorder.value.start(250)
           isRecording.value = true
         } catch (error) {
-          console.error('Error starting recording:', error)
+          console.error('Microphone access failed')
           alert('Could not access microphone. Please check permissions.')
         }
       }
@@ -284,21 +350,45 @@
         isRecording.value = false
         isProcessing.value = true
 
+        // Show dice roll when stopping recording in challenge mode
+        if (isChallengeMode.value) {
+          showDiceRoll.value = true
+        }
+
         // Let the backend close it after streaming is complete
         if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
           websocket.value.send('END')
         }
       }
 
+      // Helper function to prepare challenge mode
+      const prepareChallengeMode = () => {
+        // Generate new dice roll for each attempt
+        diceRoll.value = Math.floor(Math.random() * 20) + 1
+        showDiceRoll.value = false // Keep hidden until recording stops
+
+        // Close existing WebSocket to ensure fresh connection with new dice roll
+        closeWebSocket()
+      }
+
       const toggleRecording = () => {
         if (isRecording.value) {
           stopRecording()
         } else {
-          // Connect WebSocket before starting recording
+          // Prepare challenge mode if active
+          if (isChallengeMode.value) {
+            prepareChallengeMode()
+          }
+
+          // Ensure WebSocket connection exists
           if (!websocket.value) {
             connectWebSocket()
           }
-          startRecording()
+
+          // Start recording if WebSocket is ready
+          if (websocket.value) {
+            startRecording()
+          }
         }
       }
 
@@ -307,15 +397,19 @@
       })
 
       onUnmounted(() => {
-        if (websocket.value) {
-          websocket.value.close()
-        }
+        // Clean up WebSocket connection
+        closeWebSocket()
+
+        // Clean up media recorder
         if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
           mediaRecorder.value.stop()
         }
+
+        // Clean up audio context
         if (audioContext.value) {
           audioContext.value.close()
         }
+
         // Clear any remaining audio chunks
         audioChunks.value = []
       })
@@ -335,6 +429,13 @@
         getInitials,
         selectCharacter,
         toggleRecording,
+        // Challenge mode properties
+        skills: SKILLS,
+        isChallengeMode,
+        selectedSkill,
+        diceRoll,
+        showDiceRoll,
+        toggleChallengeMode,
       }
     },
   }
@@ -417,6 +518,14 @@
     font-size: 1.1em;
   }
 
+  .control-buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
   .speak-button {
     padding: 16px 32px;
     font-size: 1.2em;
@@ -426,8 +535,46 @@
     cursor: pointer;
     transition: all 0.3s ease;
     min-width: 140px;
-    margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .challenge-button {
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: 600;
+    border: 2px solid #6c757d;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    background: white;
+    color: #6c757d;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .challenge-button:hover:not(:disabled) {
+    border-color: #007bff;
+    color: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+  }
+
+  .challenge-button.active {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-color: #007bff;
+  }
+
+  .challenge-button.active:hover {
+    background: linear-gradient(135deg, #0056b3, #004085);
+    border-color: #004085;
+  }
+
+  .challenge-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .speak-button:not(:disabled) {
@@ -461,6 +608,39 @@
     opacity: 0.6;
     transform: none;
     box-shadow: none;
+  }
+
+  .skill-selection {
+    margin-bottom: 20px;
+  }
+
+  .skill-selection label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1em;
+  }
+
+  .dice-result {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .dice-number {
+    font-size: 3em;
+    font-weight: bold;
+    color: #007bff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 5px;
+  }
+
+  .dice-label {
+    font-size: 1em;
+    color: #6c757d;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
   }
 
   .status {
