@@ -1,5 +1,31 @@
 <template>
   <div class="room-node" :style="roomStyle">
+    <!-- Connection handles - positioned on each side -->
+    <Handle
+      type="source"
+      position="right"
+      class="connection-handle source-handle right-handle"
+      :style="{ right: '-6px', top: '50%', transform: 'translateY(-50%)' }"
+    />
+    <Handle
+      type="target"
+      position="left"
+      class="connection-handle target-handle left-handle"
+      :style="{ left: '-6px', top: '50%', transform: 'translateY(-50%)' }"
+    />
+    <Handle
+      type="source"
+      position="bottom"
+      class="connection-handle source-handle bottom-handle"
+      :style="{ bottom: '-6px', left: '50%', transform: 'translateX(-50%)' }"
+    />
+    <Handle
+      type="target"
+      position="top"
+      class="connection-handle target-handle top-handle"
+      :style="{ top: '-6px', left: '50%', transform: 'translateX(-50%)' }"
+    />
+
     <div class="room-header">
       <h4>{{ room.name }}</h4>
       <div class="room-actions">
@@ -75,10 +101,14 @@
 
 <script>
   import { ref } from 'vue'
+  import { Handle } from '@vue-flow/core'
   import { getInitials } from '../utils/avatarUtils.js'
 
   export default {
     name: 'RoomNode',
+    components: {
+      Handle,
+    },
     props: {
       room: {
         type: Object,
@@ -416,5 +446,51 @@
 
   .character-options::-webkit-scrollbar-thumb:hover {
     background: #a8a8a8;
+  }
+
+  /* Connection handle styles */
+  .connection-handle {
+    width: 12px;
+    height: 12px;
+    border: 2px solid #007bff;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    transition: all 0.2s ease;
+    cursor: crosshair;
+    z-index: 10;
+  }
+
+  .connection-handle:hover {
+    width: 16px;
+    height: 16px;
+    border-width: 3px;
+    background: #007bff;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
+  }
+
+  .source-handle {
+    background: #007bff;
+    border-color: #0056b3;
+  }
+
+  .source-handle:hover {
+    background: #0056b3;
+    border-color: #004085;
+  }
+
+  .target-handle {
+    background: white;
+    border-color: #007bff;
+  }
+
+  .target-handle:hover {
+    background: #e3f2fd;
+    border-color: #0056b3;
+  }
+
+  /* Ensure room node has relative positioning for absolute handles */
+  .room-node {
+    position: relative;
   }
 </style>

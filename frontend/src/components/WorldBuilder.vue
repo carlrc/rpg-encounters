@@ -4,7 +4,15 @@
     <div v-else-if="error" class="shared-error">{{ error }}</div>
 
     <div v-else class="world-builder-container">
-      <VueFlow v-model="elements" class="world-canvas" :default-viewport="{ zoom: 1 }">
+      <VueFlow
+        v-model="elements"
+        class="world-canvas"
+        :default-viewport="{ zoom: 1 }"
+        @connect="onConnect"
+        :connection-line-style="{ stroke: '#007bff', strokeWidth: 2 }"
+        :is-valid-connection="isValidConnection"
+        :connect-on-click="false"
+      >
         <!-- Custom Room Node -->
         <template #node-room="{ data, id }">
           <RoomNode
@@ -30,6 +38,7 @@
 <script>
   import { ref, computed, onMounted } from 'vue'
   import { VueFlow } from '@vue-flow/core'
+  import '@vue-flow/core/dist/style.css'
   import RoomNode from './RoomNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
   import apiService from '../services/api.js'
@@ -89,6 +98,7 @@
           },
         ]
 
+        // Start with no connections - let user create them manually
         elements.value = rooms
       }
 
@@ -163,6 +173,43 @@
         selectedCharacter.value = null
       }
 
+      // Handle new connections created by dragging
+      const onConnect = (connection) => {
+        console.log('Connection attempt:', connection)
+
+        // Check if connection already exists (in either direction)
+        const existingEdge = elements.value.find(
+          (el) =>
+            (el.source === connection.source && el.target === connection.target) ||
+            (el.source === connection.target && el.target === connection.source)
+        )
+
+        if (existingEdge) {
+          console.log('Connection already exists')
+          return
+        }
+
+        const newEdge = {
+          id: `edge-${connection.source}-${connection.target}-${Date.now()}`,
+          source: connection.source,
+          target: connection.target,
+          type: 'straight',
+          style: {
+            stroke: '#007bff',
+            strokeWidth: 2,
+          },
+        }
+
+        console.log('Adding new edge:', newEdge)
+        elements.value = [...elements.value, newEdge]
+      }
+
+      // Validate connections - allow all connections between different nodes
+      const isValidConnection = (connection) => {
+        console.log('Validating connection:', connection)
+        return connection.source !== connection.target
+      }
+
       onMounted(() => {
         loadData()
       })
@@ -179,6 +226,8 @@
         removeCharacterFromRoom,
         openCharacterEncounter,
         closeEncounterPopup,
+        onConnect,
+        isValidConnection,
       }
     },
   }
