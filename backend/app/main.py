@@ -1,16 +1,17 @@
+import logging
+
+import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
-import uvicorn
+
 from app.routers import (
-    players,
+    challenges,
     characters,
     conversations,
-    reveals,
     memories,
-    challenges,
+    players,
+    reveals,
 )
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

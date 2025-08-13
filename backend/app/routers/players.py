@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models.player import Player, PlayerCreate, PlayerUpdate
+
+from fastapi import APIRouter, HTTPException
+
 from app.dependencies import (
     get_player_store,
 )
+from app.models.player import Player, PlayerCreate, PlayerUpdate
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 

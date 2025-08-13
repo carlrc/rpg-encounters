@@ -1,4 +1,5 @@
 from pydantic import BaseModel, field_validator
+
 from .reveal import DifficultyClass
 
 BASE_TRUST_MIN = -DifficultyClass.EASY.value + 2

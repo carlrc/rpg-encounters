@@ -1,16 +1,18 @@
 import logging
 from typing import List
+
 from dotenv import load_dotenv
 from pydantic_ai import Agent, NativeOutput
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
+
 from app.agents.agent_output import ChallengeAgentOutput
+from app.agents.base_agent import BaseAgent
 from app.http import create_retrying_client
 from app.models.character import Character
 from app.models.memory import Memory
 from app.models.player import Player
-from app.agents.base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 

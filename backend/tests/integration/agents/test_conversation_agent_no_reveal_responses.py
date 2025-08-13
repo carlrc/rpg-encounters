@@ -1,16 +1,17 @@
 import pytest
-from app.models.character import Character
-from app.models.race import Race, Size, Gender
-from app.models.alignment import Alignment
-from app.models.player import Player
-from app.models.reveal import DifficultyClass, RevealLayer
-from app.agents.prompts.import_prompts import import_system_prompt
-from app.data.trust_store import trust_state_store
-from app.models.trust import BASE_TRUST_MAX, TrustState
+
 from app.agents.conversation_agent import ConversationAgent
+from app.agents.prompts.import_prompts import import_system_prompt
 from app.agents.trust_scoring_agent import TrustCalculatorAgent
-from app.services.conversation_manager import ConversationManager
+from app.data.trust_store import trust_state_store
+from app.models.alignment import Alignment
+from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
+from app.models.player import Player
+from app.models.race import Gender, Race, Size
+from app.models.reveal import DifficultyClass, RevealLayer
+from app.models.trust import BASE_TRUST_MAX, TrustState
+from app.services.conversation_manager import ConversationManager
 
 CHARACTER = Character(
     id=100,

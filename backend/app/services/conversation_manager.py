@@ -1,8 +1,10 @@
-from typing import List, Tuple
-from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart
-from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
 import logging
+from typing import List, Tuple
+
+from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart
+
 from app.agents.agent_output import ConversationAgentOutput
+from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
 
 logger = logging.getLogger(__name__)
 

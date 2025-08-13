@@ -1,14 +1,16 @@
+import logging
 from typing import Any
+
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.messages import ModelMessage
 from pydantic_ai.agent import AgentRunResult
-from app.models.trust import TRUST_CHANGE_MAX, TRUST_CHANGE_MIN
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.models.openai import OpenAIModel
+
 from app.models.character import Character
 from app.models.player import Player
-import logging
+from app.models.trust import TRUST_CHANGE_MAX, TRUST_CHANGE_MIN
 
 logger = logging.getLogger(__name__)
 

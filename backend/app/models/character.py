@@ -1,9 +1,11 @@
+from typing import Dict, List
+
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Dict
-from .util import validate_character_count, validate_choice
-from .reveal import DifficultyClass
-from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
+
 from .alignment import VALID_ALIGNMENTS
+from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
+from .reveal import DifficultyClass
+from .util import validate_character_count, validate_choice
 
 # Character field limits
 CHARACTER_BACKGROUND_LIMIT = 240

@@ -1,8 +1,10 @@
+import logging
+
 from dotenv import load_dotenv
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
+
 from app.models.character import CharacterCreate
-import logging
 
 logger = logging.getLogger(__name__)
 

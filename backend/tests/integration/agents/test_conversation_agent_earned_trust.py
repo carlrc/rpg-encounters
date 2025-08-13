@@ -1,19 +1,19 @@
 import pytest
+
 from app.agents.conversation_agent import ConversationAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.models.character import Character
-from app.models.race import Race, Size, Gender
+from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from app.dependencies import get_trust_state_store
 from app.models.alignment import Alignment
+from app.models.character import Character
+from app.models.class_traits import Abilities, Class, Skills
+from app.models.memory import Memory
 from app.models.player import Player
-from app.models.reveal import DifficultyClass
-from app.models.reveal import RevealLayer, Reveal
+from app.models.race import Gender, Race, Size
+from app.models.reveal import DifficultyClass, Reveal, RevealLayer
 from app.models.trust import BASE_TRUST_MAX, BASE_TRUST_MIN, TrustState
 from app.services.conversation_manager import ConversationManager
-from app.agents.trust_scoring_agent import TrustCalculatorAgent
-from app.models.memory import Memory
-from app.models.class_traits import Abilities, Skills, Class
 from tests.utilities import assert_does_not_contain_keywords
-from app.dependencies import get_trust_state_store
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
 REVEAL_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."

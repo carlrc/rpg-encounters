@@ -1,6 +1,7 @@
 from typing import List
+
 from app.models.reveal import Reveal, RevealCreate
-from tests.fixtures.reveals import reveal_db, next_reveal_id
+from tests.fixtures.reveals import next_reveal_id, reveal_db
 
 
 class RevealStore:

@@ -1,4 +1,5 @@
 from typing import List
+
 from app.models.character import Character, CharacterCreate, CharacterUpdate
 from tests.fixtures.characters import characters_db, next_character_id
 

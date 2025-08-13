@@ -1,8 +1,10 @@
 from typing import List
-from app.models.character import Character
-from app.models.player import Player
-from app.models.memory import Memory
+
 from pydantic_ai.messages import ModelMessage
+
+from app.models.character import Character
+from app.models.memory import Memory
+from app.models.player import Player
 
 MAX_MESSAGE_HISTORY = 10
 

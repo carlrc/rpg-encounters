@@ -1,6 +1,7 @@
 from typing import List
+
 from app.models.player import Player, PlayerCreate, PlayerUpdate
-from tests.fixtures.players import players_db, next_player_id
+from tests.fixtures.players import next_player_id, players_db
 
 
 class PlayerStore:

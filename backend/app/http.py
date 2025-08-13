@@ -1,12 +1,12 @@
 from httpx import AsyncClient, HTTPStatusError
 from pydantic_ai import UnexpectedModelBehavior
+from pydantic_ai.retries import AsyncTenacityTransport, wait_retry_after
 from tenacity import (
     AsyncRetrying,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
-from pydantic_ai.retries import AsyncTenacityTransport, wait_retry_after
 
 
 # https://ai.pydantic.dev/retries/#usage-example

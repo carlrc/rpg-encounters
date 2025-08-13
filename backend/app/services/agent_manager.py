@@ -1,12 +1,13 @@
-from typing import List
-from app.agents.conversation_agent import ConversationAgent
-from app.models.character import Character
-from app.models.player import Player
 import logging
+from typing import List
+
+from app.agents.conversation_agent import ConversationAgent
+from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from app.models.character import Character
+from app.models.memory import Memory
+from app.models.player import Player
 from app.models.trust import TrustState
 from app.services.conversation_manager import ConversationManager
-from app.agents.trust_scoring_agent import TrustCalculatorAgent
-from app.models.memory import Memory
 
 logger = logging.getLogger(__name__)
 

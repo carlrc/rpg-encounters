@@ -1,13 +1,18 @@
 exclude: tests/fixtures
 
 repos:
+-   repo: https://github.com/pycqa/isort
+    rev: 6.0.1
+    hooks:
+    - id: isort
+      language_version: python3.11.13
 -   repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
     - id: black
       language_version: python3.11.13
 -   repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 7.3.0
     hooks:
     - id: flake8
       args: [--max-line-length=240, --extend-ignore=E203]

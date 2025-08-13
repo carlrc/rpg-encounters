@@ -1,18 +1,19 @@
 from typing import Dict
+
 from pydantic import BaseModel, Field, field_validator
 
-from .util import validate_character_count, validate_choice
-from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
 from .alignment import VALID_ALIGNMENTS
 from .class_traits import (
+    ABILITY_SCORE_MAX,
+    ABILITY_SCORE_MIN,
+    SKILL_SCORE_MAX,
+    SKILL_SCORE_MIN,
     VALID_ABILITIES,
     VALID_CLASSES,
     VALID_SKILLS,
-    ABILITY_SCORE_MAX,
-    ABILITY_SCORE_MIN,
-    SKILL_SCORE_MIN,
-    SKILL_SCORE_MAX,
 )
+from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
+from .util import validate_character_count, validate_choice
 
 APPEARANCE_MAX_LIMIT = 100
 

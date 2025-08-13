@@ -1,17 +1,17 @@
-from app.agents.prompts.import_prompts import import_system_prompt
-from app.models.character import Character
-from app.models.race import Race, Size, Gender
-from app.models.alignment import Alignment
-from app.models.player import Player
-from app.models.reveal import DifficultyClass
-from app.models.memory import Memory
-from app.models.class_traits import Abilities, Skills, Class
+from app.agents.challenge_agent import ChallengeAgent
 from app.agents.critical_failure_agent import CriticalFailureAgent
 from app.agents.critical_success_agent import CriticalSuccessAgent
-from app.agents.challenge_agent import ChallengeAgent
+from app.agents.prompts.import_prompts import import_system_prompt
+from app.models.alignment import Alignment
+from app.models.character import Character
+from app.models.class_traits import Abilities, Class, Skills
+from app.models.memory import Memory
+from app.models.player import Player
+from app.models.race import Gender, Race, Size
+from app.models.reveal import DifficultyClass
 from tests.utilities import (
-    assert_does_not_contain_keywords,
     assert_contains_any_keywords,
+    assert_does_not_contain_keywords,
 )
 
 SECRET_CORRIDOR = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."

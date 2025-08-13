@@ -1,19 +1,21 @@
-from fastapi import APIRouter, WebSocket
 import logging
-from app.services.audio_processor import cleanup_files, save_chunks_to_wav
+
+from fastapi import APIRouter, WebSocket
+
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.services.trust_calculator import calculate_base_trust
-from app.services.websocket import get_audio_chunks
 from app.dependencies import (
     get_agent_manager,
-    get_transcription_service,
-    get_tts_service,
-    get_memory_store,
     get_character_store,
+    get_memory_store,
     get_player_store,
     get_reveal_store,
+    get_transcription_service,
     get_trust_state_store,
+    get_tts_service,
 )
+from app.services.audio_processor import cleanup_files, save_chunks_to_wav
+from app.services.trust_calculator import calculate_base_trust
+from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 

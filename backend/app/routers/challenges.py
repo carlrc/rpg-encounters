@@ -1,24 +1,26 @@
 import logging
+
 from fastapi import APIRouter, WebSocket
-from app.services.websocket import get_audio_chunks
+
+from app.agents.challenge_agent import ChallengeAgent
+from app.agents.critical_failure_agent import CriticalFailureAgent
+from app.agents.critical_success_agent import CriticalSuccessAgent
+from app.agents.prompts.import_prompts import import_system_prompt
 from app.dependencies import (
-    get_transcription_service,
     get_character_store,
-    get_player_store,
     get_memory_store,
+    get_player_store,
     get_reveal_store,
+    get_transcription_service,
     get_tts_service,
 )
-from app.services.audio_processor import cleanup_files, save_chunks_to_wav
-from app.agents.challenge_agent import ChallengeAgent
-from app.agents.prompts.import_prompts import import_system_prompt
 from app.services.ability_challenge import (
     D20Outcomes,
     calculate_skill_check,
     filter_reveals_by_roll,
 )
-from app.agents.critical_failure_agent import CriticalFailureAgent
-from app.agents.critical_success_agent import CriticalSuccessAgent
+from app.services.audio_processor import cleanup_files, save_chunks_to_wav
+from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 

@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models.reveal import Reveal, RevealCreate
+
+from fastapi import APIRouter, HTTPException
+
 from app.dependencies import get_character_store, get_reveal_store
+from app.models.reveal import Reveal, RevealCreate
 
 router = APIRouter(prefix="/api/reveals", tags=["reveals"])
 

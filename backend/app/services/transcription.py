@@ -1,9 +1,10 @@
-import whisper
-import os
-import logging
 import asyncio
 import functools
+import logging
+import os
+
 import torch
+import whisper
 
 logger = logging.getLogger(__name__)
 

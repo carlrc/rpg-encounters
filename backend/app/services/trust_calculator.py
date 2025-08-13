@@ -1,6 +1,6 @@
 from app.models.character import Character
 from app.models.player import Player
-from app.models.trust import BASE_TRUST_MIN, BASE_TRUST_MAX
+from app.models.trust import BASE_TRUST_MAX, BASE_TRUST_MIN
 
 
 def calculate_base_trust(character: Character, player: Player) -> int:

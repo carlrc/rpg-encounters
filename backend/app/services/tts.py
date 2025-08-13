@@ -1,8 +1,9 @@
-import os
 import logging
+import os
 from typing import Generator
-from elevenlabs.client import ElevenLabs
+
 from dotenv import load_dotenv
+from elevenlabs.client import ElevenLabs
 
 # Load environment variables from .env file
 

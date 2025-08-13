@@ -1,10 +1,12 @@
-from fastapi import APIRouter, HTTPException
 from typing import List
-from app.models.character import Character, CharacterCreate, CharacterUpdate
+
+from fastapi import APIRouter, HTTPException
+
 from app.agents.personality_agent import PersonalityGenerator
 from app.dependencies import (
     get_character_store,
 )
+from app.models.character import Character, CharacterCreate, CharacterUpdate
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 

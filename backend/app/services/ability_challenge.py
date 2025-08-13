@@ -1,6 +1,7 @@
-from enum import Enum
 import logging
+from enum import Enum
 from typing import Dict, List
+
 from app.models.class_traits import VALID_SKILLS
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer

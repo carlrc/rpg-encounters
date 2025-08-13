@@ -1,21 +1,23 @@
-from typing import List
-from dotenv import load_dotenv
-from app.models.character import Character
-from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.agent import AgentRunResult
-from app.models.player import Player
-from app.models.trust import TrustState
-from app.models.reveal import RevealLayer, Reveal
-from app.services.conversation_manager import ConversationManager
-import logging
-from app.agents.trust_scoring_agent import TrustCalculatorAgent
 import asyncio
-from app.models.memory import Memory
-from app.agents.agent_output import ConversationAgentOutput
+import logging
+from typing import List
+
+from dotenv import load_dotenv
+from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
+from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
-from app.http import create_retrying_client
+
+from app.agents.agent_output import ConversationAgentOutput
 from app.agents.base_agent import BaseAgent
+from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from app.http import create_retrying_client
+from app.models.character import Character
+from app.models.memory import Memory
+from app.models.player import Player
+from app.models.reveal import Reveal, RevealLayer
+from app.models.trust import TrustState
+from app.services.conversation_manager import ConversationManager
 
 logger = logging.getLogger(__name__)
 
