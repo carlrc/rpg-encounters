@@ -55,6 +55,7 @@ class ConnectionCreate(ConnectionBase):
 class ConnectionUpdate(ConnectionBase):
     """Connection update model - all fields optional"""
 
+    id: int = Field(..., description="ID of the connection to update")
     source_encounter_id: int | None = None
     target_encounter_id: int | None = None
     source_handle: str | None = None

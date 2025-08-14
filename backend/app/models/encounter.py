@@ -54,6 +54,7 @@ class EncounterCreate(EncounterBase):
 class EncounterUpdate(EncounterBase):
     """Encounter update model - all fields optional with same validation rules"""
 
+    id: int = Field(..., description="ID of the encounter to update")
     name: str | None = None
     description: str | None = None
     position_x: float | None = None
