@@ -1,31 +1,33 @@
 <template>
-  <div class="world-builder" role="main" aria-label="World Builder Interface">
+  <div class="encounter-builder" role="main" aria-label="Encounter Builder Interface">
     <div v-if="loading" class="shared-loading" role="status" aria-live="polite">
-      <span class="sr-only">Loading world data...</span>
-      Loading world data...
+      <span class="sr-only">Loading encounter data...</span>
+      Loading encounter data...
     </div>
     <div v-else-if="error" class="shared-error" role="alert" aria-live="assertive">
       {{ error }}
     </div>
 
-    <div v-else class="world-builder-container">
-      <!-- Add Room Button -->
-      <div class="add-room-container">
+    <div v-else class="encounter-builder-container">
+      <!-- Add Encounter Button -->
+      <div class="add-encounter-container">
         <button
-          @click="addNewRoom"
-          class="add-room-btn"
-          title="Add Room"
-          aria-label="Add new room to world"
+          @click="addNewEncounter"
+          class="add-encounter-btn"
+          title="Add Encounter"
+          aria-label="Add new encounter to world"
         >
           +
         </button>
-        <span class="add-room-label">Add Room</span>
+        <span class="add-encounter-label">Add Encounter</span>
       </div>
 
       <VueFlow
         v-model="elements"
-        class="world-canvas"
+        class="encounter-canvas"
         :default-viewport="{ zoom: 1 }"
+        :min-zoom="0.1"
+        :max-zoom="4"
         @connect="onConnect"
         @edge-click="onEdgeClick"
         :connection-line-style="{ stroke: '#007bff', strokeWidth: 2 }"
@@ -36,19 +38,19 @@
         :multi-selection-key-code="null"
         :connection-mode="'loose'"
         role="application"
-        aria-label="Interactive world map with rooms and characters"
+        aria-label="Interactive encounter map with encounters and characters"
         ref="vueFlowRef"
       >
-        <!-- Custom Room Node -->
-        <template #node-room="{ data, id }">
-          <RoomNode
-            :room="{ ...data, id }"
-            :available-characters="getAvailableCharactersForRoom(data)"
+        <!-- Custom Encounter Node -->
+        <template #node-encounter="{ data, id }">
+          <EncounterNode
+            :encounter="{ ...data, id }"
+            :available-characters="getAvailableCharactersForEncounter(data)"
             @open-encounter="openCharacterEncounter"
-            @add-character="addCharacterToRoom"
-            @remove-character="removeCharacterFromRoom"
-            @update-room-name="updateRoomName"
-            @update-room-description="updateRoomDescription"
+            @add-character="addCharacterToEncounter"
+            @remove-character="removeCharacterFromEncounter"
+            @update-encounter-name="updateEncounterName"
+            @update-encounter-description="updateEncounterDescription"
           />
         </template>
       </VueFlow>
@@ -67,16 +69,16 @@
   import { ref, computed, onMounted } from 'vue'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
-  import RoomNode from './RoomNode.vue'
+  import EncounterNode from './EncounterNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
 
   export default {
-    name: 'WorldBuilder',
+    name: 'EncounterBuilder',
     components: {
       VueFlow,
-      RoomNode,
+      EncounterNode,
       CharacterEncounterPopup,
     },
     setup() {
@@ -93,22 +95,22 @@
       // Vue Flow elements (just 2 rooms, no connections)
       const elements = ref([])
 
-      // Get available characters for a specific room (exclude characters already in that room)
-      const getAvailableCharactersForRoom = (roomData) => {
-        if (!roomData || !Array.isArray(roomData.characters)) return characters.value
+      // Get available characters for a specific encounter (exclude characters already in that encounter)
+      const getAvailableCharactersForEncounter = (encounterData) => {
+        if (!encounterData || !Array.isArray(encounterData.characters)) return characters.value
 
-        const roomCharacterIds = new Set(roomData.characters.map((char) => char.id))
-        return characters.value.filter((char) => !roomCharacterIds.has(char.id))
+        const encounterCharacterIds = new Set(encounterData.characters.map((char) => char.id))
+        return characters.value.filter((char) => !encounterCharacterIds.has(char.id))
       }
 
-      // Create simple 2-room world with some initial characters
+      // Create simple 2-encounter world with some initial characters
       const createSimpleWorld = () => {
         if (!Array.isArray(characters.value) || characters.value.length === 0) {
-          // Create empty rooms if no characters available
-          const rooms = [
+          // Create empty encounters if no characters available
+          const encounters = [
             {
-              id: 'room-1',
-              type: 'room',
+              id: 'encounter-1',
+              type: 'encounter',
               position: { x: 200, y: 150 },
               data: {
                 name: 'Tavern',
@@ -118,8 +120,8 @@
               },
             },
             {
-              id: 'room-2',
-              type: 'room',
+              id: 'encounter-2',
+              type: 'encounter',
               position: { x: 500, y: 150 },
               data: {
                 name: 'Forest',
@@ -129,15 +131,15 @@
               },
             },
           ]
-          elements.value = rooms
+          elements.value = encounters
           return
         }
 
-        // Just 2 rooms with some initial characters
-        const rooms = [
+        // Just 2 encounters with some initial characters
+        const encounters = [
           {
-            id: 'room-1',
-            type: 'room',
+            id: 'encounter-1',
+            type: 'encounter',
             position: { x: 200, y: 150 },
             data: {
               name: 'Tavern',
@@ -147,8 +149,8 @@
             },
           },
           {
-            id: 'room-2',
-            type: 'room',
+            id: 'encounter-2',
+            type: 'encounter',
             position: { x: 500, y: 150 },
             data: {
               name: 'Forest',
@@ -160,7 +162,7 @@
         ]
 
         // Start with no connections - let user create them manually
-        elements.value = rooms
+        elements.value = encounters
       }
 
       // Load characters from API
@@ -188,7 +190,7 @@
           await Promise.all([loadGameData(), loadCharacters()])
         } catch (err) {
           const errorMessage = err.message || 'Failed to load world data'
-          error.value = `World Builder Error: ${errorMessage}`
+          error.value = `Encounter Builder Error: ${errorMessage}`
           console.error('Data loading failed:', err)
         } finally {
           loading.value = false
@@ -196,10 +198,10 @@
       }
 
       // Character management
-      const addCharacterToRoom = (roomId, characterId) => {
+      const addCharacterToEncounter = (encounterId, characterId) => {
         // Validate inputs
-        if (!roomId || !characterId) {
-          console.warn('Invalid roomId or characterId provided to addCharacterToRoom')
+        if (!encounterId || !characterId) {
+          console.warn('Invalid encounterId or characterId provided to addCharacterToEncounter')
           return
         }
 
@@ -209,52 +211,58 @@
           return
         }
 
-        // Find the room and add the character
-        const roomIndex = elements.value.findIndex((el) => el.id === roomId)
-        if (roomIndex === -1) {
-          console.warn(`Room with id ${roomId} not found`)
+        // Find the encounter and add the character
+        const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
+        if (encounterIndex === -1) {
+          console.warn(`Encounter with id ${encounterId} not found`)
           return
         }
 
-        const room = elements.value[roomIndex]
+        const encounter = elements.value[encounterIndex]
 
-        // Ensure room.data.characters exists
-        if (!Array.isArray(room.data.characters)) {
-          room.data.characters = []
+        // Ensure encounter.data.characters exists
+        if (!Array.isArray(encounter.data.characters)) {
+          encounter.data.characters = []
         }
 
-        // Check if character is already in this room
-        const isAlreadyInRoom = room.data.characters.some((char) => char.id === characterId)
+        // Check if character is already in this encounter
+        const isAlreadyInEncounter = encounter.data.characters.some(
+          (char) => char.id === characterId
+        )
 
-        if (!isAlreadyInRoom) {
-          // Simply add character to the room (can be in multiple rooms)
-          room.data.characters.push(character)
+        if (!isAlreadyInEncounter) {
+          // Simply add character to the encounter (can be in multiple encounters)
+          encounter.data.characters.push(character)
         }
       }
 
-      const removeCharacterFromRoom = (roomId, characterId) => {
+      const removeCharacterFromEncounter = (encounterId, characterId) => {
         // Validate inputs
-        if (!roomId || !characterId) {
-          console.warn('Invalid roomId or characterId provided to removeCharacterFromRoom')
+        if (!encounterId || !characterId) {
+          console.warn(
+            'Invalid encounterId or characterId provided to removeCharacterFromEncounter'
+          )
           return
         }
 
-        // Find the room and remove the character
-        const roomIndex = elements.value.findIndex((el) => el.id === roomId)
-        if (roomIndex === -1) {
-          console.warn(`Room with id ${roomId} not found`)
+        // Find the encounter and remove the character
+        const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
+        if (encounterIndex === -1) {
+          console.warn(`Encounter with id ${encounterId} not found`)
           return
         }
 
-        const room = elements.value[roomIndex]
+        const encounter = elements.value[encounterIndex]
 
-        // Ensure room.data.characters exists
-        if (!Array.isArray(room.data.characters)) {
-          room.data.characters = []
+        // Ensure encounter.data.characters exists
+        if (!Array.isArray(encounter.data.characters)) {
+          encounter.data.characters = []
           return
         }
 
-        room.data.characters = room.data.characters.filter((char) => char.id !== characterId)
+        encounter.data.characters = encounter.data.characters.filter(
+          (char) => char.id !== characterId
+        )
       }
 
       // Character encounter handlers
@@ -322,11 +330,11 @@
         return connection.source !== connection.target
       }
 
-      // Add new room at current viewport center
-      const addNewRoom = () => {
+      // Add new encounter at current viewport center
+      const addNewEncounter = () => {
         if (!vueFlowRef.value) return
 
-        // Get current viewport to position room at center
+        // Get current viewport to position encounter at center
         const viewport = vueFlowRef.value.getViewport()
         const canvasRect = vueFlowRef.value.$el.getBoundingClientRect()
 
@@ -334,48 +342,48 @@
         const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
         const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
 
-        // Generate unique room ID
-        const roomId = `room-${Date.now()}`
+        // Generate unique encounter ID
+        const encounterId = `encounter-${Date.now()}`
 
-        // Create new room object
-        const newRoom = {
-          id: roomId,
-          type: 'room',
+        // Create new encounter object
+        const newEncounter = {
+          id: encounterId,
+          type: 'encounter',
           position: {
-            x: centerX - 150, // Offset by half room width for centering
-            y: centerY - 75, // Offset by half room height for centering
+            x: centerX - 150, // Offset by half encounter width for centering
+            y: centerY - 75, // Offset by half encounter height for centering
           },
           data: {
-            name: 'New Room',
+            name: 'New Encounter',
             description: 'A mysterious new location waiting to be explored and described.',
             characters: [],
           },
         }
 
-        // Add room to elements
-        elements.value.push(newRoom)
+        // Add encounter to elements
+        elements.value.push(newEncounter)
       }
 
-      // Update room name
-      const updateRoomName = (roomId, newName) => {
-        const roomIndex = elements.value.findIndex((el) => el.id === roomId)
-        if (roomIndex !== -1) {
-          elements.value[roomIndex].data.name = newName
+      // Update encounter name
+      const updateEncounterName = (encounterId, newName) => {
+        const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
+        if (encounterIndex !== -1) {
+          elements.value[encounterIndex].data.name = newName
         }
       }
 
-      // Update room description
-      const updateRoomDescription = (roomId, newDescription) => {
-        const roomIndex = elements.value.findIndex((el) => el.id === roomId)
-        if (roomIndex !== -1) {
-          elements.value[roomIndex].data.description = newDescription
+      // Update encounter description
+      const updateEncounterDescription = (encounterId, newDescription) => {
+        const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
+        if (encounterIndex !== -1) {
+          elements.value[encounterIndex].data.description = newDescription
         }
       }
 
       // Handle edge clicks for selection and deletion
       const onEdgeClick = (event) => {
         const edge = event.edge
-        if (edge && confirm(`Delete connection between rooms?`)) {
+        if (edge && confirm(`Delete connection between encounters?`)) {
           const edgeIndex = elements.value.findIndex((el) => el.id === edge.id)
           if (edgeIndex !== -1) {
             elements.value.splice(edgeIndex, 1)
@@ -395,16 +403,16 @@
         selectedCharacter,
         showEncounterPopup,
         vueFlowRef,
-        getAvailableCharactersForRoom,
-        addCharacterToRoom,
-        removeCharacterFromRoom,
+        getAvailableCharactersForEncounter,
+        addCharacterToEncounter,
+        removeCharacterFromEncounter,
         openCharacterEncounter,
         closeEncounterPopup,
         onConnect,
         isValidConnection,
-        addNewRoom,
-        updateRoomName,
-        updateRoomDescription,
+        addNewEncounter,
+        updateEncounterName,
+        updateEncounterDescription,
         onEdgeClick,
       }
     },
@@ -412,26 +420,26 @@
 </script>
 
 <style scoped>
-  .world-builder {
+  .encounter-builder {
     height: calc(100vh - 140px);
     width: 100%;
     position: relative;
   }
 
-  .world-builder-container {
+  .encounter-builder-container {
     height: 100%;
     width: 100%;
     position: relative;
   }
 
-  .world-canvas {
+  .encounter-canvas {
     height: 100%;
     width: 100%;
     background: #f8f9fa;
   }
 
-  /* Add Room Button Container */
-  .add-room-container {
+  /* Add Encounter Button Container */
+  .add-encounter-container {
     position: absolute;
     top: 20px;
     right: 20px;
@@ -441,7 +449,7 @@
     z-index: 1000;
   }
 
-  .add-room-btn {
+  .add-encounter-btn {
     width: 40px;
     height: 40px;
     border: none;
@@ -459,17 +467,17 @@
     margin-bottom: 4px;
   }
 
-  .add-room-btn:hover {
+  .add-encounter-btn:hover {
     background: #218838;
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
   }
 
-  .add-room-btn:active {
+  .add-encounter-btn:active {
     transform: scale(1.05);
   }
 
-  .add-room-label {
+  .add-encounter-label {
     font-size: 10px;
     color: #6c757d;
     text-align: center;

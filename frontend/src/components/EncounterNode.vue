@@ -1,5 +1,5 @@
 <template>
-  <div class="room-node" :style="roomStyle">
+  <div class="encounter-node" :style="encounterStyle">
     <!-- Connection handles - one per side, each can be both source and target -->
     <Handle
       id="right"
@@ -30,26 +30,26 @@
       :style="{ top: '-6px', left: '50%', transform: 'translateX(-50%)' }"
     />
 
-    <div class="room-header">
+    <div class="encounter-header">
       <h4
         v-if="!isEditingName"
         @click="startEditingName"
-        class="room-name"
-        :title="'Click to edit room name'"
+        class="encounter-name"
+        :title="'Click to edit encounter name'"
       >
-        {{ room.name }}
+        {{ encounter.name }}
       </h4>
       <input
         v-else
         v-model="editingName"
-        @blur="saveRoomName"
-        @keyup.enter="saveRoomName"
+        @blur="saveEncounterName"
+        @keyup.enter="saveEncounterName"
         @keyup.escape="cancelEditingName"
-        class="room-name-input"
+        class="encounter-name-input"
         ref="nameInput"
-        :placeholder="room.name"
+        :placeholder="encounter.name"
       />
-      <div class="room-actions">
+      <div class="encounter-actions">
         <button
           @click="toggleDescription"
           class="info-btn"
@@ -61,25 +61,25 @@
       </div>
     </div>
 
-    <!-- Room Description Section -->
-    <div v-if="showDescription" class="room-description-section">
+    <!-- Encounter Description Section -->
+    <div v-if="showDescription" class="encounter-description-section">
       <div
         v-if="!isEditingDescription"
         @click="startEditingDescription"
-        class="room-description"
-        :title="'Click to edit room description'"
+        class="encounter-description"
+        :title="'Click to edit encounter description'"
       >
-        {{ room.description || 'No description available. Click to add one.' }}
+        {{ encounter.description || 'No description available. Click to add one.' }}
       </div>
       <textarea
         v-else
         v-model="editingDescription"
-        @blur="saveRoomDescription"
-        @keyup.ctrl.enter="saveRoomDescription"
+        @blur="saveEncounterDescription"
+        @keyup.ctrl.enter="saveEncounterDescription"
         @keyup.escape="cancelEditingDescription"
-        class="room-description-input"
+        class="encounter-description-input"
         ref="descriptionInput"
-        placeholder="Enter room description..."
+        placeholder="Enter encounter description..."
         rows="3"
       />
     </div>
@@ -115,7 +115,7 @@
 
     <div class="character-grid">
       <div
-        v-for="character in room.characters"
+        v-for="character in encounter.characters"
         :key="character.id"
         class="character-avatar"
         @click="$emit('open-encounter', character)"
@@ -140,15 +140,15 @@
         <span class="character-name">{{ character.name }}</span>
       </div>
 
-      <!-- Add Character Button (reusing add room button styling) -->
+      <!-- Add Character Button (reusing add encounter button styling) -->
       <div
         v-if="availableCharacters.length > 0"
         class="character-avatar"
-        title="Add character to room"
+        title="Add character to encounter"
       >
         <button
           @click="showAddCharacter = !showAddCharacter"
-          class="add-room-btn add-character-btn"
+          class="add-encounter-btn add-character-btn"
           :class="{ active: showAddCharacter }"
         >
           +
@@ -165,12 +165,12 @@
   import { getInitials } from '../utils/avatarUtils.js'
 
   export default {
-    name: 'RoomNode',
+    name: 'EncounterNode',
     components: {
       Handle,
     },
     props: {
-      room: {
+      encounter: {
         type: Object,
         required: true,
       },
@@ -183,8 +183,8 @@
       'open-encounter',
       'add-character',
       'remove-character',
-      'update-room-name',
-      'update-room-description',
+      'update-encounter-name',
+      'update-encounter-description',
     ],
     setup(props, { emit }) {
       const showAddCharacter = ref(false)
@@ -197,17 +197,17 @@
       const descriptionInput = ref(null)
 
       const addCharacter = (characterId) => {
-        emit('add-character', props.room.id, characterId)
+        emit('add-character', props.encounter.id, characterId)
         showAddCharacter.value = false
       }
 
       const removeCharacter = (characterId) => {
-        emit('remove-character', props.room.id, characterId)
+        emit('remove-character', props.encounter.id, characterId)
       }
 
       const startEditingName = () => {
         isEditingName.value = true
-        editingName.value = props.room.name
+        editingName.value = props.encounter.name
         // Focus the input on next tick
         nextTick(() => {
           if (nameInput.value) {
@@ -217,9 +217,9 @@
         })
       }
 
-      const saveRoomName = () => {
-        if (editingName.value.trim() && editingName.value.trim() !== props.room.name) {
-          emit('update-room-name', props.room.id, editingName.value.trim())
+      const saveEncounterName = () => {
+        if (editingName.value.trim() && editingName.value.trim() !== props.encounter.name) {
+          emit('update-encounter-name', props.encounter.id, editingName.value.trim())
         }
         isEditingName.value = false
         editingName.value = ''
@@ -236,7 +236,7 @@
 
       const startEditingDescription = () => {
         isEditingDescription.value = true
-        editingDescription.value = props.room.description || ''
+        editingDescription.value = props.encounter.description || ''
         // Focus the textarea on next tick
         nextTick(() => {
           if (descriptionInput.value) {
@@ -246,10 +246,10 @@
         })
       }
 
-      const saveRoomDescription = () => {
+      const saveEncounterDescription = () => {
         // Always emit the update, even if it's empty (allows clearing descriptions)
         const newDescription = editingDescription.value.trim()
-        emit('update-room-description', props.room.id, newDescription)
+        emit('update-encounter-description', props.encounter.id, newDescription)
         isEditingDescription.value = false
         editingDescription.value = ''
       }
@@ -271,26 +271,26 @@
         addCharacter,
         removeCharacter,
         startEditingName,
-        saveRoomName,
+        saveEncounterName,
         cancelEditingName,
         toggleDescription,
         startEditingDescription,
-        saveRoomDescription,
+        saveEncounterDescription,
         cancelEditingDescription,
         getInitials,
       }
     },
     computed: {
-      roomStyle() {
+      encounterStyle() {
         const baseHeight = 150
         const charWidth = 120 // Fixed character width from CSS
-        const roomPadding = 24 // 12px padding on each side
+        const encounterPadding = 24 // 12px padding on each side
         const gapBetweenChars = 12 // Gap between characters
         const descriptionHeight = this.showDescription ? 80 : 0 // Height for description section
 
         // Count characters + add character button if available
         const totalItems =
-          (this.room.characters?.length || 0) + (this.availableCharacters.length > 0 ? 1 : 0)
+          (this.encounter.characters?.length || 0) + (this.availableCharacters.length > 0 ? 1 : 0)
 
         if (totalItems === 0) {
           return {
@@ -300,12 +300,12 @@
           }
         }
 
-        // Calculate room width to fit at least 2 items per row
-        const minWidthFor2Items = charWidth * 2 + gapBetweenChars + roomPadding
+        // Calculate encounter width to fit at least 2 items per row
+        const minWidthFor2Items = charWidth * 2 + gapBetweenChars + encounterPadding
         const calculatedWidth = Math.max(minWidthFor2Items, 300)
 
         // Calculate dynamic height based on number of items (characters + add button)
-        const availableWidth = calculatedWidth - roomPadding
+        const availableWidth = calculatedWidth - encounterPadding
         const itemsPerRow = Math.floor(availableWidth / (charWidth + gapBetweenChars))
         const rows = Math.ceil(totalItems / Math.max(1, itemsPerRow))
 
@@ -323,7 +323,7 @@
 </script>
 
 <style scoped>
-  .room-node {
+  .encounter-node {
     background: #ffffff;
     border: 2px solid #007bff;
     border-radius: 8px;
@@ -334,7 +334,7 @@
     min-height: 100px;
   }
 
-  .room-header {
+  .encounter-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -343,25 +343,25 @@
     padding-bottom: 4px;
   }
 
-  .room-header h4 {
+  .encounter-header h4 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
     color: #2c3e50;
   }
 
-  .room-name {
+  .encounter-name {
     cursor: pointer;
     padding: 2px 4px;
     border-radius: 4px;
     transition: background-color 0.2s ease;
   }
 
-  .room-name:hover {
+  .encounter-name:hover {
     background-color: #f8f9fa;
   }
 
-  .room-name-input {
+  .encounter-name-input {
     margin: 0;
     padding: 2px 4px;
     font-size: 14px;
@@ -375,12 +375,12 @@
     max-width: 200px;
   }
 
-  .room-name-input:focus {
+  .encounter-name-input:focus {
     border-color: #0056b3;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 
-  .room-actions {
+  .encounter-actions {
     display: flex;
     gap: 4px;
   }
@@ -410,8 +410,8 @@
     background: #28a745;
   }
 
-  /* Room Description Section */
-  .room-description-section {
+  /* Encounter Description Section */
+  .encounter-description-section {
     margin-top: 8px;
     margin-bottom: 8px;
     padding: 8px;
@@ -420,7 +420,7 @@
     border: 1px solid #e9ecef;
   }
 
-  .room-description {
+  .encounter-description {
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -431,11 +431,11 @@
     min-height: 20px;
   }
 
-  .room-description:hover {
+  .encounter-description:hover {
     background-color: #e9ecef;
   }
 
-  .room-description-input {
+  .encounter-description-input {
     width: 100%;
     padding: 4px;
     font-size: 12px;
@@ -449,7 +449,7 @@
     font-family: inherit;
   }
 
-  .room-description-input:focus {
+  .encounter-description-input:focus {
     border-color: #0056b3;
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
@@ -648,8 +648,8 @@
     hyphens: auto;
   }
 
-  /* Add Room Button (reused from WorldBuilder) */
-  .add-room-btn {
+  /* Add Encounter Button (reused from EncounterBuilder) */
+  .add-encounter-btn {
     width: 32px;
     height: 32px;
     border: none;
@@ -666,7 +666,7 @@
     box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
   }
 
-  .add-room-btn:hover {
+  .add-encounter-btn:hover {
     background: #218838;
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
@@ -720,8 +720,8 @@
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
   }
 
-  /* Ensure room node has relative positioning for absolute handles */
-  .room-node {
+  /* Ensure encounter node has relative positioning for absolute handles */
+  .encounter-node {
     position: relative;
   }
 </style>

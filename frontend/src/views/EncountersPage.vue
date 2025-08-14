@@ -1,16 +1,16 @@
 <template>
   <div class="encounters-page">
-    <WorldBuilder />
+    <EncounterBuilder />
   </div>
 </template>
 
 <script>
-  import WorldBuilder from '../components/WorldBuilder.vue'
+  import EncounterBuilder from '../components/EncounterBuilder.vue'
 
   export default {
     name: 'EncountersPage',
     components: {
-      WorldBuilder,
+      EncounterBuilder,
     },
   }
 </script>
