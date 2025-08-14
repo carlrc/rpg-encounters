@@ -3,11 +3,11 @@ import logging
 from fastapi import APIRouter, WebSocket
 
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.data.player_store import PlayerStore
 from app.dependencies import (
     get_agent_manager,
     get_character_store,
     get_memory_store,
-    get_player_store,
     get_reveal_store,
     get_transcription_service,
     get_trust_state_store,
@@ -38,7 +38,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
     try:
         # Get character and player information
         character = get_character_store().get_character_by_id(character_id)
-        player = get_player_store().get_player_by_id(player_id)
+        player = PlayerStore().get_player_by_id(player_id)
 
         # Get static trust metric between character and player
         base_trust = calculate_base_trust(character, player)

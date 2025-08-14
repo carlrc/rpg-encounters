@@ -1,6 +1,6 @@
 # Backend
 
-## Usage
+## Installation
 
 Install [UV](https://docs.astral.sh/uv/getting-started/installation/) then setup the virtual environment
 
@@ -18,21 +18,10 @@ sudo apt update && sudo apt install ffmpeg
 brew install ffmpeg
 ```
 
-Populate `.env`
+Install [Docker](https://docs.docker.com/engine/install/) and verify
 
 ```bash
-OPENAI_API_KEY=
-ELEVENLABS_API_KEY=
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=mysecretpassword
-POSTGRES_DB=dnd-postgres
-DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
-```
-
-Setup docker
-
-```bash
-docker compose up -d
+docker
 ```
 
 Activate `venv`
@@ -59,10 +48,35 @@ Create a `.env` file with the following keys in the `backend` directory
 ```bash
 OPENAI_API_KEY={SERVICE_ACC_API_KEY}
 ELEVENLABS_API_KEY={USER_API_KEY}
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=mysecretpassword
+POSTGRES_DB=dnd-postgres
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+```
+
+## Usage
+
+Run docker
+
+```bash
+docker compose up -d
+```
+
+Seed db with test data
+
+```bash
+python -m app.db.init_db
+python -m tests.fixtures.migrate_data
 ```
 
 Run backend
 
 ```bash
 python -m app.main
+```
+
+Stop docker
+
+```bash
+docker compose down -v
 ```

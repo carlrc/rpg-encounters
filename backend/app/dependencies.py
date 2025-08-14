@@ -4,7 +4,6 @@ from app.data.character_store import CharacterStore
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
-from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
 from app.data.trust_store import TrustStateStore
 from app.services.agent_manager import AgentManager
@@ -34,12 +33,6 @@ def get_tts_service() -> ElevenLabsTTS:
 def get_character_store() -> CharacterStore:
     """Factory function for character store"""
     return CharacterStore()
-
-
-@lru_cache(maxsize=1)
-def get_player_store() -> PlayerStore:
-    """Factory function for player store"""
-    return PlayerStore()
 
 
 @lru_cache(maxsize=1)

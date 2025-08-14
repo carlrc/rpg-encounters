@@ -6,10 +6,10 @@ from app.agents.challenge_agent import ChallengeAgent
 from app.agents.critical_failure_agent import CriticalFailureAgent
 from app.agents.critical_success_agent import CriticalSuccessAgent
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.data.player_store import PlayerStore
 from app.dependencies import (
     get_character_store,
     get_memory_store,
-    get_player_store,
     get_reveal_store,
     get_transcription_service,
     get_tts_service,
@@ -49,7 +49,7 @@ async def websocket_endpoint(
     try:
         # Get player and character data
         character = get_character_store().get_character_by_id(character_id)
-        player = get_player_store().get_player_by_id(player_id=player_id)
+        player = PlayerStore().get_player_by_id(player_id=player_id)
         # Calculate skill check: d20 + player skill bonus
         total_roll = calculate_skill_check(
             skill=skill, player=player, d20_roll=d20_roll
