@@ -1,9 +1,7 @@
 from functools import lru_cache
 
-from app.data.character_store import CharacterStore
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.data.memory_store import MemoryStore
 from app.data.reveal_store import RevealStore
 from app.data.trust_store import TrustStateStore
 from app.services.agent_manager import AgentManager
@@ -30,21 +28,9 @@ def get_tts_service() -> ElevenLabsTTS:
 
 
 @lru_cache(maxsize=1)
-def get_character_store() -> CharacterStore:
-    """Factory function for character store"""
-    return CharacterStore()
-
-
-@lru_cache(maxsize=1)
 def get_reveal_store() -> RevealStore:
     """Factory function for reveal store"""
     return RevealStore()
-
-
-@lru_cache(maxsize=1)
-def get_memory_store() -> MemoryStore:
-    """Factory function for memory store"""
-    return MemoryStore()
 
 
 @lru_cache(maxsize=1)

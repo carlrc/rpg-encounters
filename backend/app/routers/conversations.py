@@ -3,11 +3,11 @@ import logging
 from fastapi import APIRouter, WebSocket
 
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.data.character_store import CharacterStore
+from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.dependencies import (
     get_agent_manager,
-    get_character_store,
-    get_memory_store,
     get_reveal_store,
     get_transcription_service,
     get_trust_state_store,
@@ -37,7 +37,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
 
     try:
         # Get character and player information
-        character = get_character_store().get_character_by_id(character_id)
+        character = CharacterStore().get_character_by_id(character_id)
         player = PlayerStore().get_player_by_id(player_id)
 
         # Get static trust metric between character and player
@@ -49,7 +49,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
         # Get information tied to character
         all_reveals = get_reveal_store().get_by_character_id(character_id)
         # TODO: This would need to be lazy updated across instances in case DM wants to update information on the fly
-        all_memories = get_memory_store().get_by_character_id(character_id)
+        all_memories = MemoryStore().get_by_character_id(character_id)
 
         # Get or create persistent character agent
         agent = get_agent_manager().get_or_create_agent(

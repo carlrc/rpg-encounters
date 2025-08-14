@@ -2,7 +2,8 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException
 
-from app.dependencies import get_character_store, get_reveal_store
+from app.data.character_store import CharacterStore
+from app.dependencies import get_reveal_store
 from app.models.reveal import Reveal, RevealCreate
 
 router = APIRouter(prefix="/api/reveals", tags=["reveals"])
@@ -19,7 +20,7 @@ def create_reveal(reveal_data: RevealCreate):
     """Create a reveal for multiple characters"""
     # Verify all characters exist
     for character_id in reveal_data.character_ids:
-        if not get_character_store().character_exists(character_id):
+        if not CharacterStore().character_exists(character_id):
             raise HTTPException(
                 status_code=404, detail=f"Character {character_id} not found"
             )
@@ -40,7 +41,7 @@ def get_reveal(reveal_id: int):
 def get_character_reveals(character_id: int):
     """Get all reveals for a character"""
     # Verify character exists
-    if not get_character_store().character_exists(character_id):
+    if not CharacterStore().character_exists(character_id):
         raise HTTPException(status_code=404, detail="Character not found")
 
     return get_reveal_store().get_by_character_id(character_id)
