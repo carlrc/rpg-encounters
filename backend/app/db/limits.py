@@ -1,0 +1,14 @@
+from app.models.reveal import DifficultyClass
+
+# Player
+PLAYER_APPEARANCE_MAX_LIMIT = 100
+
+# Character
+CHARACTER_BACKGROUND_LIMIT = 240
+CHARACTER_COMMUNICATION_LIMIT = 180
+CHARACTER_MOTIVATION_LIMIT = 300
+PREFERENCE_VALUE_MIN = -DifficultyClass.VERY_EASY.value
+PREFERENCE_VALUE_MAX = DifficultyClass.VERY_EASY.value
+
+# Memory limits
+CONTENT_LIMIT = 200

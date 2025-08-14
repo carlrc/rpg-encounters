@@ -18,6 +18,23 @@ sudo apt update && sudo apt install ffmpeg
 brew install ffmpeg
 ```
 
+Populate `.env`
+
+```bash
+OPENAI_API_KEY=
+ELEVENLABS_API_KEY=
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=mysecretpassword
+POSTGRES_DB=dnd-postgres
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+```
+
+Setup docker
+
+```bash
+docker compose up -d
+```
+
 Activate `venv`
 
 ```bash

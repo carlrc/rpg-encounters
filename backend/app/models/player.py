@@ -2,6 +2,8 @@ from typing import Dict
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.db.limits import PLAYER_APPEARANCE_MAX_LIMIT
+
 from .alignment import VALID_ALIGNMENTS
 from .class_traits import (
     ABILITY_SCORE_MAX,
@@ -14,8 +16,6 @@ from .class_traits import (
 )
 from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
 from .util import validate_character_count, validate_choice
-
-APPEARANCE_MAX_LIMIT = 100
 
 
 class PlayerBase(BaseModel):
@@ -33,7 +33,9 @@ class PlayerBase(BaseModel):
     @classmethod
     def validate_appearance_word_count(cls, v):
         if v is not None:
-            return validate_character_count(v, APPEARANCE_MAX_LIMIT, "Appearance")
+            return validate_character_count(
+                v, PLAYER_APPEARANCE_MAX_LIMIT, "Appearance"
+            )
         return v
 
     @field_validator("race")

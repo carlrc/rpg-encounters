@@ -2,17 +2,19 @@ from typing import Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.db.limits import (
+    CHARACTER_BACKGROUND_LIMIT,
+    CHARACTER_COMMUNICATION_LIMIT,
+    CHARACTER_MOTIVATION_LIMIT,
+    PREFERENCE_VALUE_MAX,
+    PREFERENCE_VALUE_MIN,
+)
+
 from .alignment import VALID_ALIGNMENTS
 from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
-from .reveal import DifficultyClass
 from .util import validate_character_count, validate_choice
 
 # Character field limits
-CHARACTER_BACKGROUND_LIMIT = 240
-CHARACTER_COMMUNICATION_LIMIT = 180
-CHARACTER_MOTIVATION_LIMIT = 300
-PREFERENCE_VALUE_MIN = -DifficultyClass.VERY_EASY.value
-PREFERENCE_VALUE_MAX = DifficultyClass.VERY_EASY.value
 
 
 class CharacterBase(BaseModel):

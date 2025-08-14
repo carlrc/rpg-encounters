@@ -48,8 +48,13 @@ PLAYER = Player(
     size=Size.SMALL.value,
     alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.FEMALE.value,
-    abilities={Abilities.CHARISMA: +1},
-    skills={Skills.PERSUASION: +1},
+    abilities={Abilities.CHARISMA.value: 16},
+    skills={
+        Skills.PERSUASION.value: 5,
+        Skills.DECEPTION.value: 2,
+        Skills.INTIMIDATION.value: 3,
+        Skills.PERFORMANCE.value: 4,
+    },
 )
 
 CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
@@ -180,8 +185,8 @@ async def test_personality_based_earned_trust_can_be_negative():
         size=Size.MEDIUM.value,
         alignment=Alignment.NEUTRAL_EVIL.value,
         gender=Gender.MALE.value,
-        abilities={Abilities.CHARISMA: +1},
-        skills={Skills.PERSUASION: +1},
+        abilities={Abilities.CHARISMA.value: 16},
+        skills={Skills.PERSUASION.value: 5},
     )
 
     trust_state = get_trust_state_store().update_trust_state(

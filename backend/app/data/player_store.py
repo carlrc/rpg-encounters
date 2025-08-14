@@ -1,60 +1,77 @@
 from typing import List
 
+from sqlalchemy.orm import sessionmaker
+
+from app.db.connection import DB_ENGINE
+from app.db.models.player import PlayerORM
 from app.models.player import Player, PlayerCreate, PlayerUpdate
-from tests.fixtures.players import next_player_id, players_db
 
 
 class PlayerStore:
     def __init__(self):
-        self.players = players_db
-        self.next_id = next_player_id
+        self.Session = sessionmaker(DB_ENGINE)
 
     def get_all_players(self) -> List[Player]:
         """Get all players"""
-        return list(self.players.values())
+        with self.Session() as session:
+            player_orms = session.query(PlayerORM).all()
+            return [Player.model_validate(player_orm) for player_orm in player_orms]
 
     def get_player_by_id(self, player_id: int) -> Player | None:
         """Get a specific player by ID"""
-        return self.players.get(player_id)
+        with self.Session() as session:
+            player_orm = (
+                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+            )
+            if player_orm:
+                return Player.model_validate(player_orm)
+            return None
 
     def create_player(self, player_data: PlayerCreate) -> Player:
         """Create a new player"""
-        player_dict = player_data.model_dump()
-        player_dict["id"] = self.next_id
-
-        new_player = Player(**player_dict)
-        self.players[self.next_id] = new_player
-        self.next_id += 1
-
-        return new_player
+        with self.Session() as session:
+            player_orm = PlayerORM(**player_data.model_dump())
+            session.add(player_orm)
+            session.commit()
+            session.refresh(player_orm)
+            return Player.model_validate(player_orm)
 
     def update_player(
         self, player_id: int, player_update: PlayerUpdate
     ) -> Player | None:
         """Update an existing player"""
-        if player_id not in self.players:
-            return None
+        with self.Session() as session:
+            player_orm = (
+                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+            )
+            if not player_orm:
+                return None
 
-        existing_player = self.players[player_id]
-        update_data = player_update.model_dump(exclude_unset=True)
+            update_data = player_update.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(player_orm, key, value)
 
-        # Update the existing player with new data
-        updated_data = existing_player.model_dump()
-        updated_data.update(update_data)
-
-        updated_player = Player(**updated_data)
-        self.players[player_id] = updated_player
-
-        return updated_player
+            session.commit()
+            session.refresh(player_orm)
+            return Player.model_validate(player_orm)
 
     def delete_player(self, player_id: int) -> bool:
         """Delete a player"""
-        if player_id not in self.players:
-            return False
+        with self.Session() as session:
+            player_orm = (
+                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+            )
+            if not player_orm:
+                return False
 
-        del self.players[player_id]
-        return True
+            session.delete(player_orm)
+            session.commit()
+            return True
 
     def player_exists(self, player_id: int) -> bool:
         """Check if a player exists"""
-        return player_id in self.players
+        with self.Session() as session:
+            return (
+                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+                is not None
+            )
