@@ -1,6 +1,8 @@
 from functools import lru_cache
 
 from app.data.character_store import CharacterStore
+from app.data.connection_store import ConnectionStore
+from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
@@ -56,3 +58,15 @@ def get_memory_store() -> MemoryStore:
 def get_trust_state_store() -> TrustStateStore:
     """Factory function for trust state store"""
     return TrustStateStore()
+
+
+@lru_cache(maxsize=1)
+def get_encounter_store() -> EncounterStore:
+    """Factory function for encounter store"""
+    return EncounterStore()
+
+
+@lru_cache(maxsize=1)
+def get_connection_store() -> ConnectionStore:
+    """Factory function for connection store"""
+    return ConnectionStore()

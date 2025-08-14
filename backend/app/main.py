@@ -8,6 +8,7 @@ from app.routers import (
     challenges,
     characters,
     conversations,
+    encounters,
     game,
     memories,
     players,
@@ -26,6 +27,7 @@ app.include_router(memories.router)
 app.include_router(conversations.router)
 app.include_router(reveals.router)
 app.include_router(challenges.router)
+app.include_router(encounters.router)
 app.include_router(game.router)
 
 # TODO: This can't be here
