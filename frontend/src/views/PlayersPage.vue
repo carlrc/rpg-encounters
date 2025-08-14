@@ -116,6 +116,75 @@
             </div>
           </div>
 
+          <!-- Abilities Section -->
+          <div class="abilities-skills-section">
+            <h4 class="section-title">Abilities</h4>
+            <div class="threshold-slider">
+              <label class="threshold-label">Charisma: {{ createForm.abilities.Charisma }}</label>
+              <input
+                type="range"
+                v-model.number="createForm.abilities.Charisma"
+                min="0"
+                max="30"
+                step="1"
+                class="slider"
+              />
+            </div>
+          </div>
+
+          <!-- Skills Section -->
+          <div class="abilities-skills-section">
+            <h4 class="section-title">Skills</h4>
+            <div class="threshold-slider">
+              <label class="threshold-label">Deception: {{ createForm.skills.Deception }}</label>
+              <input
+                type="range"
+                v-model.number="createForm.skills.Deception"
+                min="-5"
+                max="25"
+                step="1"
+                class="slider"
+              />
+            </div>
+            <div class="threshold-slider">
+              <label class="threshold-label"
+                >Intimidation: {{ createForm.skills.Intimidation }}</label
+              >
+              <input
+                type="range"
+                v-model.number="createForm.skills.Intimidation"
+                min="-5"
+                max="25"
+                step="1"
+                class="slider"
+              />
+            </div>
+            <div class="threshold-slider">
+              <label class="threshold-label"
+                >Performance: {{ createForm.skills.Performance }}</label
+              >
+              <input
+                type="range"
+                v-model.number="createForm.skills.Performance"
+                min="-5"
+                max="25"
+                step="1"
+                class="slider"
+              />
+            </div>
+            <div class="threshold-slider">
+              <label class="threshold-label">Persuasion: {{ createForm.skills.Persuasion }}</label>
+              <input
+                type="range"
+                v-model.number="createForm.skills.Persuasion"
+                min="-5"
+                max="25"
+                step="1"
+                class="slider"
+              />
+            </div>
+          </div>
+
           <div class="shared-actions">
             <button
               @click="saveCreate"
@@ -191,6 +260,15 @@
         alignment: '',
         gender: '',
         tags: [],
+        abilities: {
+          Charisma: 0,
+        },
+        skills: {
+          Deception: 0,
+          Intimidation: 0,
+          Performance: 0,
+          Persuasion: 0,
+        },
       })
 
       const newCreateTagInput = ref('')
@@ -239,6 +317,15 @@
         createForm.alignment = ''
         createForm.gender = ''
         createForm.tags = []
+        createForm.abilities = {
+          Charisma: 0,
+        }
+        createForm.skills = {
+          Deception: 0,
+          Intimidation: 0,
+          Performance: 0,
+          Persuasion: 0,
+        }
         newCreateTagInput.value = ''
         createWordCount.value = 0
       }
@@ -256,6 +343,8 @@
               alignment: createForm.alignment,
               gender: createForm.gender,
               tags: createForm.tags,
+              abilities: createForm.abilities,
+              skills: createForm.skills,
             })
             resetCreateForm()
           } catch (err) {
@@ -323,4 +412,63 @@
 
 <style scoped>
   /* No custom styles needed - everything comes from shared-styles.css */
+
+  .abilities-skills-section {
+    margin-bottom: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 2px solid var(--border-default);
+  }
+
+  .section-title {
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+  }
+
+  .threshold-slider {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .threshold-slider:last-child {
+    margin-bottom: 0;
+  }
+
+  .threshold-label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    text-align: center;
+  }
+
+  .slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-default);
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+  }
 </style>

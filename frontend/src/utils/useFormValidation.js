@@ -10,10 +10,37 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
     // Check all required fields are filled
     const hasRequiredFields = requiredFields.every((field) => {
       const value = formData[field]
+
+      // Special handling for abilities and skills objects
+      if (field === 'abilities' || field === 'skills') {
+        return value && typeof value === 'object' && Object.keys(value).length > 0
+      }
+
       return value && value.toString().trim() !== ''
     })
 
     if (!hasRequiredFields) return false
+
+    // Validate abilities and skills ranges for PLAYER
+    if (entityType === 'PLAYER') {
+      // Validate abilities (0-30 range)
+      if (formData.abilities) {
+        for (const [ability, abilityValue] of Object.entries(formData.abilities)) {
+          if (typeof abilityValue !== 'number' || abilityValue < 0 || abilityValue > 30) {
+            return false
+          }
+        }
+      }
+
+      // Validate skills (-5 to 25 range)
+      if (formData.skills) {
+        for (const [skill, skillValue] of Object.entries(formData.skills)) {
+          if (typeof skillValue !== 'number' || skillValue < -5 || skillValue > 25) {
+            return false
+          }
+        }
+      }
+    }
 
     // Check word limits based on entity type
     if (entityType === 'PLAYER' && gameData.value) {
@@ -43,7 +70,31 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
     const errors = []
     const value = formData[fieldName]
 
-    if (requiredFields.includes(fieldName) && (!value || value.toString().trim() === '')) {
+    // Special handling for abilities and skills validation
+    if (fieldName === 'abilities' || fieldName === 'skills') {
+      if (
+        requiredFields.includes(fieldName) &&
+        (!value || typeof value !== 'object' || Object.keys(value).length === 0)
+      ) {
+        errors.push('This field is required')
+      }
+
+      if (fieldName === 'abilities' && value && typeof value === 'object') {
+        for (const [ability, abilityValue] of Object.entries(value)) {
+          if (typeof abilityValue !== 'number' || abilityValue < 0 || abilityValue > 30) {
+            errors.push(`${ability} must be between 0 and 30`)
+          }
+        }
+      }
+
+      if (fieldName === 'skills' && value && typeof value === 'object') {
+        for (const [skill, skillValue] of Object.entries(value)) {
+          if (typeof skillValue !== 'number' || skillValue < -5 || skillValue > 25) {
+            errors.push(`${skill} must be between -5 and 25`)
+          }
+        }
+      }
+    } else if (requiredFields.includes(fieldName) && (!value || value.toString().trim() === '')) {
       errors.push('This field is required')
     }
 

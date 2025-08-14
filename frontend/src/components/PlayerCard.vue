@@ -62,6 +62,21 @@
             </div>
           </div>
         </div>
+
+        <!-- Player Abilities & Skills Section -->
+        <div
+          v-if="displayAbilitiesSkills && Object.keys(displayAbilitiesSkills).length > 0"
+          class="shared-field shared-field-full-width"
+        >
+          <div class="shared-field-label">Abilities & Skills</div>
+          <div class="shared-field-value">
+            <TraitsDisplay
+              :traits="displayAbilitiesSkills"
+              :category-names="abilitiesSkillsCategoryNames"
+              :value-classifier="getValueClass"
+            />
+          </div>
+        </div>
       </div>
 
       <div class="shared-actions">
@@ -130,6 +145,73 @@
         />
       </div>
 
+      <!-- Abilities Section -->
+      <div class="abilities-skills-section">
+        <h4 class="section-title">Abilities</h4>
+        <div class="threshold-slider">
+          <label class="threshold-label">Charisma: {{ editForm.abilities.Charisma || 0 }}</label>
+          <input
+            type="range"
+            v-model.number="editForm.abilities.Charisma"
+            min="0"
+            max="30"
+            step="1"
+            class="slider"
+          />
+        </div>
+      </div>
+
+      <!-- Skills Section -->
+      <div class="abilities-skills-section">
+        <h4 class="section-title">Skills</h4>
+        <div class="threshold-slider">
+          <label class="threshold-label">Deception: {{ editForm.skills.Deception || 0 }}</label>
+          <input
+            type="range"
+            v-model.number="editForm.skills.Deception"
+            min="-5"
+            max="25"
+            step="1"
+            class="slider"
+          />
+        </div>
+        <div class="threshold-slider">
+          <label class="threshold-label"
+            >Intimidation: {{ editForm.skills.Intimidation || 0 }}</label
+          >
+          <input
+            type="range"
+            v-model.number="editForm.skills.Intimidation"
+            min="-5"
+            max="25"
+            step="1"
+            class="slider"
+          />
+        </div>
+        <div class="threshold-slider">
+          <label class="threshold-label">Performance: {{ editForm.skills.Performance || 0 }}</label>
+          <input
+            type="range"
+            v-model.number="editForm.skills.Performance"
+            min="-5"
+            max="25"
+            step="1"
+            class="slider"
+          />
+        </div>
+        <div class="threshold-slider">
+          <label class="threshold-label">Persuasion: {{ editForm.skills.Persuasion || 0 }}</label>
+          <input
+            type="range"
+            v-model.number="editForm.skills.Persuasion"
+            min="-5"
+            max="25"
+            step="1"
+            class="slider"
+          />
+        </div>
+      </div>
+
       <div class="shared-actions">
         <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">
           Save
@@ -141,19 +223,21 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, inject } from 'vue'
+  import { ref, reactive, computed, onMounted, watch } from 'vue'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameData } from '../composables/useGameData.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
+  import TraitsDisplay from './base/TraitsDisplay.vue'
 
   export default {
     name: 'PlayerCard',
     components: {
       AvatarUpload,
       BaseTextareaWithCharacterCounter,
+      TraitsDisplay,
     },
     props: {
       player: {
@@ -166,6 +250,9 @@
       const { gameData } = useGameData()
       const isEditing = ref(false)
 
+      // Abilities & Skills display functionality
+      const displayAbilitiesSkills = ref({})
+
       const editForm = reactive({
         name: '',
         avatar: null,
@@ -175,6 +262,8 @@
         size: '',
         alignment: '',
         gender: '',
+        abilities: {},
+        skills: {},
       })
 
       const { isFormValid } = useFormValidation(editForm, 'PLAYER')
@@ -190,6 +279,17 @@
         editForm.size = props.player.size || ''
         editForm.alignment = props.player.alignment || ''
         editForm.gender = props.player.gender || ''
+        // Initialize abilities with defaults
+        editForm.abilities = {
+          Charisma: props.player.abilities?.Charisma || 0,
+        }
+        // Initialize skills with defaults
+        editForm.skills = {
+          Deception: props.player.skills?.Deception || 0,
+          Intimidation: props.player.skills?.Intimidation || 0,
+          Performance: props.player.skills?.Performance || 0,
+          Persuasion: props.player.skills?.Persuasion || 0,
+        }
         isEditing.value = true
       }
 
@@ -208,6 +308,8 @@
             size: editForm.size,
             alignment: editForm.alignment,
             gender: editForm.gender,
+            abilities: editForm.abilities,
+            skills: editForm.skills,
           })
           isEditing.value = false
         }
@@ -218,6 +320,65 @@
           emit('delete', props.player.id)
         }
       }
+
+      const loadDisplayAbilitiesSkills = () => {
+        const player = props.player
+        const abilitiesSkills = {}
+
+        // Add abilities if they exist
+        if (player.abilities && Object.keys(player.abilities).length > 0) {
+          abilitiesSkills.abilities = player.abilities
+        }
+
+        // Add skills if they exist
+        if (player.skills && Object.keys(player.skills).length > 0) {
+          abilitiesSkills.skills = player.skills
+        }
+
+        displayAbilitiesSkills.value = abilitiesSkills
+      }
+
+      const abilitiesSkillsCategoryNames = {
+        abilities: 'Abilities',
+        skills: 'Skills',
+      }
+
+      const getValueClass = (value, category) => {
+        // For abilities and skills: red is positive, green is negative
+        // For abilities (0-30 range), consider 15+ as positive, 0-14 as neutral/negative
+        // For skills (-5 to 25 range), use standard positive/negative/neutral
+        if (category === 'abilities') {
+          if (value >= 15) return 'bias-negative' // Red for positive values
+          if (value <= 5) return 'bias-positive' // Green for negative values
+          return 'bias-neutral'
+        } else {
+          if (value > 0) return 'bias-negative' // Red for positive values
+          if (value < 0) return 'bias-positive' // Green for negative values
+          return 'bias-neutral'
+        }
+      }
+
+      // Load display data when component mounts and when player changes
+      onMounted(() => {
+        loadDisplayAbilitiesSkills()
+      })
+
+      // Watch for player prop changes and reload abilities/skills
+      watch(
+        () => props.player.id,
+        () => {
+          loadDisplayAbilitiesSkills()
+        }
+      )
+
+      // Watch for changes in player abilities and skills properties
+      watch(
+        () => [props.player.abilities, props.player.skills],
+        () => {
+          loadDisplayAbilitiesSkills()
+        },
+        { deep: true }
+      )
 
       return {
         gameData,
@@ -235,6 +396,9 @@
         cancelEdit,
         saveEdit,
         deletePlayer,
+        displayAbilitiesSkills,
+        abilitiesSkillsCategoryNames,
+        getValueClass,
       }
     },
   }
@@ -256,4 +420,67 @@
   .appearance-field {
     margin-bottom: 16px;
   }
+
+  .abilities-skills-section {
+    margin-bottom: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 2px solid var(--border-default);
+  }
+
+  .section-title {
+    margin: 0 0 var(--spacing-lg) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    text-align: center;
+  }
+
+  /* TraitsDisplay component handles the display styling */
+
+  .threshold-slider {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .threshold-slider:last-child {
+    margin-bottom: 0;
+  }
+
+  .threshold-label {
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+    text-align: center;
+  }
+
+  .slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-default);
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+  }
+
+  /* Responsive styles handled by TraitsDisplay component */
 </style>

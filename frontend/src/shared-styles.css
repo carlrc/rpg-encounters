@@ -869,81 +869,7 @@
   font-size: 0.9rem;
 }
 
-/* Bias display grid */
-.bias-display-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.bias-category-display {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-  min-height: 80px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.bias-category-title {
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-}
-
-.bias-preferences-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  justify-content: center;
-  width: 100%;
-  max-width: 100%;
-}
-
-.bias-preference-item {
-  display: inline-block;
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  border: 1px solid;
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-sizing: border-box;
-}
-
-.bias-preference-item.bias-positive {
-  background-color: #d4edda;
-  border-color: #c3e6cb;
-  color: #155724;
-}
-
-.bias-preference-item.bias-negative {
-  background-color: #f8d7da;
-  border-color: #f5c6cb;
-  color: #721c24;
-}
-
-.bias-preference-item.bias-neutral {
-  background-color: #e2e3e5;
-  border-color: #d6d8db;
-  color: #383d41;
-}
+/* Bias display styles moved to TraitsDisplay.vue component */
 
 /* Enhanced responsive design */
 @media (max-width: 768px) {
@@ -960,18 +886,5 @@
     width: 100%;
   }
 
-  .bias-display-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-
-  .bias-category-display {
-    padding: 0.5rem;
-    min-height: 60px;
-  }
-
-  .bias-preference-item {
-    font-size: 0.7rem;
-    padding: 0.15rem 0.3rem;
-  }
+  /* Bias display responsive styles moved to TraitsDisplay.vue component */
 }

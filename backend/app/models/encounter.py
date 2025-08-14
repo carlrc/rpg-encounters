@@ -1,0 +1,67 @@
+from typing import List
+
+from pydantic import BaseModel, Field, field_validator
+
+from .util import validate_character_count
+
+ENCOUNTER_NAME_LIMIT = 100
+ENCOUNTER_DESCRIPTION_LIMIT = 1000
+
+
+class EncounterBase(BaseModel):
+    name: str = Field(
+        ..., description="Encounter name", max_length=ENCOUNTER_NAME_LIMIT
+    )
+    description: str | None = Field(
+        None,
+        description="Encounter description",
+        max_length=ENCOUNTER_DESCRIPTION_LIMIT,
+    )
+    position_x: float = Field(..., description="X coordinate on the canvas")
+    position_y: float = Field(..., description="Y coordinate on the canvas")
+    characters: List[int] | None = Field(
+        default=None, description="Characters in this encounter"
+    )
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_not_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError("Encounter name cannot be empty")
+        return v.strip()
+
+    @field_validator("description")
+    @classmethod
+    def validate_description_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(
+                v, ENCOUNTER_DESCRIPTION_LIMIT, "Description"
+            )
+        return v
+
+    @field_validator("position_x", "position_y")
+    @classmethod
+    def validate_position(cls, v):
+        if v < -10000 or v > 10000:
+            raise ValueError("Position coordinates must be between -10000 and 10000")
+        return v
+
+
+class EncounterCreate(EncounterBase):
+    pass
+
+
+class EncounterUpdate(EncounterBase):
+    """Encounter update model - all fields optional with same validation rules"""
+
+    name: str | None = None
+    description: str | None = None
+    position_x: float | None = None
+    position_y: float | None = None
+    characters: List[int] | None = None
+
+
+class Encounter(EncounterBase):
+    id: int
+
+    model_config = {"from_attributes": True}
