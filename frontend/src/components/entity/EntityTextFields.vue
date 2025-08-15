@@ -73,7 +73,7 @@
           v-model="localData.level_2_content"
           type="textarea"
           label="Level 2: Privileged Content"
-          placeholder="Enter privileged content (high trust required)..."
+          placeholder="Enter privileged content (high influence required)..."
           :max-length="500"
           show-counter
           full-width
@@ -87,7 +87,7 @@
           v-model="localData.level_3_content"
           type="textarea"
           label="Level 3: Exclusive Content"
-          placeholder="Enter exclusive content (maximum trust required)..."
+          placeholder="Enter exclusive content (maximum influence required)..."
           :max-length="500"
           show-counter
           full-width

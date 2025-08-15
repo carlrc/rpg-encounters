@@ -31,11 +31,11 @@ class ConversationManager:
         self,
         reveals: list[Reveal],
         agent_result: ConversationAgentOutput,
-        total_trust: int,
+        influence_score: int,
     ) -> Tuple[str, RevealLayer]:
         # Handle response attitude given no reveals
         negative_attitude = (
-            total_trust < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
+            influence_score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
         )
         if not reveals:
             if negative_attitude:
@@ -58,17 +58,19 @@ class ConversationManager:
             )
             return agent_result.standard_response, RevealLayer.STANDARD
         else:
-            # Select response in desc order based on trust levels and reveal-specific thresholds
+            # Select response in desc order based on influence levels and reveal-specific thresholds
             if negative_attitude:
                 return agent_result.negative_response, RevealLayer.NEGATIVE
             elif (
                 agent_result.exclusive_response
-                and total_trust >= selected_reveal.get_threshold(RevealLayer.EXCLUSIVE)
+                and influence_score
+                >= selected_reveal.get_threshold(RevealLayer.EXCLUSIVE)
             ):
                 return agent_result.exclusive_response, RevealLayer.EXCLUSIVE
             elif (
                 agent_result.privileged_response
-                and total_trust >= selected_reveal.get_threshold(RevealLayer.PRIVILEGED)
+                and influence_score
+                >= selected_reveal.get_threshold(RevealLayer.PRIVILEGED)
             ):
                 return agent_result.privileged_response, RevealLayer.PRIVILEGED
             else:

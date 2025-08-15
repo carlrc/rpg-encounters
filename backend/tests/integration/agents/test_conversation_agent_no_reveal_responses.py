@@ -1,16 +1,16 @@
 import pytest
 
 from app.agents.conversation_agent import ConversationAgent
+from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.agents.trust_scoring_agent import TrustCalculatorAgent
-from app.data.trust_store import trust_state_store
+from app.data.influence_store import influence_store
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
+from app.models.influence import BASE_INFLUENCE_MAX, Influence
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass, RevealLayer
-from app.models.trust import BASE_TRUST_MAX, TrustState
 from app.services.conversation_manager import ConversationManager
 
 CHARACTER = Character(
@@ -51,22 +51,22 @@ PLAYER = Player(
     },
 )
 
-TRUST_STATE = trust_state_store.update_trust_state(
-    TrustState(
+INFLUENCE_STATE = influence_store.update_influence(
+    Influence(
         character_id=CHARACTER.id,
         player_id=PLAYER.id,
-        base_trust=BASE_TRUST_MAX,
-        earned_trust=0,
+        base=BASE_INFLUENCE_MAX,
+        earned=0,
     )
 )
 
 CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("trust_scoring_agent")
+SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
 
 @pytest.fixture(autouse=True)
-def clear_trust_store():
-    trust_state_store.clear()
+def clear_influence_store():
+    influence_store.clear()
 
 
 async def test_agent_handles_no_reveals():
@@ -74,9 +74,9 @@ async def test_agent_handles_no_reveals():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        trust_state=TRUST_STATE,
+        influence=INFLUENCE_STATE,
         conversation_manager=ConversationManager(),
-        trust_calculator_agent=TrustCalculatorAgent(
+        influence_calculator_agent=InfluenceCalculatorAgent(
             SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
         ),
         memories=[],

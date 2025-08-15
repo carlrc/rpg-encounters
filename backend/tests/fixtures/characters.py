@@ -17,7 +17,7 @@ characters_db = {
         background="Friendly tavern keeper who runs the village inn. Knows everyone in town and all the local gossip. Makes excellent ale and hearty meals for weary travelers.",
         communication_style="Chatty and welcoming, always ready with a story or bit of news. Speaks warmly and uses folksy expressions.",
         motivation="To keep the tavern running smoothly, customer retention through happy guests and paying his bills.",
-        personality="Bingo builds trust with customers who respect tavern etiquette and enjoy sharing local gossip. His preference for Halflings stems from their better understanding of tavern culture, and he prefers female patrons. He loses trust with rude troublemakers who disrupt his peaceful establishment.",
+        personality="Bingo builds influence with customers who respect tavern etiquette and enjoy sharing local gossip. His preference for Halflings stems from their better understanding of tavern culture, and he prefers female patrons. He loses influence with rude troublemakers who disrupt his peaceful establishment.",
         voice="MFZUKuGQUsGJPQjTS4wC",
         race_preferences={
             Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value,
@@ -47,7 +47,7 @@ characters_db = {
         background="Former village elder and gardner who has seen many seasons come and go. Full of stories about the old days and local history. Enjoys his pipe and afternoon tea.",
         communication_style="Rambling and storytelling, often goes off on tangents about the past. Wise but scattered, loves sharing tales and memories with anyone who will listen.",
         motivation="To tell stories of the old days and teach people about plants",
-        personality="Old Took trusts patient listeners who appreciate his rambling stories about local history and gardening wisdom. His preference for Halflings and Bards comes from their shared love of storytelling traditions. He distrusts impatient people who dismiss his tales or show no respect for elders.",
+        personality="Old Took influence patient listeners who appreciate his rambling stories about local history and gardening wisdom. His preference for Halflings and Bards comes from their shared love of storytelling traditions. He distrusts impatient people who dismiss his tales or show no respect for elders.",
         voice="j9jfwdrw7BRfcR43Qohk",
         race_preferences={
             Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value,
@@ -75,7 +75,7 @@ characters_db = {
         background="Village baker who creates delicious pies, breads, and pastries.",
         communication_style="Warm and motherly. Often offers food as comfort and uses baking metaphors in conversation.",
         motivation="To be the most popular baker in town.",
-        personality="Poppy builds trust by sharing food and appreciating compliments on her baking skills. Her preference for Halflings reflects shared food-centered hospitality traditions and family values. She loses trust with people who waste food or reject her nurturing gestures.",
+        personality="Poppy builds influence by sharing food and appreciating compliments on her baking skills. Her preference for Halflings reflects shared food-centered hospitality traditions and family values. She loses trust with people who waste food or reject her nurturing gestures.",
         voice="ZF6FPAbjXT4488VcRRnw",
         race_preferences={
             Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value,

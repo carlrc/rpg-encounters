@@ -9,12 +9,12 @@ from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
 from app.dependencies import (
     get_agent_manager,
+    get_influence_store,
     get_transcription_service,
-    get_trust_state_store,
     get_tts_service,
 )
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
-from app.services.trust_calculator import calculate_base_trust
+from app.services.influence_calculator import calculate_base_influence
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/conversation", tags=["conversations"])
 
 char_system_prompt = import_system_prompt("conversation_agent")
-scoring_system_prompt = import_system_prompt("trust_scoring_agent")
+scoring_system_prompt = import_system_prompt("influence_scoring_agent")
 
 
 @router.websocket("/{player_id}/{character_id}")
@@ -40,11 +40,11 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
         character = CharacterStore().get_character_by_id(character_id)
         player = PlayerStore().get_player_by_id(player_id)
 
-        # Get static trust metric between character and player
-        base_trust = calculate_base_trust(character, player)
-        # Get or create persistent trust state
-        trust_state = get_trust_state_store().get_or_create(
-            character_id, player_id, base_trust
+        # Get static influence metric between character and player
+        base_influence = calculate_base_influence(character, player)
+        # Get or create persistent influence state
+        influence = get_influence_store().get_or_create(
+            character_id, player_id, base_influence
         )
         # Get information tied to character
         all_reveals = RevealStore().get_by_character_id(character_id)
@@ -60,7 +60,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             char_system_prompt=char_system_prompt,
             scoring_system_prompt=scoring_system_prompt,
             memories=all_memories,
-            trust_state=trust_state,
+            influence=influence,
         )
 
         # Generate AI response using character agent
@@ -71,7 +71,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
             f"Generated character response for level ${level.name}: {response}"
         )
 
-        # TODO: Persist the trust adjustments as a background task here for restart continuity
+        # TODO: Persist the influence adjustments as a background task here for restart continuity
 
         # Stream TTS audio chunks back to frontend
         for audio_chunk in get_tts_service().text_to_speech_stream(

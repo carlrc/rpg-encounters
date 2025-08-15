@@ -31,7 +31,7 @@ class CharacterBase(BaseModel):
     communication_style: str = Field(..., description="Character communication style")
     motivation: str = Field(..., description="Character motivation")
     personality: str = Field(
-        "", description="AI-generated personality profile for trust decisions"
+        "", description="AI-generated personality profile for influence decisions"
     )
     # TODO: This can't be here ultimately
     voice: str | None = Field(
@@ -40,16 +40,16 @@ class CharacterBase(BaseModel):
 
     # Bias
     race_preferences: Dict[str, int] | None = Field(
-        None, description="Race preferences for trust calculation"
+        None, description="Race preferences for influence calculation"
     )
     class_preferences: Dict[str, int] | None = Field(
-        None, description="Class preferences for trust calculation"
+        None, description="Class preferences for influence calculation"
     )
     gender_preferences: Dict[str, int] | None = Field(
-        None, description="Gender preferences for trust calculation"
+        None, description="Gender preferences for influence calculation"
     )
     size_preferences: Dict[str, int] | None = Field(
-        None, description="Size preferences for trust calculation"
+        None, description="Size preferences for influence calculation"
     )
 
     @field_validator("background")

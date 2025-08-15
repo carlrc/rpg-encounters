@@ -146,8 +146,8 @@ class ApiService {
     })
   }
 
-  // Note: Trust profiles are now integrated into character model
-  // Trust profile data is managed through character endpoints
+  // Note: Influence profiles are now integrated into character model
+  // Influence profile data is managed through character endpoints
 }
 
 export default new ApiService()

@@ -16,7 +16,7 @@
         v-else-if="!selectedReveal && !showCreateForm"
         icon="🧠"
         title="No Reveal Selected"
-        message="Select a trust reveal from the list to view details, or create a new one."
+        message="Select an influence reveal from the list to view details, or create a new one."
       />
 
       <div v-else-if="showCreateForm" class="shared-card">
@@ -84,7 +84,7 @@
             <label class="shared-field-label">Level 2: Privileged Content</label>
             <BaseTextareaWithCharacterCounter
               v-model="createForm.level_2_content"
-              placeholder="Enter privileged content (high trust required)..."
+              placeholder="Enter privileged content (high influence required)..."
               :max-characters="500"
             />
           </div>
@@ -127,7 +127,7 @@
               <label class="shared-field-label">Level 3: Exclusive Content</label>
               <BaseTextareaWithCharacterCounter
                 v-model="createForm.level_3_content"
-                placeholder="Enter exclusive content (maximum trust required)..."
+                placeholder="Enter exclusive content (maximum influence required)..."
                 :max-characters="500"
               />
             </div>
@@ -172,7 +172,7 @@
         v-else-if="selectedReveal"
         :reveal="selectedReveal"
         :characters="characters"
-        :current-trust-level="18"
+        :current-influence-level="18"
         @update="updateEntity"
         @delete="deleteEntity"
       />

@@ -192,7 +192,7 @@
       <div class="bias-section">
         <h4 class="bias-section-title">Character Biases</h4>
         <p class="bias-section-description">
-          Configure how this character feels about different player characteristics (±5 DC trust
+          Configure how this character feels about different player characteristics (±5 DC influence
           modifier each)
         </p>
 
@@ -359,8 +359,8 @@
 
       const { genders, getGenderEmoji } = useDropdownOptions()
 
-      const loadTrustProfile = () => {
-        // Trust profiles are now part of the character model
+      const loadInfluenceProfile = () => {
+        // Influence profiles are now part of the character model
         const character = props.character
         editForm.biases = {
           race_preferences: Object.entries(character.race_preferences || {}).map(
@@ -390,8 +390,8 @@
         editForm.communication_style = props.character.communication_style || ''
         editForm.motivation = props.character.motivation || ''
 
-        // Load existing trust profile
-        await loadTrustProfile()
+        // Load existing influence profile
+        await loadInfluenceProfile()
 
         isEditing.value = true
       }
@@ -413,7 +413,6 @@
 
       const saveEdit = async () => {
         if (isFormValid.value) {
-          // Save character data including trust profile fields
           emit('update', props.character.id, {
             name: editForm.name.trim(),
             avatar: editForm.avatar,
@@ -425,7 +424,7 @@
             background: editForm.background.trim(),
             communication_style: editForm.communication_style.trim(),
             motivation: editForm.motivation.trim(),
-            // Include trust profile fields
+            // Include bias profile fields
             race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
             class_preferences: convertBiasesToObject(editForm.biases.class_preferences),
             gender_preferences: convertBiasesToObject(editForm.biases.gender_preferences),
@@ -464,7 +463,6 @@
       const displayBiases = ref({})
 
       const loadDisplayBiases = () => {
-        // Trust profiles are now part of the character model
         const character = props.character
         const biases = {}
 

@@ -2,7 +2,7 @@ from functools import lru_cache
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.data.trust_store import TrustStateStore
+from app.data.influence_store import InfluenceStore
 from app.services.agent_manager import AgentManager
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
@@ -27,9 +27,9 @@ def get_tts_service() -> ElevenLabsTTS:
 
 
 @lru_cache(maxsize=1)
-def get_trust_state_store() -> TrustStateStore:
-    """Factory function for trust state store"""
-    return TrustStateStore()
+def get_influence_store() -> InfluenceStore:
+    """Factory function for influence store"""
+    return InfluenceStore()
 
 
 @lru_cache(maxsize=1)
