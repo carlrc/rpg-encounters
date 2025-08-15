@@ -62,8 +62,6 @@ characters_db = {
         },
         class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
         gender_preferences={Gender.MALE.value: DifficultyClass.VERY_EASY.value},
-        appearance_keywords=[],
-        storytelling_keywords=[],
     ),
     3: Character(
         id=3,
@@ -90,8 +88,6 @@ characters_db = {
             Race.HALF_ORC.value: -DifficultyClass.VERY_EASY.value,
             Race.TIEFLING.value: -DifficultyClass.VERY_EASY.value,
         },
-        appearance_keywords=[],
-        storytelling_keywords=[],
     ),
     4: Character(
         id=4,
@@ -119,8 +115,6 @@ characters_db = {
             Race.TIEFLING.value: -DifficultyClass.VERY_EASY.value,
         },
         class_preferences={Class.DRUID.value: DifficultyClass.VERY_EASY.value},
-        appearance_keywords=[],
-        storytelling_keywords=[],
     ),
 }
 

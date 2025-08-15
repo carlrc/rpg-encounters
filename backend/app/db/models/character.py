@@ -7,11 +7,12 @@ from app.db.limits import (
     CHARACTER_COMMUNICATION_LIMIT,
     CHARACTER_MOTIVATION_LIMIT,
 )
-from app.db.models.base import CharacterMemoryBase
+from app.db.models.base import UnifiedCharacterBase
 from app.db.models.memory_character_association import memory_character_association
+from app.db.models.reveal_character_association import reveal_character_association
 
 
-class CharacterORM(CharacterMemoryBase):
+class CharacterORM(UnifiedCharacterBase):
     __tablename__ = CHARACTERS_TABLE
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -37,11 +38,17 @@ class CharacterORM(CharacterMemoryBase):
     class_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     gender_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     size_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    appearance_keywords: Mapped[list | None] = mapped_column(JSON, nullable=True)
-    storytelling_keywords: Mapped[list | None] = mapped_column(JSON, nullable=True)
 
+    # Many-to-many relationship with memories
     memories = relationship(
         "MemoryORM",
         secondary=memory_character_association,
+        back_populates="characters",
+    )
+
+    # Many-to-many relationship with reveals
+    reveals = relationship(
+        "RevealORM",
+        secondary=reveal_character_association,
         back_populates="characters",
     )

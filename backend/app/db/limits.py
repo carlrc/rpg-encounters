@@ -12,3 +12,7 @@ PREFERENCE_VALUE_MAX = DifficultyClass.VERY_EASY.value
 
 # Memory limits
 CONTENT_LIMIT = 200
+
+# Reveal limits
+REVEAL_TITLE_LIMIT = 255
+REVEAL_CONTENT_LIMIT = 500

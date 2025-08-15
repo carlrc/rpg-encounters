@@ -9,6 +9,7 @@ load_dotenv()
 PLAYERS_TABLE = "players"
 CHARACTERS_TABLE = "characters"
 MEMORIES_TABLE = "memories"
+REVEALS_TABLE = "reveals"
 
 # Environment-based database configuration
 DATABASE_URL = os.getenv("DATABASE_URL")

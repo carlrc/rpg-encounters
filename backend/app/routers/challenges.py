@@ -9,8 +9,8 @@ from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
+from app.data.reveal_store import RevealStore
 from app.dependencies import (
-    get_reveal_store,
     get_transcription_service,
     get_tts_service,
 )
@@ -56,7 +56,7 @@ async def websocket_endpoint(
         )
 
         # Get information tied to character
-        all_reveals = get_reveal_store().get_by_character_id(character_id)
+        all_reveals = RevealStore().get_by_character_id(character_id)
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
         all_memories = MemoryStore().get_by_character_id(character_id)
 

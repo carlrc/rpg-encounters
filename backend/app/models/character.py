@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -50,12 +50,6 @@ class CharacterBase(BaseModel):
     )
     size_preferences: Dict[str, int] | None = Field(
         None, description="Size preferences for trust calculation"
-    )
-    appearance_keywords: List[str] | None = Field(
-        None, description="Appearance keywords for trust calculation"
-    )
-    storytelling_keywords: List[str] | None = Field(
-        None, description="Storytelling keywords for trust calculation"
     )
 
     @field_validator("background")
@@ -152,8 +146,6 @@ class CharacterUpdate(CharacterBase):
     class_preferences: Dict[str, int] | None = None
     gender_preferences: Dict[str, int] | None = None
     size_preferences: Dict[str, int] | None = None
-    appearance_keywords: List[str] | None = None
-    storytelling_keywords: List[str] | None = None
 
 
 class Character(CharacterBase):
