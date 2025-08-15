@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pytest
 from dotenv import load_dotenv
 
 from app.data.character_store import CharacterStore
@@ -11,11 +12,16 @@ from app.models.memory import MemoryCreate, MemoryUpdate
 from app.models.race import Gender, Race, Size
 
 
-def test_memory_store():
+@pytest.fixture(autouse=True)
+def setup_teardown():
+    """Setup and teardown for each test"""
     load_dotenv()
-
     create_tables()
+    yield
+    drop_tables()
 
+
+def test_memory_store():
     # Create characters first
     character_store = CharacterStore()
 
@@ -86,5 +92,3 @@ def test_memory_store():
 
     exists_after_delete = memory_store.memory_exists(created_memory.id)
     assert exists_after_delete is False
-
-    drop_tables()

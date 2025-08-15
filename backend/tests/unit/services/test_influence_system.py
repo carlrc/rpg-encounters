@@ -7,11 +7,9 @@ from tests.fixtures.players import players_db
 def test_influence_calculation():
     """Test the influence calculation system"""
     character = characters_db[1]  # Bingo Bracegirdle - Halfling Barkeep
-    player = players_db[1]  # Lightfoot Halfling Female Bard
+    player = players_db[2]  # Pippin Greenhill - Halfing Bard
 
     # Calculate base influence using character directly
     base_influence = calculate_base_influence(character, player)
 
-    # Assert that influence calculation works correctly
-    # Two matching full bias (e.g., 5+) traits
     assert base_influence == 10

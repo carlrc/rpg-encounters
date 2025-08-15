@@ -1,9 +1,6 @@
-import pytest
-
 from app.agents.conversation_agent import ConversationAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.data.influence_store import influence_store
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -51,25 +48,19 @@ PLAYER = Player(
     },
 )
 
-INFLUENCE_STATE = influence_store.update_influence(
-    Influence(
-        character_id=CHARACTER.id,
-        player_id=PLAYER.id,
-        base=BASE_INFLUENCE_MAX,
-        earned=0,
-    )
+INFLUENCE_STATE = Influence(
+    character_id=CHARACTER.id,
+    player_id=PLAYER.id,
+    base=BASE_INFLUENCE_MAX,
+    earned=0,
 )
 
 CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
 SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
 
-@pytest.fixture(autouse=True)
-def clear_influence_store():
-    influence_store.clear()
-
-
 async def test_agent_handles_no_reveals():
+
     agent = ConversationAgent(
         character=CHARACTER,
         player=PLAYER,

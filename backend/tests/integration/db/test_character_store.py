@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pytest
 from dotenv import load_dotenv
 
 from app.data.character_store import CharacterStore
@@ -9,11 +10,16 @@ from app.models.class_traits import Class
 from app.models.race import Gender, Race, Size
 
 
-def test_character_store():
+@pytest.fixture(autouse=True)
+def setup_teardown():
+    """Setup and teardown for each test"""
     load_dotenv()
-
     create_tables()
+    yield
+    drop_tables()
 
+
+def test_character_store():
     store = CharacterStore()
 
     new_character_data = CharacterCreate(
@@ -62,5 +68,3 @@ def test_character_store():
 
     exists_after_delete = store.character_exists(created_character.id)
     assert exists_after_delete is False
-
-    drop_tables()

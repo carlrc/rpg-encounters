@@ -43,4 +43,13 @@ class Influence(InfluenceBase):
 
 
 class InfluenceCreate(InfluenceBase):
+    """Model for creating new influence records"""
+
     pass
+
+
+class InfluenceUpdate(InfluenceBase):
+    """Model for updating influence records"""
+
+    base: int | None = None
+    earned: int | None = None

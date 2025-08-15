@@ -1,9 +1,6 @@
-import pytest
-
 from app.agents.conversation_agent import ConversationAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.dependencies import get_influence_store
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -37,8 +34,6 @@ CHARACTER = Character(
     class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
     gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
     size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
-    appearance_keywords=None,
-    storytelling_keywords=None,
 )
 
 PLAYER = Player(
@@ -82,19 +77,12 @@ ALL_MEMORIES = [
     )
 ]
 
-INFLUENCE_STATE = get_influence_store().update_influence(
-    Influence(
-        character_id=CHARACTER.id,
-        player_id=PLAYER.id,
-        base=BASE_INFLUENCE_MAX,  # Force max base influence
-        earned=0,
-    )
+INFLUENCE_STATE = Influence(
+    character_id=CHARACTER.id,
+    player_id=PLAYER.id,
+    base=BASE_INFLUENCE_MAX,  # Force max base influence
+    earned=0,
 )
-
-
-@pytest.fixture(autouse=True)
-def clear_influence_store():
-    get_influence_store().clear()
 
 
 async def test_personality_based_earned_influence_respects_standard_level():
@@ -146,20 +134,18 @@ async def test_personality_based_earned_influence_respects_privileged_level():
 
 
 async def test_personality_based_earned_influence_respects_exclusive_level():
-    influence_state = get_influence_store().update_influence(
-        Influence(
-            character_id=CHARACTER.id,
-            player_id=PLAYER.id,
-            base=BASE_INFLUENCE_MAX,  # Force max base influence
-            earned=5,  # Start above PRIVILEGED when combined with base
-        )
+    Influence(
+        character_id=CHARACTER.id,
+        player_id=PLAYER.id,
+        base=BASE_INFLUENCE_MAX,  # Force max base influence
+        earned=5,  # Start above PRIVILEGED when combined with base
     )
 
     agent = ConversationAgent(
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        influence=influence_state,
+        influence=INFLUENCE_STATE,
         conversation_manager=ConversationManager(),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
@@ -191,19 +177,18 @@ async def test_personality_based_earned_influence_can_be_negative():
         skills={Skills.PERSUASION.value: 5},
     )
 
-    influence_state = get_influence_store().update_influence(
-        Influence(
-            character_id=CHARACTER.id,
-            player_id=opposing_player.id,
-            base=BASE_INFLUENCE_MIN,
-            earned=0,
-        )
+    influence = Influence(
+        character_id=CHARACTER.id,
+        player_id=opposing_player.id,
+        base=BASE_INFLUENCE_MIN,
+        earned=0,
     )
+
     agent = ConversationAgent(
         character=CHARACTER,
         player=opposing_player,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        influence=influence_state,
+        influence=influence,
         conversation_manager=ConversationManager(),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pytest
 from dotenv import load_dotenv
 
 from app.data.player_store import PlayerStore
@@ -9,13 +10,16 @@ from app.models.player import PlayerCreate, PlayerUpdate
 from app.models.race import Gender, Race, Size
 
 
-def test_player_store():
+@pytest.fixture(autouse=True)
+def setup_teardown():
+    """Setup and teardown for each test"""
     load_dotenv()
-
-    # Initialize database
     create_tables()
+    yield
+    drop_tables()
 
-    # Initialize store
+
+def test_player_store():
     store = PlayerStore()
 
     # Test 1: Create a player
@@ -62,5 +66,3 @@ def test_player_store():
 
     exists_after_delete = store.player_exists(created_player.id)
     assert exists_after_delete is False
-
-    drop_tables()

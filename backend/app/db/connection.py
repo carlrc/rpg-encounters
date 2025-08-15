@@ -10,6 +10,7 @@ PLAYERS_TABLE = "players"
 CHARACTERS_TABLE = "characters"
 MEMORIES_TABLE = "memories"
 REVEALS_TABLE = "reveals"
+INFLUENCES_TABLE = "influences"
 
 # Environment-based database configuration
 DATABASE_URL = os.getenv("DATABASE_URL")

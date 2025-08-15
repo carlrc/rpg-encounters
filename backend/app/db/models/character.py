@@ -7,12 +7,12 @@ from app.db.limits import (
     CHARACTER_COMMUNICATION_LIMIT,
     CHARACTER_MOTIVATION_LIMIT,
 )
-from app.db.models.base import UnifiedCharacterBase
+from app.db.models.base import UnifiedBase
 from app.db.models.memory_character_association import memory_character_association
 from app.db.models.reveal_character_association import reveal_character_association
 
 
-class CharacterORM(UnifiedCharacterBase):
+class CharacterORM(UnifiedBase):
     __tablename__ = CHARACTERS_TABLE
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -52,3 +52,6 @@ class CharacterORM(UnifiedCharacterBase):
         secondary=reveal_character_association,
         back_populates="characters",
     )
+
+    # One-to-many relationship with influences
+    influences = relationship("InfluenceORM", foreign_keys="InfluenceORM.character_id")

@@ -1,15 +1,12 @@
 from sqlalchemy import JSON, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.connection import PLAYERS_TABLE
 from app.db.limits import PLAYER_APPEARANCE_MAX_LIMIT
+from app.db.models.base import UnifiedBase
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-class PlayerORM(Base):
+class PlayerORM(UnifiedBase):
     __tablename__ = PLAYERS_TABLE
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
@@ -24,3 +21,6 @@ class PlayerORM(Base):
     gender: Mapped[str] = mapped_column(String(20), nullable=False)
     abilities: Mapped[dict] = mapped_column(JSON, nullable=False)
     skills: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    # One-to-many relationship with influences
+    influences = relationship("InfluenceORM", foreign_keys="InfluenceORM.player_id")
