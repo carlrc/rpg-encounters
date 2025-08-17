@@ -8,7 +8,6 @@ from app.routers import (
     canvas,
     challenges,
     characters,
-    conversations,
     encounters,
     game,
     memories,
@@ -25,7 +24,6 @@ app = FastAPI(title="D&D AI Character Backend")
 app.include_router(players.router)
 app.include_router(characters.router)
 app.include_router(memories.router)
-app.include_router(conversations.router)
 app.include_router(reveals.router)
 app.include_router(challenges.router)
 app.include_router(encounters.router)

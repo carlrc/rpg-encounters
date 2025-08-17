@@ -1,9 +1,11 @@
 import logging
 
-from fastapi import APIRouter, WebSocket
+from fastapi import WebSocket
 
+from app.agents.conversation_agent import ConversationAgentDeps
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
+from app.data.encounter_store import EncounterStore
 from app.data.influence_store import InfluenceStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
@@ -19,37 +21,39 @@ from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/conversations", tags=["conversations"])
-
 char_system_prompt = import_system_prompt("conversation_agent")
 scoring_system_prompt = import_system_prompt("influence_scoring_agent")
 
 
-@router.websocket("/{player_id}/{character_id}")
-async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id: int):
+async def conversation(
+    websocket: WebSocket, player_id: int, character_id: int, encounter_id: int
+) -> None:
 
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
     # TODO: saving to WAV needs to be made async
-    wav_path = save_chunks_to_wav(audio_chunks)
-    transcription = await get_transcription_service().transcribe_audio(wav_path)
+    wav_path = save_chunks_to_wav(chunks=audio_chunks)
+    transcription = await get_transcription_service().transcribe_audio(
+        wav_file_path=wav_path
+    )
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
         # Get character and player information
-        character = CharacterStore().get_character_by_id(character_id)
-        player = PlayerStore().get_player_by_id(player_id)
+        encounter = EncounterStore().get_encounter_by_id(encounter_id=encounter_id)
+        character = CharacterStore().get_character_by_id(character_id=character_id)
+        player = PlayerStore().get_player_by_id(player_id=player_id)
 
         # Get static influence metric between character and player
-        base_influence = calculate_base_influence(character, player)
+        base_influence = calculate_base_influence(character=character, player=player)
         # Get or create persistent influence state
         influence = InfluenceStore().get_or_create(
-            character_id, player_id, base_influence
+            character_id=character_id, player_id=player_id, base=base_influence
         )
         # Get information tied to character
-        all_reveals = RevealStore().get_by_character_id(character_id)
+        all_reveals = RevealStore().get_by_character_id(character_id=character_id)
         # TODO: This would need to be lazy updated across instances in case DM wants to update information on the fly
-        all_memories = MemoryStore().get_by_character_id(character_id)
+        all_memories = MemoryStore().get_by_character_id(character_id=character_id)
 
         # Get or create persistent character agent
         agent = get_agent_manager().get_or_create_agent(
@@ -64,8 +68,11 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
         )
 
         # Generate AI response using character agent
+        deps = ConversationAgentDeps(
+            reveals=all_reveals, encounter_description=encounter.description
+        )
         response, level, _ = await agent.chat(
-            player_transcript=transcription, reveals=all_reveals
+            player_transcript=transcription, deps=deps
         )
         logger.debug(
             f"Generated character response for level ${level.name}: {response}"
@@ -75,7 +82,7 @@ async def websocket_endpoint(websocket: WebSocket, player_id: int, character_id:
 
         # Stream TTS audio chunks back to frontend
         for audio_chunk in get_tts_service().text_to_speech_stream(
-            response, character.voice
+            text=response, voice_id=character.voice
         ):
             try:
                 await websocket.send_bytes(audio_chunk)

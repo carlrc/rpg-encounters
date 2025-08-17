@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
@@ -18,6 +18,7 @@ from app.models.encounter_connection import (
     ConnectionCreate,
     ConnectionUpdate,
 )
+from app.services.conversation import conversation
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
@@ -244,3 +245,15 @@ async def batch_delete_connections(request: BatchDeleteConnectionsRequest):
             )
 
     return None
+
+
+@router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")
+async def websocket_endpoint(
+    websocket: WebSocket, encounter_id: int, player_id: int, character_id: int
+):
+    return await conversation(
+        websocket=websocket,
+        encounter_id=encounter_id,
+        player_id=player_id,
+        character_id=character_id,
+    )

@@ -118,7 +118,7 @@
         v-for="character in encounter.characters"
         :key="character.id"
         class="character-avatar"
-        @click="$emit('open-encounter', character)"
+        @click="$emit('open-encounter', character, encounter.id)"
         :title="character.name"
       >
         <button

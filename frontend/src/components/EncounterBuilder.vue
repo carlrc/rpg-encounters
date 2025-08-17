@@ -70,6 +70,7 @@
       <!-- Character encounter popup -->
       <CharacterEncounterPopup
         :character="selectedCharacter"
+        :encounter-id="selectedEncounterId"
         :is-open="showEncounterPopup"
         @close="closeEncounterPopup"
       />
@@ -101,6 +102,7 @@
       const loading = ref(true)
       const error = ref(null)
       const selectedCharacter = ref(null)
+      const selectedEncounterId = ref(null)
       const showEncounterPopup = ref(false)
       const vueFlowRef = ref(null)
       const isSaving = ref(false)
@@ -284,20 +286,34 @@
       }
 
       // Character encounter handlers
-      const openCharacterEncounter = (character) => {
+      const openCharacterEncounter = (character, encounterId) => {
         // Validate character object
         if (!character || !character.id) {
           console.warn('Invalid character provided to openCharacterEncounter')
           return
         }
 
+        // Validate encounter ID
+        if (!encounterId) {
+          console.warn('Invalid encounterId provided to openCharacterEncounter')
+          return
+        }
+
+        // Extract numeric ID from Vue Flow node ID format (encounter-123 -> 123)
+        const numericEncounterId =
+          typeof encounterId === 'string' && encounterId.startsWith('encounter-')
+            ? parseInt(encounterId.replace('encounter-', ''))
+            : encounterId
+
         selectedCharacter.value = character
+        selectedEncounterId.value = numericEncounterId
         showEncounterPopup.value = true
       }
 
       const closeEncounterPopup = () => {
         showEncounterPopup.value = false
         selectedCharacter.value = null
+        selectedEncounterId.value = null
       }
 
       // Handle new connections created by dragging
@@ -553,6 +569,7 @@
         elements,
         characters,
         selectedCharacter,
+        selectedEncounterId,
         showEncounterPopup,
         vueFlowRef,
         isSaving,

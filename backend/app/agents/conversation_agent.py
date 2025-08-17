@@ -3,6 +3,7 @@ import logging
 from typing import List
 
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
@@ -20,6 +21,11 @@ from app.models.reveal import Reveal, RevealLayer
 from app.services.conversation_manager import ConversationManager
 
 logger = logging.getLogger(__name__)
+
+
+class ConversationAgentDeps(BaseModel):
+    reveals: List[Reveal]
+    encounter_description: str
 
 
 class ConversationAgent(BaseAgent):
@@ -58,8 +64,8 @@ class ConversationAgent(BaseAgent):
 
         # Decorator does not work on self.agent.instructions
         @agent.instructions
-        def add_reveals(ctx: RunContext[list[Reveal]]) -> str:
-            all_reveals = [reveal for reveal in ctx.deps]
+        def add_reveals(ctx: RunContext[ConversationAgentDeps]) -> str:
+            all_reveals = [reveal for reveal in ctx.deps.reveals]
 
             if not all_reveals:
                 return """**IMPORTANT**: No reveals available for this character. Refer to memories and character background."""
@@ -82,13 +88,23 @@ class ConversationAgent(BaseAgent):
 
             return "".join(instruction_parts)
 
+        @agent.instructions
+        def add_encounter(ctx: RunContext[ConversationAgentDeps]) -> str:
+            if ctx.deps.encounter_description:
+                return f"""# Physical Location Context
+                    Your character is currently in the following encounter. Use this information as your physical world context.
+                    {ctx.deps.encounter_description}
+                    """
+            else:
+                return ""
+
         # Decorator does not work on self.agent.output_validator
         @agent.output_validator
         def validate_reveal_id(
-            ctx: RunContext[list[Reveal]], output: ConversationAgentOutput
+            ctx: RunContext[ConversationAgentDeps], output: ConversationAgentOutput
         ) -> ConversationAgentOutput:
             # If empty array of reveals, don't allow hallucinations of reveal_id
-            if not ctx.deps:
+            if not ctx.deps.reveals:
                 output.reveal_id = None
             return output
 
@@ -96,12 +112,12 @@ class ConversationAgent(BaseAgent):
         self.agent = agent
 
     async def chat(
-        self, player_transcript: str, reveals: list[Reveal]
+        self, player_transcript: str, deps: ConversationAgentDeps
     ) -> tuple[str, RevealLayer, int]:
         try:
             agent_task = self.agent.run(
                 user_prompt=player_transcript,
-                deps=reveals,
+                deps=deps,
                 message_history=self.convo_manager.get_history(),
             )
             influence_task = self.influence_calculator_agent.process(player_transcript)
@@ -118,7 +134,7 @@ class ConversationAgent(BaseAgent):
         self.influence.earned += influence_result.score
 
         selected_response, level = self.convo_manager.select_response(
-            reveals=reveals,
+            reveals=deps.reveals,
             agent_result=self.run_result.output,
             influence_score=self.influence.score,
         )
