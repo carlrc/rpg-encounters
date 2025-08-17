@@ -146,8 +146,50 @@ class ApiService {
     })
   }
 
-  // Note: Trust profiles are now integrated into character model
-  // Trust profile data is managed through character endpoints
+  // Encounter CRUD operations
+  async getEncounters() {
+    return this.request('/canvas')
+  }
+
+  async getEncounter(id) {
+    return this.request(`/encounters/${id}`)
+  }
+
+  async createEncounter(encounterData) {
+    return this.request('/encounters', {
+      method: 'POST',
+      body: JSON.stringify(encounterData),
+    })
+  }
+
+  async updateEncounter(id, encounterData) {
+    return this.request(`/encounters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(encounterData),
+    })
+  }
+
+  async deleteEncounter(id) {
+    return this.request(`/encounters/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Canvas save operation
+  async saveCanvas(canvasData) {
+    return this.request('/canvas/save', {
+      method: 'POST',
+      body: JSON.stringify(canvasData),
+    })
+  }
+
+  // Game data operations
+  async getGameData() {
+    return this.request('/game')
+  }
+
+  // Note: Influence profiles are now integrated into character model
+  // Influence profile data is managed through character endpoints
 }
 
 export default new ApiService()

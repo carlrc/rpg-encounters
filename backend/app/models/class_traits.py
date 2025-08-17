@@ -5,6 +5,7 @@ class Class(Enum):
     BARBARIAN = "Barbarian"
     BARD = "Bard"
     CLERIC = "Cleric"
+    COMMONER = "Commoner"
     DRUID = "Druid"
     FIGHTER = "Fighter"
     MONK = "Monk"

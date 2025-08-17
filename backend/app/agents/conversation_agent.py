@@ -10,13 +10,13 @@ from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.agent_output import ConversationAgentOutput
 from app.agents.base_agent import BaseAgent
-from app.agents.trust_scoring_agent import TrustCalculatorAgent
+from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.http import create_retrying_client
 from app.models.character import Character
+from app.models.influence import Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
-from app.models.trust import TrustState
 from app.services.conversation_manager import ConversationManager
 
 logger = logging.getLogger(__name__)
@@ -29,16 +29,16 @@ class ConversationAgent(BaseAgent):
         player: Player,
         system_prompt: str,
         memories: List[Memory],
-        # TODO: Trust should not be in this class
-        trust_state: TrustState,
+        # TODO: Influence should not be in this class
+        influence: Influence,
         conversation_manager: ConversationManager,
-        trust_calculator_agent: TrustCalculatorAgent,
+        influence_calculator_agent: InfluenceCalculatorAgent,
     ):
         super().__init__(character=character, player=player, memories=memories)
         load_dotenv()
-        self.trust = trust_state
+        self.influence = influence
         self.convo_manager = conversation_manager
-        self.trust_calculator_agent = trust_calculator_agent
+        self.influence_calculator_agent = influence_calculator_agent
 
         agent = Agent(
             OpenAIModel(
@@ -104,8 +104,10 @@ class ConversationAgent(BaseAgent):
                 deps=reveals,
                 message_history=self.convo_manager.get_history(),
             )
-            trust_task = self.trust_calculator_agent.process(player_transcript)
-            self.run_result, trust_result = await asyncio.gather(agent_task, trust_task)
+            influence_task = self.influence_calculator_agent.process(player_transcript)
+            self.run_result, influence_result = await asyncio.gather(
+                agent_task, influence_task
+            )
         except UnexpectedModelBehavior as e:
             logger.error(f"Agent failure. {e.message}")
             raise
@@ -113,12 +115,12 @@ class ConversationAgent(BaseAgent):
             logger.error(f"Response generation failed. {e}")
             raise
 
-        self.trust.earned_trust += trust_result.score
+        self.influence.earned += influence_result.score
 
         selected_response, level = self.convo_manager.select_response(
             reveals=reveals,
             agent_result=self.run_result.output,
-            total_trust=self.trust.total_trust,
+            influence_score=self.influence.score,
         )
 
         # Persist messages in custom history
@@ -126,4 +128,4 @@ class ConversationAgent(BaseAgent):
         self.convo_manager.add_user_message(message=self.run_result.new_messages()[0])
         self.convo_manager.add_agent_response(response=selected_response)
 
-        return selected_response, level, trust_result.score
+        return selected_response, level, influence_result.score

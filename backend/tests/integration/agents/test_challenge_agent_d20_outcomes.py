@@ -46,8 +46,13 @@ PLAYER = Player(
     size=Size.SMALL.value,
     alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.FEMALE.value,
-    abilities={Abilities.CHARISMA: +1},
-    skills={Skills.PERSUASION: +1},
+    abilities={Abilities.CHARISMA.value: 16},
+    skills={
+        Skills.PERSUASION.value: 5,
+        Skills.DECEPTION.value: 2,
+        Skills.INTIMIDATION.value: 3,
+        Skills.PERFORMANCE.value: 4,
+    },
 )
 
 CHALLENGE_SYSTEM_PROMPT = import_system_prompt("challenge_agent")

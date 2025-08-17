@@ -344,18 +344,11 @@
       }
 
       const getValueClass = (value, category) => {
-        // For abilities and skills: red is positive, green is negative
-        // For abilities (0-30 range), consider 15+ as positive, 0-14 as neutral/negative
-        // For skills (-5 to 25 range), use standard positive/negative/neutral
-        if (category === 'abilities') {
-          if (value >= 15) return 'bias-negative' // Red for positive values
-          if (value <= 5) return 'bias-positive' // Green for negative values
-          return 'bias-neutral'
-        } else {
-          if (value > 0) return 'bias-negative' // Red for positive values
-          if (value < 0) return 'bias-positive' // Green for negative values
-          return 'bias-neutral'
-        }
+        // For abilities and skills: green is positive, red is negative
+        // These values are already modifiers, so use standard positive/negative logic
+        if (value > 0) return 'bias-positive' // Green for positive values
+        if (value < 0) return 'bias-negative' // Red for negative values
+        return 'bias-neutral' // Gray for neutral (0) values
       }
 
       // Load display data when component mounts and when player changes

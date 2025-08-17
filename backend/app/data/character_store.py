@@ -1,60 +1,88 @@
 from typing import List
 
+from sqlalchemy.orm import sessionmaker
+
+from app.db.connection import get_db_engine
+from app.db.models.character import CharacterORM
 from app.models.character import Character, CharacterCreate, CharacterUpdate
-from tests.fixtures.characters import characters_db, next_character_id
 
 
 class CharacterStore:
     def __init__(self):
-        self.characters = characters_db
-        self.next_id = next_character_id
+        self.Session = sessionmaker(get_db_engine())
 
     def get_all_characters(self) -> List[Character]:
         """Get all characters"""
-        return list(self.characters.values())
+        with self.Session() as session:
+            character_orms = session.query(CharacterORM).all()
+            return [
+                Character.model_validate(character_orm)
+                for character_orm in character_orms
+            ]
 
     def get_character_by_id(self, character_id: int) -> Character | None:
         """Get a specific character by ID"""
-        return self.characters.get(character_id)
+        with self.Session() as session:
+            character_orm = (
+                session.query(CharacterORM)
+                .filter(CharacterORM.id == character_id)
+                .first()
+            )
+            if character_orm:
+                return Character.model_validate(character_orm)
+            return None
 
     def create_character(self, character_data: CharacterCreate) -> Character:
         """Create a new character"""
-        character_dict = character_data.model_dump()
-        character_dict["id"] = self.next_id
-
-        new_character = Character(**character_dict)
-        self.characters[self.next_id] = new_character
-        self.next_id += 1
-
-        return new_character
+        with self.Session() as session:
+            character_orm = CharacterORM(**character_data.model_dump())
+            session.add(character_orm)
+            session.commit()
+            session.refresh(character_orm)
+            return Character.model_validate(character_orm)
 
     def update_character(
         self, character_id: int, character_update: CharacterUpdate
     ) -> Character | None:
         """Update an existing character"""
-        if character_id not in self.characters:
-            return None
+        with self.Session() as session:
+            character_orm = (
+                session.query(CharacterORM)
+                .filter(CharacterORM.id == character_id)
+                .first()
+            )
+            if not character_orm:
+                return None
 
-        existing_character = self.characters[character_id]
-        update_data = character_update.model_dump(exclude_unset=True)
+            update_data = character_update.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(character_orm, key, value)
 
-        # Update the existing character with new data
-        updated_data = existing_character.model_dump()
-        updated_data.update(update_data)
-
-        updated_character = Character(**updated_data)
-        self.characters[character_id] = updated_character
-
-        return updated_character
+            session.commit()
+            session.refresh(character_orm)
+            return Character.model_validate(character_orm)
 
     def delete_character(self, character_id: int) -> bool:
         """Delete a character"""
-        if character_id not in self.characters:
-            return False
+        with self.Session() as session:
+            character_orm = (
+                session.query(CharacterORM)
+                .filter(CharacterORM.id == character_id)
+                .first()
+            )
+            if not character_orm:
+                return False
 
-        del self.characters[character_id]
-        return True
+            session.delete(character_orm)
+            session.commit()
+            return True
 
     def character_exists(self, character_id: int) -> bool:
         """Check if a character exists"""
-        return character_id in self.characters
+        with self.Session() as session:
+            return (
+                session.query(CharacterORM)
+                .filter(CharacterORM.id == character_id)
+                .first()
+                is not None
+            )

@@ -14,13 +14,13 @@ players_db = {
         alignment=Alignment.NEUTRAL_GOOD.value,
         gender=Gender.FEMALE.value,
         abilities={
-            Abilities.CHARISMA.value: +1
+            Abilities.CHARISMA.value: 15
         },
         skills={
-            Skills.PERSUASION.value: +3,
-            Skills.DECEPTION.value: 0,
-            Skills.INTIMIDATION.value: + 1,
-            Skills.PERFORMANCE.value: 0
+            Skills.PERSUASION.value: 5,
+            Skills.DECEPTION.value: 2,
+            Skills.INTIMIDATION.value: 3,
+            Skills.PERFORMANCE.value: 4
         }
     ),
     2: Player(
@@ -33,13 +33,13 @@ players_db = {
         alignment=Alignment.CHAOTIC_GOOD.value,
         gender=Gender.MALE.value,
         abilities={
-            Abilities.CHARISMA.value: +1
+            Abilities.CHARISMA.value: 17
         },
         skills={
-            Skills.PERSUASION.value: +3,
-            Skills.DECEPTION.value: 0,
-            Skills.INTIMIDATION.value: + 1,
-            Skills.PERFORMANCE.value: 0
+            Skills.PERSUASION.value: 7,
+            Skills.DECEPTION.value: 3,
+            Skills.INTIMIDATION.value: 2,
+            Skills.PERFORMANCE.value: 6
         }
     ),
 }

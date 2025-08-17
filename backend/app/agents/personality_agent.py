@@ -23,17 +23,17 @@ class PersonalityGenerator:
             system_prompt="""You are an expert at analyzing D&D characters and creating personality profiles for social interactions.
             Generate concise personality profiles (2-3 short sentences) that describe:
             1. Their social interaction style and preferences
-            2. What behaviors/topics they appreciate (builds trust)
-            3. What behaviors/topics they dislike (loses trust)
+            2. What behaviors/topics they appreciate (builds influence)
+            3. What behaviors/topics they dislike (loses influence)
             4. How their background influences their social reactions
             5. Their sense of humor and storytelling preferences
-            6. How their bias preferences (race, class, gender, etc.) affect their trust evaluation (keep short)
+            6. How their bias preferences (race, class, gender, etc.) affect their influence evaluation (keep short)
             IMPORTANT: Include specific mentions of their bias preferences and explain WHY they have these biases based on their background, profession, and experiences. Describe how these biases manifest in their trust interpretations.
-            Format as a single paragraph suitable for AI trust evaluation. Focus on what would make this character trust or distrust someone in conversation, including their inherent biases.""",
+            Format as a single paragraph suitable for AI influence evaluation. Focus on what would make this character trust or distrust someone in conversation, including their inherent biases.""",
         )
 
         prompt = f"""
-        Analyze this D&D character and generate a personality profile for social trust interactions:
+        Analyze this D&D character and generate a personality profile for live interactions:
         Name: {character_data.name}
         Race: {character_data.race}
         Profession: {character_data.profession}

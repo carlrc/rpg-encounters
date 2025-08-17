@@ -225,7 +225,7 @@
 
         const wsUrl = isChallengeMode.value
           ? `${WEBSOCKET_BASE_URL}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
-          : `${WEBSOCKET_BASE_URL}/conversation/${selectedPlayerId.value}/${props.character.id}`
+          : `${WEBSOCKET_BASE_URL}/conversations/${selectedPlayerId.value}/${props.character.id}`
 
         try {
           websocket.value = new WebSocket(wsUrl)

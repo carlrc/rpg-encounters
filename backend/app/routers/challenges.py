@@ -6,11 +6,11 @@ from app.agents.challenge_agent import ChallengeAgent
 from app.agents.critical_failure_agent import CriticalFailureAgent
 from app.agents.critical_success_agent import CriticalSuccessAgent
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.data.character_store import CharacterStore
+from app.data.memory_store import MemoryStore
+from app.data.player_store import PlayerStore
+from app.data.reveal_store import RevealStore
 from app.dependencies import (
-    get_character_store,
-    get_memory_store,
-    get_player_store,
-    get_reveal_store,
     get_transcription_service,
     get_tts_service,
 )
@@ -24,7 +24,7 @@ from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/challenge", tags=["challenges"])
+router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
 challenge_agent_system_prompt = import_system_prompt("challenge_agent")
 challenge_agent_critical_success_system_prompt = import_system_prompt(
@@ -48,17 +48,17 @@ async def websocket_endpoint(
 
     try:
         # Get player and character data
-        character = get_character_store().get_character_by_id(character_id)
-        player = get_player_store().get_player_by_id(player_id=player_id)
+        character = CharacterStore().get_character_by_id(character_id)
+        player = PlayerStore().get_player_by_id(player_id=player_id)
         # Calculate skill check: d20 + player skill bonus
         total_roll = calculate_skill_check(
             skill=skill, player=player, d20_roll=d20_roll
         )
 
         # Get information tied to character
-        all_reveals = get_reveal_store().get_by_character_id(character_id)
+        all_reveals = RevealStore().get_by_character_id(character_id)
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
-        all_memories = get_memory_store().get_by_character_id(character_id)
+        all_memories = MemoryStore().get_by_character_id(character_id)
 
         if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
             agent = CriticalSuccessAgent(

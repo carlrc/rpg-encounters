@@ -2,7 +2,8 @@ from typing import List
 
 from fastapi import APIRouter, HTTPException
 
-from app.dependencies import get_connection_store, get_encounter_store
+from app.data.connection_store import ConnectionStore
+from app.data.encounter_store import EncounterStore
 from app.models.batch_update import (
     BatchCreateConnectionsRequest,
     BatchCreateEncountersRequest,
@@ -18,14 +19,14 @@ from app.models.encounter_connection import (
     ConnectionUpdate,
 )
 
-router = APIRouter(prefix="/encounter", tags=["encounters"])
+router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
 
 @router.get("/")
 async def get_encounters():
     """Get all encounters with connections - returns the complete canvas state"""
-    encounters = get_encounter_store().get_all_encounters()
-    connections = get_connection_store().get_all_connections()
+    encounters = EncounterStore().get_all_encounters()
+    connections = ConnectionStore().get_all_connections()
 
     return {"encounters": encounters, "connections": connections}
 
@@ -33,7 +34,7 @@ async def get_encounters():
 @router.get("/{encounter_id}", response_model=Encounter)
 async def get_encounter(encounter_id: int):
     """Get a specific encounter by ID"""
-    encounter = get_encounter_store().get_encounter_by_id(encounter_id)
+    encounter = EncounterStore().get_encounter_by_id(encounter_id)
     if not encounter:
         raise HTTPException(status_code=404, detail="Encounter not found")
     return encounter
@@ -42,7 +43,7 @@ async def get_encounter(encounter_id: int):
 @router.post("/", response_model=Encounter, status_code=201)
 async def create_encounter(encounter_data: EncounterCreate):
     """Create a new encounter"""
-    return get_encounter_store().create_encounter(encounter_data)
+    return EncounterStore().create_encounter(encounter_data)
 
 
 @router.put("/{encounter_id}", response_model=Encounter)
@@ -50,7 +51,7 @@ async def update_encounter(encounter_id: int, encounter_update: EncounterUpdate)
     """Update an existing encounter"""
     # Override the ID from the URL path
     encounter_update.id = encounter_id
-    encounter = get_encounter_store().update_encounter(encounter_id, encounter_update)
+    encounter = EncounterStore().update_encounter(encounter_id, encounter_update)
     if not encounter:
         raise HTTPException(status_code=404, detail="Encounter not found")
     return encounter
@@ -59,7 +60,7 @@ async def update_encounter(encounter_id: int, encounter_update: EncounterUpdate)
 @router.delete("/{encounter_id}", status_code=204)
 async def delete_encounter(encounter_id: int):
     """Delete an encounter"""
-    success = get_encounter_store().delete_encounter(encounter_id)
+    success = EncounterStore().delete_encounter(encounter_id)
     if not success:
         raise HTTPException(status_code=404, detail="Encounter not found")
     return None
@@ -69,13 +70,13 @@ async def delete_encounter(encounter_id: int):
 async def create_connection(connection_data: ConnectionCreate):
     """Create a new connection between encounters"""
     # Validate that both encounters exist
-    encounter_store = get_encounter_store()
+    encounter_store = EncounterStore()
     if not encounter_store.get_encounter_by_id(connection_data.source_encounter_id):
         raise HTTPException(status_code=404, detail="Source encounter not found")
     if not encounter_store.get_encounter_by_id(connection_data.target_encounter_id):
         raise HTTPException(status_code=404, detail="Target encounter not found")
 
-    return get_connection_store().create_connection(connection_data)
+    return ConnectionStore().create_connection(connection_data)
 
 
 @router.put("/connections/{connection_id}", response_model=Connection)
@@ -84,21 +85,20 @@ async def update_connection(connection_id: int, connection_update: ConnectionUpd
     # Override the ID from the URL path
     connection_update.id = connection_id
 
+    encounter_store = EncounterStore()
     # If updating encounter IDs, validate they exist
     if connection_update.source_encounter_id is not None:
-        if not get_encounter_store().get_encounter_by_id(
+        if not encounter_store.get_encounter_by_id(
             connection_update.source_encounter_id
         ):
             raise HTTPException(status_code=404, detail="Source encounter not found")
     if connection_update.target_encounter_id is not None:
-        if not get_encounter_store().get_encounter_by_id(
+        if not encounter_store.get_encounter_by_id(
             connection_update.target_encounter_id
         ):
             raise HTTPException(status_code=404, detail="Target encounter not found")
 
-    connection = get_connection_store().update_connection(
-        connection_id, connection_update
-    )
+    connection = ConnectionStore().update_connection(connection_id, connection_update)
     if not connection:
         raise HTTPException(status_code=404, detail="Connection not found")
     return connection
@@ -107,7 +107,7 @@ async def update_connection(connection_id: int, connection_update: ConnectionUpd
 @router.delete("/connections/{connection_id}", status_code=204)
 async def delete_connection(connection_id: int):
     """Delete a connection"""
-    success = get_connection_store().delete_connection(connection_id)
+    success = ConnectionStore().delete_connection(connection_id)
     if not success:
         raise HTTPException(status_code=404, detail="Connection not found")
     return None
@@ -117,21 +117,20 @@ async def delete_connection(connection_id: int):
 async def get_encounter_connections(encounter_id: int):
     """Get all connections for a specific encounter"""
     # Validate encounter exists
-    if not get_encounter_store().get_encounter_by_id(encounter_id):
+    if not EncounterStore().get_encounter_by_id(encounter_id):
         raise HTTPException(status_code=404, detail="Encounter not found")
 
-    return get_connection_store().get_connections_for_encounter(encounter_id)
+    return ConnectionStore().get_connections_for_encounter(encounter_id)
 
 
 # Batch endpoints
 @router.post("/batch/create", response_model=List[Encounter], status_code=201)
 async def batch_create_encounters(request: BatchCreateEncountersRequest):
     """Create multiple encounters in a single request"""
-    encounter_store = get_encounter_store()
     created_encounters = []
 
     for encounter_data in request.encounters:
-        created_encounter = encounter_store.create_encounter(encounter_data)
+        created_encounter = EncounterStore().create_encounter(encounter_data)
         created_encounters.append(created_encounter)
 
     return created_encounters
@@ -140,11 +139,10 @@ async def batch_create_encounters(request: BatchCreateEncountersRequest):
 @router.put("/batch/update", response_model=List[Encounter])
 async def batch_update_encounters(request: BatchUpdateEncountersRequest):
     """Update multiple encounters in a single request"""
-    encounter_store = get_encounter_store()
     updated_encounters = []
 
     for encounter_update in request.encounters:
-        updated_encounter = encounter_store.update_encounter(
+        updated_encounter = EncounterStore().update_encounter(
             encounter_update.id, encounter_update
         )
         if not updated_encounter:
@@ -160,10 +158,8 @@ async def batch_update_encounters(request: BatchUpdateEncountersRequest):
 @router.delete("/batch/delete", status_code=204)
 async def batch_delete_encounters(request: BatchDeleteEncountersRequest):
     """Delete multiple encounters in a single request"""
-    encounter_store = get_encounter_store()
-
     for encounter_id in request.encounter_ids:
-        success = encounter_store.delete_encounter(encounter_id)
+        success = EncounterStore().delete_encounter(encounter_id)
         if not success:
             raise HTTPException(
                 status_code=404, detail=f"Encounter with id {encounter_id} not found"
@@ -177,8 +173,7 @@ async def batch_delete_encounters(request: BatchDeleteEncountersRequest):
 )
 async def batch_create_connections(request: BatchCreateConnectionsRequest):
     """Create multiple connections in a single request"""
-    encounter_store = get_encounter_store()
-    connection_store = get_connection_store()
+    encounter_store = EncounterStore()
     created_connections = []
 
     for connection_data in request.connections:
@@ -194,7 +189,7 @@ async def batch_create_connections(request: BatchCreateConnectionsRequest):
                 detail=f"Target encounter {connection_data.target_encounter_id} not found",
             )
 
-        created_connection = connection_store.create_connection(connection_data)
+        created_connection = ConnectionStore().create_connection(connection_data)
         created_connections.append(created_connection)
 
     return created_connections
@@ -203,8 +198,7 @@ async def batch_create_connections(request: BatchCreateConnectionsRequest):
 @router.put("/connections/batch/update", response_model=List[Connection])
 async def batch_update_connections(request: BatchUpdateConnectionsRequest):
     """Update multiple connections in a single request"""
-    encounter_store = get_encounter_store()
-    connection_store = get_connection_store()
+    encounter_store = EncounterStore()
     updated_connections = []
 
     for connection_update in request.connections:
@@ -226,7 +220,7 @@ async def batch_update_connections(request: BatchUpdateConnectionsRequest):
                     detail=f"Target encounter {connection_update.target_encounter_id} not found",
                 )
 
-        updated_connection = connection_store.update_connection(
+        updated_connection = ConnectionStore().update_connection(
             connection_update.id, connection_update
         )
         if not updated_connection:
@@ -242,10 +236,8 @@ async def batch_update_connections(request: BatchUpdateConnectionsRequest):
 @router.delete("/connections/batch/delete", status_code=204)
 async def batch_delete_connections(request: BatchDeleteConnectionsRequest):
     """Delete multiple connections in a single request"""
-    connection_store = get_connection_store()
-
     for connection_id in request.connection_ids:
-        success = connection_store.delete_connection(connection_id)
+        success = ConnectionStore().delete_connection(connection_id)
         if not success:
             raise HTTPException(
                 status_code=404, detail=f"Connection with id {connection_id} not found"

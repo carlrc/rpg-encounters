@@ -19,8 +19,8 @@ class EncounterBase(BaseModel):
     )
     position_x: float = Field(..., description="X coordinate on the canvas")
     position_y: float = Field(..., description="Y coordinate on the canvas")
-    characters: List[int] | None = Field(
-        default=None, description="Characters in this encounter"
+    character_ids: List[int] | None = Field(
+        default=None, description="Character IDs in this encounter"
     )
 
     @field_validator("name")
@@ -51,15 +51,20 @@ class EncounterCreate(EncounterBase):
     pass
 
 
+class EncounterWithTempId(EncounterBase):
+    """Encounter model that includes temp ID for canvas save operations"""
+
+    id: int  # Can be temp ID from frontend
+
+
 class EncounterUpdate(EncounterBase):
     """Encounter update model - all fields optional with same validation rules"""
 
-    id: int = Field(..., description="ID of the encounter to update")
     name: str | None = None
     description: str | None = None
     position_x: float | None = None
     position_y: float | None = None
-    characters: List[int] | None = None
+    character_ids: List[int] | None = None
 
 
 class Encounter(EncounterBase):

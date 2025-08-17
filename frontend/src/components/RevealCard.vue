@@ -4,7 +4,7 @@
       <!-- Title -->
       <h2 class="shared-title">{{ reveal.title }}</h2>
 
-      <!-- Trust Level Display -->
+      <!-- Influence Level Display -->
       <div class="shared-field-columns">
         <div class="shared-field-column">
           <div class="shared-field">
@@ -122,7 +122,7 @@
             <label class="shared-field-label">Level 2: Privileged Content</label>
             <BaseTextareaWithCharacterCounter
               v-model="editForm.level_2_content"
-              placeholder="Enter privileged content (high trust required)..."
+              placeholder="Enter privileged content (high influence required)..."
               :max-characters="500"
             />
           </div>
@@ -165,7 +165,7 @@
             <label class="shared-field-label">Level 3: Exclusive Content</label>
             <BaseTextareaWithCharacterCounter
               v-model="editForm.level_3_content"
-              placeholder="Enter exclusive content (maximum trust required)..."
+              placeholder="Enter exclusive content (maximum influence required)..."
               :max-characters="500"
             />
           </div>
@@ -224,7 +224,7 @@
         type: Array,
         default: () => [],
       },
-      currentTrustLevel: {
+      currentInfluenceLevel: {
         type: Number,
         default: 0,
       },

@@ -208,7 +208,7 @@
               background: createForm.background.trim(),
               communication_style: createForm.communication_style.trim(),
               motivation: createForm.motivation.trim(),
-              // Initialize empty trust profile fields
+              // Initialize empty influence profile fields
               race_preferences: {},
               class_preferences: {},
               gender_preferences: {},

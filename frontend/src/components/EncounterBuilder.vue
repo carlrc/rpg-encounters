@@ -20,6 +20,18 @@
           +
         </button>
         <span class="add-encounter-label">Add Encounter</span>
+
+        <!-- Save Canvas Button -->
+        <button
+          @click="saveCanvas"
+          class="save-canvas-btn"
+          :disabled="isSaving"
+          :title="isSaving ? 'Saving...' : 'Save Canvas'"
+          :aria-label="isSaving ? 'Saving canvas changes' : 'Save all canvas changes'"
+        >
+          {{ isSaving ? '...' : '💾' }}
+        </button>
+        <span class="save-canvas-label">{{ isSaving ? 'Saving...' : 'Save Canvas' }}</span>
       </div>
 
       <VueFlow
@@ -91,6 +103,7 @@
       const selectedCharacter = ref(null)
       const showEncounterPopup = ref(false)
       const vueFlowRef = ref(null)
+      const isSaving = ref(false)
 
       // Vue Flow elements (just 2 rooms, no connections)
       const elements = ref([])
@@ -103,68 +116,6 @@
         return characters.value.filter((char) => !encounterCharacterIds.has(char.id))
       }
 
-      // Create simple 2-encounter world with some initial characters
-      const createSimpleWorld = () => {
-        if (!Array.isArray(characters.value) || characters.value.length === 0) {
-          // Create empty encounters if no characters available
-          const encounters = [
-            {
-              id: 'encounter-1',
-              type: 'encounter',
-              position: { x: 200, y: 150 },
-              data: {
-                name: 'Tavern',
-                description:
-                  'A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale.',
-                characters: [],
-              },
-            },
-            {
-              id: 'encounter-2',
-              type: 'encounter',
-              position: { x: 500, y: 150 },
-              data: {
-                name: 'Forest',
-                description:
-                  'A dense woodland with towering ancient trees whose branches form a natural canopy. Dappled sunlight filters through the leaves, creating dancing shadows on the forest floor.',
-                characters: [],
-              },
-            },
-          ]
-          elements.value = encounters
-          return
-        }
-
-        // Just 2 encounters with some initial characters
-        const encounters = [
-          {
-            id: 'encounter-1',
-            type: 'encounter',
-            position: { x: 200, y: 150 },
-            data: {
-              name: 'Tavern',
-              description:
-                'A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale.',
-              characters: characters.value.slice(0, 2), // First 2 characters
-            },
-          },
-          {
-            id: 'encounter-2',
-            type: 'encounter',
-            position: { x: 500, y: 150 },
-            data: {
-              name: 'Forest',
-              description:
-                'A dense woodland with towering ancient trees whose branches form a natural canopy. Dappled sunlight filters through the leaves, creating dancing shadows on the forest floor.',
-              characters: characters.value.slice(2, 4), // Next 2 characters
-            },
-          },
-        ]
-
-        // Start with no connections - let user create them manually
-        elements.value = encounters
-      }
-
       // Load characters from API
       const loadCharacters = async () => {
         try {
@@ -173,7 +124,6 @@
             throw new Error('Invalid characters data received from API')
           }
           characters.value = loadedCharacters
-          createSimpleWorld()
         } catch (err) {
           const errorMessage = err.message || 'Failed to load characters'
           error.value = errorMessage
@@ -182,12 +132,80 @@
         }
       }
 
+      // Transform encounter data to Vue Flow format
+      const transformEncounterDataToElements = (encounterData) => {
+        // Transform database encounters to Vue Flow format
+        const vueFlowNodes = encounterData.encounters.map((encounter) => ({
+          id: `encounter-${encounter.id}`,
+          type: 'encounter',
+          position: {
+            x: encounter.position_x || 200,
+            y: encounter.position_y || 150,
+          },
+          data: {
+            name: encounter.name,
+            description: encounter.description || '',
+            characters: getCharactersForEncounter(encounter.character_ids || []),
+            isNew: false, // Existing encounters from database
+          },
+        }))
+
+        // Transform database connections to Vue Flow edges
+        const vueFlowEdges = (encounterData.connections || []).map((connection) => ({
+          id: `edge-${connection.id}`,
+          source: `encounter-${connection.source_encounter_id}`,
+          target: `encounter-${connection.target_encounter_id}`,
+          sourceHandle: connection.source_handle,
+          targetHandle: connection.target_handle,
+          type: connection.edge_type === 'bezier' ? 'default' : connection.edge_type || 'straight',
+          style: {
+            stroke: connection.stroke_color || '#007bff',
+            strokeWidth: connection.stroke_width || 3,
+          },
+          data: {
+            selectable: true,
+            isNew: false, // Existing connections from database
+          },
+        }))
+
+        // Combine nodes and edges
+        return [...vueFlowNodes, ...vueFlowEdges]
+      }
+
+      // Load encounters and connections from API
+      const loadEncounters = async () => {
+        try {
+          const encounterData = await apiService.getEncounters()
+          if (!encounterData || !Array.isArray(encounterData.encounters)) {
+            throw new Error('Invalid encounter data received from API')
+          }
+
+          elements.value = transformEncounterDataToElements(encounterData)
+        } catch (err) {
+          const errorMessage = err.message || 'Failed to load encounters'
+          error.value = errorMessage
+          console.error('Encounter loading failed:', err)
+          throw err // Re-throw to be caught by loadData
+        }
+      }
+
+      // Helper function to get character objects from character IDs
+      const getCharactersForEncounter = (characterIds) => {
+        if (!Array.isArray(characterIds) || !Array.isArray(characters.value)) {
+          return []
+        }
+        return characters.value.filter((character) => characterIds.includes(character.id))
+      }
+
       const loadData = async () => {
         loading.value = true
         error.value = null
 
         try {
-          await Promise.all([loadGameData(), loadCharacters()])
+          // Load characters first, then encounters (encounters need characters for associations)
+          await loadGameData()
+          await loadCharacters()
+          await loadEncounters()
         } catch (err) {
           const errorMessage = err.message || 'Failed to load world data'
           error.value = `Encounter Builder Error: ${errorMessage}`
@@ -316,6 +334,7 @@
           },
           data: {
             selectable: true,
+            isNew: true, // New connection created by user
           },
         }
 
@@ -357,6 +376,7 @@
             name: 'New Encounter',
             description: 'A mysterious new location waiting to be explored and described.',
             characters: [],
+            isNew: true, // New encounter created by user
           },
         }
 
@@ -391,6 +411,138 @@
         }
       }
 
+      // Canvas serialization logic
+      const serializeCanvasState = () => {
+        const newEncounters = elements.value.filter(
+          (el) => el.type === 'encounter' && el.data.isNew
+        )
+        const existingEncounters = elements.value.filter(
+          (el) => el.type === 'encounter' && !el.data.isNew
+        )
+        const newConnections = elements.value.filter(
+          (el) => el.source && el.target && el.data.isNew
+        )
+        const existingConnections = elements.value.filter(
+          (el) => el.source && el.target && !el.data.isNew
+        )
+
+        return { newEncounters, existingEncounters, newConnections, existingConnections }
+      }
+
+      // Transform frontend format to backend format
+      const transformToBackendFormat = (items, isConnection = false) => {
+        return items.map((item) => {
+          if (isConnection) {
+            // Extract encounter IDs from Vue Flow node IDs (encounter-123 -> 123)
+            const sourceId = parseInt(item.source.replace('encounter-', ''))
+            const targetId = parseInt(item.target.replace('encounter-', ''))
+
+            return {
+              id: item.id.includes('edge-') ? parseInt(item.id.replace('edge-', '')) : undefined,
+              source_encounter_id: sourceId,
+              target_encounter_id: targetId,
+              source_handle: item.sourceHandle,
+              target_handle: item.targetHandle,
+              edge_type: item.type || 'straight',
+              stroke_color: item.style?.stroke || '#007bff',
+              stroke_width: item.style?.strokeWidth || 3,
+            }
+          } else {
+            // Transform encounter
+            const encounterId = item.id.includes('encounter-')
+              ? parseInt(item.id.replace('encounter-', ''))
+              : undefined
+
+            return {
+              id: encounterId,
+              name: item.data.name,
+              description: item.data.description || '',
+              position_x: item.position.x,
+              position_y: item.position.y,
+              character_ids: item.data.characters?.map((char) => char.id) || [],
+            }
+          }
+        })
+      }
+
+      // Update elements with database IDs and remove isNew flags
+      const updateElementsWithDbIds = (response) => {
+        // Update created encounters with real database IDs
+        response.created_encounters.forEach((dbEncounter) => {
+          const elementIndex = elements.value.findIndex(
+            (el) =>
+              el.type === 'encounter' &&
+              el.data.isNew &&
+              el.data.name === dbEncounter.name &&
+              Math.abs(el.position.x - dbEncounter.position_x) < 1 &&
+              Math.abs(el.position.y - dbEncounter.position_y) < 1
+          )
+
+          if (elementIndex !== -1) {
+            elements.value[elementIndex].id = `encounter-${dbEncounter.id}`
+            elements.value[elementIndex].data.isNew = false
+          }
+        })
+
+        // Update created connections with real database IDs
+        response.created_connections.forEach((dbConnection) => {
+          const elementIndex = elements.value.findIndex(
+            (el) =>
+              el.source &&
+              el.target &&
+              el.data.isNew &&
+              el.source === `encounter-${dbConnection.source_encounter_id}` &&
+              el.target === `encounter-${dbConnection.target_encounter_id}`
+          )
+
+          if (elementIndex !== -1) {
+            elements.value[elementIndex].id = `edge-${dbConnection.id}`
+            elements.value[elementIndex].data.isNew = false
+          }
+        })
+
+        // Remove isNew flags from updated items
+        response.updated_encounters.forEach((dbEncounter) => {
+          const elementIndex = elements.value.findIndex(
+            (el) => el.id === `encounter-${dbEncounter.id}`
+          )
+          if (elementIndex !== -1) {
+            elements.value[elementIndex].data.isNew = false
+          }
+        })
+
+        response.updated_connections.forEach((dbConnection) => {
+          const elementIndex = elements.value.findIndex((el) => el.id === `edge-${dbConnection.id}`)
+          if (elementIndex !== -1) {
+            elements.value[elementIndex].data.isNew = false
+          }
+        })
+      }
+
+      // Save canvas function
+      const saveCanvas = async () => {
+        try {
+          isSaving.value = true
+          const { newEncounters, existingEncounters, newConnections, existingConnections } =
+            serializeCanvasState()
+
+          const response = await apiService.saveCanvas({
+            new_encounters: transformToBackendFormat(newEncounters),
+            existing_encounters: transformToBackendFormat(existingEncounters),
+            new_connections: transformToBackendFormat(newConnections, true),
+            existing_connections: transformToBackendFormat(existingConnections, true),
+          })
+
+          // Use the extracted transformation logic to update elements with fresh data
+          elements.value = transformEncounterDataToElements(response)
+        } catch (error) {
+          console.error('Failed to save canvas:', error)
+          error.value = `Failed to save canvas: ${error.message}`
+        } finally {
+          isSaving.value = false
+        }
+      }
+
       onMounted(() => {
         loadData()
       })
@@ -403,6 +555,7 @@
         selectedCharacter,
         showEncounterPopup,
         vueFlowRef,
+        isSaving,
         getAvailableCharactersForEncounter,
         addCharacterToEncounter,
         removeCharacterFromEncounter,
@@ -414,6 +567,7 @@
         updateEncounterName,
         updateEncounterDescription,
         onEdgeClick,
+        saveCanvas,
       }
     },
   }
@@ -478,6 +632,50 @@
   }
 
   .add-encounter-label {
+    font-size: 10px;
+    color: #6c757d;
+    text-align: center;
+    line-height: 1.2;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* Save Canvas Button */
+  .save-canvas-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: #007bff;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+    margin-bottom: 4px;
+    margin-top: 8px;
+  }
+
+  .save-canvas-btn:hover:not(:disabled) {
+    background: #0056b3;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+  }
+
+  .save-canvas-btn:active:not(:disabled) {
+    transform: scale(1.05);
+  }
+
+  .save-canvas-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .save-canvas-label {
     font-size: 10px;
     color: #6c757d;
     text-align: center;

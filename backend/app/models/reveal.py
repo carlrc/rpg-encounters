@@ -69,3 +69,14 @@ class Reveal(RevealBase):
 
 class RevealCreate(RevealBase):
     pass
+
+
+class RevealUpdate(RevealBase):
+    title: str | None = None
+    character_ids: List[int] | None = None
+    level_1_content: str | None = None
+    level_2_content: str | None = None
+    level_3_content: str | None = None
+    standard_threshold: int | None = None
+    privileged_threshold: int | None = None
+    exclusive_threshold: int | None = None

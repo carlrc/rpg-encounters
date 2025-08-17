@@ -15,7 +15,9 @@ dependencies = [
     "pre-commit==4.2.0",
     "torch==2.7.1",
     "torchaudio==2.7.1",
-    "torchvision==0.22.1"
+    "torchvision==0.22.1",
+    "SQLAlchemy==2.0.43",
+    "psycopg2-binary==2.9.10"
 ]
 
 [tool.uv]

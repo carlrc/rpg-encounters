@@ -1,18 +1,20 @@
-from typing import Dict, List
+from typing import Dict
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.db.limits import (
+    CHARACTER_BACKGROUND_LIMIT,
+    CHARACTER_COMMUNICATION_LIMIT,
+    CHARACTER_MOTIVATION_LIMIT,
+    PREFERENCE_VALUE_MAX,
+    PREFERENCE_VALUE_MIN,
+)
+
 from .alignment import VALID_ALIGNMENTS
 from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
-from .reveal import DifficultyClass
 from .util import validate_character_count, validate_choice
 
 # Character field limits
-CHARACTER_BACKGROUND_LIMIT = 240
-CHARACTER_COMMUNICATION_LIMIT = 180
-CHARACTER_MOTIVATION_LIMIT = 300
-PREFERENCE_VALUE_MIN = -DifficultyClass.VERY_EASY.value
-PREFERENCE_VALUE_MAX = DifficultyClass.VERY_EASY.value
 
 
 class CharacterBase(BaseModel):
@@ -29,7 +31,7 @@ class CharacterBase(BaseModel):
     communication_style: str = Field(..., description="Character communication style")
     motivation: str = Field(..., description="Character motivation")
     personality: str = Field(
-        "", description="AI-generated personality profile for trust decisions"
+        "", description="AI-generated personality profile for influence decisions"
     )
     # TODO: This can't be here ultimately
     voice: str | None = Field(
@@ -38,22 +40,16 @@ class CharacterBase(BaseModel):
 
     # Bias
     race_preferences: Dict[str, int] | None = Field(
-        None, description="Race preferences for trust calculation"
+        None, description="Race preferences for influence calculation"
     )
     class_preferences: Dict[str, int] | None = Field(
-        None, description="Class preferences for trust calculation"
+        None, description="Class preferences for influence calculation"
     )
     gender_preferences: Dict[str, int] | None = Field(
-        None, description="Gender preferences for trust calculation"
+        None, description="Gender preferences for influence calculation"
     )
     size_preferences: Dict[str, int] | None = Field(
-        None, description="Size preferences for trust calculation"
-    )
-    appearance_keywords: List[str] | None = Field(
-        None, description="Appearance keywords for trust calculation"
-    )
-    storytelling_keywords: List[str] | None = Field(
-        None, description="Storytelling keywords for trust calculation"
+        None, description="Size preferences for influence calculation"
     )
 
     @field_validator("background")
@@ -150,8 +146,6 @@ class CharacterUpdate(CharacterBase):
     class_preferences: Dict[str, int] | None = None
     gender_preferences: Dict[str, int] | None = None
     size_preferences: Dict[str, int] | None = None
-    appearance_keywords: List[str] | None = None
-    storytelling_keywords: List[str] | None = None
 
 
 class Character(CharacterBase):

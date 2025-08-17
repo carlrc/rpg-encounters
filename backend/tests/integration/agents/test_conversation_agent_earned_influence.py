@@ -1,22 +1,21 @@
-import pytest
-
 from app.agents.conversation_agent import ConversationAgent
+from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.agents.trust_scoring_agent import TrustCalculatorAgent
-from app.dependencies import get_trust_state_store
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
+from app.models.influence import BASE_INFLUENCE_MAX, BASE_INFLUENCE_MIN, Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass, Reveal, RevealLayer
-from app.models.trust import BASE_TRUST_MAX, BASE_TRUST_MIN, TrustState
 from app.services.conversation_manager import ConversationManager
 from tests.utilities import assert_does_not_contain_keywords
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
-REVEAL_LEVEL_2 = "For trusted customers, the Inn has a suite with a balcony available."
+REVEAL_LEVEL_2 = (
+    "For influential customers, the Inn has a suite with a balcony available."
+)
 REVEAL_LEVEL_3 = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
 
 CHARACTER = Character(
@@ -35,8 +34,6 @@ CHARACTER = Character(
     class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
     gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
     size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
-    appearance_keywords=None,
-    storytelling_keywords=None,
 )
 
 PLAYER = Player(
@@ -48,12 +45,17 @@ PLAYER = Player(
     size=Size.SMALL.value,
     alignment=Alignment.NEUTRAL_GOOD.value,
     gender=Gender.FEMALE.value,
-    abilities={Abilities.CHARISMA: +1},
-    skills={Skills.PERSUASION: +1},
+    abilities={Abilities.CHARISMA.value: 16},
+    skills={
+        Skills.PERSUASION.value: 5,
+        Skills.DECEPTION.value: 2,
+        Skills.INTIMIDATION.value: 3,
+        Skills.PERFORMANCE.value: 4,
+    },
 )
 
 CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("trust_scoring_agent")
+SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
 ALL_REVEALS = [
     Reveal(
@@ -75,29 +77,22 @@ ALL_MEMORIES = [
     )
 ]
 
-TRUST_STATE = get_trust_state_store().update_trust_state(
-    TrustState(
-        character_id=CHARACTER.id,
-        player_id=PLAYER.id,
-        base_trust=BASE_TRUST_MAX,  # Force max base trust
-        earned_trust=0,
-    )
+INFLUENCE_STATE = Influence(
+    character_id=CHARACTER.id,
+    player_id=PLAYER.id,
+    base=BASE_INFLUENCE_MAX,  # Force max base influence
+    earned=0,
 )
 
 
-@pytest.fixture(autouse=True)
-def clear_trust_store():
-    get_trust_state_store().clear()
-
-
-async def test_personality_based_earned_trust_respects_standard_level():
+async def test_personality_based_earned_influence_respects_standard_level():
     agent = ConversationAgent(
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        trust_state=TRUST_STATE,
+        influence=INFLUENCE_STATE,
         conversation_manager=ConversationManager(),
-        trust_calculator_agent=TrustCalculatorAgent(
+        influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
         memories=ALL_MEMORIES,
@@ -107,18 +102,18 @@ async def test_personality_based_earned_trust_respects_standard_level():
         "Hi there, I'm wondering if you have any rooms available tonight?",
         ALL_REVEALS,
     )
-    # Bias with max base trust and basic inquiry should only result in standard level
+    # Bias with max base influence and basic inquiry should only result in standard level
     assert level == RevealLayer.STANDARD
 
 
-async def test_personality_based_earned_trust_respects_privileged_level():
+async def test_personality_based_earned_influence_respects_privileged_level():
     agent = ConversationAgent(
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        trust_state=TRUST_STATE,
+        influence=INFLUENCE_STATE,
         conversation_manager=ConversationManager(),
-        trust_calculator_agent=TrustCalculatorAgent(
+        influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
         memories=ALL_MEMORIES,
@@ -134,27 +129,25 @@ async def test_personality_based_earned_trust_respects_privileged_level():
         ALL_REVEALS,
     )
 
-    # Bias with max base trust and high alignment story should get privileged (not exclusive)
+    # Bias with max base influence and high alignment story should get privileged (not exclusive)
     assert level == RevealLayer.PRIVILEGED
 
 
-async def test_personality_based_earned_trust_respects_exclusive_level():
-    trust_state = get_trust_state_store().update_trust_state(
-        TrustState(
-            character_id=CHARACTER.id,
-            player_id=PLAYER.id,
-            base_trust=BASE_TRUST_MAX,  # Force max base trust
-            earned_trust=5,  # Start above PRIVILEGED when combined with base
-        )
+async def test_personality_based_earned_influence_respects_exclusive_level():
+    Influence(
+        character_id=CHARACTER.id,
+        player_id=PLAYER.id,
+        base=BASE_INFLUENCE_MAX,  # Force max base influence
+        earned=5,  # Start above PRIVILEGED when combined with base
     )
 
     agent = ConversationAgent(
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        trust_state=trust_state,
+        influence=INFLUENCE_STATE,
         conversation_manager=ConversationManager(),
-        trust_calculator_agent=TrustCalculatorAgent(
+        influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
         memories=ALL_MEMORIES,
@@ -165,11 +158,11 @@ async def test_personality_based_earned_trust_respects_exclusive_level():
         ALL_REVEALS,
     )
 
-    # Bias with max base trust and high alignment story with repetition should get exclusive
+    # Bias with max base influence and high alignment story with repetition should get exclusive
     assert level == RevealLayer.EXCLUSIVE
 
 
-async def test_personality_based_earned_trust_can_be_negative():
+async def test_personality_based_earned_influence_can_be_negative():
     # Make player not to the characters preferences
     opposing_player = Player(
         id=101,
@@ -180,25 +173,24 @@ async def test_personality_based_earned_trust_can_be_negative():
         size=Size.MEDIUM.value,
         alignment=Alignment.NEUTRAL_EVIL.value,
         gender=Gender.MALE.value,
-        abilities={Abilities.CHARISMA: +1},
-        skills={Skills.PERSUASION: +1},
+        abilities={Abilities.CHARISMA.value: 16},
+        skills={Skills.PERSUASION.value: 5},
     )
 
-    trust_state = get_trust_state_store().update_trust_state(
-        TrustState(
-            character_id=CHARACTER.id,
-            player_id=opposing_player.id,
-            base_trust=BASE_TRUST_MIN,
-            earned_trust=0,
-        )
+    influence = Influence(
+        character_id=CHARACTER.id,
+        player_id=opposing_player.id,
+        base=BASE_INFLUENCE_MIN,
+        earned=0,
     )
+
     agent = ConversationAgent(
         character=CHARACTER,
         player=opposing_player,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        trust_state=trust_state,
+        influence=influence,
         conversation_manager=ConversationManager(),
-        trust_calculator_agent=TrustCalculatorAgent(
+        influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT,
             character=CHARACTER,
             player=opposing_player,
@@ -206,20 +198,20 @@ async def test_personality_based_earned_trust_can_be_negative():
         memories=ALL_MEMORIES,
     )
 
-    _, level, trust_adjustment = await agent.chat(
+    _, level, influence_adjustment = await agent.chat(
         "I need a room for the night you dirty old man!",
         ALL_REVEALS,
     )
 
-    assert trust_adjustment < 0
+    assert influence_adjustment < 0
     assert level == RevealLayer.NEGATIVE
 
-    _, level, trust_adjustment = await agent.chat(
+    _, level, influence_adjustment = await agent.chat(
         "That isn't good enough you old man!",
         ALL_REVEALS,
     )
 
-    assert trust_adjustment < 0
+    assert influence_adjustment < 0
     assert level == RevealLayer.NEGATIVE
 
 
@@ -228,10 +220,10 @@ async def test_conversation_agent_handles_multiple_reveals():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        trust_state=TRUST_STATE,
+        influence=INFLUENCE_STATE,
         memories=ALL_MEMORIES,
         conversation_manager=ConversationManager(),
-        trust_calculator_agent=TrustCalculatorAgent(
+        influence_calculator_agent=InfluenceCalculatorAgent(
             SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
         ),
     )
