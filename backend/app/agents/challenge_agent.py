@@ -2,13 +2,14 @@ import logging
 from typing import List
 
 from dotenv import load_dotenv
-from pydantic_ai import Agent, NativeOutput
+from pydantic_ai import Agent, NativeOutput, RunContext
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.agent_output import ChallengeAgentOutput
 from app.agents.base_agent import BaseAgent
+from app.agents.challenge_agent_deps import ChallengeAgentDeps
 from app.http import create_retrying_client
 from app.models.character import Character
 from app.models.memory import Memory
@@ -46,15 +47,24 @@ class ChallengeAgent(BaseAgent):
         )
         self.run_result: AgentRunResult[ChallengeAgentOutput] = None
 
+        @agent.instructions
+        def add_encounter(ctx: RunContext[ChallengeAgentDeps]) -> str:
+            if ctx.deps.encounter_description:
+                return f"""# Physical Location Context
+                    Your character is currently in the following encounter. Use this information as your physical world context.
+                    {ctx.deps.encounter_description}
+                    """
+            else:
+                return ""
+
         # Set instance variable after decorators defined
         self.agent = agent
 
-    async def chat(self, player_transcript: str) -> str:
+    async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
             history = self.run_result.all_messages() if self.run_result else None
             self.run_result = await self.agent.run(
-                user_prompt=player_transcript,
-                message_history=history,
+                user_prompt=player_transcript, message_history=history, deps=deps
             )
             return self.run_result.output.response
         except Exception as e:

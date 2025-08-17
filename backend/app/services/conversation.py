@@ -25,7 +25,7 @@ char_system_prompt = import_system_prompt("conversation_agent")
 scoring_system_prompt = import_system_prompt("influence_scoring_agent")
 
 
-async def conversation(
+async def have_conversation(
     websocket: WebSocket, player_id: int, character_id: int, encounter_id: int
 ) -> None:
 

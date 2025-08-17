@@ -228,7 +228,7 @@
         }
 
         const wsUrl = isChallengeMode.value
-          ? `${WEBSOCKET_BASE_URL}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
+          ? `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
           : `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/conversation/${selectedPlayerId.value}/${props.character.id}`
 
         try {

@@ -18,7 +18,8 @@ from app.models.encounter_connection import (
     ConnectionCreate,
     ConnectionUpdate,
 )
-from app.services.conversation import conversation
+from app.services.challenge import challenge_character
+from app.services.conversation import have_conversation
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
@@ -248,12 +249,31 @@ async def batch_delete_connections(request: BatchDeleteConnectionsRequest):
 
 
 @router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")
-async def websocket_endpoint(
+async def websocket_convo_endpoint(
     websocket: WebSocket, encounter_id: int, player_id: int, character_id: int
 ):
-    return await conversation(
+    return await have_conversation(
         websocket=websocket,
         encounter_id=encounter_id,
         player_id=player_id,
         character_id=character_id,
+    )
+
+
+@router.websocket("/{encounter_id}/challenge/{player_id}/{character_id}")
+async def websocket_challenge_endpoint(
+    websocket: WebSocket,
+    encounter_id: int,
+    player_id: int,
+    character_id: int,
+):
+    skill = websocket.query_params.get("skill")
+    d20_roll = websocket.query_params.get("d20_roll")
+    return await challenge_character(
+        websocket=websocket,
+        encounter_id=encounter_id,
+        player_id=player_id,
+        character_id=character_id,
+        skill=skill,
+        d20_roll=int(d20_roll),
     )
