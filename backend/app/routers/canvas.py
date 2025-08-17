@@ -2,22 +2,22 @@ from fastapi import APIRouter, HTTPException
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.models.batch_update import CanvasSaveRequest, CanvasSaveResponse
+from app.models.batch_update import CanvasResponse, CanvasSaveRequest
 from app.models.encounter import EncounterCreate, EncounterUpdate
 
 router = APIRouter(prefix="/api/canvas", tags=["canvas"])
 
 
-@router.get("", response_model=CanvasSaveResponse)
+@router.get("", response_model=CanvasResponse)
 async def get_canvas():
     """Get complete canvas state - all encounters with connections"""
     encounters = EncounterStore().get_all_encounters()
     connections = ConnectionStore().get_all_connections()
 
-    return CanvasSaveResponse(encounters=encounters, connections=connections)
+    return CanvasResponse(encounters=encounters, connections=connections)
 
 
-@router.post("/save", response_model=CanvasSaveResponse)
+@router.post("/save", response_model=CanvasResponse)
 async def save_canvas(request: CanvasSaveRequest):
     """Save entire canvas state - handles new and existing items"""
 
@@ -117,4 +117,4 @@ async def save_canvas(request: CanvasSaveRequest):
         all_connections.append(updated)
 
     # Return the same structure as the encounters endpoint for easy reuse
-    return CanvasSaveResponse(encounters=all_encounters, connections=all_connections)
+    return CanvasResponse(encounters=all_encounters, connections=all_connections)
