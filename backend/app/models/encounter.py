@@ -60,7 +60,6 @@ class EncounterWithTempId(EncounterBase):
 class EncounterUpdate(EncounterBase):
     """Encounter update model - all fields optional with same validation rules"""
 
-    id: int
     name: str | None = None
     description: str | None = None
     position_x: float | None = None

@@ -2,7 +2,7 @@ from typing import List
 
 from sqlalchemy.orm import sessionmaker
 
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.connection import ConnectionORM
 from app.models.encounter_connection import (
     Connection,
@@ -13,7 +13,7 @@ from app.models.encounter_connection import (
 
 class ConnectionStore:
     def __init__(self):
-        self.Session = sessionmaker(DB_ENGINE)
+        self.Session = sessionmaker(get_db_engine())
 
     def get_all_connections(self) -> List[Connection]:
         """Get all connections"""

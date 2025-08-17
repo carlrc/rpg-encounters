@@ -23,7 +23,7 @@ def get_db_engine(use_test_db=True):
     """Get database engine, defaulting to test database for safety
 
     Args:
-        use_test_db: If True, use test database. If False, use production database.
+        use_test_db: If True, use test database. If False, use live database.
 
     Returns:
         SQLAlchemy engine instance
@@ -37,8 +37,3 @@ def get_db_engine(use_test_db=True):
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL not configured in environment variables")
     return create_engine(DATABASE_URL)
-
-
-# Default to production database for backward compatibility
-# Individual modules can override this by calling get_db_engine(use_test_db=True)
-DB_ENGINE = create_engine(DATABASE_URL) if DATABASE_URL else None

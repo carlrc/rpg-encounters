@@ -2,14 +2,14 @@ from typing import List
 
 from sqlalchemy.orm import sessionmaker
 
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.influence import InfluenceORM
 from app.models.influence import Influence
 
 
 class InfluenceStore:
     def __init__(self):
-        self.Session = sessionmaker(DB_ENGINE)
+        self.Session = sessionmaker(get_db_engine())
 
     def get_or_create(
         self, character_id: int, player_id: int, base: int = 0

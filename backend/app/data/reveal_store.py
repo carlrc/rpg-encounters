@@ -2,7 +2,7 @@ from typing import List
 
 from sqlalchemy.orm import sessionmaker
 
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.db.models.reveal import RevealORM
 from app.models.reveal import Reveal, RevealCreate, RevealUpdate
@@ -10,7 +10,7 @@ from app.models.reveal import Reveal, RevealCreate, RevealUpdate
 
 class RevealStore:
     def __init__(self):
-        self.Session = sessionmaker(DB_ENGINE)
+        self.Session = sessionmaker(get_db_engine())
 
     def get_all_reveals(self) -> List[Reveal]:
         """Get all reveals across all characters"""

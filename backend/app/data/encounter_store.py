@@ -2,7 +2,7 @@ from typing import List
 
 from sqlalchemy.orm import sessionmaker
 
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.db.models.encounter import EncounterORM
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
@@ -10,7 +10,7 @@ from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
 
 class EncounterStore:
     def __init__(self):
-        self.Session = sessionmaker(DB_ENGINE)
+        self.Session = sessionmaker(get_db_engine())
 
     def get_all_encounters(self) -> List[Encounter]:
         """Get all encounters"""

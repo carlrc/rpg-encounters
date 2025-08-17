@@ -2,14 +2,14 @@ from typing import List
 
 from sqlalchemy.orm import sessionmaker
 
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.player import PlayerORM
 from app.models.player import Player, PlayerCreate, PlayerUpdate
 
 
 class PlayerStore:
     def __init__(self):
-        self.Session = sessionmaker(DB_ENGINE)
+        self.Session = sessionmaker(get_db_engine())
 
     def get_all_players(self) -> List[Player]:
         """Get all players"""
