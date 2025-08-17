@@ -20,3 +20,8 @@ REVEAL_CONTENT_LIMIT = 500
 # Encounter limits
 ENCOUNTER_NAME_LIMIT = 100
 ENCOUNTER_DESCRIPTION_LIMIT = 1000
+
+# Connection limits
+CONNECTION_HANDLE_LIMIT = 10  # "top", "right", "bottom", "left"
+CONNECTION_EDGE_TYPE_LIMIT = 20  # "straight", "smoothstep", "step", "bezier"
+CONNECTION_COLOR_LIMIT = 7  # "#007bff" format

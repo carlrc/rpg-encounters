@@ -26,3 +26,17 @@ class EncounterORM(UnifiedBase):
         secondary=encounter_character_association,
         back_populates="encounters",
     )
+
+    # One-to-many relationships with connections
+    outgoing_connections = relationship(
+        "ConnectionORM",
+        foreign_keys="ConnectionORM.source_encounter_id",
+        back_populates="source_encounter",
+        cascade="all, delete-orphan",
+    )
+    incoming_connections = relationship(
+        "ConnectionORM",
+        foreign_keys="ConnectionORM.target_encounter_id",
+        back_populates="target_encounter",
+        cascade="all, delete-orphan",
+    )

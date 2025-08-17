@@ -12,6 +12,7 @@ MEMORIES_TABLE = "memories"
 REVEALS_TABLE = "reveals"
 INFLUENCES_TABLE = "influences"
 ENCOUNTERS_TABLE = "encounters"
+CONNECTIONS_TABLE = "connections"
 
 # Environment-based database configuration
 DATABASE_URL = os.getenv("DATABASE_URL")

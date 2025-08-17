@@ -1,69 +1,125 @@
 from typing import List
 
+from sqlalchemy.orm import sessionmaker
+
+from app.db.connection import DB_ENGINE
+from app.db.models.connection import ConnectionORM
 from app.models.encounter_connection import (
     Connection,
     ConnectionCreate,
     ConnectionUpdate,
 )
-from tests.fixtures.connections import connections_db, next_connection_id
 
 
 class ConnectionStore:
     def __init__(self):
-        self.connections = connections_db
-        self.next_id = next_connection_id
+        self.Session = sessionmaker(DB_ENGINE)
 
     def get_all_connections(self) -> List[Connection]:
         """Get all connections"""
-        return list(self.connections.values())
+        with self.Session() as session:
+            connection_orms = session.query(ConnectionORM).all()
+            return [
+                self._orm_to_connection(connection_orm)
+                for connection_orm in connection_orms
+            ]
 
     def get_connection_by_id(self, connection_id: int) -> Connection | None:
         """Get a specific connection by ID"""
-        return self.connections.get(connection_id)
+        with self.Session() as session:
+            connection_orm = (
+                session.query(ConnectionORM)
+                .filter(ConnectionORM.id == connection_id)
+                .first()
+            )
+            if connection_orm:
+                return self._orm_to_connection(connection_orm)
+            return None
 
     def create_connection(self, connection_data: ConnectionCreate) -> Connection:
         """Create a new connection"""
-        connection_dict = connection_data.model_dump()
-        connection_dict["id"] = self.next_id
-
-        new_connection = Connection(**connection_dict)
-        self.connections[self.next_id] = new_connection
-        self.next_id += 1
-
-        return new_connection
+        with self.Session() as session:
+            connection_dict = connection_data.model_dump()
+            connection_orm = ConnectionORM(**connection_dict)
+            session.add(connection_orm)
+            session.commit()
+            session.refresh(connection_orm)
+            return self._orm_to_connection(connection_orm)
 
     def update_connection(
         self, connection_id: int, connection_update: ConnectionUpdate
     ) -> Connection | None:
         """Update an existing connection"""
-        if connection_id not in self.connections:
-            return None
+        with self.Session() as session:
+            connection_orm = (
+                session.query(ConnectionORM)
+                .filter(ConnectionORM.id == connection_id)
+                .first()
+            )
+            if not connection_orm:
+                return None
 
-        existing_connection = self.connections[connection_id]
-        update_data = connection_update.model_dump(exclude_unset=True)
+            # Update fields
+            update_data = connection_update.model_dump(
+                exclude_unset=True, exclude={"id"}
+            )
+            for key, value in update_data.items():
+                setattr(connection_orm, key, value)
 
-        # Update the existing connection with new data
-        updated_data = existing_connection.model_dump()
-        updated_data.update(update_data)
-
-        updated_connection = Connection(**updated_data)
-        self.connections[connection_id] = updated_connection
-
-        return updated_connection
+            session.commit()
+            session.refresh(connection_orm)
+            return self._orm_to_connection(connection_orm)
 
     def delete_connection(self, connection_id: int) -> bool:
         """Delete a connection"""
-        if connection_id not in self.connections:
-            return False
+        with self.Session() as session:
+            connection_orm = (
+                session.query(ConnectionORM)
+                .filter(ConnectionORM.id == connection_id)
+                .first()
+            )
+            if not connection_orm:
+                return False
 
-        del self.connections[connection_id]
-        return True
+            session.delete(connection_orm)
+            session.commit()
+            return True
 
     def get_connections_for_encounter(self, encounter_id: int) -> List[Connection]:
         """Get all connections that involve a specific encounter"""
-        return [
-            conn
-            for conn in self.connections.values()
-            if conn.source_encounter_id == encounter_id
-            or conn.target_encounter_id == encounter_id
-        ]
+        with self.Session() as session:
+            connection_orms = (
+                session.query(ConnectionORM)
+                .filter(
+                    (ConnectionORM.source_encounter_id == encounter_id)
+                    | (ConnectionORM.target_encounter_id == encounter_id)
+                )
+                .all()
+            )
+            return [
+                self._orm_to_connection(connection_orm)
+                for connection_orm in connection_orms
+            ]
+
+    def connection_exists(self, connection_id: int) -> bool:
+        """Check if a connection exists"""
+        with self.Session() as session:
+            return (
+                session.query(ConnectionORM)
+                .filter(ConnectionORM.id == connection_id)
+                .first()
+                is not None
+            )
+
+    def _orm_to_connection(self, connection_orm: ConnectionORM) -> Connection:
+        """Convert ConnectionORM to Connection model"""
+        return Connection(
+            id=connection_orm.id,
+            source_encounter_id=connection_orm.source_encounter_id,
+            target_encounter_id=connection_orm.target_encounter_id,
+            source_handle=connection_orm.source_handle,
+            target_handle=connection_orm.target_handle,
+            edge_type=connection_orm.edge_type,
+            stroke_color=connection_orm.stroke_color,
+            stroke_width=connection_orm.stroke_width,
+        )
