@@ -1,10 +1,11 @@
 import { computed, ref, watch } from 'vue'
 import { FORM_FIELDS } from '../constants/validation.js'
 import { useGameData } from './useGameData.js'
+import { validateCharacterLimit } from '../utils/validationHelpers.js'
 
 /**
  * Enhanced entity validation composable
- * Provides comprehensive validation with detailed error messages
+ * All validation limits now come from backend gameData
  */
 export function useEntityValidation(formData, entityType = 'PLAYER') {
   const { gameData } = useGameData()
@@ -43,81 +44,15 @@ export function useEntityValidation(formData, entityType = 'PLAYER') {
       }
     }
 
-    // Entity-specific validations
-    switch (entityType) {
-      case 'PLAYER':
-        if (fieldName === 'appearance' && gameData.value) {
-          const words = value?.trim() ? value.trim().split(/\s+/).length : 0
-          if (words > gameData.value.validation_limits.player_appearance) {
-            fieldErrors.push(
-              `Appearance must be ${gameData.value.validation_limits.player_appearance} words or less (currently ${words} words)`
-            )
-          }
-        }
-        break
-
-      case 'CHARACTER':
-        if (fieldName === 'background' && gameData.value) {
-          const chars = value?.length || 0
-          if (chars > gameData.value.validation_limits.character_background) {
-            fieldErrors.push(
-              `Background must be ${gameData.value.validation_limits.character_background} characters or less (currently ${chars} characters)`
-            )
-          }
-        }
-        if (fieldName === 'communication_style' && gameData.value) {
-          const chars = value?.length || 0
-          if (chars > gameData.value.validation_limits.character_communication) {
-            fieldErrors.push(
-              `Communication style must be ${gameData.value.validation_limits.character_communication} characters or less (currently ${chars} characters)`
-            )
-          }
-        }
-        if (fieldName === 'motivation' && gameData.value) {
-          const chars = value?.length || 0
-          if (chars > gameData.value.validation_limits.character_motivation) {
-            fieldErrors.push(
-              `Motivation must be ${gameData.value.validation_limits.character_motivation} characters or less (currently ${chars} characters)`
-            )
-          }
-        }
-        break
-
-      case 'REVEAL':
-        if (fieldName === 'title' && (!value || value.trim() === '')) {
-          fieldErrors.push('Title is required')
-        }
-        if (fieldName === 'character_ids' && (!value || value.length === 0)) {
-          fieldErrors.push('At least one character must be selected')
-        }
-        if (fieldName === 'level_1_content') {
-          if (!value || value.trim() === '') {
-            fieldErrors.push('Level 1 content is required')
-          } else if (value.length > 500) {
-            fieldErrors.push(
-              `Level 1 content must be 500 characters or less (currently ${value.length} characters)`
-            )
-          }
-        }
-        if (fieldName === 'level_2_content' && value && value.length > 500) {
-          fieldErrors.push(
-            `Level 2 content must be 500 characters or less (currently ${value.length} characters)`
-          )
-        }
-        if (fieldName === 'level_3_content' && value && value.length > 500) {
-          fieldErrors.push(
-            `Level 3 content must be 500 characters or less (currently ${value.length} characters)`
-          )
-        }
-        break
+    // Character limit validation using shared helper
+    const limitError = validateCharacterLimit(value, fieldName, entityType, gameData.value)
+    if (limitError) {
+      fieldErrors.push(limitError)
     }
 
-    // Email validation
-    if (fieldName === 'email' && value) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(value)) {
-        fieldErrors.push('Please enter a valid email address')
-      }
+    // Special validations
+    if (fieldName === 'character_ids' && (!value || value.length === 0)) {
+      fieldErrors.push('At least one character must be selected')
     }
 
     return fieldErrors

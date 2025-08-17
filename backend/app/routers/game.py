@@ -1,5 +1,17 @@
 from fastapi import APIRouter
 
+from app.db.limits import (
+    CHARACTER_BACKGROUND_LIMIT,
+    CHARACTER_COMMUNICATION_LIMIT,
+    CHARACTER_MOTIVATION_LIMIT,
+    CHARACTER_PROFESSION_LIMIT,
+    MEMORY_CONTENT_LIMIT,
+    MEMORY_TITLE_LIMIT,
+    NAME_LIMIT,
+    PLAYER_APPEARANCE_MAX_LIMIT,
+    REVEAL_CONTENT_LIMIT,
+    REVEAL_TITLE_LIMIT,
+)
 from app.models.alignment import VALID_ALIGNMENTS
 from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
 from app.models.race import VALID_RACES, VALID_SIZES
@@ -27,11 +39,17 @@ async def get_game_data():
             "exclusive": REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE],
         },
         "validation_limits": {
-            "memory_text": 500,
-            "player_appearance": 180,
-            "character_background": 240,
-            "character_communication": 180,
-            "character_motivation": 300,
+            # All limits are character-based
+            "name": NAME_LIMIT,
+            "player_appearance": PLAYER_APPEARANCE_MAX_LIMIT,
+            "character_profession": CHARACTER_PROFESSION_LIMIT,
+            "character_background": CHARACTER_BACKGROUND_LIMIT,
+            "character_communication": CHARACTER_COMMUNICATION_LIMIT,
+            "character_motivation": CHARACTER_MOTIVATION_LIMIT,
+            "memory_title": MEMORY_TITLE_LIMIT,
+            "memory_content": MEMORY_CONTENT_LIMIT,
+            "reveal_title": REVEAL_TITLE_LIMIT,
+            "reveal_content": REVEAL_CONTENT_LIMIT,
         },
         "threshold_limits": {
             "min": DifficultyClass.ALWAYS.value,

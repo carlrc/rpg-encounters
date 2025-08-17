@@ -207,8 +207,8 @@
             :initial-option="bias.option"
             :initial-value="bias.value"
             placeholder="Select Race"
-            @change="(option, val) => updateBiasPreference('race_preferences', index, option, val)"
-            @remove="() => removeBiasPreference('race_preferences', index)"
+            @change="(option, val) => handleRaceBiasChange(index, option, val)"
+            @remove="() => handleRaceBiasRemove(index)"
           />
           <button
             @click="addBiasPreference('race_preferences')"
@@ -231,8 +231,8 @@
             :initial-option="bias.option"
             :initial-value="bias.value"
             placeholder="Select Class"
-            @change="(option, val) => updateBiasPreference('class_preferences', index, option, val)"
-            @remove="() => removeBiasPreference('class_preferences', index)"
+            @change="(option, val) => handleClassBiasChange(index, option, val)"
+            @remove="() => handleClassBiasRemove(index)"
           />
           <button
             @click="addBiasPreference('class_preferences')"
@@ -255,10 +255,8 @@
             :initial-option="bias.option"
             :initial-value="bias.value"
             placeholder="Select Gender"
-            @change="
-              (option, val) => updateBiasPreference('gender_preferences', index, option, val)
-            "
-            @remove="() => removeBiasPreference('gender_preferences', index)"
+            @change="(option, val) => handleGenderBiasChange(index, option, val)"
+            @remove="() => handleGenderBiasRemove(index)"
           />
           <button
             @click="addBiasPreference('gender_preferences')"
@@ -281,8 +279,8 @@
             :initial-option="bias.option"
             :initial-value="bias.value"
             placeholder="Select Size"
-            @change="(option, val) => updateBiasPreference('size_preferences', index, option, val)"
-            @remove="() => removeBiasPreference('size_preferences', index)"
+            @change="(option, val) => handleSizeBiasChange(index, option, val)"
+            @remove="() => handleSizeBiasRemove(index)"
           />
           <button
             @click="addBiasPreference('size_preferences')"
@@ -306,7 +304,7 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted, watch } from 'vue'
+  import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameData } from '../composables/useGameData.js'
@@ -329,6 +327,14 @@
       character: {
         type: Object,
         required: true,
+        validator: (value) => {
+          return (
+            value &&
+            typeof value.id !== 'undefined' &&
+            typeof value.name === 'string' &&
+            value.name.length > 0
+          )
+        },
       },
     },
     emits: ['update', 'delete'],
@@ -358,6 +364,9 @@
       const { isFormValid } = useFormValidation(editForm, 'CHARACTER')
 
       const { genders, getGenderEmoji } = useDropdownOptions()
+
+      // Store cleanup functions for proper memory management
+      const cleanupFunctions = []
 
       const loadInfluenceProfile = () => {
         // Influence profiles are now part of the character model
@@ -453,6 +462,39 @@
         editForm.biases[category].splice(index, 1)
       }
 
+      // Specific handler methods to avoid inline arrow functions
+      const handleRaceBiasChange = (index, option, value) => {
+        updateBiasPreference('race_preferences', index, option, value)
+      }
+
+      const handleRaceBiasRemove = (index) => {
+        removeBiasPreference('race_preferences', index)
+      }
+
+      const handleClassBiasChange = (index, option, value) => {
+        updateBiasPreference('class_preferences', index, option, value)
+      }
+
+      const handleClassBiasRemove = (index) => {
+        removeBiasPreference('class_preferences', index)
+      }
+
+      const handleGenderBiasChange = (index, option, value) => {
+        updateBiasPreference('gender_preferences', index, option, value)
+      }
+
+      const handleGenderBiasRemove = (index) => {
+        removeBiasPreference('gender_preferences', index)
+      }
+
+      const handleSizeBiasChange = (index, option, value) => {
+        updateBiasPreference('size_preferences', index, option, value)
+      }
+
+      const handleSizeBiasRemove = (index) => {
+        removeBiasPreference('size_preferences', index)
+      }
+
       const deleteCharacter = () => {
         if (confirm(`Are you sure you want to delete ${props.character.name}?`)) {
           emit('delete', props.character.id)
@@ -504,16 +546,15 @@
         loadDisplayBiases()
       })
 
-      // Watch for character prop changes and reload biases
-      watch(
-        () => props.character.id,
-        () => {
+      // Use watchEffect for automatic cleanup and better performance
+      const stopCharacterIdWatcher = watchEffect(() => {
+        if (props.character.id) {
           loadDisplayBiases()
         }
-      )
+      })
 
-      // Watch for changes in character bias properties
-      watch(
+      // Watch for changes in character bias properties with cleanup
+      const stopBiasWatcher = watch(
         () => [
           props.character.race_preferences,
           props.character.class_preferences,
@@ -525,6 +566,14 @@
         },
         { deep: true }
       )
+
+      // Add watchers to cleanup functions
+      cleanupFunctions.push(stopCharacterIdWatcher, stopBiasWatcher)
+
+      // Clean up on unmount to prevent memory leaks
+      onUnmounted(() => {
+        cleanupFunctions.forEach((cleanup) => cleanup())
+      })
 
       return {
         gameData,
@@ -548,6 +597,14 @@
         displayBiases,
         biasesCategoryNames,
         getBiasClass,
+        handleRaceBiasChange,
+        handleRaceBiasRemove,
+        handleClassBiasChange,
+        handleClassBiasRemove,
+        handleGenderBiasChange,
+        handleGenderBiasRemove,
+        handleSizeBiasChange,
+        handleSizeBiasRemove,
       }
     },
   }

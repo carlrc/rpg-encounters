@@ -1,21 +1,32 @@
 import { computed } from 'vue'
 import { useGameData } from './useGameData.js'
+import { getValidationLimit } from '../utils/validationHelpers.js'
 
 export function useRevealValidation(form) {
   const { gameData } = useGameData()
 
   const isFormValid = computed(() => {
+    if (!gameData.value?.validation_limits) return false
+
+    const titleLimit = getValidationLimit('title', 'REVEAL', gameData.value)
+    const contentLimit = getValidationLimit('level_1_content', 'REVEAL', gameData.value)
+
     const baseValid =
       form.title.trim() &&
+      (!titleLimit || form.title.length <= titleLimit) &&
       form.character_ids.length > 0 &&
       form.level_1_content.trim() &&
-      form.level_1_content.length <= 500
+      (!contentLimit || form.level_1_content.length <= contentLimit)
 
     const level2Valid =
-      !form.enable_level_2 || (form.level_2_content.trim() && form.level_2_content.length <= 500)
+      !form.enable_level_2 ||
+      (form.level_2_content.trim() &&
+        (!contentLimit || form.level_2_content.length <= contentLimit))
 
     const level3Valid =
-      !form.enable_level_3 || (form.level_3_content.trim() && form.level_3_content.length <= 500)
+      !form.enable_level_3 ||
+      (form.level_3_content.trim() &&
+        (!contentLimit || form.level_3_content.length <= contentLimit))
 
     // Threshold validation: ensure thresholds are in ascending order
     const thresholdValid = (() => {

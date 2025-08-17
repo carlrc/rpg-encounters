@@ -2,7 +2,7 @@ from typing import Dict
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.db.limits import PLAYER_APPEARANCE_MAX_LIMIT
+from app.db.limits import NAME_LIMIT, PLAYER_APPEARANCE_MAX_LIMIT
 
 from .alignment import VALID_ALIGNMENTS
 from .class_traits import (
@@ -29,9 +29,16 @@ class PlayerBase(BaseModel):
     abilities: Dict[str, int] = Field(..., description="Abilities of the player")
     skills: Dict[str, int] = Field(..., description="Skills of the player")
 
+    @field_validator("name")
+    @classmethod
+    def validate_name_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, NAME_LIMIT, "Name")
+        return v
+
     @field_validator("appearance")
     @classmethod
-    def validate_appearance_word_count(cls, v):
+    def validate_appearance_character_count(cls, v):
         if v is not None:
             return validate_character_count(
                 v, PLAYER_APPEARANCE_MAX_LIMIT, "Appearance"

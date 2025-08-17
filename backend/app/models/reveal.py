@@ -3,6 +3,10 @@ from typing import List
 
 from pydantic import BaseModel, field_validator
 
+from app.db.limits import REVEAL_CONTENT_LIMIT, REVEAL_TITLE_LIMIT
+
+from .util import validate_character_count
+
 
 class RevealLayer(Enum):
     NEGATIVE = 0
@@ -37,6 +41,20 @@ class RevealBase(BaseModel):
     standard_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
     privileged_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED]
     exclusive_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE]
+
+    @field_validator("title")
+    @classmethod
+    def validate_title_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, REVEAL_TITLE_LIMIT, "Title")
+        return v
+
+    @field_validator("level_1_content", "level_2_content", "level_3_content")
+    @classmethod
+    def validate_content_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, REVEAL_CONTENT_LIMIT, "Content")
+        return v
 
     @field_validator(
         "standard_threshold", "privileged_threshold", "exclusive_threshold"

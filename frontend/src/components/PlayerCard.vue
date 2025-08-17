@@ -223,7 +223,7 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted, watch } from 'vue'
+  import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameData } from '../composables/useGameData.js'
@@ -243,6 +243,14 @@
       player: {
         type: Object,
         required: true,
+        validator: (value) => {
+          return (
+            value &&
+            typeof value.id !== 'undefined' &&
+            typeof value.name === 'string' &&
+            value.name.length > 0
+          )
+        },
       },
     },
     emits: ['update', 'delete'],
@@ -269,6 +277,9 @@
       const { isFormValid } = useFormValidation(editForm, 'PLAYER')
 
       const { genders, getGenderEmoji } = useDropdownOptions()
+
+      // Store cleanup functions for proper memory management
+      const cleanupFunctions = []
 
       const startEdit = () => {
         editForm.name = props.player.name || ''
@@ -356,22 +367,29 @@
         loadDisplayAbilitiesSkills()
       })
 
-      // Watch for player prop changes and reload abilities/skills
-      watch(
-        () => props.player.id,
-        () => {
+      // Use watchEffect for automatic cleanup and better performance
+      const stopPlayerIdWatcher = watchEffect(() => {
+        if (props.player.id) {
           loadDisplayAbilitiesSkills()
         }
-      )
+      })
 
-      // Watch for changes in player abilities and skills properties
-      watch(
+      // Watch for changes in player abilities and skills properties with cleanup
+      const stopAbilitiesSkillsWatcher = watch(
         () => [props.player.abilities, props.player.skills],
         () => {
           loadDisplayAbilitiesSkills()
         },
         { deep: true }
       )
+
+      // Add watchers to cleanup functions
+      cleanupFunctions.push(stopPlayerIdWatcher, stopAbilitiesSkillsWatcher)
+
+      // Clean up on unmount to prevent memory leaks
+      onUnmounted(() => {
+        cleanupFunctions.forEach((cleanup) => cleanup())
+      })
 
       return {
         gameData,

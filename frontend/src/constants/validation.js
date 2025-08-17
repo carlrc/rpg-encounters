@@ -1,7 +1,7 @@
 // UI-specific validation constants (kept in frontend)
 export const VALIDATION_MESSAGES = {
   REQUIRED_FIELD: 'This field is required',
-  WORD_LIMIT_EXCEEDED: 'Word limit exceeded',
+  CHARACTER_LIMIT_EXCEEDED: 'Character limit exceeded',
   INVALID_FORMAT: 'Invalid format',
 }
 
@@ -33,7 +33,7 @@ export const FORM_FIELDS = {
     OPTIONAL: ['avatar'],
   },
   MEMORY: {
-    REQUIRED: ['title', 'memory_text'],
+    REQUIRED: ['title', 'content', 'character_ids'],
     OPTIONAL: [
       'linked_character_ids',
       'visibility_type',
@@ -43,7 +43,8 @@ export const FORM_FIELDS = {
       'character_limit',
     ],
   },
+  REVEAL: {
+    REQUIRED: ['title', 'character_ids', 'level_1_content'],
+    OPTIONAL: ['level_2_content', 'level_3_content'],
+  },
 }
-
-// Note: CHARACTER_LIMITS are now loaded dynamically from the backend via /api/game
-// as validation_limits

@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import { FORM_FIELDS } from '../constants/validation.js'
 import { useGameData } from '../composables/useGameData.js'
+import { getValidationLimit, validateCharacterLimit } from './validationHelpers.js'
 
 export function useFormValidation(formData, entityType = 'PLAYER') {
   const { gameData } = useGameData()
@@ -42,25 +43,14 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
       }
     }
 
-    // Check word limits based on entity type
-    if (entityType === 'PLAYER' && gameData.value) {
-      const appearanceWords = formData.appearance?.trim()
-        ? formData.appearance.trim().split(/\s+/).length
-        : 0
-      if (appearanceWords > gameData.value.validation_limits.player_appearance) return false
-    }
-
-    if (entityType === 'CHARACTER' && gameData.value) {
-      const backgroundWords = formData.background?.trim()
-        ? formData.background.trim().split(/\s+/).length
-        : 0
-      const communicationWords = formData.communication_style?.trim()
-        ? formData.communication_style.trim().split(/\s+/).length
-        : 0
-
-      if (backgroundWords > gameData.value.validation_limits.character_background) return false
-      if (communicationWords > gameData.value.validation_limits.character_communication)
-        return false
+    // Check character limits for text fields using shared helper
+    for (const [fieldName, value] of Object.entries(formData)) {
+      if (typeof value === 'string') {
+        const limit = getValidationLimit(fieldName, entityType, gameData.value)
+        if (limit && value.length > limit) {
+          return false
+        }
+      }
     }
 
     return true
@@ -98,30 +88,10 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
       errors.push('This field is required')
     }
 
-    // Word limit checks
-    if (fieldName === 'appearance' && entityType === 'PLAYER' && gameData.value) {
-      const words = value?.trim() ? value.trim().split(/\s+/).length : 0
-      if (words > gameData.value.validation_limits.player_appearance) {
-        errors.push(`Maximum ${gameData.value.validation_limits.player_appearance} words allowed`)
-      }
-    }
-
-    if (fieldName === 'background' && entityType === 'CHARACTER' && gameData.value) {
-      const words = value?.trim() ? value.trim().split(/\s+/).length : 0
-      if (words > gameData.value.validation_limits.character_background) {
-        errors.push(
-          `Maximum ${gameData.value.validation_limits.character_background} words allowed`
-        )
-      }
-    }
-
-    if (fieldName === 'communication_style' && entityType === 'CHARACTER' && gameData.value) {
-      const words = value?.trim() ? value.trim().split(/\s+/).length : 0
-      if (words > gameData.value.validation_limits.character_communication) {
-        errors.push(
-          `Maximum ${gameData.value.validation_limits.character_communication} words allowed`
-        )
-      }
+    // Character limit validation using shared helper
+    const limitError = validateCharacterLimit(value, fieldName, entityType, gameData.value)
+    if (limitError) {
+      errors.push(limitError)
     }
 
     return errors

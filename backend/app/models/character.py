@@ -6,6 +6,8 @@ from app.db.limits import (
     CHARACTER_BACKGROUND_LIMIT,
     CHARACTER_COMMUNICATION_LIMIT,
     CHARACTER_MOTIVATION_LIMIT,
+    CHARACTER_PROFESSION_LIMIT,
+    NAME_LIMIT,
     PREFERENCE_VALUE_MAX,
     PREFERENCE_VALUE_MIN,
 )
@@ -51,6 +53,20 @@ class CharacterBase(BaseModel):
     size_preferences: Dict[str, int] | None = Field(
         None, description="Size preferences for influence calculation"
     )
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, NAME_LIMIT, "Name")
+        return v
+
+    @field_validator("profession")
+    @classmethod
+    def validate_profession_character_count(cls, v):
+        if v is not None:
+            return validate_character_count(v, CHARACTER_PROFESSION_LIMIT, "Profession")
+        return v
 
     @field_validator("background")
     @classmethod

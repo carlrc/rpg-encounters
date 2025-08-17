@@ -1,5 +1,6 @@
 import { ref, reactive } from 'vue'
 import apiService from '../services/api.js'
+import { useNotification } from '../composables/useNotification.js'
 
 export function useEntityCRUD(entityType) {
   const entities = ref([])
@@ -7,6 +8,8 @@ export function useEntityCRUD(entityType) {
   const error = ref('')
   const selectedEntityId = ref(null)
   const showCreateForm = ref(false)
+
+  const { showError, showSuccess } = useNotification()
 
   // API method names based on entity type
   const getPlural = (type) => {
@@ -29,7 +32,9 @@ export function useEntityCRUD(entityType) {
     try {
       entities.value = await apiService[apiMethods.get]()
     } catch (err) {
-      error.value = `Failed to load ${entityType.toLowerCase()}s. Make sure the backend is running.`
+      const errorMessage = `Failed to load ${entityType.toLowerCase()}s. Please try again.`
+      error.value = errorMessage
+      showError(errorMessage)
       console.error(`Error loading ${entityType.toLowerCase()}s:`, err)
     } finally {
       loading.value = false
@@ -42,9 +47,12 @@ export function useEntityCRUD(entityType) {
       entities.value.push(newEntity)
       selectedEntityId.value = newEntity.id
       showCreateForm.value = false
+      showSuccess(`${entityType} created successfully!`)
       return newEntity
     } catch (err) {
-      error.value = `Failed to create ${entityType.toLowerCase()}`
+      const errorMessage = `Failed to create ${entityType.toLowerCase()}. Please check your input.`
+      error.value = errorMessage
+      showError(errorMessage)
       console.error(`Error creating ${entityType.toLowerCase()}:`, err)
       throw err
     }
@@ -57,9 +65,12 @@ export function useEntityCRUD(entityType) {
       if (index !== -1) {
         entities.value[index] = updatedEntity
       }
+      showSuccess(`${entityType} updated successfully!`)
       return updatedEntity
     } catch (err) {
-      error.value = `Failed to update ${entityType.toLowerCase()}`
+      const errorMessage = `Failed to update ${entityType.toLowerCase()}. Please try again.`
+      error.value = errorMessage
+      showError(errorMessage)
       console.error(`Error updating ${entityType.toLowerCase()}:`, err)
       throw err
     }
@@ -78,8 +89,11 @@ export function useEntityCRUD(entityType) {
           selectedEntityId.value = null
         }
       }
+      showSuccess(`${entityType} deleted successfully!`)
     } catch (err) {
-      error.value = `Failed to delete ${entityType.toLowerCase()}`
+      const errorMessage = `Failed to delete ${entityType.toLowerCase()}. Please try again.`
+      error.value = errorMessage
+      showError(errorMessage)
       console.error(`Error deleting ${entityType.toLowerCase()}:`, err)
       throw err
     }
