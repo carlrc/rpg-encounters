@@ -1,16 +1,20 @@
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.base import UnifiedBase
 
 
-def create_tables():
+def create_tables(use_test_db=True):
     """Create all database tables"""
-    UnifiedBase.metadata.create_all(bind=DB_ENGINE)
+
+    engine = get_db_engine(use_test_db)
+    UnifiedBase.metadata.create_all(bind=engine)
 
 
-def drop_tables():
+def drop_tables(use_test_db=True):
     """Drop all database tables"""
-    UnifiedBase.metadata.drop_all(bind=DB_ENGINE)
+
+    engine = get_db_engine(use_test_db)
+    UnifiedBase.metadata.drop_all(bind=engine)
 
 
 if __name__ == "__main__":
-    create_tables()
+    create_tables(use_test_db=True)

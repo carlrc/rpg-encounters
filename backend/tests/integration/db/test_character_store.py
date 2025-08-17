@@ -14,9 +14,9 @@ from app.models.race import Gender, Race, Size
 def setup_teardown():
     """Setup and teardown for each test"""
     load_dotenv()
-    create_tables()
+    create_tables(use_test_db=True)  # Explicitly use test database
     yield
-    drop_tables()
+    drop_tables(use_test_db=True)  # Explicitly use test database
 
 
 def test_character_store():

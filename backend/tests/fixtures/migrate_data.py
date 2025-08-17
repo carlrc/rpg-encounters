@@ -1,7 +1,8 @@
+import sys
 import logging
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from app.db.connection import DB_ENGINE
+from app.db.connection import get_db_engine
 from app.db.models.player import PlayerORM
 from app.db.models.character import CharacterORM
 from app.db.models.encounter import EncounterORM
@@ -23,9 +24,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def migrate_player_data():
+def migrate_player_data(use_test_db=True):
     """Migrate player data from fixtures to database"""
-    Session = sessionmaker(bind=DB_ENGINE)
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
     
     try:
         with Session() as session:
@@ -54,9 +56,10 @@ def migrate_player_data():
         raise
 
 
-def migrate_character_data():
+def migrate_character_data(use_test_db=True):
     """Migrate character data from fixtures to database"""
-    Session = sessionmaker(bind=DB_ENGINE)
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
     
     try:
         with Session() as session:
@@ -85,9 +88,10 @@ def migrate_character_data():
         raise
 
 
-def migrate_encounter_data():
+def migrate_encounter_data(use_test_db=True):
     """Migrate encounter data from fixtures to database"""
-    Session = sessionmaker(bind=DB_ENGINE)
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
     
     try:
         with Session() as session:
@@ -126,9 +130,10 @@ def migrate_encounter_data():
         raise
 
 
-def migrate_memory_data():
+def migrate_memory_data(use_test_db=True):
     """Migrate memory data from fixtures to database"""
-    Session = sessionmaker(bind=DB_ENGINE)
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
     
     try:
         with Session() as session:
@@ -167,9 +172,10 @@ def migrate_memory_data():
         raise
 
 
-def migrate_reveal_data():
+def migrate_reveal_data(use_test_db=True):
     """Migrate reveal data from fixtures to database"""
-    Session = sessionmaker(bind=DB_ENGINE)
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
     
     try:
         with Session() as session:
@@ -208,9 +214,10 @@ def migrate_reveal_data():
         raise
 
 
-def migrate_connection_data():
+def migrate_connection_data(use_test_db=True):
     """Migrate connection data from fixtures to database"""
-    Session = sessionmaker(bind=DB_ENGINE)
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
     
     try:
         with Session() as session:
@@ -254,23 +261,33 @@ def migrate_connection_data():
         raise
 
 
-def migrate_all_data():
+def migrate_all_data(use_test_db=True):
     """Migrate all fixture data to database in the correct order"""
-    logger.info("Starting migration of all fixture data...")
+    db_type = "test" if use_test_db else "production"
+    logger.info(f"Starting migration of all fixture data to {db_type} database...")
     
     try:
         # Migrate in dependency order
-        migrate_player_data()
-        migrate_character_data()
-        migrate_encounter_data()
-        migrate_memory_data()
-        migrate_reveal_data()
-        migrate_connection_data()
+        migrate_player_data(use_test_db)
+        migrate_character_data(use_test_db)
+        migrate_encounter_data(use_test_db)
+        migrate_memory_data(use_test_db)
+        migrate_reveal_data(use_test_db)
+        migrate_connection_data(use_test_db)
+        logger.info(f"✅ All data migrated successfully to {db_type} database!")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
         raise
 
 
 if __name__ == "__main__":
-    create_tables()
-    migrate_all_data()
+    # Check for --prod flag to use production database
+    use_test = "--prod" not in sys.argv
+    
+    if not use_test:
+        print("🔴 Migrating to PRODUCTION database")
+    else:
+        print("🟢 Migrating to TEST database (default)")
+    
+    create_tables(use_test_db=use_test)
+    migrate_all_data(use_test_db=use_test)

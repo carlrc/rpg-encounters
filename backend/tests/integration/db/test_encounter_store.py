@@ -15,9 +15,9 @@ from app.models.race import Gender, Race, Size
 @pytest.fixture(autouse=True)
 def my_fixture():
     load_dotenv()
-    create_tables()
+    create_tables(use_test_db=True)  # Explicitly use test database
     yield
-    drop_tables()
+    drop_tables(use_test_db=True)  # Explicitly use test database
 
 
 def test_encounter_store():

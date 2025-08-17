@@ -52,6 +52,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=mysecretpassword
 POSTGRES_DB=dnd-postgres
 DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
+# Test Database (same server, different database name)
+TEST_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}-test
 ```
 
 ## Usage
@@ -62,11 +64,11 @@ Run docker
 docker compose up -d
 ```
 
-Seed db with test data
+Seed test database with fixture data (default)
 
 ```bash
-python -m app.db.init_db
-python -m tests.fixtures.migrate_data
+python -m app.db.init_db  # Creates tables in test DB
+python -m tests.fixtures.migrate_data  # Migrates fixture data to test DB
 ```
 
 Run backend
