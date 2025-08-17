@@ -103,68 +103,6 @@
         return characters.value.filter((char) => !encounterCharacterIds.has(char.id))
       }
 
-      // Create simple 2-encounter world with some initial characters
-      const createSimpleWorld = () => {
-        if (!Array.isArray(characters.value) || characters.value.length === 0) {
-          // Create empty encounters if no characters available
-          const encounters = [
-            {
-              id: 'encounter-1',
-              type: 'encounter',
-              position: { x: 200, y: 150 },
-              data: {
-                name: 'Tavern',
-                description:
-                  'A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale.',
-                characters: [],
-              },
-            },
-            {
-              id: 'encounter-2',
-              type: 'encounter',
-              position: { x: 500, y: 150 },
-              data: {
-                name: 'Forest',
-                description:
-                  'A dense woodland with towering ancient trees whose branches form a natural canopy. Dappled sunlight filters through the leaves, creating dancing shadows on the forest floor.',
-                characters: [],
-              },
-            },
-          ]
-          elements.value = encounters
-          return
-        }
-
-        // Just 2 encounters with some initial characters
-        const encounters = [
-          {
-            id: 'encounter-1',
-            type: 'encounter',
-            position: { x: 200, y: 150 },
-            data: {
-              name: 'Tavern',
-              description:
-                'A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale.',
-              characters: characters.value.slice(0, 2), // First 2 characters
-            },
-          },
-          {
-            id: 'encounter-2',
-            type: 'encounter',
-            position: { x: 500, y: 150 },
-            data: {
-              name: 'Forest',
-              description:
-                'A dense woodland with towering ancient trees whose branches form a natural canopy. Dappled sunlight filters through the leaves, creating dancing shadows on the forest floor.',
-              characters: characters.value.slice(2, 4), // Next 2 characters
-            },
-          },
-        ]
-
-        // Start with no connections - let user create them manually
-        elements.value = encounters
-      }
-
       // Load characters from API
       const loadCharacters = async () => {
         try {
@@ -173,7 +111,6 @@
             throw new Error('Invalid characters data received from API')
           }
           characters.value = loadedCharacters
-          createSimpleWorld()
         } catch (err) {
           const errorMessage = err.message || 'Failed to load characters'
           error.value = errorMessage
@@ -182,12 +119,73 @@
         }
       }
 
+      // Load encounters and connections from API
+      const loadEncounters = async () => {
+        try {
+          const encounterData = await apiService.getEncounters()
+          if (!encounterData || !Array.isArray(encounterData.encounters)) {
+            throw new Error('Invalid encounter data received from API')
+          }
+
+          // Transform database encounters to Vue Flow format
+          const vueFlowNodes = encounterData.encounters.map((encounter) => ({
+            id: `encounter-${encounter.id}`,
+            type: 'encounter',
+            position: {
+              x: encounter.position_x || 200,
+              y: encounter.position_y || 150,
+            },
+            data: {
+              name: encounter.name,
+              description: encounter.description || '',
+              characters: getCharactersForEncounter(encounter.character_ids || []),
+            },
+          }))
+
+          // Transform database connections to Vue Flow edges
+          const vueFlowEdges = (encounterData.connections || []).map((connection) => ({
+            id: `edge-${connection.id}`,
+            source: `encounter-${connection.source_encounter_id}`,
+            target: `encounter-${connection.target_encounter_id}`,
+            sourceHandle: connection.source_handle,
+            targetHandle: connection.target_handle,
+            type: connection.edge_type || 'straight',
+            style: {
+              stroke: connection.stroke_color || '#007bff',
+              strokeWidth: connection.stroke_width || 3,
+            },
+            data: {
+              selectable: true,
+            },
+          }))
+
+          // Combine nodes and edges
+          elements.value = [...vueFlowNodes, ...vueFlowEdges]
+        } catch (err) {
+          const errorMessage = err.message || 'Failed to load encounters'
+          error.value = errorMessage
+          console.error('Encounter loading failed:', err)
+          throw err // Re-throw to be caught by loadData
+        }
+      }
+
+      // Helper function to get character objects from character IDs
+      const getCharactersForEncounter = (characterIds) => {
+        if (!Array.isArray(characterIds) || !Array.isArray(characters.value)) {
+          return []
+        }
+        return characters.value.filter((character) => characterIds.includes(character.id))
+      }
+
       const loadData = async () => {
         loading.value = true
         error.value = null
 
         try {
-          await Promise.all([loadGameData(), loadCharacters()])
+          // Load characters first, then encounters (encounters need characters for associations)
+          await loadGameData()
+          await loadCharacters()
+          await loadEncounters()
         } catch (err) {
           const errorMessage = err.message || 'Failed to load world data'
           error.value = `Encounter Builder Error: ${errorMessage}`

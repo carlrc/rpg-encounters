@@ -24,7 +24,7 @@ from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/challenge", tags=["challenges"])
+router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
 challenge_agent_system_prompt = import_system_prompt("challenge_agent")
 challenge_agent_critical_success_system_prompt = import_system_prompt(

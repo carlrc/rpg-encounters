@@ -146,6 +146,40 @@ class ApiService {
     })
   }
 
+  // Encounter CRUD operations
+  async getEncounters() {
+    return this.request('/encounters')
+  }
+
+  async getEncounter(id) {
+    return this.request(`/encounters/${id}`)
+  }
+
+  async createEncounter(encounterData) {
+    return this.request('/encounters', {
+      method: 'POST',
+      body: JSON.stringify(encounterData),
+    })
+  }
+
+  async updateEncounter(id, encounterData) {
+    return this.request(`/encounters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(encounterData),
+    })
+  }
+
+  async deleteEncounter(id) {
+    return this.request(`/encounters/${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Game data operations
+  async getGameData() {
+    return this.request('/game')
+  }
+
   // Note: Influence profiles are now integrated into character model
   // Influence profile data is managed through character endpoints
 }

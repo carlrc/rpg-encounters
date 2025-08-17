@@ -19,7 +19,7 @@ from app.models.encounter_connection import (
     ConnectionUpdate,
 )
 
-router = APIRouter(prefix="/encounter", tags=["encounters"])
+router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
 
 @router.get("/")
