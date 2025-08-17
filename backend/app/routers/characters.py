@@ -9,7 +9,7 @@ from app.models.character import Character, CharacterCreate, CharacterUpdate
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
 
-@router.get("/", response_model=List[Character])
+@router.get("", response_model=List[Character])
 async def get_characters():
     """Get all characters"""
     return CharacterStore().get_all_characters()

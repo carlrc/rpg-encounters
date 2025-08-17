@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
+    canvas,
     challenges,
     characters,
     conversations,
@@ -28,6 +29,7 @@ app.include_router(conversations.router)
 app.include_router(reveals.router)
 app.include_router(challenges.router)
 app.include_router(encounters.router)
+app.include_router(canvas.router)
 app.include_router(game.router)
 
 # TODO: This can't be here

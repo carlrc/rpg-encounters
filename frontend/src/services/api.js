@@ -148,7 +148,7 @@ class ApiService {
 
   // Encounter CRUD operations
   async getEncounters() {
-    return this.request('/encounters')
+    return this.request('/canvas')
   }
 
   async getEncounter(id) {
@@ -172,6 +172,14 @@ class ApiService {
   async deleteEncounter(id) {
     return this.request(`/encounters/${id}`, {
       method: 'DELETE',
+    })
+  }
+
+  // Canvas save operation
+  async saveCanvas(canvasData) {
+    return this.request('/canvas/save', {
+      method: 'POST',
+      body: JSON.stringify(canvasData),
     })
   }
 

@@ -51,9 +51,16 @@ class EncounterCreate(EncounterBase):
     pass
 
 
+class EncounterWithTempId(EncounterBase):
+    """Encounter model that includes temp ID for canvas save operations"""
+
+    id: int  # Can be temp ID from frontend
+
+
 class EncounterUpdate(EncounterBase):
     """Encounter update model - all fields optional with same validation rules"""
 
+    id: int
     name: str | None = None
     description: str | None = None
     position_x: float | None = None

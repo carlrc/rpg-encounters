@@ -8,7 +8,7 @@ from app.models.player import Player, PlayerCreate, PlayerUpdate
 router = APIRouter(prefix="/api/players", tags=["players"])
 
 
-@router.get("/", response_model=List[Player])
+@router.get("", response_model=List[Player])
 async def get_players():
     """Get all players"""
     return PlayerStore().get_all_players()
