@@ -63,6 +63,7 @@
             @remove-character="removeCharacterFromEncounter"
             @update-encounter-name="updateEncounterName"
             @update-encounter-description="updateEncounterDescription"
+            @clear-auto-open-description="clearAutoOpenDescription"
           />
         </template>
       </VueFlow>
@@ -70,6 +71,7 @@
       <!-- Character encounter popup -->
       <CharacterEncounterPopup
         :character="selectedCharacter"
+        :encounter-id="selectedEncounterId || 0"
         :is-open="showEncounterPopup"
         @close="closeEncounterPopup"
       />
@@ -101,6 +103,7 @@
       const loading = ref(true)
       const error = ref(null)
       const selectedCharacter = ref(null)
+      const selectedEncounterId = ref(null)
       const showEncounterPopup = ref(false)
       const vueFlowRef = ref(null)
       const isSaving = ref(false)
@@ -284,20 +287,34 @@
       }
 
       // Character encounter handlers
-      const openCharacterEncounter = (character) => {
+      const openCharacterEncounter = (character, encounterId) => {
         // Validate character object
         if (!character || !character.id) {
           console.warn('Invalid character provided to openCharacterEncounter')
           return
         }
 
+        // Validate encounter ID
+        if (!encounterId) {
+          console.warn('Invalid encounterId provided to openCharacterEncounter')
+          return
+        }
+
+        // Extract numeric ID from Vue Flow node ID format (encounter-123 -> 123)
+        const numericEncounterId =
+          typeof encounterId === 'string' && encounterId.startsWith('encounter-')
+            ? parseInt(encounterId.replace('encounter-', ''))
+            : encounterId
+
         selectedCharacter.value = character
+        selectedEncounterId.value = numericEncounterId
         showEncounterPopup.value = true
       }
 
       const closeEncounterPopup = () => {
         showEncounterPopup.value = false
         selectedCharacter.value = null
+        selectedEncounterId.value = null
       }
 
       // Handle new connections created by dragging
@@ -374,9 +391,10 @@
           },
           data: {
             name: 'New Encounter',
-            description: 'A mysterious new location waiting to be explored and described.',
+            description: '',
             characters: [],
             isNew: true, // New encounter created by user
+            autoOpenDescription: true, // Auto-open description for new encounters
           },
         }
 
@@ -397,6 +415,14 @@
         const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
         if (encounterIndex !== -1) {
           elements.value[encounterIndex].data.description = newDescription
+        }
+      }
+
+      // Clear auto-open description flag
+      const clearAutoOpenDescription = (encounterId) => {
+        const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
+        if (encounterIndex !== -1) {
+          elements.value[encounterIndex].data.autoOpenDescription = false
         }
       }
 
@@ -553,6 +579,7 @@
         elements,
         characters,
         selectedCharacter,
+        selectedEncounterId,
         showEncounterPopup,
         vueFlowRef,
         isSaving,
@@ -566,6 +593,7 @@
         addNewEncounter,
         updateEncounterName,
         updateEncounterDescription,
+        clearAutoOpenDescription,
         onEdgeClick,
         saveCanvas,
       }

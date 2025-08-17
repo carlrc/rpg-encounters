@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.models.batch_update import CanvasSaveRequest, CanvasSaveResponse
-from app.models.encounter import EncounterCreate
+from app.models.encounter import EncounterCreate, EncounterUpdate
 
 router = APIRouter(prefix="/api/canvas", tags=["canvas"])
 
@@ -49,7 +49,10 @@ async def save_canvas(request: CanvasSaveRequest):
         if not encounter_update.id:
             raise HTTPException(status_code=400, detail="Existing encounter missing ID")
         updated = encounter_store.update_encounter(
-            encounter_update.id, encounter_update
+            encounter_id=encounter_update.id,
+            encounter_update=EncounterUpdate(
+                **encounter_update.model_dump(exclude={"id"})
+            ),
         )
         if not updated:
             raise HTTPException(

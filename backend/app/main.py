@@ -6,9 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     canvas,
-    challenges,
     characters,
-    conversations,
     encounters,
     game,
     memories,
@@ -21,19 +19,6 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="D&D AI Character Backend")
 
-# Include routers
-app.include_router(players.router)
-app.include_router(characters.router)
-app.include_router(memories.router)
-app.include_router(conversations.router)
-app.include_router(reveals.router)
-app.include_router(challenges.router)
-app.include_router(encounters.router)
-app.include_router(canvas.router)
-app.include_router(game.router)
-
-# TODO: This can't be here
-# Add CORS middleware to allow frontend connections
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -44,6 +29,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(players.router)
+app.include_router(characters.router)
+app.include_router(memories.router)
+app.include_router(reveals.router)
+app.include_router(encounters.router)
+app.include_router(canvas.router)
+app.include_router(game.router)
 
 
 @app.get("/")

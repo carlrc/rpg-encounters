@@ -51,7 +51,7 @@ class EncounterCreate(EncounterBase):
     pass
 
 
-class EncounterWithTempId(EncounterBase):
+class EncounterWithId(EncounterBase):
     """Encounter model that includes temp ID for canvas save operations"""
 
     id: int  # Can be temp ID from frontend

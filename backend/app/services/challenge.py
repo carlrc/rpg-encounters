@@ -1,12 +1,13 @@
 import logging
 
-from fastapi import APIRouter, WebSocket
+from fastapi import WebSocket
 
-from app.agents.challenge_agent import ChallengeAgent
+from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.critical_failure_agent import CriticalFailureAgent
 from app.agents.critical_success_agent import CriticalSuccessAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
+from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
@@ -24,8 +25,6 @@ from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/api/challenges", tags=["challenges"])
-
 challenge_agent_system_prompt = import_system_prompt("challenge_agent")
 challenge_agent_critical_success_system_prompt = import_system_prompt(
     "challenge_agent_critical_success"
@@ -35,9 +34,13 @@ challenge_agent_critical_failure_system_prompt = import_system_prompt(
 )
 
 
-@router.websocket("/{player_id}/{character_id}")
-async def websocket_endpoint(
-    websocket: WebSocket, player_id: int, character_id: int, skill: str, d20_roll: int
+async def challenge_character(
+    websocket: WebSocket,
+    encounter_id: int,
+    player_id: int,
+    character_id: int,
+    skill: str,
+    d20_roll: int,
 ):
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
@@ -54,6 +57,8 @@ async def websocket_endpoint(
         total_roll = calculate_skill_check(
             skill=skill, player=player, d20_roll=d20_roll
         )
+
+        encounter = EncounterStore().get_encounter_by_id(encounter_id=encounter_id)
 
         # Get information tied to character
         all_reveals = RevealStore().get_by_character_id(character_id)
@@ -84,7 +89,9 @@ async def websocket_endpoint(
                 reveals=filtered_reveals,
             )
 
-        response = await agent.chat(player_transcript=transcription)
+        # Create deps with encounter context
+        deps = ChallengeAgentDeps(encounter_description=encounter.description)
+        response = await agent.chat(player_transcript=transcription, deps=deps)
         logger.debug(
             f"Generated character response for D20 roll {d20_roll}: {response}"
         )
@@ -112,6 +119,3 @@ async def websocket_endpoint(
             cleanup_files(wav_path)
         except Exception as e:
             logger.warning(f"Could not destroy temp wav_path {wav_path}. {e}")
-
-    # WebSocket will be closed automatically by FastAPI
-    logger.debug("Closing websocket connection...")
