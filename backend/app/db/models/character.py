@@ -8,6 +8,9 @@ from app.db.limits import (
     CHARACTER_MOTIVATION_LIMIT,
 )
 from app.db.models.base import UnifiedBase
+from app.db.models.encounter_character_association import (
+    encounter_character_association,
+)
 from app.db.models.memory_character_association import memory_character_association
 from app.db.models.reveal_character_association import reveal_character_association
 
@@ -50,6 +53,13 @@ class CharacterORM(UnifiedBase):
     reveals = relationship(
         "RevealORM",
         secondary=reveal_character_association,
+        back_populates="characters",
+    )
+
+    # Many-to-many relationship with encounters
+    encounters = relationship(
+        "EncounterORM",
+        secondary=encounter_character_association,
         back_populates="characters",
     )
 

@@ -33,6 +33,7 @@ class InfluenceStore:
                 character_id=character_id, player_id=player_id, base=base, earned=0
             )
             session.add(new_influence)
+            session.flush()  # Ensure entity is created before commit
             session.commit()
             session.refresh(new_influence)
             return self._orm_to_influence(new_influence)
