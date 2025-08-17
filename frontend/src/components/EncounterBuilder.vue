@@ -63,6 +63,7 @@
             @remove-character="removeCharacterFromEncounter"
             @update-encounter-name="updateEncounterName"
             @update-encounter-description="updateEncounterDescription"
+            @clear-auto-open-description="clearAutoOpenDescription"
           />
         </template>
       </VueFlow>
@@ -70,7 +71,7 @@
       <!-- Character encounter popup -->
       <CharacterEncounterPopup
         :character="selectedCharacter"
-        :encounter-id="selectedEncounterId"
+        :encounter-id="selectedEncounterId || 0"
         :is-open="showEncounterPopup"
         @close="closeEncounterPopup"
       />
@@ -390,9 +391,10 @@
           },
           data: {
             name: 'New Encounter',
-            description: 'A mysterious new location waiting to be explored and described.',
+            description: '',
             characters: [],
             isNew: true, // New encounter created by user
+            autoOpenDescription: true, // Auto-open description for new encounters
           },
         }
 
@@ -413,6 +415,14 @@
         const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
         if (encounterIndex !== -1) {
           elements.value[encounterIndex].data.description = newDescription
+        }
+      }
+
+      // Clear auto-open description flag
+      const clearAutoOpenDescription = (encounterId) => {
+        const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
+        if (encounterIndex !== -1) {
+          elements.value[encounterIndex].data.autoOpenDescription = false
         }
       }
 
@@ -583,6 +593,7 @@
         addNewEncounter,
         updateEncounterName,
         updateEncounterDescription,
+        clearAutoOpenDescription,
         onEdgeClick,
         saveCanvas,
       }

@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, Field
 
-from .encounter import Encounter, EncounterCreate, EncounterUpdate, EncounterWithTempId
+from .encounter import Encounter, EncounterCreate, EncounterUpdate, EncounterWithId
 from .encounter_connection import Connection, ConnectionCreate, ConnectionUpdate
 
 
@@ -45,8 +45,8 @@ class BatchDeleteConnectionsRequest(BaseModel):
 class CanvasSaveRequest(BaseModel):
     """Unified request to save entire canvas state"""
 
-    new_encounters: List[EncounterWithTempId] = Field(default_factory=list)
-    existing_encounters: List[EncounterUpdate] = Field(default_factory=list)
+    new_encounters: List[EncounterWithId] = Field(default_factory=list)
+    existing_encounters: List[EncounterWithId] = Field(default_factory=list)
     new_connections: List[ConnectionCreate] = Field(default_factory=list)
     existing_connections: List[ConnectionUpdate] = Field(default_factory=list)
 

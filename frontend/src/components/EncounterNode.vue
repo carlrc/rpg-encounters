@@ -160,7 +160,7 @@
 </template>
 
 <script>
-  import { ref, nextTick } from 'vue'
+  import { ref, nextTick, watch, onMounted } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { getInitials } from '../utils/avatarUtils.js'
 
@@ -185,6 +185,7 @@
       'remove-character',
       'update-encounter-name',
       'update-encounter-description',
+      'clear-auto-open-description',
     ],
     setup(props, { emit }) {
       const showAddCharacter = ref(false)
@@ -250,6 +251,12 @@
         // Always emit the update, even if it's empty (allows clearing descriptions)
         const newDescription = editingDescription.value.trim()
         emit('update-encounter-description', props.encounter.id, newDescription)
+
+        // Clear auto-open flag after first save
+        if (props.encounter.autoOpenDescription) {
+          emit('clear-auto-open-description', props.encounter.id)
+        }
+
         isEditingDescription.value = false
         editingDescription.value = ''
       }
@@ -258,6 +265,34 @@
         isEditingDescription.value = false
         editingDescription.value = ''
       }
+
+      // Auto-open description for new encounters
+      const handleAutoOpenDescription = () => {
+        if (props.encounter.autoOpenDescription) {
+          showDescription.value = true
+          nextTick(() => {
+            startEditingDescription()
+          })
+        }
+      }
+
+      // Watch for encounter changes to handle auto-open
+      watch(
+        () => props.encounter.autoOpenDescription,
+        (newValue) => {
+          if (newValue) {
+            handleAutoOpenDescription()
+          }
+        },
+        { immediate: true }
+      )
+
+      // Handle auto-open on mount for existing encounters with the flag
+      onMounted(() => {
+        if (props.encounter.autoOpenDescription) {
+          handleAutoOpenDescription()
+        }
+      })
 
       return {
         showAddCharacter,
