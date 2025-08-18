@@ -1,5 +1,6 @@
 from typing import List
 
+from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.connection import get_db_engine
@@ -9,8 +10,8 @@ from app.models.reveal import Reveal, RevealCreate, RevealUpdate
 
 
 class RevealStore:
-    def __init__(self, user_id: int, world_id: int):
-        self.Session = sessionmaker(get_db_engine())
+    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
+        self.Session = sessionmaker(engine)
         self.user_id = user_id
         self.world_id = world_id
 
@@ -18,7 +19,7 @@ class RevealStore:
         """Get all reveals across all characters"""
         with self.Session() as session:
             reveal_orms = session.query(RevealORM).all()
-            return [self._orm_to_reveal(reveal_orm) for reveal_orm in reveal_orms]
+            return [RevealStore.orm_to_reveal(reveal_orm) for reveal_orm in reveal_orms]
 
     def get_by_character_id(self, character_id: int) -> List[Reveal]:
         """Get all reveals for a character"""
@@ -30,7 +31,9 @@ class RevealStore:
             )
 
             if character:
-                return [self._orm_to_reveal(reveal) for reveal in character.reveals]
+                return [
+                    RevealStore.orm_to_reveal(reveal) for reveal in character.reveals
+                ]
             else:
                 return []
 
@@ -41,7 +44,7 @@ class RevealStore:
                 session.query(RevealORM).filter(RevealORM.id == reveal_id).first()
             )
             if reveal_orm:
-                return self._orm_to_reveal(reveal_orm)
+                return RevealStore.orm_to_reveal(reveal_orm)
             return None
 
     def get_by_id(self, reveal_id: int) -> Reveal | None:
@@ -69,7 +72,7 @@ class RevealStore:
             session.add(reveal_orm)
             session.commit()
             session.refresh(reveal_orm)
-            return self._orm_to_reveal(reveal_orm)
+            return RevealStore.orm_to_reveal(reveal_orm)
 
     def update_reveal(
         self, reveal_id: int, reveal_update: RevealUpdate
@@ -101,7 +104,7 @@ class RevealStore:
 
             session.commit()
             session.refresh(reveal_orm)
-            return self._orm_to_reveal(reveal_orm)
+            return RevealStore.orm_to_reveal(reveal_orm)
 
     def delete_reveal(self, reveal_id: int) -> bool:
         """Delete a reveal"""
@@ -124,7 +127,8 @@ class RevealStore:
                 is not None
             )
 
-    def _orm_to_reveal(self, reveal_orm: RevealORM) -> Reveal:
+    @staticmethod
+    def orm_to_reveal(reveal_orm: RevealORM) -> Reveal:
         """Convert RevealORM to Reveal model"""
         return Reveal(
             id=reveal_orm.id,

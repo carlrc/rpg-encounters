@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.user_store import UserStore
 from app.models.user import UserCreate
 
 
 def test_user_store():
-
+    url = os.getenv("TEST_DATABASE_URL")
+    engine = create_engine(url)
     new_user_data = UserCreate()
-    created_user = UserStore().create_user(new_user_data)
+    created_user = UserStore(engine=engine).create_user(new_user_data)
     assert created_user.id is not None
     assert created_user.created_at is not None
 
-    store = UserStore(user_id=created_user.id)
+    store = UserStore(user_id=created_user.id, engine=engine)
 
     all_users = store.get_all_users()
     assert len(all_users) >= 1
@@ -26,5 +31,5 @@ def test_user_store():
     deleted = store.delete_user()
     assert deleted is True
 
-    exists_after_delete = UserStore().user_exists(created_user.id)
+    exists_after_delete = UserStore(engine=engine).user_exists(created_user.id)
     assert exists_after_delete is False

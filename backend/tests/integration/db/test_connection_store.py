@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.models.encounter import EncounterCreate
@@ -11,8 +15,8 @@ from app.models.encounter_connection import (
 
 
 def test_connection_store():
-    # Create encounters first
-    encounter_store = EncounterStore(user_id=1, world_id=1)
+    url = os.getenv("TEST_DATABASE_URL")
+    encounter_store = EncounterStore(user_id=1, world_id=1, engine=create_engine(url))
 
     encounter1_data = EncounterCreate(
         name="Test Tavern",
@@ -34,7 +38,7 @@ def test_connection_store():
     created_encounter2 = encounter_store.create_encounter(encounter2_data)
 
     # Now create connection with actual encounter IDs
-    connection_store = ConnectionStore(user_id=1, world_id=1)
+    connection_store = ConnectionStore(user_id=1, world_id=1, engine=create_engine(url))
 
     new_connection_data = ConnectionCreate(
         source_encounter_id=created_encounter1.id,

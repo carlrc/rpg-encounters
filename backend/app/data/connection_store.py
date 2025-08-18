@@ -1,5 +1,6 @@
 from typing import List
 
+from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.connection import get_db_engine
@@ -12,8 +13,8 @@ from app.models.encounter_connection import (
 
 
 class ConnectionStore:
-    def __init__(self, user_id: int, world_id: int):
-        self.Session = sessionmaker(get_db_engine())
+    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
+        self.Session = sessionmaker(engine)
         self.user_id = user_id
         self.world_id = world_id
 

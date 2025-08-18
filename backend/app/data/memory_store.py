@@ -1,5 +1,6 @@
 from typing import List
 
+from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.connection import get_db_engine
@@ -9,8 +10,8 @@ from app.models.memory import Memory, MemoryCreate, MemoryUpdate
 
 
 class MemoryStore:
-    def __init__(self, user_id: int, world_id: int):
-        self.Session = sessionmaker(get_db_engine())
+    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
+        self.Session = sessionmaker(engine)
         self.user_id = user_id
         self.world_id = world_id
 
@@ -18,7 +19,7 @@ class MemoryStore:
         """Get all memories across all characters"""
         with self.Session() as session:
             memory_orms = session.query(MemoryORM).all()
-            return [self._orm_to_memory(memory_orm) for memory_orm in memory_orms]
+            return [MemoryStore.orm_to_memory(memory_orm) for memory_orm in memory_orms]
 
     def get_by_character_id(self, character_id: int) -> List[Memory]:
         """Get all memories for a character using relationship"""
@@ -30,7 +31,9 @@ class MemoryStore:
             )
 
             if character:
-                return [self._orm_to_memory(memory) for memory in character.memories]
+                return [
+                    MemoryStore.orm_to_memory(memory) for memory in character.memories
+                ]
             else:
                 return []
 
@@ -41,7 +44,7 @@ class MemoryStore:
                 session.query(MemoryORM).filter(MemoryORM.id == memory_id).first()
             )
             if memory_orm:
-                return self._orm_to_memory(memory_orm)
+                return MemoryStore.orm_to_memory(memory_orm)
             return None
 
     def get_by_id(self, memory_id: int) -> Memory | None:
@@ -70,7 +73,7 @@ class MemoryStore:
             session.add(memory_orm)
             session.commit()
             session.refresh(memory_orm)
-            return self._orm_to_memory(memory_orm)
+            return MemoryStore.orm_to_memory(memory_orm)
 
     def update_memory(
         self, memory_id: int, memory_update: MemoryUpdate
@@ -102,7 +105,7 @@ class MemoryStore:
 
             session.commit()
             session.refresh(memory_orm)
-            return self._orm_to_memory(memory_orm)
+            return MemoryStore.orm_to_memory(memory_orm)
 
     def delete_memory(self, memory_id: int) -> bool:
         """Delete a memory"""
@@ -125,7 +128,8 @@ class MemoryStore:
                 is not None
             )
 
-    def _orm_to_memory(self, memory_orm: MemoryORM) -> Memory:
+    @staticmethod
+    def orm_to_memory(memory_orm: MemoryORM) -> Memory:
         """Convert MemoryORM to Memory model"""
         return Memory(
             id=memory_orm.id,

@@ -1,5 +1,6 @@
 from typing import List
 
+from sqlalchemy import Engine
 from sqlalchemy.orm import sessionmaker
 
 from app.db.connection import get_db_engine
@@ -8,9 +9,9 @@ from app.models.user import User, UserCreate, UserUpdate
 
 
 class UserStore:
-    def __init__(self, user_id: int = None):
+    def __init__(self, user_id: int = None, engine: Engine = get_db_engine()):
         """Initialize UserStore with user_id to follow the same pattern as other stores"""
-        self.Session = sessionmaker(get_db_engine())
+        self.Session = sessionmaker(engine)
         self.user_id = user_id
 
     def get_all_users(self) -> List[User]:

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.character_store import CharacterStore
 from app.models.alignment import Alignment
 from app.models.character import CharacterCreate, CharacterUpdate
@@ -7,7 +11,9 @@ from app.models.race import Gender, Race, Size
 
 
 def test_character_store():
-    store = CharacterStore(user_id=1, world_id=1)
+    url = os.getenv("TEST_DATABASE_URL")
+
+    store = CharacterStore(user_id=1, world_id=1, engine=create_engine(url))
 
     new_character_data = CharacterCreate(
         name="Test Wizard",

@@ -90,7 +90,9 @@ async def test_personality_based_earned_influence_respects_standard_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(),
+        conversation_manager=ConversationManager(
+            player_id=PLAYER.id, character_id=CHARACTER.id
+        ),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
@@ -112,7 +114,9 @@ async def test_personality_based_earned_influence_respects_privileged_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(),
+        conversation_manager=ConversationManager(
+            player_id=PLAYER.id, character_id=CHARACTER.id
+        ),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
@@ -149,7 +153,9 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(),
+        conversation_manager=ConversationManager(
+            player_id=PLAYER.id, character_id=CHARACTER.id
+        ),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
@@ -193,7 +199,9 @@ async def test_personality_based_earned_influence_can_be_negative():
         character=CHARACTER,
         player=opposing_player,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(),
+        conversation_manager=ConversationManager(
+            player_id=opposing_player.id, character_id=CHARACTER.id
+        ),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT,
             character=CHARACTER,
@@ -229,7 +237,9 @@ async def test_conversation_agent_handles_multiple_reveals():
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
         memories=ALL_MEMORIES,
-        conversation_manager=ConversationManager(),
+        conversation_manager=ConversationManager(
+            player_id=PLAYER.id, character_id=CHARACTER.id
+        ),
         influence_calculator_agent=InfluenceCalculatorAgent(
             SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
         ),

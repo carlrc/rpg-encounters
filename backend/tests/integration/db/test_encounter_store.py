@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
 from app.models.alignment import Alignment
@@ -9,7 +13,10 @@ from app.models.race import Gender, Race, Size
 
 
 def test_encounter_store():
-    character_store = CharacterStore(user_id=1, world_id=1)
+    url = os.getenv("TEST_DATABASE_URL")
+    engine = create_engine(url)
+    encounter_store = EncounterStore(user_id=1, world_id=1, engine=engine)
+    character_store = CharacterStore(user_id=1, world_id=1, engine=engine)
 
     # Create test characters first
     character1_data = CharacterCreate(
@@ -52,9 +59,6 @@ def test_encounter_store():
 
     created_character1 = character_store.create_character(character1_data)
     created_character2 = character_store.create_character(character2_data)
-
-    # Now test encounter store
-    encounter_store = EncounterStore(user_id=1, world_id=1)
 
     # Test create encounter with characters
     new_encounter_data = EncounterCreate(

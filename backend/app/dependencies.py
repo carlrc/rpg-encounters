@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Tuple
 
-from app.services.agent_manager import AgentManager
+from app.services.conversation_manager import ConversationManager
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 
@@ -18,10 +18,10 @@ def get_transcription_service() -> WhisperTranscriptionService:
     return WhisperTranscriptionService(model_size="base")
 
 
-@lru_cache(maxsize=1)
-def get_agent_manager() -> AgentManager:
+@lru_cache(maxsize=10)
+def get_conversation_manager(player_id: int, character_id: int) -> ConversationManager:
     """Factory function for agent manager"""
-    return AgentManager()
+    return ConversationManager(player_id=player_id, character_id=character_id)
 
 
 @lru_cache(maxsize=1)

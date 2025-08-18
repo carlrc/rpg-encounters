@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.character_store import CharacterStore
 from app.data.influence_store import InfluenceStore
 from app.data.player_store import PlayerStore
@@ -11,9 +15,10 @@ from app.models.race import Gender, Race, Size
 
 
 def test_influence_store():
-    # Create character and player first
-    character_store = CharacterStore(user_id=1, world_id=1)
-    player_store = PlayerStore(user_id=1, world_id=1)
+    url = os.getenv("TEST_DATABASE_URL")
+    engine = create_engine(url)
+    character_store = CharacterStore(user_id=1, world_id=1, engine=engine)
+    player_store = PlayerStore(user_id=1, world_id=1, engine=engine)
 
     character_data = CharacterCreate(
         name="Test Wizard",
@@ -55,7 +60,7 @@ def test_influence_store():
     created_player = player_store.create_player(player_data)
 
     # Test influence store
-    influence_store = InfluenceStore(user_id=1, world_id=1)
+    influence_store = InfluenceStore(user_id=1, world_id=1, engine=engine)
 
     # Test get_or_create - new influence
     base_influence = 5

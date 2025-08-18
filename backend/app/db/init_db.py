@@ -1,3 +1,5 @@
+from sqlalchemy import Engine
+
 from app.db.connection import get_db_engine
 
 # Import association tables to ensure they are registered with SQLAlchemy
@@ -21,23 +23,17 @@ from app.db.models.user import UserORM  # noqa: F401
 from app.db.models.world import WorldORM  # noqa: F401
 
 
-def create_tables(use_test_db=True):
+def create_tables(engine: Engine):
     """Create all database tables"""
-
-    engine = get_db_engine(use_test_db)
-    # Create tables from both SimpleBase and UnifiedBase
     SimpleBase.metadata.create_all(bind=engine)
     UnifiedBase.metadata.create_all(bind=engine)
 
 
-def drop_tables(use_test_db=True):
+def drop_tables(engine: Engine):
     """Drop all database tables"""
-
-    engine = get_db_engine(use_test_db)
-    # Drop tables from both SimpleBase and UnifiedBase
     UnifiedBase.metadata.drop_all(bind=engine)
     SimpleBase.metadata.drop_all(bind=engine)
 
 
 if __name__ == "__main__":
-    create_tables(use_test_db=True)
+    create_tables(get_db_engine())

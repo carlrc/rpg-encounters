@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.player_store import PlayerStore
 from app.models.alignment import Alignment
 from app.models.class_traits import Abilities, Class, Skills
@@ -7,7 +11,9 @@ from app.models.race import Gender, Race, Size
 
 
 def test_player_store():
-    store = PlayerStore(user_id=1, world_id=1)
+    url = os.getenv("TEST_DATABASE_URL")
+    engine = create_engine(url)
+    store = PlayerStore(user_id=1, world_id=1, engine=engine)
 
     # Test 1: Create a player
     new_player_data = PlayerCreate(

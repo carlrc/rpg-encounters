@@ -1,5 +1,8 @@
+import os
 import sys
 import logging
+from dotenv import load_dotenv
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from app.db.connection import get_db_engine
@@ -21,6 +24,9 @@ from tests.fixtures.memories import memories_db
 from tests.fixtures.reveals import reveal_db
 from tests.fixtures.connections import connections_db
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,9 +47,8 @@ def get_user_and_world_ids(session):
     logger.info(f"Using user_id={user.id} and world_id={world.id} for entity creation")
     return user.id, world.id
 
-def seed_user_data(use_test_db=True):
+def seed_user_data(engine: Engine):
     """Create user for testing"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -66,9 +71,8 @@ def seed_user_data(use_test_db=True):
         logger.error(f"Unexpected error creating user data: {e}")
         raise
 
-def seed_world_data(use_test_db=True):
+def seed_world_data(engine: Engine):
     """Create world for testing"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -98,9 +102,8 @@ def seed_world_data(use_test_db=True):
         raise
 
 
-def seed_player_data(use_test_db=True):
+def seed_player_data(engine: Engine):
     """Seed player data from fixtures to database"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -131,9 +134,8 @@ def seed_player_data(use_test_db=True):
         raise
 
 
-def seed_character_data(use_test_db=True):
+def seed_character_data(engine: Engine):
     """Seed character data from fixtures to database"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -165,9 +167,8 @@ def seed_character_data(use_test_db=True):
         raise
 
 
-def seed_encounter_data(use_test_db=True):
+def seed_encounter_data(engine: Engine):
     """Seed encounter data from fixtures to database"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -209,9 +210,8 @@ def seed_encounter_data(use_test_db=True):
         raise
 
 
-def seed_memory_data(use_test_db=True):
+def seed_memory_data(engine: Engine):
     """Seed memory data from fixtures to database"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -253,9 +253,8 @@ def seed_memory_data(use_test_db=True):
         raise
 
 
-def seed_reveal_data(use_test_db=True):
+def seed_reveal_data(engine: Engine):
     """Seed reveal data from fixtures to database"""
-    engine = get_db_engine(use_test_db)
     Session = sessionmaker(bind=engine)
     
     try:
@@ -297,9 +296,8 @@ def seed_reveal_data(use_test_db=True):
         raise
 
 
-def seed_connection_data(use_test_db=True):
-    """Migrate connection data from fixtures to database"""
-    engine = get_db_engine(use_test_db)
+def seed_connection_data(engine: Engine):
+    """Seed connection data from fixtures to database"""
     Session = sessionmaker(bind=engine)
     
     try:
@@ -343,38 +341,40 @@ def seed_connection_data(use_test_db=True):
         raise
 
 
-def seed_all_data(use_test_db=True):
+def seed_all_data(engine: Engine):
     """Seed all fixture data to database in the correct order"""
-    db_type = "test" if use_test_db else "live"
-    
     try:
         # Seed required user and world data first
-        seed_user_data(use_test_db)
-        seed_world_data(use_test_db)
+        seed_user_data(engine=engine)
+        seed_world_data(engine=engine)
         
         # Seed in dependency order
-        seed_player_data(use_test_db)
-        seed_character_data(use_test_db)
-        seed_encounter_data(use_test_db)
-        seed_memory_data(use_test_db)
-        seed_reveal_data(use_test_db)
-        seed_connection_data(use_test_db)
-        logger.info(f"✅ All data seeded successfully to {db_type} database!")
+        seed_player_data(engine=engine)
+        seed_character_data(engine=engine)
+        seed_encounter_data(engine=engine)
+        seed_memory_data(engine=engine)
+        seed_reveal_data(engine=engine)
+        seed_connection_data(engine=engine)
+
+        logger.info(f"✅ All data seeded!")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
-        drop_tables(use_test_db=True)
+        drop_tables(engine=engine)
         raise
 
 
 if __name__ == "__main__":
     # Check for --prod flag to use live database
-    use_test = "--live" not in sys.argv
+    use_dev = "--dev" not in sys.argv
     
-    if not use_test:
-        print("🔴 seeding to LIVE database")
+    if not use_dev:
+        print("🔴 Seeding to DEV database")
+        url = os.getenv("DATABASE_URL")
     else:
-        print("🟢 seeding to TEST database (default)")
-    
-    drop_tables(use_test_db=use_test)
-    create_tables(use_test_db=use_test)
-    seed_all_data(use_test_db=use_test)
+        print("🟢 Seeding to TEST database (default)")
+        url = os.getenv("TEST_DATABASE_URL")
+
+    engine = create_engine(url)
+    drop_tables(engine=engine)
+    create_tables(engine=engine)
+    seed_all_data(engine=engine)

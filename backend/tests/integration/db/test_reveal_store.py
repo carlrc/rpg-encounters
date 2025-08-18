@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import os
+
+from sqlalchemy import create_engine
+
 from app.data.character_store import CharacterStore
 from app.data.reveal_store import RevealStore
 from app.models.alignment import Alignment
@@ -9,7 +13,9 @@ from app.models.reveal import RevealCreate, RevealUpdate
 
 
 def test_reveal_store():
-    character_store = CharacterStore(user_id=1, world_id=1)
+    url = os.getenv("TEST_DATABASE_URL")
+    engine = create_engine(url)
+    character_store = CharacterStore(user_id=1, world_id=1, engine=engine)
 
     character1_data = CharacterCreate(
         name="Test Rogue",
@@ -33,7 +39,7 @@ def test_reveal_store():
     created_character1 = character_store.create_character(character1_data)
 
     # Now create reveal with actual character IDs
-    reveal_store = RevealStore(user_id=1, world_id=1)
+    reveal_store = RevealStore(user_id=1, world_id=1, engine=engine)
 
     new_reveal_data = RevealCreate(
         title="Hidden Treasure",

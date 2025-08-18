@@ -18,7 +18,7 @@ from app.models.influence import Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
-from app.services.conversation_manager import ConversationManager
+from app.services.conversation_manager import ConversationManager, select_response
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,7 @@ class ConversationAgent(BaseAgent):
         # Add to running earned total
         deps.influence.earned += influence_result.score
 
-        selected_response, level = self.convo_manager.select_response(
+        selected_response, level = select_response(
             reveals=deps.reveals,
             agent_result=self.run_result.output,
             # Pass total influence score
