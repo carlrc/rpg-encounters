@@ -8,6 +8,10 @@ from app.db.limits import ENCOUNTER_DESCRIPTION_LIMIT, ENCOUNTER_NAME_LIMIT
 from app.db.models.associations import encounter_characters
 from app.db.models.base import UnifiedBase
 
+# Import all ORM models to ensure they are registered with SQLAlchemy
+from app.db.models.user import UserORM  # noqa: F401
+from app.db.models.world import WorldORM  # noqa: F401
+
 
 class EncounterORM(UnifiedBase):
     __tablename__ = ENCOUNTERS_TABLE

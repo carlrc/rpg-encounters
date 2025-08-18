@@ -13,7 +13,7 @@ from app.db.models.user import UserORM
 from app.db.models.world import WorldORM
 # Needs to be imported for sqlalchemy
 from app.db.models.influence import InfluenceORM  # noqa: F401
-from app.db.init_db import create_tables
+from app.db.init_db import create_tables, drop_tables
 from tests.fixtures.players import players_db
 from tests.fixtures.characters import characters_db
 from tests.fixtures.encounters import encounters_db
@@ -24,6 +24,22 @@ from tests.fixtures.connections import connections_db
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def get_user_and_world_ids(session):
+    """Helper method to get user and world IDs from database"""
+    user = session.query(UserORM).first()
+    world = session.query(WorldORM).first()
+    
+    if not user:
+        logger.error("No user found in database. Cannot create entities.")
+        raise Exception("No user found for entity creation")
+    
+    if not world:
+        logger.error("No world found in database. Cannot create entities.")
+        raise Exception("No world found for entity creation")
+    
+    logger.info(f"Using user_id={user.id} and world_id={world.id} for entity creation")
+    return user.id, world.id
 
 def seed_user_data(use_test_db=True):
     """Create user for testing"""
@@ -94,11 +110,15 @@ def seed_player_data(use_test_db=True):
                 logger.info(f"Database already contains {existing_count} players. Skipping migration.")
                 return
             
-            # Migrate fixture data
+            # Get the actual user and world IDs from the database
+            user_id, world_id = get_user_and_world_ids(session)
+            
+            # Migrate fixture data with actual user_id and world_id
             for player in players_db:
                 player_data = player.model_dump()
+                logger.info(f"Creating player '{player_data['name']}' with user_id={user_id}, world_id={world_id}")
                 
-                player_orm = PlayerORM(**player_data)
+                player_orm = PlayerORM(**player_data, user_id=user_id, world_id=world_id)
                 session.add(player_orm)
             
             session.commit()
@@ -124,11 +144,15 @@ def seed_character_data(use_test_db=True):
                 logger.info(f"Database already contains {existing_count} characters. Skipping migration.")
                 return
             
-            # Seed fixture data
+            # Get the actual user and world IDs from the database
+            user_id, world_id = get_user_and_world_ids(session)
+            
+            # Seed fixture data with actual user_id and world_id
             for character in characters_db:
                 character_data = character.model_dump()
+                logger.info(f"Creating character '{character_data['name']}' with user_id={user_id}, world_id={world_id}")
                 
-                character_orm = CharacterORM(**character_data)
+                character_orm = CharacterORM(**character_data, user_id=user_id, world_id=world_id)
                 session.add(character_orm)
             
             session.commit()
@@ -156,6 +180,9 @@ def seed_encounter_data(use_test_db=True):
             
             # Get all characters in order (they were created in array order)
             characters = session.query(CharacterORM).order_by(CharacterORM.id).all()
+
+            # Get the actual user and world IDs from the database
+            user_id, world_id = get_user_and_world_ids(session)
             
             # Seed fixture data
             for encounter in encounters_db:
@@ -163,7 +190,7 @@ def seed_encounter_data(use_test_db=True):
                 # Extract character_ids (these are array indices)
                 character_indices = encounter_data.pop('character_ids', [])
                 
-                encounter_orm = EncounterORM(**encounter_data)
+                encounter_orm = EncounterORM(**encounter_data, user_id=user_id, world_id=world_id)
                 session.add(encounter_orm)
                 session.flush()
                 
@@ -197,6 +224,9 @@ def seed_memory_data(use_test_db=True):
             
             # Get all characters in order
             characters = session.query(CharacterORM).order_by(CharacterORM.id).all()
+
+            # Get the actual user and world IDs from the database
+            user_id, world_id = get_user_and_world_ids(session)
             
             # Seed fixture data
             for memory in memories_db:
@@ -204,7 +234,7 @@ def seed_memory_data(use_test_db=True):
                 # Extract character_ids (these are array indices)
                 character_indices = memory_data.pop('character_ids', [])
                 
-                memory_orm = MemoryORM(**memory_data)
+                memory_orm = MemoryORM(**memory_data, user_id=user_id, world_id=world_id)
                 session.add(memory_orm)
                 session.flush()  # Get the ID for the memory
                 
@@ -238,6 +268,9 @@ def seed_reveal_data(use_test_db=True):
             
             # Get all characters in order
             characters = session.query(CharacterORM).order_by(CharacterORM.id).all()
+
+            # Get the actual user and world IDs from the database
+            user_id, world_id = get_user_and_world_ids(session)
             
             # Seed fixture data
             for reveal in reveal_db:
@@ -245,7 +278,7 @@ def seed_reveal_data(use_test_db=True):
                 # Extract character_ids (these are array indices)
                 character_indices = reveal_data.pop('character_ids', [])
                 
-                reveal_orm = RevealORM(**reveal_data)
+                reveal_orm = RevealORM(**reveal_data, user_id=user_id, world_id=world_id)
                 session.add(reveal_orm)
                 session.flush()  # Get the ID for the reveal
                 
@@ -279,6 +312,9 @@ def seed_connection_data(use_test_db=True):
             
             # Get all encounters in order
             encounters = session.query(EncounterORM).order_by(EncounterORM.id).all()
+
+            # Get the actual user and world IDs from the database
+            user_id, world_id = get_user_and_world_ids(session)
             
             # Migrate fixture data (now an array)
             for connection in connections_db:
@@ -292,7 +328,7 @@ def seed_connection_data(use_test_db=True):
                     connection_data['source_encounter_id'] = encounters[source_idx].id
                     connection_data['target_encounter_id'] = encounters[target_idx].id
                     
-                    connection_orm = ConnectionORM(**connection_data)
+                    connection_orm = ConnectionORM(**connection_data, user_id=user_id, world_id=world_id)
                     session.add(connection_orm)
                 else:
                     logger.warning(f"Encounter indices out of range: source={source_idx}, target={target_idx}")
@@ -308,16 +344,15 @@ def seed_connection_data(use_test_db=True):
 
 
 def seed_all_data(use_test_db=True):
-    """Migrate all fixture data to database in the correct order"""
-    db_type = "test" if use_test_db else "production"
-    logger.info(f"Starting migration of all fixture data to {db_type} database...")
+    """Seed all fixture data to database in the correct order"""
+    db_type = "test" if use_test_db else "live"
     
     try:
         # Seed required user and world data first
         seed_user_data(use_test_db)
         seed_world_data(use_test_db)
         
-        # Migrate in dependency order
+        # Seed in dependency order
         seed_player_data(use_test_db)
         seed_character_data(use_test_db)
         seed_encounter_data(use_test_db)
@@ -327,6 +362,7 @@ def seed_all_data(use_test_db=True):
         logger.info(f"✅ All data seeded successfully to {db_type} database!")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
+        drop_tables(use_test_db=True)
         raise
 
 
@@ -339,5 +375,6 @@ if __name__ == "__main__":
     else:
         print("🟢 seeding to TEST database (default)")
     
+    drop_tables(use_test_db=use_test)
     create_tables(use_test_db=use_test)
     seed_all_data(use_test_db=use_test)

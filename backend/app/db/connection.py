@@ -20,6 +20,8 @@ WORLDS_TABLE = "worlds"
 DATABASE_URL = os.getenv("DATABASE_URL")
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 
+# TODO: This doesn't allow for easily switching DBs
+
 
 def get_db_engine(use_test_db=True):
     """Get database engine, defaulting to test database for safety
