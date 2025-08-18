@@ -26,18 +26,6 @@ class ConnectionStore:
                 for connection_orm in connection_orms
             ]
 
-    def get_connection_by_id(self, connection_id: int) -> Connection | None:
-        """Get a specific connection by ID"""
-        with self.Session() as session:
-            connection_orm = (
-                session.query(ConnectionORM)
-                .filter(ConnectionORM.id == connection_id)
-                .first()
-            )
-            if connection_orm:
-                return self._orm_to_connection(connection_orm)
-            return None
-
     def create_connection(self, connection_data: ConnectionCreate) -> Connection:
         """Create a new connection"""
         with self.Session() as session:
