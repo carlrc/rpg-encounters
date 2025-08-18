@@ -1,6 +1,5 @@
 import logging
 
-from dotenv import load_dotenv
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 
@@ -8,9 +7,6 @@ from app.agents.base_agent import MAX_RETRIES
 from app.models.character import CharacterCreate
 
 logger = logging.getLogger(__name__)
-
-# TODO: I don't think this is needed
-load_dotenv()
 
 
 class PersonalityGenerator:

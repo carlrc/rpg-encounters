@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext
 from pydantic_ai.agent import AgentRunResult
@@ -32,7 +31,6 @@ class InfluenceCalculatorAgent:
     ):
         self.character = character
         self.player = player
-        load_dotenv()
 
         agent = Agent(
             OpenAIModel(model_name="gpt-4o-mini"),

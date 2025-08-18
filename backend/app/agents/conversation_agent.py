@@ -2,7 +2,6 @@ import asyncio
 import logging
 from typing import List
 
-from dotenv import load_dotenv
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
@@ -40,7 +39,6 @@ class ConversationAgent(BaseAgent):
         influence_calculator_agent: InfluenceCalculatorAgent,
     ):
         super().__init__(character=character, player=player, memories=memories)
-        load_dotenv()
         self.convo_manager = conversation_manager
         self.influence_calculator_agent = influence_calculator_agent
 

@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-from dotenv import load_dotenv
 from pydantic_ai import Agent, NativeOutput, RunContext
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
@@ -27,7 +26,6 @@ class CriticalFailureAgent(BaseAgent):
         memories: List[Memory],
     ):
         super().__init__(character=character, player=player, memories=memories)
-        load_dotenv()
         agent = Agent(
             OpenAIModel(
                 model_name="gpt-4o",
