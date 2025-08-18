@@ -8,7 +8,7 @@ from app.db.models.base import UnifiedBase
 class InfluenceORM(UnifiedBase):
     __tablename__ = INFLUENCES_TABLE
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     character_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("characters.id"), nullable=False
     )

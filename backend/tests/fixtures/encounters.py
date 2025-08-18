@@ -1,38 +1,34 @@
-from app.models.encounter import Encounter
+from app.models.encounter import EncounterCreate
 
-encounters_db = {
-    1: Encounter(
-        id=1,
+encounters_db = [
+    EncounterCreate(
         user_id=1,
         world_id=1,
         name="The Prancing Pony Tavern",
         description="A cozy tavern filled with the warm glow of candlelight and the cheerful chatter of patrons. The air is thick with the aroma of roasted meat and ale. Bingo Bracegirdle runs this establishment with pride.",
         position_x=200.0,
         position_y=150.0,
-        character_ids=[1, 2]  # Bingo Bracegirdle and Old Took
+        character_ids=[0, 1]  # Bingo Bracegirdle and Old Took (array indices)
     ),
-    2: Encounter(
-        id=2,
+    EncounterCreate(
         user_id=1,
         world_id=1,
         name="Village Square",
         description="The heart of the village where merchants set up their stalls and villagers gather to share news. A large oak tree provides shade in the center, with wooden benches arranged around it.",
         position_x=500.0,
         position_y=150.0,
-        character_ids=[3]  # Poppy Proudfoot
+        character_ids=[2]  # Poppy Proudfoot (array index)
     ),
-    3: Encounter(
-        id=3,
+    EncounterCreate(
         user_id=1,
         world_id=1,
         name="Community Gardens",
         description="Well-tended vegetable patches and herb gardens maintained by the village. Rows of crops stretch across the fertile ground, with a small tool shed and compost area nearby.",
         position_x=350.0,
         position_y=300.0,
-        character_ids=[4]  # Merry Greenhill
+        character_ids=[3]  # Merry Greenhill (array index)
     ),
-    4: Encounter(
-        id=4,
+    EncounterCreate(
         user_id=1,
         world_id=1,
         name="Forest Path",
@@ -41,6 +37,4 @@ encounters_db = {
         position_y=250.0,
         character_ids=[]
     )
-}
-
-next_encounter_id = 5
+]

@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy import JSON, String, Text
+from sqlalchemy import JSON, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.connection import CHARACTERS_TABLE
@@ -20,7 +20,7 @@ from app.db.models.base import UnifiedBase
 class CharacterORM(UnifiedBase):
     __tablename__ = CHARACTERS_TABLE
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255))
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
     race: Mapped[str] = mapped_column(String(50))

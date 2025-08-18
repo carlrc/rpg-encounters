@@ -13,7 +13,7 @@ from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
 class RevealORM(UnifiedBase):
     __tablename__ = REVEALS_TABLE
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(REVEAL_TITLE_LIMIT))
     level_1_content: Mapped[str] = mapped_column(String(REVEAL_CONTENT_LIMIT))
     level_2_content: Mapped[str | None] = mapped_column(

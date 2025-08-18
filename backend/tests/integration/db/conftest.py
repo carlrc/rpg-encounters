@@ -3,7 +3,7 @@ import pytest
 from dotenv import load_dotenv
 
 from app.db.init_db import create_tables, drop_tables
-from tests.fixtures.migrate_data import seed_user_data, seed_world_data
+from tests.fixtures.seed_data import seed_user_data, seed_world_data
 
 
 @pytest.fixture(autouse=True)

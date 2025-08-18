@@ -10,7 +10,7 @@ from app.db.models.base import SimpleBase
 class WorldORM(SimpleBase):
     __tablename__ = WORLDS_TABLE
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey(f"{USERS_TABLE}.id"), nullable=False
     )
