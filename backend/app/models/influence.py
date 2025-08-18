@@ -36,6 +36,8 @@ class InfluenceBase(BaseModel):
 
 
 class Influence(InfluenceBase):
+    model_config = {"from_attributes": True}
+
     @property
     def score(self) -> int:
         """Calculate total influence score, clamped between 0 and 30 DC"""

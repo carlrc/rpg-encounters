@@ -28,7 +28,7 @@ class InfluenceStore:
             )
 
             if influence_orm:
-                return self._orm_to_influence(influence_orm)
+                return Influence.model_validate(influence_orm)
 
             # Create new influence
             new_influence = InfluenceORM(
@@ -43,7 +43,7 @@ class InfluenceStore:
             session.flush()  # Ensure entity is created before commit
             session.commit()
             session.refresh(new_influence)
-            return self._orm_to_influence(new_influence)
+            return Influence.model_validate(new_influence)
 
     def update_influence(self, influence: Influence) -> Influence | None:
         """Update existing influence"""
@@ -68,7 +68,7 @@ class InfluenceStore:
 
             session.commit()
             session.refresh(influence_orm)
-            return self._orm_to_influence(influence_orm)
+            return Influence.model_validate(influence_orm)
 
     def create_influence(self, influence: Influence) -> Influence:
         """Separate method for creating new influence records"""
@@ -84,7 +84,7 @@ class InfluenceStore:
             session.add(influence_orm)
             session.commit()
             session.refresh(influence_orm)
-            return self._orm_to_influence(influence_orm)
+            return Influence.model_validate(influence_orm)
 
     def get_influence(self, character_id: int, player_id: int) -> Influence | None:
         """Get influence state for character-player pair"""
@@ -99,7 +99,7 @@ class InfluenceStore:
             )
 
             if influence_orm:
-                return self._orm_to_influence(influence_orm)
+                return Influence.model_validate(influence_orm)
             return None
 
     def reset_influence(self, character_id: int, player_id: int) -> bool:
@@ -124,7 +124,7 @@ class InfluenceStore:
         """Get all influence records"""
         with self.Session() as session:
             influence_orms = session.query(InfluenceORM).all()
-            return [self._orm_to_influence(orm) for orm in influence_orms]
+            return [Influence.model_validate(orm) for orm in influence_orms]
 
     def get_by_character_id(self, character_id: int) -> List[Influence]:
         """Get all influence records for a character"""
@@ -134,7 +134,7 @@ class InfluenceStore:
                 .filter(InfluenceORM.character_id == character_id)
                 .all()
             )
-            return [self._orm_to_influence(orm) for orm in influence_orms]
+            return [Influence.model_validate(orm) for orm in influence_orms]
 
     def get_by_player_id(self, player_id: int) -> List[Influence]:
         """Get all influence records for a player"""
@@ -144,7 +144,7 @@ class InfluenceStore:
                 .filter(InfluenceORM.player_id == player_id)
                 .all()
             )
-            return [self._orm_to_influence(orm) for orm in influence_orms]
+            return [Influence.model_validate(orm) for orm in influence_orms]
 
     def delete_influence(self, character_id: int, player_id: int) -> bool:
         """Delete an influence record"""
@@ -170,14 +170,3 @@ class InfluenceStore:
         with self.Session() as session:
             session.query(InfluenceORM).delete()
             session.commit()
-
-    def _orm_to_influence(self, influence_orm: InfluenceORM) -> Influence:
-        """Convert InfluenceORM to Influence model"""
-        return Influence(
-            character_id=influence_orm.character_id,
-            player_id=influence_orm.player_id,
-            base=influence_orm.base,
-            earned=influence_orm.earned,
-            user_id=influence_orm.user_id,
-            world_id=influence_orm.world_id,
-        )
