@@ -9,6 +9,8 @@ from app.db.models.encounter import EncounterORM
 from app.db.models.memory import MemoryORM
 from app.db.models.reveal import RevealORM
 from app.db.models.connection import ConnectionORM
+from app.db.models.user import UserORM
+from app.db.models.world import WorldORM
 # Needs to be imported for sqlalchemy
 from app.db.models.influence import InfluenceORM  # noqa: F401
 from app.db.init_db import create_tables
@@ -22,6 +24,54 @@ from tests.fixtures.connections import connections_db
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+def seed_user_data(use_test_db=True):
+    """Create user with ID 1 for testing"""
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
+    
+    try:
+        with Session() as session:
+            # Check if user 1 already exists
+            existing_user = session.query(UserORM).filter(UserORM.id == 1).first()
+            if existing_user:
+                logger.info("User 1 already exists. Skipping user creation.")
+                return
+            
+            # Create user 1
+            user = UserORM(id=1)
+            session.add(user)
+            session.commit()
+    except SQLAlchemyError as e:
+        logger.error(f"Error creating user data: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error creating user data: {e}")
+        raise
+
+def seed_world_data(use_test_db=True):
+    """Create world with ID 1 for testing"""
+    engine = get_db_engine(use_test_db)
+    Session = sessionmaker(bind=engine)
+    
+    try:
+        with Session() as session:
+            # Check if world 1 already exists
+            existing_world = session.query(WorldORM).filter(WorldORM.id == 1).first()
+            if existing_world:
+                logger.info("World 1 already exists. Skipping world creation.")
+                return
+            
+            # Create world 1
+            world = WorldORM(id=1, user_id=1)
+            session.add(world)
+            session.commit()
+    except SQLAlchemyError as e:
+        logger.error(f"Error creating world data: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error creating world data: {e}")
+        raise
 
 
 def migrate_player_data(use_test_db=True):
@@ -267,6 +317,10 @@ def migrate_all_data(use_test_db=True):
     logger.info(f"Starting migration of all fixture data to {db_type} database...")
     
     try:
+        # Seed required user and world data first
+        seed_user_data(use_test_db)
+        seed_world_data(use_test_db)
+        
         # Migrate in dependency order
         migrate_player_data(use_test_db)
         migrate_character_data(use_test_db)

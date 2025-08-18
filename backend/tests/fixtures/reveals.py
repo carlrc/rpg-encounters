@@ -4,6 +4,8 @@ from app.models.reveal import Reveal
 reveal_db: Dict[int, Reveal] = {
     1: Reveal(
         id=1,
+        user_id=1,
+        world_id=1,
         title="The Garden Vandal",
         character_ids=[1, 3, 4],
         level_1_content="There is someone vandalizing the towns gardens",
@@ -12,6 +14,8 @@ reveal_db: Dict[int, Reveal] = {
     ),
     2: Reveal(
         id=2,
+        user_id=1,
+        world_id=1,
         title="Available Rooms",
         character_ids=[1],
         level_1_content="For normal customers, the Inn has only 1 standard single bed room left for the evening.",

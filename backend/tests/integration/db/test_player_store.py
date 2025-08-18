@@ -1,26 +1,13 @@
 #!/usr/bin/env python3
-import pytest
-from dotenv import load_dotenv
-
 from app.data.player_store import PlayerStore
-from app.db.init_db import create_tables, drop_tables
 from app.models.alignment import Alignment
 from app.models.class_traits import Abilities, Class, Skills
 from app.models.player import PlayerCreate, PlayerUpdate
 from app.models.race import Gender, Race, Size
 
 
-@pytest.fixture(autouse=True)
-def setup_teardown():
-    """Setup and teardown for each test"""
-    load_dotenv()
-    create_tables(use_test_db=True)  # Explicitly use test database
-    yield
-    drop_tables(use_test_db=True)  # Explicitly use test database
-
-
 def test_player_store():
-    store = PlayerStore()
+    store = PlayerStore(user_id=1, world_id=1)
 
     # Test 1: Create a player
     new_player_data = PlayerCreate(

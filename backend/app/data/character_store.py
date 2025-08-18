@@ -8,8 +8,10 @@ from app.models.character import Character, CharacterCreate, CharacterUpdate
 
 
 class CharacterStore:
-    def __init__(self):
+    def __init__(self, user_id: int, world_id: int):
         self.Session = sessionmaker(get_db_engine())
+        self.user_id = user_id
+        self.world_id = world_id
 
     def get_all_characters(self) -> List[Character]:
         """Get all characters"""
@@ -35,7 +37,11 @@ class CharacterStore:
     def create_character(self, character_data: CharacterCreate) -> Character:
         """Create a new character"""
         with self.Session() as session:
-            character_orm = CharacterORM(**character_data.model_dump())
+            character_orm = CharacterORM(
+                **character_data.model_dump(),
+                user_id=self.user_id,
+                world_id=self.world_id
+            )
             session.add(character_orm)
             session.commit()
             session.refresh(character_orm)

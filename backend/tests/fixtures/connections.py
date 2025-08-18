@@ -3,6 +3,8 @@ from app.models.encounter_connection import Connection, EdgeType, ConnectionHand
 connections_db = {
     1: Connection(
         id=1,
+        user_id=1,
+        world_id=1,
         source_encounter_id=1,  # Tavern
         target_encounter_id=2,  # Village Square
         source_handle=ConnectionHandle.RIGHT.value,
@@ -13,6 +15,8 @@ connections_db = {
     ),
     2: Connection(
         id=2,
+        user_id=1,
+        world_id=1,
         source_encounter_id=2,  # Village Square
         target_encounter_id=3,  # Community Gardens
         source_handle=ConnectionHandle.BOTTOM.value,
@@ -23,6 +27,8 @@ connections_db = {
     ),
     3: Connection(
         id=3,
+        user_id=1,
+        world_id=1,
         source_encounter_id=2,  # Village Square
         target_encounter_id=4,  # Forest Path
         source_handle=ConnectionHandle.RIGHT.value,

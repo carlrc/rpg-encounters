@@ -6,6 +6,8 @@ from app.models.class_traits import Abilities, Class, Skills
 players_db = {
     1: Player(
         id=1,
+        user_id=1,
+        world_id=1,
         name="Silviana Moonleaf",
         appearance="Graceful elf with silver hair braided with leaves, violet eyes, and elegant elven robes",
         race=Race.HIGH_ELF.value,
@@ -25,6 +27,8 @@ players_db = {
     ),
     2: Player(
         id=2,
+        user_id=1,
+        world_id=1,
         name="Pippin Greenhill",
         appearance="Cheerful hobbit with curly auburn hair, bright brown eyes, and well-worn traveling clothes",
         race=Race.LIGHTFOOT_HALFLING.value,

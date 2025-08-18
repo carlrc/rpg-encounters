@@ -1,4 +1,4 @@
-from app.agents.conversation_agent import ConversationAgent
+from app.agents.conversation_agent import ConversationAgent, ConversationAgentDeps
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.alignment import Alignment
@@ -99,8 +99,8 @@ async def test_personality_based_earned_influence_respects_standard_level():
     )
 
     _, level, _ = await agent.chat(
-        "Hi there, I'm wondering if you have any rooms available tonight?",
-        ALL_REVEALS,
+        player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
+        deps=ConversationAgentDeps(reveals=ALL_REVEALS, encounter_description=""),
     )
     # Bias with max base influence and basic inquiry should only result in standard level
     assert level == RevealLayer.STANDARD
@@ -120,13 +120,13 @@ async def test_personality_based_earned_influence_respects_privileged_level():
     )
 
     _, level, _ = await agent.chat(
-        "Hi there, I'm wondering if you have any rooms available tonight?",
-        ALL_REVEALS,
+        player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
+        deps=ConversationAgentDeps(reveals=ALL_REVEALS, encounter_description=""),
     )
     # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
     _, level, _ = await agent.chat(
-        "What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! And my fame will drive customers to you...",
-        ALL_REVEALS,
+        player_transcript="What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! And my fame will drive customers to you...",
+        deps=ConversationAgentDeps(reveals=ALL_REVEALS, encounter_description=""),
     )
 
     # Bias with max base influence and high alignment story should get privileged (not exclusive)
@@ -154,8 +154,8 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
     )
 
     _, level, _ = await agent.chat(
-        "My good man, in fact I need the best room because I'm here to help the town on an important quest...",
-        ALL_REVEALS,
+        player_transcript="My good man, in fact I need the best room because I'm here to help the town on an important quest...",
+        deps=ConversationAgentDeps(reveals=ALL_REVEALS, encounter_description=""),
     )
 
     # Bias with max base influence and high alignment story with repetition should get exclusive
@@ -199,16 +199,16 @@ async def test_personality_based_earned_influence_can_be_negative():
     )
 
     _, level, influence_adjustment = await agent.chat(
-        "I need a room for the night you dirty old man!",
-        ALL_REVEALS,
+        player_transcript="I need a room for the night you dirty old man!",
+        deps=ConversationAgentDeps(reveals=ALL_REVEALS, encounter_description=""),
     )
 
     assert influence_adjustment < 0
     assert level == RevealLayer.NEGATIVE
 
     _, level, influence_adjustment = await agent.chat(
-        "That isn't good enough you old man!",
-        ALL_REVEALS,
+        player_transcript="That isn't good enough you old man!",
+        deps=ConversationAgentDeps(reveals=ALL_REVEALS, encounter_description=""),
     )
 
     assert influence_adjustment < 0
@@ -245,22 +245,22 @@ async def test_conversation_agent_handles_multiple_reveals():
 
     # Start asking about the first reveal (available rooms) and switch mid conversation to the garden vandal
     result, _, _ = await agent.chat(
-        "I need a room",
-        reveals,
+        player_transcript="I need a room",
+        deps=ConversationAgentDeps(reveals=reveals, encounter_description=""),
     )
 
     assert_does_not_contain_keywords(result, garden_keywords)
 
     result, _, _ = await agent.chat(
-        "I want a better one with a view",
-        reveals,
+        player_transcript="I want a better one with a view",
+        deps=ConversationAgentDeps(reveals=reveals, encounter_description=""),
     )
 
     assert_does_not_contain_keywords(result, garden_keywords)
 
     result, _, _ = await agent.chat(
-        "Alright, also i want to know about this garden vandal. What gossip do you have?",
-        reveals,
+        player_transcript="Alright, also i want to know about this garden vandal. What gossip do you have?",
+        deps=ConversationAgentDeps(reveals=reveals, encounter_description=""),
     )
 
     assert_does_not_contain_keywords(result, room_keywords)

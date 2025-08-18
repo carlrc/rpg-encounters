@@ -7,6 +7,8 @@ from app.models.class_traits import Class
 characters_db = {
     1: Character(
         id=1,
+        user_id=1,
+        world_id=1,
         name="Bingo Bracegirdle",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -37,6 +39,8 @@ characters_db = {
     ),
     2: Character(
         id=2,
+        user_id=1,
+        world_id=1,
         name="Old Took",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -65,6 +69,8 @@ characters_db = {
     ),
     3: Character(
         id=3,
+        user_id=1,
+        world_id=1,
         name="Poppy Proudfoot",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -91,6 +97,8 @@ characters_db = {
     ),
     4: Character(
         id=4,
+        user_id=1,
+        world_id=1,
         name="Merry Greenhill",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,

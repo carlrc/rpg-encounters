@@ -1,4 +1,5 @@
 from app.agents.challenge_agent import ChallengeAgent
+from app.agents.challenge_agent_deps import ChallengeAgentDeps
 from app.agents.critical_failure_agent import CriticalFailureAgent
 from app.agents.critical_success_agent import CriticalSuccessAgent
 from app.agents.prompts.import_prompts import import_system_prompt
@@ -84,7 +85,8 @@ async def test_challenge_agent_standard():
     )
 
     response = await agent.chat(
-        player_transcript="I want to know everything about your inn"
+        player_transcript="I want to know everything about your inn",
+        deps=ChallengeAgentDeps(encounter_description=""),
     )
 
     assert_contains_any_keywords(text=response, keywords=["mayor"])
@@ -101,7 +103,8 @@ async def test_challenge_agent_critical_success():
     )
 
     response = await agent.chat(
-        player_transcript="I want to know everything about your inn"
+        player_transcript="I want to know everything about your inn",
+        deps=ChallengeAgentDeps(encounter_description=""),
     )
 
     assert_contains_any_keywords(
@@ -119,7 +122,8 @@ async def test_challenge_agent_critical_failure():
     )
 
     response = await agent.chat(
-        player_transcript="I want to know everything about your inn"
+        player_transcript="I want to know everything about your inn",
+        deps=ChallengeAgentDeps(encounter_description=""),
     )
 
     # TODO: How to assert against negativity?

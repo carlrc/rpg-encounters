@@ -9,8 +9,10 @@ from app.models.reveal import Reveal, RevealCreate, RevealUpdate
 
 
 class RevealStore:
-    def __init__(self):
+    def __init__(self, user_id: int, world_id: int):
         self.Session = sessionmaker(get_db_engine())
+        self.user_id = user_id
+        self.world_id = world_id
 
     def get_all_reveals(self) -> List[Reveal]:
         """Get all reveals across all characters"""
@@ -21,13 +23,16 @@ class RevealStore:
     def get_by_character_id(self, character_id: int) -> List[Reveal]:
         """Get all reveals for a character"""
         with self.Session() as session:
-            reveal_orms = (
-                session.query(RevealORM)
-                .join(RevealORM.characters)
+            character = (
+                session.query(CharacterORM)
                 .filter(CharacterORM.id == character_id)
-                .all()
+                .first()
             )
-            return [self._orm_to_reveal(reveal_orm) for reveal_orm in reveal_orms]
+
+            if character:
+                return [self._orm_to_reveal(reveal) for reveal in character.reveals]
+            else:
+                return []
 
     def get_reveal(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID"""
@@ -46,13 +51,13 @@ class RevealStore:
     def create_reveal(self, reveal_data: RevealCreate) -> Reveal:
         """Create a new reveal"""
         with self.Session() as session:
-            # Create the reveal without character_ids
+            # Create the reveal without character_ids - much cleaner!
             reveal_dict = reveal_data.model_dump(exclude={"character_ids"})
-            reveal_orm = RevealORM(**reveal_dict)
-            session.add(reveal_orm)
-            session.flush()  # Ensure entities are created for many-to-many
+            reveal_orm = RevealORM(
+                **reveal_dict, user_id=self.user_id, world_id=self.world_id
+            )
 
-            # Add character associations
+            # Automatic association handling
             if reveal_data.character_ids:
                 characters = (
                     session.query(CharacterORM)
@@ -61,6 +66,7 @@ class RevealStore:
                 )
                 reveal_orm.characters = characters
 
+            session.add(reveal_orm)
             session.commit()
             session.refresh(reveal_orm)
             return self._orm_to_reveal(reveal_orm)
@@ -73,6 +79,7 @@ class RevealStore:
             reveal_orm = (
                 session.query(RevealORM).filter(RevealORM.id == reveal_id).first()
             )
+
             if not reveal_orm:
                 return None
 
@@ -83,11 +90,8 @@ class RevealStore:
             for key, value in update_data.items():
                 setattr(reveal_orm, key, value)
 
-            # Update character associations if provided
-            if (
-                hasattr(reveal_update, "character_ids")
-                and reveal_update.character_ids is not None
-            ):
+            # Update character relationships
+            if reveal_update.character_ids is not None:
                 characters = (
                     session.query(CharacterORM)
                     .filter(CharacterORM.id.in_(reveal_update.character_ids))
@@ -124,6 +128,8 @@ class RevealStore:
         """Convert RevealORM to Reveal model"""
         return Reveal(
             id=reveal_orm.id,
+            user_id=reveal_orm.user_id,
+            world_id=reveal_orm.world_id,
             title=reveal_orm.title,
             character_ids=[char.id for char in reveal_orm.characters],
             level_1_content=reveal_orm.level_1_content,

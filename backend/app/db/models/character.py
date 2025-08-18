@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy import JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -7,12 +9,12 @@ from app.db.limits import (
     CHARACTER_COMMUNICATION_LIMIT,
     CHARACTER_MOTIVATION_LIMIT,
 )
-from app.db.models.base import UnifiedBase
-from app.db.models.encounter_character_association import (
-    encounter_character_association,
+from app.db.models.associations import (
+    encounter_characters,
+    memory_characters,
+    reveal_characters,
 )
-from app.db.models.memory_character_association import memory_character_association
-from app.db.models.reveal_character_association import reveal_character_association
+from app.db.models.base import UnifiedBase
 
 
 class CharacterORM(UnifiedBase):
@@ -42,26 +44,19 @@ class CharacterORM(UnifiedBase):
     gender_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     size_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    # Many-to-many relationship with memories
-    memories = relationship(
-        "MemoryORM",
-        secondary=memory_character_association,
-        back_populates="characters",
+    # Direct many-to-many relationships
+    memories: Mapped[List["MemoryORM"]] = relationship(  # noqa: F821
+        secondary=memory_characters, back_populates="characters"
     )
 
-    # Many-to-many relationship with reveals
-    reveals = relationship(
-        "RevealORM",
-        secondary=reveal_character_association,
-        back_populates="characters",
+    encounters: Mapped[List["EncounterORM"]] = relationship(  # noqa: F821
+        secondary=encounter_characters, back_populates="characters"
     )
 
-    # Many-to-many relationship with encounters
-    encounters = relationship(
-        "EncounterORM",
-        secondary=encounter_character_association,
-        back_populates="characters",
+    reveals: Mapped[List["RevealORM"]] = relationship(  # noqa: F821
+        secondary=reveal_characters, back_populates="characters"
     )
 
-    # One-to-many relationship with influences
-    influences = relationship("InfluenceORM", foreign_keys="InfluenceORM.character_id")
+    influences: Mapped[List["InfluenceORM"]] = relationship(  # noqa: F821
+        foreign_keys="InfluenceORM.character_id"
+    )

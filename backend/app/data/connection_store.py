@@ -12,8 +12,10 @@ from app.models.encounter_connection import (
 
 
 class ConnectionStore:
-    def __init__(self):
+    def __init__(self, user_id: int, world_id: int):
         self.Session = sessionmaker(get_db_engine())
+        self.user_id = user_id
+        self.world_id = world_id
 
     def get_all_connections(self) -> List[Connection]:
         """Get all connections"""
@@ -40,7 +42,9 @@ class ConnectionStore:
         """Create a new connection"""
         with self.Session() as session:
             connection_dict = connection_data.model_dump()
-            connection_orm = ConnectionORM(**connection_dict)
+            connection_orm = ConnectionORM(
+                **connection_dict, user_id=self.user_id, world_id=self.world_id
+            )
             session.add(connection_orm)
             session.commit()
             session.refresh(connection_orm)
@@ -115,6 +119,8 @@ class ConnectionStore:
         """Convert ConnectionORM to Connection model"""
         return Connection(
             id=connection_orm.id,
+            user_id=connection_orm.user_id,
+            world_id=connection_orm.world_id,
             source_encounter_id=connection_orm.source_encounter_id,
             target_encounter_id=connection_orm.target_encounter_id,
             source_handle=connection_orm.source_handle,

@@ -9,8 +9,10 @@ from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
 
 
 class EncounterStore:
-    def __init__(self):
+    def __init__(self, user_id: int, world_id: int):
         self.Session = sessionmaker(get_db_engine())
+        self.user_id = user_id
+        self.world_id = world_id
 
     def get_all_encounters(self) -> List[Encounter]:
         """Get all encounters"""
@@ -36,13 +38,13 @@ class EncounterStore:
     def create_encounter(self, encounter_data: EncounterCreate) -> Encounter:
         """Create a new encounter"""
         with self.Session() as session:
-            # Create the encounter without character_ids
+            # Create the encounter without character_ids - much cleaner!
             encounter_dict = encounter_data.model_dump(exclude={"character_ids"})
-            encounter_orm = EncounterORM(**encounter_dict)
-            session.add(encounter_orm)
-            session.flush()  # Ensure entities are created for many-to-many
+            encounter_orm = EncounterORM(
+                **encounter_dict, user_id=self.user_id, world_id=self.world_id
+            )
 
-            # Add character associations
+            # Automatic association handling
             if encounter_data.character_ids:
                 characters = (
                     session.query(CharacterORM)
@@ -51,6 +53,7 @@ class EncounterStore:
                 )
                 encounter_orm.characters = characters
 
+            session.add(encounter_orm)
             session.commit()
             session.refresh(encounter_orm)
             return self._orm_to_encounter(encounter_orm)
@@ -65,6 +68,7 @@ class EncounterStore:
                 .filter(EncounterORM.id == encounter_id)
                 .first()
             )
+
             if not encounter_orm:
                 return None
 
@@ -75,11 +79,8 @@ class EncounterStore:
             for key, value in update_data.items():
                 setattr(encounter_orm, key, value)
 
-            # Update character associations if provided
-            if (
-                hasattr(encounter_update, "character_ids")
-                and encounter_update.character_ids is not None
-            ):
+            # Update character relationships
+            if encounter_update.character_ids is not None:
                 characters = (
                     session.query(CharacterORM)
                     .filter(CharacterORM.id.in_(encounter_update.character_ids))
@@ -110,6 +111,8 @@ class EncounterStore:
         """Convert EncounterORM to Encounter model"""
         return Encounter(
             id=encounter_orm.id,
+            user_id=encounter_orm.user_id,
+            world_id=encounter_orm.world_id,
             name=encounter_orm.name,
             description=encounter_orm.description,
             position_x=encounter_orm.position_x,
