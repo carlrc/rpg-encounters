@@ -8,8 +8,10 @@ from app.models.player import Player, PlayerCreate, PlayerUpdate
 
 
 class PlayerStore:
-    def __init__(self):
+    def __init__(self, user_id: int, world_id: int):
         self.Session = sessionmaker(get_db_engine())
+        self.user_id = user_id
+        self.world_id = world_id
 
     def get_all_players(self) -> List[Player]:
         """Get all players"""
@@ -30,7 +32,9 @@ class PlayerStore:
     def create_player(self, player_data: PlayerCreate) -> Player:
         """Create a new player"""
         with self.Session() as session:
-            player_orm = PlayerORM(**player_data.model_dump())
+            player_orm = PlayerORM(
+                **player_data.model_dump(), user_id=self.user_id, world_id=self.world_id
+            )
             session.add(player_orm)
             session.commit()
             session.refresh(player_orm)

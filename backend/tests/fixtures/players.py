@@ -1,11 +1,12 @@
-from app.models.player import Player
+from app.models.player import PlayerCreate
 from app.models.race import Race, Size, Gender
 from app.models.alignment import Alignment
 from app.models.class_traits import Abilities, Class, Skills
 
-players_db = {
-    1: Player(
-        id=1,
+players_db = [
+    PlayerCreate(
+        user_id=1,
+        world_id=1,
         name="Silviana Moonleaf",
         appearance="Graceful elf with silver hair braided with leaves, violet eyes, and elegant elven robes",
         race=Race.HIGH_ELF.value,
@@ -23,8 +24,9 @@ players_db = {
             Skills.PERFORMANCE.value: 4
         }
     ),
-    2: Player(
-        id=2,
+    PlayerCreate(
+        user_id=1,
+        world_id=1,
         name="Pippin Greenhill",
         appearance="Cheerful hobbit with curly auburn hair, bright brown eyes, and well-worn traveling clothes",
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -42,6 +44,4 @@ players_db = {
             Skills.PERFORMANCE.value: 6
         }
     ),
-}
-
-next_player_id = 3
+]

@@ -1,4 +1,4 @@
-from app.agents.conversation_agent import ConversationAgent
+from app.agents.conversation_agent import ConversationAgent, ConversationAgentDeps
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.alignment import Alignment
@@ -74,8 +74,8 @@ async def test_agent_handles_no_reveals():
     )
 
     _, level, _ = await agent.chat(
-        "Hi there, I'm wondering if you have any rooms available tonight?",
-        [],
+        player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
+        deps=ConversationAgentDeps(reveals=[], encounter_description=""),
     )
     # No reveals linked to character should result in standard response
     assert level == RevealLayer.STANDARD

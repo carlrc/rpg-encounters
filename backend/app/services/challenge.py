@@ -36,6 +36,7 @@ challenge_agent_critical_failure_system_prompt = import_system_prompt(
 
 async def challenge_character(
     websocket: WebSocket,
+    world_id: int,
     encounter_id: int,
     player_id: int,
     character_id: int,
@@ -51,19 +52,29 @@ async def challenge_character(
 
     try:
         # Get player and character data
-        character = CharacterStore().get_character_by_id(character_id)
-        player = PlayerStore().get_player_by_id(player_id=player_id)
+        character = CharacterStore(
+            world_id=world_id, player_id=player_id
+        ).get_character_by_id(character_id)
+        player = PlayerStore(world_id=world_id, player_id=player_id).get_player_by_id(
+            player_id=player_id
+        )
         # Calculate skill check: d20 + player skill bonus
         total_roll = calculate_skill_check(
             skill=skill, player=player, d20_roll=d20_roll
         )
 
-        encounter = EncounterStore().get_encounter_by_id(encounter_id=encounter_id)
+        encounter = EncounterStore(
+            world_id=world_id, player_id=player_id
+        ).get_encounter_by_id(encounter_id=encounter_id)
 
         # Get information tied to character
-        all_reveals = RevealStore().get_by_character_id(character_id)
+        all_reveals = RevealStore(
+            world_id=world_id, player_id=player_id
+        ).get_by_character_id(character_id)
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
-        all_memories = MemoryStore().get_by_character_id(character_id)
+        all_memories = MemoryStore(
+            world_id=world_id, player_id=player_id
+        ).get_by_character_id(character_id)
 
         if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
             agent = CriticalSuccessAgent(

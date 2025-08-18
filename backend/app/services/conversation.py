@@ -26,7 +26,11 @@ scoring_system_prompt = import_system_prompt("influence_scoring_agent")
 
 
 async def have_conversation(
-    websocket: WebSocket, player_id: int, character_id: int, encounter_id: int
+    websocket: WebSocket,
+    world_id: int,
+    player_id: int,
+    character_id: int,
+    encounter_id: int,
 ) -> None:
 
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
@@ -40,20 +44,32 @@ async def have_conversation(
 
     try:
         # Get character and player information
-        encounter = EncounterStore().get_encounter_by_id(encounter_id=encounter_id)
-        character = CharacterStore().get_character_by_id(character_id=character_id)
-        player = PlayerStore().get_player_by_id(player_id=player_id)
+        encounter = EncounterStore(
+            world_id=world_id, player_id=player_id
+        ).get_encounter_by_id(encounter_id=encounter_id)
+        character = CharacterStore(
+            world_id=world_id, player_id=player_id
+        ).get_character_by_id(character_id=character_id)
+        player = PlayerStore(world_id=world_id, player_id=player_id).get_player_by_id(
+            player_id=player_id
+        )
 
         # Get static influence metric between character and player
         base_influence = calculate_base_influence(character=character, player=player)
         # Get or create persistent influence state
-        influence = InfluenceStore().get_or_create(
+        influence = InfluenceStore(
+            world_id=world_id, player_id=player_id
+        ).get_or_create(
             character_id=character_id, player_id=player_id, base=base_influence
         )
         # Get information tied to character
-        all_reveals = RevealStore().get_by_character_id(character_id=character_id)
+        all_reveals = RevealStore(
+            world_id=world_id, player_id=player_id
+        ).get_by_character_id(character_id=character_id)
         # TODO: This would need to be lazy updated across instances in case DM wants to update information on the fly
-        all_memories = MemoryStore().get_by_character_id(character_id=character_id)
+        all_memories = MemoryStore(
+            world_id=world_id, player_id=player_id
+        ).get_by_character_id(character_id=character_id)
 
         # Get or create persistent character agent
         agent = get_agent_manager().get_or_create_agent(

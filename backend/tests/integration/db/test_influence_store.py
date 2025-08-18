@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
-import pytest
-from dotenv import load_dotenv
-
 from app.data.character_store import CharacterStore
 from app.data.influence_store import InfluenceStore
 from app.data.player_store import PlayerStore
-from app.db.init_db import create_tables, drop_tables
 from app.models.alignment import Alignment
 from app.models.character import CharacterCreate
 from app.models.class_traits import Abilities, Class, Skills
@@ -14,19 +10,10 @@ from app.models.player import PlayerCreate
 from app.models.race import Gender, Race, Size
 
 
-@pytest.fixture(autouse=True)
-def setup_teardown():
-    """Setup and teardown for each test"""
-    load_dotenv()
-    create_tables(use_test_db=True)  # Explicitly use test database
-    yield
-    drop_tables(use_test_db=True)  # Explicitly use test database
-
-
 def test_influence_store():
     # Create character and player first
-    character_store = CharacterStore()
-    player_store = PlayerStore()
+    character_store = CharacterStore(user_id=1, world_id=1)
+    player_store = PlayerStore(user_id=1, world_id=1)
 
     character_data = CharacterCreate(
         name="Test Wizard",
@@ -68,7 +55,7 @@ def test_influence_store():
     created_player = player_store.create_player(player_data)
 
     # Test influence store
-    influence_store = InfluenceStore()
+    influence_store = InfluenceStore(user_id=1, world_id=1)
 
     # Test get_or_create - new influence
     base_influence = 5

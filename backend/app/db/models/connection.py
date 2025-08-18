@@ -13,7 +13,7 @@ from app.db.models.base import UnifiedBase
 class ConnectionORM(UnifiedBase):
     __tablename__ = CONNECTIONS_TABLE
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     source_encounter_id: Mapped[int] = mapped_column(
         Integer, ForeignKey(f"{ENCOUNTERS_TABLE}.id", ondelete="CASCADE")
     )

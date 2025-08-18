@@ -12,15 +12,17 @@ from app.models.encounter_connection import (
 
 
 class ConnectionStore:
-    def __init__(self):
+    def __init__(self, user_id: int, world_id: int):
         self.Session = sessionmaker(get_db_engine())
+        self.user_id = user_id
+        self.world_id = world_id
 
     def get_all_connections(self) -> List[Connection]:
         """Get all connections"""
         with self.Session() as session:
             connection_orms = session.query(ConnectionORM).all()
             return [
-                self._orm_to_connection(connection_orm)
+                Connection.model_validate(connection_orm)
                 for connection_orm in connection_orms
             ]
 
@@ -33,18 +35,20 @@ class ConnectionStore:
                 .first()
             )
             if connection_orm:
-                return self._orm_to_connection(connection_orm)
+                return Connection.model_validate(connection_orm)
             return None
 
     def create_connection(self, connection_data: ConnectionCreate) -> Connection:
         """Create a new connection"""
         with self.Session() as session:
             connection_dict = connection_data.model_dump()
-            connection_orm = ConnectionORM(**connection_dict)
+            connection_orm = ConnectionORM(
+                **connection_dict, user_id=self.user_id, world_id=self.world_id
+            )
             session.add(connection_orm)
             session.commit()
             session.refresh(connection_orm)
-            return self._orm_to_connection(connection_orm)
+            return Connection.model_validate(connection_orm)
 
     def update_connection(
         self, connection_id: int, connection_update: ConnectionUpdate
@@ -68,7 +72,7 @@ class ConnectionStore:
 
             session.commit()
             session.refresh(connection_orm)
-            return self._orm_to_connection(connection_orm)
+            return Connection.model_validate(connection_orm)
 
     def delete_connection(self, connection_id: int) -> bool:
         """Delete a connection"""
@@ -97,7 +101,7 @@ class ConnectionStore:
                 .all()
             )
             return [
-                self._orm_to_connection(connection_orm)
+                Connection.model_validate(connection_orm)
                 for connection_orm in connection_orms
             ]
 
@@ -110,16 +114,3 @@ class ConnectionStore:
                 .first()
                 is not None
             )
-
-    def _orm_to_connection(self, connection_orm: ConnectionORM) -> Connection:
-        """Convert ConnectionORM to Connection model"""
-        return Connection(
-            id=connection_orm.id,
-            source_encounter_id=connection_orm.source_encounter_id,
-            target_encounter_id=connection_orm.target_encounter_id,
-            source_handle=connection_orm.source_handle,
-            target_handle=connection_orm.target_handle,
-            edge_type=connection_orm.edge_type,
-            stroke_color=connection_orm.stroke_color,
-            stroke_width=connection_orm.stroke_width,
-        )

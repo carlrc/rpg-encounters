@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
+from app.dependencies import get_current_user_world
 from app.models.batch_update import CanvasResponse, CanvasSaveRequest
 from app.models.encounter import EncounterCreate, EncounterUpdate
 
@@ -9,20 +10,27 @@ router = APIRouter(prefix="/api/canvas", tags=["canvas"])
 
 
 @router.get("", response_model=CanvasResponse)
-async def get_canvas():
+async def get_canvas(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Get complete canvas state - all encounters with connections"""
-    encounters = EncounterStore().get_all_encounters()
-    connections = ConnectionStore().get_all_connections()
+    user_id, world_id = user_world
+    encounters = EncounterStore(user_id=user_id, world_id=world_id).get_all_encounters()
+    connections = ConnectionStore(
+        user_id=user_id, world_id=world_id
+    ).get_all_connections()
 
     return CanvasResponse(encounters=encounters, connections=connections)
 
 
 @router.post("/save", response_model=CanvasResponse)
-async def save_canvas(request: CanvasSaveRequest):
+async def save_canvas(
+    request: CanvasSaveRequest,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+):
     """Save entire canvas state - handles new and existing items"""
+    user_id, world_id = user_world
 
-    encounter_store = EncounterStore()
-    connection_store = ConnectionStore()
+    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
+    connection_store = ConnectionStore(user_id=user_id, world_id=world_id)
 
     # Build encounter ID mapping dictionary (temp_id -> real_id)
     encounter_id_map = {}

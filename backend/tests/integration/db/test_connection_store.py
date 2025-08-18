@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-import pytest
-from dotenv import load_dotenv
-
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.db.init_db import create_tables, drop_tables
 from app.models.encounter import EncounterCreate
 from app.models.encounter_connection import (
     ConnectionCreate,
@@ -14,18 +10,9 @@ from app.models.encounter_connection import (
 )
 
 
-@pytest.fixture(autouse=True)
-def setup_teardown():
-    """Setup and teardown for each test"""
-    load_dotenv()
-    create_tables(use_test_db=True)  # Explicitly use test database
-    yield
-    drop_tables(use_test_db=True)  # Explicitly use test database
-
-
 def test_connection_store():
     # Create encounters first
-    encounter_store = EncounterStore()
+    encounter_store = EncounterStore(user_id=1, world_id=1)
 
     encounter1_data = EncounterCreate(
         name="Test Tavern",
@@ -47,7 +34,7 @@ def test_connection_store():
     created_encounter2 = encounter_store.create_encounter(encounter2_data)
 
     # Now create connection with actual encounter IDs
-    connection_store = ConnectionStore()
+    connection_store = ConnectionStore(user_id=1, world_id=1)
 
     new_connection_data = ConnectionCreate(
         source_encounter_id=created_encounter1.id,

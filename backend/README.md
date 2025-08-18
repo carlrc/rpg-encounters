@@ -64,11 +64,16 @@ Run docker
 docker compose up -d
 ```
 
-Seed test database with fixture data (default)
+Create test database
 
 ```bash
-python -m app.db.init_db  # Creates tables in test DB
-python -m tests.fixtures.migrate_data  # Migrates fixture data to test DB
+python -m app.db.init_db
+```
+
+Seed test database with fixture data
+
+```bash
+python -m tests.fixtures.seed_data
 ```
 
 Run backend

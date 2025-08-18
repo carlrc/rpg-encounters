@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-import pytest
-from dotenv import load_dotenv
-
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
-from app.db.init_db import create_tables, drop_tables
 from app.models.alignment import Alignment
 from app.models.character import CharacterCreate
 from app.models.class_traits import Class
@@ -12,16 +8,8 @@ from app.models.encounter import EncounterCreate, EncounterUpdate
 from app.models.race import Gender, Race, Size
 
 
-@pytest.fixture(autouse=True)
-def my_fixture():
-    load_dotenv()
-    create_tables(use_test_db=True)  # Explicitly use test database
-    yield
-    drop_tables(use_test_db=True)  # Explicitly use test database
-
-
 def test_encounter_store():
-    character_store = CharacterStore()
+    character_store = CharacterStore(user_id=1, world_id=1)
 
     # Create test characters first
     character1_data = CharacterCreate(
@@ -66,7 +54,7 @@ def test_encounter_store():
     created_character2 = character_store.create_character(character2_data)
 
     # Now test encounter store
-    encounter_store = EncounterStore()
+    encounter_store = EncounterStore(user_id=1, world_id=1)
 
     # Test create encounter with characters
     new_encounter_data = EncounterCreate(

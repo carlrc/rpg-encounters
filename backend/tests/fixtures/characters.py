@@ -1,12 +1,13 @@
-from app.models.character import Character
+from app.models.character import CharacterCreate
 from app.models.race import Race, Size, Gender
 from app.models.alignment import Alignment
 from app.models.reveal import DifficultyClass
 from app.models.class_traits import Class
 
-characters_db = {
-    1: Character(
-        id=1,
+characters_db = [
+    CharacterCreate(
+        user_id=1,
+        world_id=1,
         name="Bingo Bracegirdle",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -35,8 +36,9 @@ characters_db = {
         appearance_keywords=None,
         storytelling_keywords=None,
     ),
-    2: Character(
-        id=2,
+    CharacterCreate(
+        user_id=1,
+        world_id=1,
         name="Old Took",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -63,8 +65,9 @@ characters_db = {
         class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
         gender_preferences={Gender.MALE.value: DifficultyClass.VERY_EASY.value},
     ),
-    3: Character(
-        id=3,
+    CharacterCreate(
+        user_id=1,
+        world_id=1,
         name="Poppy Proudfoot",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -89,8 +92,9 @@ characters_db = {
             Race.TIEFLING.value: -DifficultyClass.VERY_EASY.value,
         },
     ),
-    4: Character(
-        id=4,
+    CharacterCreate(
+        user_id=1,
+        world_id=1,
         name="Merry Greenhill",
         avatar=None,
         race=Race.LIGHTFOOT_HALFLING.value,
@@ -116,6 +120,4 @@ characters_db = {
         },
         class_preferences={Class.DRUID.value: DifficultyClass.VERY_EASY.value},
     ),
-}
-
-next_character_id = 5
+]
