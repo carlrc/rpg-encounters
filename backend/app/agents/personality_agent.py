@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from pydantic_ai import Agent
 from pydantic_ai.models.openai import OpenAIModel
 
+from app.agents.base_agent import MAX_RETRIES
 from app.models.character import CharacterCreate
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class PersonalityGenerator:
             6. How their bias preferences (race, class, gender, etc.) affect their influence evaluation (keep short)
             IMPORTANT: Include specific mentions of their bias preferences and explain WHY they have these biases based on their background, profession, and experiences. Describe how these biases manifest in their trust interpretations.
             Format as a single paragraph suitable for AI influence evaluation. Focus on what would make this character trust or distrust someone in conversation, including their inherent biases.""",
+            retries=MAX_RETRIES,
         )
 
         prompt = f"""

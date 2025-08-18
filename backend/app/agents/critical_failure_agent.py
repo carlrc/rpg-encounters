@@ -40,6 +40,7 @@ class CriticalFailureAgent(BaseAgent):
             + self._build_base_instruction(),
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(ChallengeAgentOutput),
+            retries=self.retries,
         )
         self.run_result: AgentRunResult[ChallengeAgentOutput] = None
 

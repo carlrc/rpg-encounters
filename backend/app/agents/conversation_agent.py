@@ -59,6 +59,7 @@ class ConversationAgent(BaseAgent):
                 ConversationAgentOutput,
                 description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
             ),
+            retries=self.retries,
         )
         self.run_result: AgentRunResult[ConversationAgentOutput] = None
 

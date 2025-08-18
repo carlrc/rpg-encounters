@@ -8,6 +8,7 @@ from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.openai import OpenAIModel
 
+from app.agents.base_agent import MAX_RETRIES
 from app.models.character import Character
 from app.models.influence import INFLUENCE_CHANGE_MAX, INFLUENCE_CHANGE_MIN
 from app.models.player import Player
@@ -42,6 +43,7 @@ class InfluenceCalculatorAgent:
                 InfluenceCalculatorAgentOutput,
                 description="Score the players message to your character",
             ),
+            retries=MAX_RETRIES,
         )
 
         self.run_result: AgentRunResult[InfluenceCalculatorAgentOutput] = None

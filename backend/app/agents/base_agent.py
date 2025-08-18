@@ -8,6 +8,8 @@ from app.models.player import Player
 
 MAX_MESSAGE_HISTORY = 10
 
+MAX_RETRIES = 3
+
 
 class BaseAgent:
     """Base class for agents that provides shared functionality."""
@@ -16,6 +18,7 @@ class BaseAgent:
         self.character = character
         self.player = player
         self.memories = memories
+        self.retries = MAX_RETRIES
 
     def _build_base_instruction(self) -> str:
         """Build base instruction with world context and player information."""

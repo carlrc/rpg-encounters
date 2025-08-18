@@ -134,7 +134,7 @@ async def test_personality_based_earned_influence_respects_privileged_level():
 
 
 async def test_personality_based_earned_influence_respects_exclusive_level():
-    Influence(
+    influence = Influence(
         character_id=CHARACTER.id,
         player_id=PLAYER.id,
         base=BASE_INFLUENCE_MAX,  # Force max base influence
@@ -145,7 +145,7 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        influence=INFLUENCE_STATE,
+        influence=influence,
         conversation_manager=ConversationManager(),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
