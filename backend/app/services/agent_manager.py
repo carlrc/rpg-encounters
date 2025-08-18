@@ -4,7 +4,6 @@ from typing import List
 from app.agents.conversation_agent import ConversationAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.models.character import Character
-from app.models.influence import Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.services.conversation_manager import ConversationManager
@@ -27,7 +26,6 @@ class AgentManager:
         char_system_prompt: str,
         scoring_system_prompt: str,
         memories: List[Memory],
-        influence: Influence,
     ) -> ConversationAgent:
 
         key = (player_id, character_id)
@@ -41,7 +39,6 @@ class AgentManager:
                 player=player,
                 system_prompt=char_system_prompt,
                 memories=memories,
-                influence=influence,
                 conversation_manager=ConversationManager(),
                 influence_calculator_agent=InfluenceCalculatorAgent(
                     system_prompt=scoring_system_prompt,

@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 class ConversationAgentDeps(BaseModel):
     reveals: List[Reveal]
     encounter_description: str
+    influence: Influence
 
 
 class ConversationAgent(BaseAgent):
@@ -35,14 +36,11 @@ class ConversationAgent(BaseAgent):
         player: Player,
         system_prompt: str,
         memories: List[Memory],
-        # TODO: Influence should not be in this class
-        influence: Influence,
         conversation_manager: ConversationManager,
         influence_calculator_agent: InfluenceCalculatorAgent,
     ):
         super().__init__(character=character, player=player, memories=memories)
         load_dotenv()
-        self.influence = influence
         self.convo_manager = conversation_manager
         self.influence_calculator_agent = influence_calculator_agent
 
@@ -114,7 +112,7 @@ class ConversationAgent(BaseAgent):
 
     async def chat(
         self, player_transcript: str, deps: ConversationAgentDeps
-    ) -> tuple[str, RevealLayer, int]:
+    ) -> tuple[str, RevealLayer, Influence]:
         try:
             agent_task = self.agent.run(
                 user_prompt=player_transcript,
@@ -132,12 +130,14 @@ class ConversationAgent(BaseAgent):
             logger.error(f"Response generation failed. {e}")
             raise
 
-        self.influence.earned += influence_result.score
+        # Add to running earned total
+        deps.influence.earned += influence_result.score
 
         selected_response, level = self.convo_manager.select_response(
             reveals=deps.reveals,
             agent_result=self.run_result.output,
-            influence_score=self.influence.score,
+            # Pass total influence score
+            influence_score=deps.influence.score,
         )
 
         # Persist messages in custom history
@@ -145,4 +145,4 @@ class ConversationAgent(BaseAgent):
         self.convo_manager.add_user_message(message=self.run_result.new_messages()[0])
         self.convo_manager.add_agent_response(response=selected_response)
 
-        return selected_response, level, influence_result.score
+        return selected_response, level, deps.influence

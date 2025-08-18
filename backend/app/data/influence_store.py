@@ -23,6 +23,8 @@ class InfluenceStore:
                 .filter(
                     InfluenceORM.character_id == character_id,
                     InfluenceORM.player_id == player_id,
+                    InfluenceORM.user_id == self.user_id,
+                    InfluenceORM.world_id == self.world_id,
                 )
                 .first()
             )
@@ -40,7 +42,7 @@ class InfluenceStore:
                 world_id=self.world_id,
             )
             session.add(new_influence)
-            session.flush()  # Ensure entity is created before commit
+            session.flush()
             session.commit()
             session.refresh(new_influence)
             return Influence.model_validate(new_influence)

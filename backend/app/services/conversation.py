@@ -66,10 +66,13 @@ async def have_conversation(
         all_reveals = RevealStore(
             world_id=world_id, player_id=player_id
         ).get_by_character_id(character_id=character_id)
-        # TODO: This would need to be lazy updated across instances in case DM wants to update information on the fly
         all_memories = MemoryStore(
             world_id=world_id, player_id=player_id
         ).get_by_character_id(character_id=character_id)
+
+        # TODO: getting all reveals and memories even through the agent manager caches instances
+        # TODO: Need to only cache convo manager realistically and pass in reveals and memories dynamically
+        # If the DM removes memories between conversations or adds something it should be used
 
         # Get or create persistent character agent
         agent = get_agent_manager().get_or_create_agent(
@@ -80,21 +83,22 @@ async def have_conversation(
             char_system_prompt=char_system_prompt,
             scoring_system_prompt=scoring_system_prompt,
             memories=all_memories,
-            influence=influence,
         )
 
         # Generate AI response using character agent
         deps = ConversationAgentDeps(
             reveals=all_reveals, encounter_description=encounter.description
         )
-        response, level, _ = await agent.chat(
+        response, level, influence = await agent.chat(
             player_transcript=transcription, deps=deps
         )
         logger.debug(
             f"Generated character response for level ${level.name}: {response}"
         )
 
-        # TODO: Persist the influence adjustments as a background task here for restart continuity
+        InfluenceStore(world_id=world_id, player_id=player_id).update_influence(
+            influence=influence
+        )
 
         # Stream TTS audio chunks back to frontend
         for audio_chunk in get_tts_service().text_to_speech_stream(
