@@ -11,6 +11,11 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from app.agents.agent_output import ConversationAgentOutput
 from app.agents.base_agent import BaseAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
+from app.agents.prompts.utils import (
+    structure_character_memories,
+    structure_encounter,
+    structure_reveals,
+)
 from app.http import create_retrying_client
 from app.models.character import Character
 from app.models.influence import Influence
@@ -38,7 +43,7 @@ class ConversationAgent(BaseAgent):
         conversation_manager: ConversationManager,
         influence_calculator_agent: InfluenceCalculatorAgent,
     ):
-        super().__init__(character=character, player=player, memories=memories)
+        super().__init__()
         self.convo_manager = conversation_manager
         self.influence_calculator_agent = influence_calculator_agent
 
@@ -48,8 +53,8 @@ class ConversationAgent(BaseAgent):
                 provider=OpenAIProvider(http_client=create_retrying_client()),
             ),
             # Moving character.to_prompt() to instructions caused instability in output validation
-            system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=self._build_base_instruction(),
+            system_prompt=system_prompt + "\n" + character.to_prompt(),
+            instructions=structure_character_memories(memories=memories, player=player),
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(
                 ConversationAgentOutput,
@@ -64,36 +69,11 @@ class ConversationAgent(BaseAgent):
         def add_reveals(ctx: RunContext[ConversationAgentDeps]) -> str:
             all_reveals = [reveal for reveal in ctx.deps.reveals]
 
-            if not all_reveals:
-                return """**IMPORTANT**: No reveals available for this character. Refer to memories and character background."""
-
-            instruction_parts = []
-            instruction_parts.append("\n# Available Reveals")
-            instruction_parts.append(
-                "**IMPORTANT**: Select the reveal which is most relevant to the players message."
-            )
-
-            for reveal in all_reveals:
-                instruction_parts.append(
-                    f"""
-                    \n## ID {reveal.id} - {reveal.title}
-                    **{RevealLayer.STANDARD.name}:** {reveal.level_1_content}
-                    **{RevealLayer.PRIVILEGED.name}:** {reveal.level_2_content or 'NONE'}
-                    **{RevealLayer.EXCLUSIVE.name}:** {reveal.level_3_content or 'NONE'}
-                    """
-                )
-
-            return "".join(instruction_parts)
+            return structure_reveals(reveals=all_reveals)
 
         @agent.instructions
         def add_encounter(ctx: RunContext[ConversationAgentDeps]) -> str:
-            if ctx.deps.encounter_description:
-                return f"""# Physical Location Context
-                    Your character is currently in the following encounter. Use this information as your physical world context.
-                    {ctx.deps.encounter_description}
-                    """
-            else:
-                return ""
+            return structure_encounter(ctx.deps.encounter_description)
 
         # Decorator does not work on self.agent.output_validator
         @agent.output_validator

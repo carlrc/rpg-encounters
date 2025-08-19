@@ -9,5 +9,5 @@ class ConversationAgentOutput(BaseModel):
     reveal_id: int | None = None
 
 
-class ChallengeAgentOutput(BaseModel):
+class StandardAgentOutput(BaseModel):
     response: str

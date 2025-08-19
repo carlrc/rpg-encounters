@@ -1,4 +1,7 @@
-from app.agents.conversation_agent import ConversationAgent, ConversationAgentDeps
+from app.agents.conversations.conversation_agent import (
+    ConversationAgent,
+    ConversationAgentDeps,
+)
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.alignment import Alignment
@@ -65,8 +68,9 @@ async def test_agent_handles_no_reveals():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        influence=INFLUENCE_STATE,
-        conversation_manager=ConversationManager(),
+        conversation_manager=ConversationManager(
+            player_id=PLAYER.id, character_id=CHARACTER.id
+        ),
         influence_calculator_agent=InfluenceCalculatorAgent(
             SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
         ),
@@ -75,7 +79,9 @@ async def test_agent_handles_no_reveals():
 
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=ConversationAgentDeps(reveals=[], encounter_description=""),
+        deps=ConversationAgentDeps(
+            reveals=[], encounter_description="", influence=INFLUENCE_STATE
+        ),
     )
     # No reveals linked to character should result in standard response
     assert level == RevealLayer.STANDARD

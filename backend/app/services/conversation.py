@@ -4,7 +4,14 @@ from typing import List, Tuple
 from fastapi import WebSocket
 from sqlalchemy.orm import sessionmaker
 
-from app.agents.conversation_agent import ConversationAgent, ConversationAgentDeps
+from app.agents.conversations.conversation_agent import (
+    ConversationAgent,
+    ConversationAgentDeps,
+)
+from app.agents.conversations.negative_conversation_agent import (
+    NegativeConvoAgent,
+    NegativeConvoAgentDeps,
+)
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
@@ -26,7 +33,7 @@ from app.dependencies import (
 from app.models.encounter import Encounter
 from app.models.influence import Influence
 from app.models.memory import Memory
-from app.models.reveal import Reveal
+from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.influence_calculator import calculate_base_influence
 from app.services.websocket import get_audio_chunks
@@ -34,12 +41,14 @@ from app.services.websocket import get_audio_chunks
 logger = logging.getLogger(__name__)
 
 char_system_prompt = import_system_prompt("conversation_agent")
+negative_char_system_prompt = import_system_prompt("negative_conversation_agent")
 scoring_system_prompt = import_system_prompt("influence_scoring_agent")
 
 
 def get_conversation_context(
     world_id: int,
     player_id: int,
+    user_id: int,
     character_id: int,
     encounter_id: int,
     base_influence: int,
@@ -57,7 +66,7 @@ def get_conversation_context(
                 .filter(
                     EncounterORM.id == encounter_id,
                     EncounterORM.world_id == world_id,
-                    EncounterORM.user_id == player_id,
+                    EncounterORM.user_id == user_id,
                 )
                 .first()
             )
@@ -82,7 +91,7 @@ def get_conversation_context(
                 .filter(
                     InfluenceORM.character_id == character_id,
                     InfluenceORM.player_id == player_id,
-                    InfluenceORM.user_id == player_id,
+                    InfluenceORM.user_id == user_id,
                     InfluenceORM.world_id == world_id,
                 )
                 .first()
@@ -95,7 +104,7 @@ def get_conversation_context(
                     player_id=player_id,
                     base=base_influence,
                     earned=0,
-                    user_id=player_id,
+                    user_id=user_id,
                     world_id=world_id,
                 )
                 session.add(influence_orm)
@@ -140,47 +149,70 @@ async def have_conversation(
         player = PlayerStore(world_id=world_id, user_id=user_id).get_player_by_id(
             player_id=player_id
         )
-
+        base_influence = calculate_base_influence(character=character, player=player)
         # Get all conversation context
         encounter, influence, all_reveals, all_memories = get_conversation_context(
             world_id=world_id,
+            user_id=user_id,
             player_id=player.id,
             character_id=character.id,
             encounter_id=encounter_id,
-            base_influence=calculate_base_influence(character=character, player=player),
+            base_influence=base_influence,
         )
 
         # TODO: getting all reveals and memories even through the agent manager caches instances
         # TODO: Need to only cache convo manager realistically and pass in reveals and memories dynamically
         # If the DM removes memories between conversations or adds something it should be used
 
-        agent = ConversationAgent(
-            character=character,
-            player=player,
-            system_prompt=char_system_prompt,
-            memories=all_memories,
-            conversation_manager=get_conversation_manager(
-                player_id=player.id, character_id=character.id
-            ),
-            influence_calculator_agent=InfluenceCalculatorAgent(
-                system_prompt=scoring_system_prompt,
+        # If negative sentiment, make the conversation negative
+        if base_influence < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]:
+            agent = NegativeConvoAgent(
                 character=character,
                 player=player,
-            ),
-        )
+                system_prompt=negative_char_system_prompt,
+                memories=all_memories,
+                conversation_manager=get_conversation_manager(
+                    player_id=player.id, character_id=character.id
+                ),
+                influence_calculator_agent=InfluenceCalculatorAgent(
+                    system_prompt=scoring_system_prompt,
+                    character=character,
+                    player=player,
+                ),
+            )
 
-        # Generate AI response using character agent
-        response, level, influence = await agent.chat(
-            player_transcript=transcription,
-            deps=ConversationAgentDeps(
-                reveals=all_reveals,
-                encounter_description=encounter.description,
-                influence=influence,
-            ),
-        )
-        logger.debug(
-            f"Generated character response for level ${level.name}: {response}"
-        )
+            # Reveals thresholds cannot be negative, so don't pass any
+            response, influence = await agent.chat(
+                player_transcript=transcription,
+                deps=NegativeConvoAgentDeps(
+                    encounter_description=encounter.description,
+                    influence=influence,
+                ),
+            )
+        else:
+            agent = ConversationAgent(
+                character=character,
+                player=player,
+                system_prompt=char_system_prompt,
+                memories=all_memories,
+                conversation_manager=get_conversation_manager(
+                    player_id=player.id, character_id=character.id
+                ),
+                influence_calculator_agent=InfluenceCalculatorAgent(
+                    system_prompt=scoring_system_prompt,
+                    character=character,
+                    player=player,
+                ),
+            )
+
+            response, _, influence = await agent.chat(
+                player_transcript=transcription,
+                deps=ConversationAgentDeps(
+                    reveals=all_reveals,
+                    encounter_description=encounter.description,
+                    influence=influence,
+                ),
+            )
 
         InfluenceStore(user_id=user_id, world_id=world_id).update_influence(
             influence=influence

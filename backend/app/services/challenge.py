@@ -2,9 +2,9 @@ import logging
 
 from fastapi import WebSocket
 
-from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
-from app.agents.critical_failure_agent import CriticalFailureAgent
-from app.agents.critical_success_agent import CriticalSuccessAgent
+from app.agents.challenges.challenge_agent import ChallengeAgent, ChallengeAgentDeps
+from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
+from app.agents.challenges.critical_success_agent import CriticalSuccessAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore

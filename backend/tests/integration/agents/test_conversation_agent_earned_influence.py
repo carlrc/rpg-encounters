@@ -1,4 +1,7 @@
-from app.agents.conversation_agent import ConversationAgent, ConversationAgentDeps
+from app.agents.conversations.conversation_agent import (
+    ConversationAgent,
+    ConversationAgentDeps,
+)
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.alignment import Alignment

@@ -60,7 +60,7 @@ def select_response(
         )
         return agent_result.standard_response, RevealLayer.STANDARD
     else:
-        # Select response in desc order based on influence levels and reveal-specific thresholds
+        # Given a valid reveal, select response in desc order based on influence levels and reveal-specific thresholds
         if negative_attitude:
             return agent_result.negative_response, RevealLayer.NEGATIVE
         elif (
