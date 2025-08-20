@@ -23,8 +23,12 @@ VALID_CONNECTIONS = [h.value for h in ConnectionHandle]
 
 
 class ConnectionBase(BaseModel):
-    source_encounter_id: int = Field(..., description="Source encounter ID")
-    target_encounter_id: int = Field(..., description="Target encounter ID")
+    source_encounter_id: int | str = Field(
+        ..., description="Source encounter ID (temp UUID or int)"
+    )
+    target_encounter_id: int | str = Field(
+        ..., description="Target encounter ID (temp UUID or int)"
+    )
     source_handle: str = Field(..., description="Source connection handle")
     target_handle: str = Field(..., description="Target connection handle")
     edge_type: str = Field(EdgeType.STRAIGHT.value, description="Vue Flow edge type")
@@ -56,8 +60,8 @@ class ConnectionUpdate(ConnectionBase):
     """Connection update model - all fields optional"""
 
     id: int | None = None
-    source_encounter_id: int | None = None
-    target_encounter_id: int | None = None
+    source_encounter_id: int | str | None = None
+    target_encounter_id: int | str | None = None
     source_handle: str | None = None
     target_handle: str | None = None
     edge_type: str | None = None

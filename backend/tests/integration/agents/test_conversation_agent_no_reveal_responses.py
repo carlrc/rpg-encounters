@@ -80,7 +80,7 @@ async def test_agent_handles_no_reveals():
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
         deps=ConversationAgentDeps(
-            reveals=[], encounter_description="", influence=INFLUENCE_STATE
+            reveals=[], encounter_description="", influence=INFLUENCE_STATE, user_id=1
         ),
     )
     # No reveals linked to character should result in standard response

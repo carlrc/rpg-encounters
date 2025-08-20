@@ -71,7 +71,7 @@ async def save_canvas(
         if not encounter_update.id:
             raise HTTPException(status_code=400, detail="Existing encounter missing ID")
         updated = encounter_store.update_encounter(
-            encounter_id=encounter_update.id,
+            encounter_id=int(encounter_update.id),
             encounter_update=EncounterUpdate(
                 **encounter_update.model_dump(exclude={"id"})
             ),
