@@ -50,7 +50,7 @@ class NegativeConvoAgent(BaseAgent):
 
         agent = Agent(
             OpenAIModel(
-                model_name="gpt-4o",
+                model_name="gpt-4o-mini",
                 provider=OpenAIProvider(http_client=create_retrying_client()),
             ),
             # Moving character.to_prompt() to instructions caused instability in output validation

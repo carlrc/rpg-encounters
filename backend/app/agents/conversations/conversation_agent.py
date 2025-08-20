@@ -53,7 +53,7 @@ class ConversationAgent(BaseAgent):
 
         agent = Agent(
             OpenAIModel(
-                model_name="gpt-4o",
+                model_name="gpt-4o-mini",
                 provider=OpenAIProvider(http_client=create_retrying_client()),
             ),
             # Moving character.to_prompt() to instructions caused instability in output validation
@@ -108,28 +108,34 @@ class ConversationAgent(BaseAgent):
                 agent_task, influence_task
             )
         except UnexpectedModelBehavior as e:
-            logger.error(f"Agent failure. {e.message}")
+            logger.error(f"Convo agent failure. {e.message}")
             raise
         except Exception as e:
-            logger.error(f"Response generation failed. {e}")
+            logger.error(f"Convo agent response generation failed. {e}")
             raise
 
-        # Add to running earned total
-        deps.influence.earned += influence_result.score
+        try:
+            # Add to running earned total
+            deps.influence.earned += influence_result.score
 
-        selected_response, level = select_response(
-            reveals=deps.reveals,
-            agent_result=self.run_result.output,
-            # Pass total influence score
-            influence_score=deps.influence.score,
-        )
+            selected_response, level = select_response(
+                reveals=deps.reveals,
+                agent_result=self.run_result.output,
+                # Pass total influence score
+                influence_score=deps.influence.score,
+            )
 
-        # Persist messages in custom history
-        # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
-        self.convo_manager.add_user_message(message=self.run_result.new_messages()[0])
-        self.convo_manager.add_agent_response(response=selected_response)
+            # Persist messages in custom history
+            # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
+            self.convo_manager.add_user_message(
+                message=self.run_result.new_messages()[0]
+            )
+            self.convo_manager.add_agent_response(response=selected_response)
 
-        # Add trace and span metadata
-        deps.telemetry()
+            # Add trace and span metadata
+            deps.telemetry()
+        except Exception as e:
+            logger.error(f"Convo agent could not process response. {e}")
+            raise
 
         return selected_response, level, deps.influence

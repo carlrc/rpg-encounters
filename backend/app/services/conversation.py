@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import List, Tuple
 
 from fastapi import WebSocket
@@ -194,6 +195,10 @@ async def have_conversation(
                         user_id=user_id,
                         name="negative-convo-agent",
                         tags=["conversation"],
+                        metadata={
+                            "service": "backend",
+                            "env": os.getenv("ENVIRONMENT"),
+                        },
                     ),
                 ),
             )
@@ -224,6 +229,10 @@ async def have_conversation(
                         user_id=user_id,
                         name="positive-convo-agent",
                         tags=["conversation"],
+                        metadata={
+                            "service": "backend",
+                            "env": os.getenv("ENVIRONMENT"),
+                        },
                     ),
                 ),
             )
