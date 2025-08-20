@@ -80,7 +80,7 @@
 </template>
 
 <script>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
@@ -110,6 +110,10 @@
 
       // Vue Flow elements (just 2 rooms, no connections)
       const elements = ref([])
+
+      // Deletion tracking
+      const deletedEncounterIds = ref([])
+      const deletedConnectionIds = ref([])
 
       // Get available characters for a specific encounter (exclude characters already in that encounter)
       const getAvailableCharactersForEncounter = (encounterData) => {
@@ -437,6 +441,89 @@
         }
       }
 
+      // Helper function to identify orphaned connections
+      const identifyOrphanedConnections = (deletedEncounterIds) => {
+        const orphanedConnectionIds = []
+
+        elements.value.forEach((el) => {
+          if (el.source && el.target) {
+            // Extract encounter IDs from Vue Flow node IDs
+            const sourceId = el.source.replace('encounter-', '')
+            const targetId = el.target.replace('encounter-', '')
+
+            // Check if this connection references any deleted encounter
+            if (deletedEncounterIds.includes(sourceId) || deletedEncounterIds.includes(targetId)) {
+              // Extract connection ID from edge ID (edge-123 -> 123)
+              const connectionId = el.id.replace('edge-', '')
+              if (!isNaN(parseInt(connectionId))) {
+                orphanedConnectionIds.push(parseInt(connectionId))
+              }
+            }
+          }
+        })
+
+        return orphanedConnectionIds
+      }
+
+      // Watch elements array for deletions
+      watch(
+        elements,
+        (newElements, oldElements) => {
+          if (!oldElements || oldElements.length === 0) {
+            // Initial load, skip deletion detection
+            return
+          }
+
+          // Find deleted encounters
+          const oldEncounters = oldElements.filter((el) => el.type === 'encounter')
+          const newEncounters = newElements.filter((el) => el.type === 'encounter')
+
+          const newEncounterIds = new Set(newEncounters.map((el) => el.id))
+
+          // Identify deleted encounters
+          const deletedEncounters = oldEncounters.filter((el) => !newEncounterIds.has(el.id))
+
+          deletedEncounters.forEach((encounter) => {
+            // Extract numeric ID from Vue Flow node ID (encounter-123 -> 123)
+            const numericId = encounter.id.replace('encounter-', '')
+            if (!isNaN(parseInt(numericId)) && !encounter.data.isNew) {
+              // Only track deletion of existing encounters (not new ones that were never saved)
+              deletedEncounterIds.value.push(parseInt(numericId))
+            }
+          })
+
+          // Find deleted connections
+          const oldConnections = oldElements.filter((el) => el.source && el.target)
+          const newConnections = newElements.filter((el) => el.source && el.target)
+
+          const newConnectionIds = new Set(newConnections.map((el) => el.id))
+
+          // Identify manually deleted connections (not due to encounter deletion)
+          const deletedConnections = oldConnections.filter((el) => !newConnectionIds.has(el.id))
+
+          deletedConnections.forEach((connection) => {
+            // Extract numeric ID from edge ID (edge-123 -> 123)
+            const numericId = connection.id.replace('edge-', '')
+            if (!isNaN(parseInt(numericId)) && !connection.data.isNew) {
+              // Only track deletion of existing connections (not new ones that were never saved)
+              deletedConnectionIds.value.push(parseInt(numericId))
+            }
+          })
+
+          // Identify orphaned connections due to encounter deletions
+          if (deletedEncounters.length > 0) {
+            const encounterIds = deletedEncounters.map((el) => el.id.replace('encounter-', ''))
+            const orphanedIds = identifyOrphanedConnections(encounterIds)
+            orphanedIds.forEach((id) => {
+              if (!deletedConnectionIds.value.includes(id)) {
+                deletedConnectionIds.value.push(id)
+              }
+            })
+          }
+        },
+        { deep: true }
+      )
+
       // Canvas serialization logic
       const serializeCanvasState = () => {
         const newEncounters = elements.value.filter(
@@ -452,7 +539,18 @@
           (el) => el.source && el.target && !el.data.isNew
         )
 
-        return { newEncounters, existingEncounters, newConnections, existingConnections }
+        // NEW: Track deleted encounters and their connections
+        const deletedEncounters = deletedEncounterIds.value
+        const deletedConnections = deletedConnectionIds.value
+
+        return {
+          newEncounters,
+          existingEncounters,
+          newConnections,
+          existingConnections,
+          deletedEncounters,
+          deletedConnections,
+        }
       }
 
       // Transform frontend format to backend format
@@ -549,18 +647,30 @@
       const saveCanvas = async () => {
         try {
           isSaving.value = true
-          const { newEncounters, existingEncounters, newConnections, existingConnections } =
-            serializeCanvasState()
+          const {
+            newEncounters,
+            existingEncounters,
+            newConnections,
+            existingConnections,
+            deletedEncounters,
+            deletedConnections,
+          } = serializeCanvasState()
 
           const response = await apiService.saveCanvas({
             new_encounters: transformToBackendFormat(newEncounters),
             existing_encounters: transformToBackendFormat(existingEncounters),
             new_connections: transformToBackendFormat(newConnections, true),
             existing_connections: transformToBackendFormat(existingConnections, true),
+            deleted_encounter_ids: deletedEncounters,
+            deleted_connection_ids: deletedConnections,
           })
 
           // Use the extracted transformation logic to update elements with fresh data
           elements.value = transformEncounterDataToElements(response)
+
+          // Clear deletion tracking after successful save
+          deletedEncounterIds.value = []
+          deletedConnectionIds.value = []
         } catch (error) {
           console.error('Failed to save canvas:', error)
           error.value = `Failed to save canvas: ${error.message}`
