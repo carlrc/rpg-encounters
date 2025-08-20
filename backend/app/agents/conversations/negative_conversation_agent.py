@@ -1,8 +1,7 @@
 import asyncio
 import logging
-from typing import List
+from typing import List, Optional
 
-from langfuse import get_client
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
@@ -23,6 +22,7 @@ from app.models.influence import Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.services.conversation_manager import ConversationManager
+from app.telemetry import TelemetryFunc
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class NegativeConvoAgentDeps(BaseModel):
     encounter_description: str
     influence: Influence
     user_id: int
+    telemetry: Optional[TelemetryFunc]
 
 
 class NegativeConvoAgent(BaseAgent):
@@ -101,8 +102,7 @@ class NegativeConvoAgent(BaseAgent):
         self.convo_manager.add_user_message(message=self.run_result.new_messages()[0])
         self.convo_manager.add_agent_response(response=self.run_result.output.response)
 
-        get_client().update_current_trace(
-            user_id=deps.user_id, name="negative-convo-agent", tags=["conversation"]
-        )
+        # Add trace and span metadata
+        deps.telemetry()
 
         return self.run_result.output.response, deps.influence

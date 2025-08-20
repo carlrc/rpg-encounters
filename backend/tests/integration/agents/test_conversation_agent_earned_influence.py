@@ -88,7 +88,11 @@ INFLUENCE_STATE = Influence(
 )
 
 DEPENDENCIES = ConversationAgentDeps(
-    reveals=ALL_REVEALS, encounter_description="", influence=INFLUENCE_STATE, user_id=1
+    reveals=ALL_REVEALS,
+    encounter_description="",
+    influence=INFLUENCE_STATE,
+    user_id=1,
+    telemetry=lambda: None,
 )
 
 
@@ -170,6 +174,7 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
             encounter_description="",
             influence=influence,
             user_id=1,
+            telemetry=lambda: None,
         ),
     )
 
@@ -221,6 +226,7 @@ async def test_personality_based_earned_influence_can_be_negative():
             encounter_description="",
             influence=influence,
             user_id=1,
+            telemetry=lambda: None,
         ),
     )
 
@@ -234,6 +240,7 @@ async def test_personality_based_earned_influence_can_be_negative():
             encounter_description="",
             influence=influence,
             user_id=1,
+            telemetry=lambda: None,
         ),
     )
 
@@ -278,6 +285,7 @@ async def test_conversation_agent_handles_multiple_reveals():
             encounter_description="",
             influence=INFLUENCE_STATE,
             user_id=1,
+            telemetry=lambda: None,
         ),
     )
 
@@ -290,6 +298,7 @@ async def test_conversation_agent_handles_multiple_reveals():
             encounter_description="",
             influence=INFLUENCE_STATE,
             user_id=1,
+            telemetry=lambda: None,
         ),
     )
 
@@ -302,6 +311,7 @@ async def test_conversation_agent_handles_multiple_reveals():
             encounter_description="",
             influence=INFLUENCE_STATE,
             user_id=1,
+            telemetry=lambda: None,
         ),
     )
 

@@ -3,8 +3,6 @@ import logging
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from langfuse import get_client
-from pydantic_ai.agent import Agent
 
 from app.routers import (
     canvas,
@@ -15,8 +13,9 @@ from app.routers import (
     players,
     reveals,
 )
+from app.telemetry import setup_telemetry
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="D&D AI Character Backend")
@@ -41,14 +40,7 @@ app.include_router(encounters.router)
 app.include_router(canvas.router)
 app.include_router(game.router)
 
-# Verify langfuse connection
-if get_client().auth_check():
-    logger.debug("Langfuse client is authenticated and ready!")
-else:
-    raise RuntimeError("Langfuse auth failed.")
-
-# Initialize Pydantic AI instrumentation
-Agent.instrument_all()
+setup_telemetry()
 
 
 @app.get("/")

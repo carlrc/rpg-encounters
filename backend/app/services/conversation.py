@@ -2,6 +2,7 @@ import logging
 from typing import List, Tuple
 
 from fastapi import WebSocket
+from langfuse import get_client
 from sqlalchemy.orm import sessionmaker
 
 from app.agents.conversations.conversation_agent import (
@@ -189,6 +190,11 @@ async def have_conversation(
                     encounter_description=encounter.description,
                     influence=influence,
                     user_id=user_id,
+                    telemetry=lambda: get_client().update_current_trace(
+                        user_id=user_id,
+                        name="negative-convo-agent",
+                        tags=["conversation"],
+                    ),
                 ),
             )
         else:
@@ -214,6 +220,11 @@ async def have_conversation(
                     encounter_description=encounter.description,
                     influence=influence,
                     user_id=user_id,
+                    telemetry=lambda: get_client().update_current_trace(
+                        user_id=user_id,
+                        name="positive-convo-agent",
+                        tags=["conversation"],
+                    ),
                 ),
             )
 
