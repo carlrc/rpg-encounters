@@ -49,6 +49,8 @@ class CanvasSaveRequest(BaseModel):
     existing_encounters: List[EncounterWithId] = Field(default_factory=list)
     new_connections: List[ConnectionCreate] = Field(default_factory=list)
     existing_connections: List[ConnectionUpdate] = Field(default_factory=list)
+    deleted_encounter_ids: List[int] = Field(default_factory=list)
+    deleted_connection_ids: List[int] = Field(default_factory=list)
 
 
 class CanvasResponse(BaseModel):

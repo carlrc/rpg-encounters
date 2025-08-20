@@ -80,13 +80,14 @@
 </template>
 
 <script>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { generateTempId, isTemporaryId } from '../utils/idUtils.js'
 
   export default {
     name: 'EncounterBuilder',
@@ -110,6 +111,10 @@
 
       // Vue Flow elements (just 2 rooms, no connections)
       const elements = ref([])
+
+      // Deletion tracking
+      const deletedEncounterIds = ref([])
+      const deletedConnectionIds = ref([])
 
       // Get available characters for a specific encounter (exclude characters already in that encounter)
       const getAvailableCharactersForEncounter = (encounterData) => {
@@ -139,7 +144,7 @@
       const transformEncounterDataToElements = (encounterData) => {
         // Transform database encounters to Vue Flow format
         const vueFlowNodes = encounterData.encounters.map((encounter) => ({
-          id: `encounter-${encounter.id}`,
+          id: String(encounter.id),
           type: 'encounter',
           position: {
             x: encounter.position_x || 200,
@@ -156,8 +161,8 @@
         // Transform database connections to Vue Flow edges
         const vueFlowEdges = (encounterData.connections || []).map((connection) => ({
           id: `edge-${connection.id}`,
-          source: `encounter-${connection.source_encounter_id}`,
-          target: `encounter-${connection.target_encounter_id}`,
+          source: String(connection.source_encounter_id),
+          target: String(connection.target_encounter_id),
           sourceHandle: connection.source_handle,
           targetHandle: connection.target_handle,
           type: connection.edge_type === 'bezier' ? 'default' : connection.edge_type || 'straight',
@@ -300,11 +305,8 @@
           return
         }
 
-        // Extract numeric ID from Vue Flow node ID format (encounter-123 -> 123)
-        const numericEncounterId =
-          typeof encounterId === 'string' && encounterId.startsWith('encounter-')
-            ? parseInt(encounterId.replace('encounter-', ''))
-            : encounterId
+        // Check if this is a temporary UUID or existing database ID
+        const numericEncounterId = isTemporaryId(encounterId) ? null : parseInt(encounterId)
 
         selectedCharacter.value = character
         selectedEncounterId.value = numericEncounterId
@@ -378,8 +380,8 @@
         const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
         const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
 
-        // Generate unique encounter ID
-        const encounterId = `encounter-${Date.now()}`
+        // Generate unique encounter ID using UUID
+        const encounterId = generateTempId()
 
         // Create new encounter object
         const newEncounter = {
@@ -437,6 +439,88 @@
         }
       }
 
+      // Helper function to identify orphaned connections
+      const identifyOrphanedConnections = (deletedEncounterIds) => {
+        const orphanedConnectionIds = []
+
+        elements.value.forEach((el) => {
+          if (el.source && el.target) {
+            // Extract encounter IDs from Vue Flow node IDs
+            const sourceId = el.source
+            const targetId = el.target
+
+            // Check if this connection references any deleted encounter
+            if (deletedEncounterIds.includes(sourceId) || deletedEncounterIds.includes(targetId)) {
+              // Extract connection ID from edge ID (edge-123 -> 123)
+              const connectionId = el.id.replace('edge-', '')
+              if (!isNaN(parseInt(connectionId))) {
+                orphanedConnectionIds.push(parseInt(connectionId))
+              }
+            }
+          }
+        })
+
+        return orphanedConnectionIds
+      }
+
+      // Watch elements array for deletions
+      watch(
+        elements,
+        (newElements, oldElements) => {
+          if (!oldElements || oldElements.length === 0) {
+            // Initial load, skip deletion detection
+            return
+          }
+
+          // Find deleted encounters
+          const oldEncounters = oldElements.filter((el) => el.type === 'encounter')
+          const newEncounters = newElements.filter((el) => el.type === 'encounter')
+
+          const newEncounterIds = new Set(newEncounters.map((el) => el.id))
+
+          // Identify deleted encounters
+          const deletedEncounters = oldEncounters.filter((el) => !newEncounterIds.has(el.id))
+
+          deletedEncounters.forEach((encounter) => {
+            // Extract numeric ID - only for existing encounters (not UUIDs)
+            if (!isTemporaryId(encounter.id) && !encounter.data.isNew) {
+              // Only track deletion of existing encounters (not new ones that were never saved)
+              deletedEncounterIds.value.push(parseInt(encounter.id))
+            }
+          })
+
+          // Find deleted connections
+          const oldConnections = oldElements.filter((el) => el.source && el.target)
+          const newConnections = newElements.filter((el) => el.source && el.target)
+
+          const newConnectionIds = new Set(newConnections.map((el) => el.id))
+
+          // Identify manually deleted connections (not due to encounter deletion)
+          const deletedConnections = oldConnections.filter((el) => !newConnectionIds.has(el.id))
+
+          deletedConnections.forEach((connection) => {
+            // Extract numeric ID from edge ID (edge-123 -> 123)
+            const numericId = connection.id.replace('edge-', '')
+            if (!isNaN(parseInt(numericId)) && !connection.data.isNew) {
+              // Only track deletion of existing connections (not new ones that were never saved)
+              deletedConnectionIds.value.push(parseInt(numericId))
+            }
+          })
+
+          // Identify orphaned connections due to encounter deletions
+          if (deletedEncounters.length > 0) {
+            const encounterIds = deletedEncounters.map((el) => el.id)
+            const orphanedIds = identifyOrphanedConnections(encounterIds)
+            orphanedIds.forEach((id) => {
+              if (!deletedConnectionIds.value.includes(id)) {
+                deletedConnectionIds.value.push(id)
+              }
+            })
+          }
+        },
+        { deep: true }
+      )
+
       // Canvas serialization logic
       const serializeCanvasState = () => {
         const newEncounters = elements.value.filter(
@@ -452,19 +536,30 @@
           (el) => el.source && el.target && !el.data.isNew
         )
 
-        return { newEncounters, existingEncounters, newConnections, existingConnections }
+        // NEW: Track deleted encounters and their connections
+        const deletedEncounters = deletedEncounterIds.value
+        const deletedConnections = deletedConnectionIds.value
+
+        return {
+          newEncounters,
+          existingEncounters,
+          newConnections,
+          existingConnections,
+          deletedEncounters,
+          deletedConnections,
+        }
       }
 
       // Transform frontend format to backend format
       const transformToBackendFormat = (items, isConnection = false) => {
         return items.map((item) => {
           if (isConnection) {
-            // Extract encounter IDs from Vue Flow node IDs (encounter-123 -> 123)
-            const sourceId = parseInt(item.source.replace('encounter-', ''))
-            const targetId = parseInt(item.target.replace('encounter-', ''))
+            // No conversion needed - backend handles UUIDs and database IDs separately
+            const sourceId = item.source // UUID or numeric string
+            const targetId = item.target // UUID or numeric string
 
             return {
-              id: item.id.includes('edge-') ? parseInt(item.id.replace('edge-', '')) : undefined,
+              id: isTemporaryId(item.id) ? undefined : parseInt(item.id.replace('edge-', '')),
               source_encounter_id: sourceId,
               target_encounter_id: targetId,
               source_handle: item.sourceHandle,
@@ -475,9 +570,9 @@
             }
           } else {
             // Transform encounter
-            const encounterId = item.id.includes('encounter-')
-              ? parseInt(item.id.replace('encounter-', ''))
-              : undefined
+            // For new encounters (UUIDs), pass the UUID string
+            // For existing encounters, pass the integer ID
+            const encounterId = isTemporaryId(item.id) ? item.id : parseInt(item.id)
 
             return {
               id: encounterId,
@@ -505,7 +600,7 @@
           )
 
           if (elementIndex !== -1) {
-            elements.value[elementIndex].id = `encounter-${dbEncounter.id}`
+            elements.value[elementIndex].id = String(dbEncounter.id)
             elements.value[elementIndex].data.isNew = false
           }
         })
@@ -517,8 +612,8 @@
               el.source &&
               el.target &&
               el.data.isNew &&
-              el.source === `encounter-${dbConnection.source_encounter_id}` &&
-              el.target === `encounter-${dbConnection.target_encounter_id}`
+              el.source === String(dbConnection.source_encounter_id) &&
+              el.target === String(dbConnection.target_encounter_id)
           )
 
           if (elementIndex !== -1) {
@@ -529,9 +624,7 @@
 
         // Remove isNew flags from updated items
         response.updated_encounters.forEach((dbEncounter) => {
-          const elementIndex = elements.value.findIndex(
-            (el) => el.id === `encounter-${dbEncounter.id}`
-          )
+          const elementIndex = elements.value.findIndex((el) => el.id === String(dbEncounter.id))
           if (elementIndex !== -1) {
             elements.value[elementIndex].data.isNew = false
           }
@@ -549,18 +642,30 @@
       const saveCanvas = async () => {
         try {
           isSaving.value = true
-          const { newEncounters, existingEncounters, newConnections, existingConnections } =
-            serializeCanvasState()
+          const {
+            newEncounters,
+            existingEncounters,
+            newConnections,
+            existingConnections,
+            deletedEncounters,
+            deletedConnections,
+          } = serializeCanvasState()
 
           const response = await apiService.saveCanvas({
             new_encounters: transformToBackendFormat(newEncounters),
             existing_encounters: transformToBackendFormat(existingEncounters),
             new_connections: transformToBackendFormat(newConnections, true),
             existing_connections: transformToBackendFormat(existingConnections, true),
+            deleted_encounter_ids: deletedEncounters,
+            deleted_connection_ids: deletedConnections,
           })
 
           // Use the extracted transformation logic to update elements with fresh data
           elements.value = transformEncounterDataToElements(response)
+
+          // Clear deletion tracking after successful save
+          deletedEncounterIds.value = []
+          deletedConnectionIds.value = []
         } catch (error) {
           console.error('Failed to save canvas:', error)
           error.value = `Failed to save canvas: ${error.message}`

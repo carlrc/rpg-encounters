@@ -26,11 +26,25 @@ async def save_canvas(
     request: CanvasSaveRequest,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    """Save entire canvas state - handles new and existing items"""
+    """Save entire canvas state - handles new, existing, and deleted items"""
     user_id, world_id = user_world
 
     encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
     connection_store = ConnectionStore(user_id=user_id, world_id=world_id)
+
+    # Delete encounters and their connections
+    for encounter_id in request.deleted_encounter_ids:
+        # Delete all connections referencing this encounter
+        connections = connection_store.get_connections_for_encounter(encounter_id)
+        for connection in connections:
+            connection_store.delete_connection(connection.id)
+
+        # Delete the encounter itself
+        encounter_store.delete_encounter(encounter_id)
+
+    # Delete additional connections (manually deleted by user)
+    for connection_id in request.deleted_connection_ids:
+        connection_store.delete_connection(connection_id)
 
     # Build encounter ID mapping dictionary (temp_id -> real_id)
     encounter_id_map = {}
@@ -39,7 +53,7 @@ async def save_canvas(
     all_encounters = []
     all_connections = []
 
-    # 1. Create new encounters first (they get real IDs)
+    # Create new encounters (translate temp IDs to real IDs)
     for encounter_data in request.new_encounters:
         # Store temp ID before creating encounter
         temp_id = encounter_data.id
@@ -52,12 +66,12 @@ async def save_canvas(
         # Map temp ID to real database ID
         encounter_id_map[temp_id] = created.id
 
-    # 2. Update existing encounters
+    # Update existing encounters
     for encounter_update in request.existing_encounters:
         if not encounter_update.id:
             raise HTTPException(status_code=400, detail="Existing encounter missing ID")
         updated = encounter_store.update_encounter(
-            encounter_id=encounter_update.id,
+            encounter_id=int(encounter_update.id),
             encounter_update=EncounterUpdate(
                 **encounter_update.model_dump(exclude={"id"})
             ),
@@ -70,7 +84,7 @@ async def save_canvas(
         # Add existing encounters to map (they keep their real IDs)
         encounter_id_map[encounter_update.id] = updated.id
 
-    # 3. Create new connections (translate temp IDs to real IDs)
+    # Create new connections (translate temp IDs to real IDs)
     for connection_data in request.new_connections:
         # Translate source encounter ID using the mapping
         source_id = encounter_id_map.get(connection_data.source_encounter_id)
@@ -109,7 +123,7 @@ async def save_canvas(
         created = connection_store.create_connection(connection_data)
         all_connections.append(created)
 
-    # 4. Update existing connections
+    # Update existing connections
     for connection_update in request.existing_connections:
         if not connection_update.id:
             raise HTTPException(

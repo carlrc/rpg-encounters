@@ -87,6 +87,10 @@ INFLUENCE_STATE = Influence(
     earned=0,
 )
 
+DEPENDENCIES = ConversationAgentDeps(
+    reveals=ALL_REVEALS, encounter_description="", influence=INFLUENCE_STATE, user_id=1
+)
+
 
 async def test_personality_based_earned_influence_respects_standard_level():
     agent = ConversationAgent(
@@ -104,9 +108,7 @@ async def test_personality_based_earned_influence_respects_standard_level():
 
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS, encounter_description="", influence=INFLUENCE_STATE
-        ),
+        deps=DEPENDENCIES,
     )
     # Bias with max base influence and basic inquiry should only result in standard level
     assert level == RevealLayer.STANDARD
@@ -128,16 +130,12 @@ async def test_personality_based_earned_influence_respects_privileged_level():
 
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS, encounter_description="", influence=INFLUENCE_STATE
-        ),
+        deps=DEPENDENCIES,
     )
     # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
     _, level, _ = await agent.chat(
         player_transcript="What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! And my fame will drive customers to you...",
-        deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS, encounter_description="", influence=INFLUENCE_STATE
-        ),
+        deps=DEPENDENCIES,
     )
 
     # Bias with max base influence and high alignment story should get privileged (not exclusive)
@@ -168,7 +166,10 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
     _, level, _ = await agent.chat(
         player_transcript="My good man, in fact I need the best room because I'm here to help the town on an important quest...",
         deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS, encounter_description="", influence=influence
+            reveals=ALL_REVEALS,
+            encounter_description="",
+            influence=influence,
+            user_id=1,
         ),
     )
 
@@ -216,7 +217,10 @@ async def test_personality_based_earned_influence_can_be_negative():
     _, level, influence = await agent.chat(
         player_transcript="I need a room for the night you dirty old man!",
         deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS, encounter_description="", influence=influence
+            reveals=ALL_REVEALS,
+            encounter_description="",
+            influence=influence,
+            user_id=1,
         ),
     )
 
@@ -226,7 +230,10 @@ async def test_personality_based_earned_influence_can_be_negative():
     _, level, influence = await agent.chat(
         player_transcript="That isn't good enough you old man!",
         deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS, encounter_description="", influence=influence
+            reveals=ALL_REVEALS,
+            encounter_description="",
+            influence=influence,
+            user_id=1,
         ),
     )
 
@@ -267,7 +274,10 @@ async def test_conversation_agent_handles_multiple_reveals():
     result, _, _ = await agent.chat(
         player_transcript="I need a room",
         deps=ConversationAgentDeps(
-            reveals=reveals, encounter_description="", influence=INFLUENCE_STATE
+            reveals=reveals,
+            encounter_description="",
+            influence=INFLUENCE_STATE,
+            user_id=1,
         ),
     )
 
@@ -276,7 +286,10 @@ async def test_conversation_agent_handles_multiple_reveals():
     result, _, _ = await agent.chat(
         player_transcript="I want a better one with a view",
         deps=ConversationAgentDeps(
-            reveals=reveals, encounter_description="", influence=INFLUENCE_STATE
+            reveals=reveals,
+            encounter_description="",
+            influence=INFLUENCE_STATE,
+            user_id=1,
         ),
     )
 
@@ -285,7 +298,10 @@ async def test_conversation_agent_handles_multiple_reveals():
     result, _, _ = await agent.chat(
         player_transcript="Alright, also i want to know about this garden vandal. What gossip do you have?",
         deps=ConversationAgentDeps(
-            reveals=reveals, encounter_description="", influence=INFLUENCE_STATE
+            reveals=reveals,
+            encounter_description="",
+            influence=INFLUENCE_STATE,
+            user_id=1,
         ),
     )
 
