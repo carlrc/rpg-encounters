@@ -2,6 +2,8 @@ import asyncio
 import logging
 from typing import List
 
+from langfuse import get_client
+from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
@@ -31,6 +33,7 @@ class ConversationAgentDeps(BaseModel):
     reveals: List[Reveal]
     encounter_description: str
     influence: Influence
+    user_id: int
 
 
 class ConversationAgent(BaseAgent):
@@ -61,6 +64,7 @@ class ConversationAgent(BaseAgent):
                 description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
             ),
             retries=self.retries,
+            instrument=True,
         )
         self.run_result: AgentRunResult[ConversationAgentOutput] = None
 
@@ -88,6 +92,7 @@ class ConversationAgent(BaseAgent):
         # Set instance variable after decorators defined
         self.agent = agent
 
+    @langfuse_observe
     async def chat(
         self, player_transcript: str, deps: ConversationAgentDeps
     ) -> tuple[str, RevealLayer, Influence]:
@@ -122,5 +127,9 @@ class ConversationAgent(BaseAgent):
         # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
         self.convo_manager.add_user_message(message=self.run_result.new_messages()[0])
         self.convo_manager.add_agent_response(response=selected_response)
+
+        get_client().update_current_trace(
+            user_id=deps.user_id, name="positive-convo-agent", tags=["conversation"]
+        )
 
         return selected_response, level, deps.influence

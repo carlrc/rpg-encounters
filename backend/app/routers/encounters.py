@@ -336,9 +336,8 @@ async def websocket_convo_endpoint(
     encounter_id: int,
     player_id: int,
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    user_id, world_id = user_world
+    user_id, world_id = get_current_user_world()
     return await have_conversation(
         websocket=websocket,
         world_id=world_id,
@@ -357,12 +356,13 @@ async def websocket_challenge_endpoint(
     character_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    _, world_id = user_world
+    user_id, world_id = user_world
     skill = websocket.query_params.get("skill")
     d20_roll = websocket.query_params.get("d20_roll")
     return await challenge_character(
         websocket=websocket,
         world_id=world_id,
+        user_id=user_id,
         encounter_id=encounter_id,
         player_id=player_id,
         character_id=character_id,

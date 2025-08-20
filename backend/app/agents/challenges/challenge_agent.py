@@ -47,6 +47,7 @@ class ChallengeAgent(BaseAgent):
             history_processors=[self._keep_recent_messages],
             output_type=NativeOutput(StandardAgentOutput),
             retries=self.retries,
+            instrument=True,
         )
         self.run_result: AgentRunResult[StandardAgentOutput] = None
 

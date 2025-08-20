@@ -163,6 +163,7 @@ async def have_conversation(
         # TODO: getting all reveals and memories even through the agent manager caches instances
         # TODO: Need to only cache convo manager realistically and pass in reveals and memories dynamically
         # If the DM removes memories between conversations or adds something it should be used
+        # TODO: Convo history not persisting between convo agents
 
         # If negative sentiment, make the conversation negative
         if base_influence < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]:
@@ -187,6 +188,7 @@ async def have_conversation(
                 deps=NegativeConvoAgentDeps(
                     encounter_description=encounter.description,
                     influence=influence,
+                    user_id=user_id,
                 ),
             )
         else:
@@ -211,6 +213,7 @@ async def have_conversation(
                     reveals=all_reveals,
                     encounter_description=encounter.description,
                     influence=influence,
+                    user_id=user_id,
                 ),
             )
 

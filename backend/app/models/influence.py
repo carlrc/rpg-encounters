@@ -25,14 +25,15 @@ class InfluenceBase(BaseModel):
             )
         return v
 
-    @field_validator("earned")
-    @classmethod
-    def validate_earned_influence(cls, v):
-        if not (EARNED_INFLUENCE_MIN <= v <= EARNED_INFLUENCE_MAX):
-            raise ValueError(
-                f"Earned influence must be between {EARNED_INFLUENCE_MIN} and {EARNED_INFLUENCE_MAX}"
-            )
-        return v
+    # TODO: Decide if we want unlimited negative and positive earned trust
+    # @field_validator("earned")
+    # @classmethod
+    # def validate_earned_influence(cls, v):
+    #     if not (EARNED_INFLUENCE_MIN <= v <= EARNED_INFLUENCE_MAX):
+    #         raise ValueError(
+    #             f"Earned influence must be between {EARNED_INFLUENCE_MIN} and {EARNED_INFLUENCE_MAX}"
+    #         )
+    #     return v
 
 
 class Influence(InfluenceBase):
