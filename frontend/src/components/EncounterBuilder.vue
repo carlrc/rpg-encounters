@@ -87,6 +87,7 @@
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { generateTempId, isTemporaryId } from '../utils/idUtils.js'
 
   export default {
     name: 'EncounterBuilder',
@@ -143,7 +144,7 @@
       const transformEncounterDataToElements = (encounterData) => {
         // Transform database encounters to Vue Flow format
         const vueFlowNodes = encounterData.encounters.map((encounter) => ({
-          id: `encounter-${encounter.id}`,
+          id: String(encounter.id),
           type: 'encounter',
           position: {
             x: encounter.position_x || 200,
@@ -160,8 +161,8 @@
         // Transform database connections to Vue Flow edges
         const vueFlowEdges = (encounterData.connections || []).map((connection) => ({
           id: `edge-${connection.id}`,
-          source: `encounter-${connection.source_encounter_id}`,
-          target: `encounter-${connection.target_encounter_id}`,
+          source: String(connection.source_encounter_id),
+          target: String(connection.target_encounter_id),
           sourceHandle: connection.source_handle,
           targetHandle: connection.target_handle,
           type: connection.edge_type === 'bezier' ? 'default' : connection.edge_type || 'straight',
@@ -304,11 +305,8 @@
           return
         }
 
-        // Extract numeric ID from Vue Flow node ID format (encounter-123 -> 123)
-        const numericEncounterId =
-          typeof encounterId === 'string' && encounterId.startsWith('encounter-')
-            ? parseInt(encounterId.replace('encounter-', ''))
-            : encounterId
+        // Check if this is a temporary UUID or existing database ID
+        const numericEncounterId = isTemporaryId(encounterId) ? null : parseInt(encounterId)
 
         selectedCharacter.value = character
         selectedEncounterId.value = numericEncounterId
@@ -382,8 +380,8 @@
         const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
         const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
 
-        // Generate unique encounter ID
-        const encounterId = `encounter-${Date.now()}`
+        // Generate unique encounter ID using UUID
+        const encounterId = generateTempId()
 
         // Create new encounter object
         const newEncounter = {
@@ -448,8 +446,8 @@
         elements.value.forEach((el) => {
           if (el.source && el.target) {
             // Extract encounter IDs from Vue Flow node IDs
-            const sourceId = el.source.replace('encounter-', '')
-            const targetId = el.target.replace('encounter-', '')
+            const sourceId = el.source
+            const targetId = el.target
 
             // Check if this connection references any deleted encounter
             if (deletedEncounterIds.includes(sourceId) || deletedEncounterIds.includes(targetId)) {
@@ -484,11 +482,10 @@
           const deletedEncounters = oldEncounters.filter((el) => !newEncounterIds.has(el.id))
 
           deletedEncounters.forEach((encounter) => {
-            // Extract numeric ID from Vue Flow node ID (encounter-123 -> 123)
-            const numericId = encounter.id.replace('encounter-', '')
-            if (!isNaN(parseInt(numericId)) && !encounter.data.isNew) {
+            // Extract numeric ID - only for existing encounters (not UUIDs)
+            if (!isTemporaryId(encounter.id) && !encounter.data.isNew) {
               // Only track deletion of existing encounters (not new ones that were never saved)
-              deletedEncounterIds.value.push(parseInt(numericId))
+              deletedEncounterIds.value.push(parseInt(encounter.id))
             }
           })
 
@@ -512,7 +509,7 @@
 
           // Identify orphaned connections due to encounter deletions
           if (deletedEncounters.length > 0) {
-            const encounterIds = deletedEncounters.map((el) => el.id.replace('encounter-', ''))
+            const encounterIds = deletedEncounters.map((el) => el.id)
             const orphanedIds = identifyOrphanedConnections(encounterIds)
             orphanedIds.forEach((id) => {
               if (!deletedConnectionIds.value.includes(id)) {
@@ -557,12 +554,12 @@
       const transformToBackendFormat = (items, isConnection = false) => {
         return items.map((item) => {
           if (isConnection) {
-            // Extract encounter IDs from Vue Flow node IDs (encounter-123 -> 123)
-            const sourceId = parseInt(item.source.replace('encounter-', ''))
-            const targetId = parseInt(item.target.replace('encounter-', ''))
+            // No conversion needed - backend handles UUIDs and database IDs separately
+            const sourceId = item.source // UUID or numeric string
+            const targetId = item.target // UUID or numeric string
 
             return {
-              id: item.id.includes('edge-') ? parseInt(item.id.replace('edge-', '')) : undefined,
+              id: isTemporaryId(item.id) ? undefined : parseInt(item.id.replace('edge-', '')),
               source_encounter_id: sourceId,
               target_encounter_id: targetId,
               source_handle: item.sourceHandle,
@@ -573,9 +570,9 @@
             }
           } else {
             // Transform encounter
-            const encounterId = item.id.includes('encounter-')
-              ? parseInt(item.id.replace('encounter-', ''))
-              : undefined
+            // For new encounters (UUIDs), pass the UUID string
+            // For existing encounters, pass the integer ID
+            const encounterId = isTemporaryId(item.id) ? item.id : parseInt(item.id)
 
             return {
               id: encounterId,
@@ -603,7 +600,7 @@
           )
 
           if (elementIndex !== -1) {
-            elements.value[elementIndex].id = `encounter-${dbEncounter.id}`
+            elements.value[elementIndex].id = String(dbEncounter.id)
             elements.value[elementIndex].data.isNew = false
           }
         })
@@ -615,8 +612,8 @@
               el.source &&
               el.target &&
               el.data.isNew &&
-              el.source === `encounter-${dbConnection.source_encounter_id}` &&
-              el.target === `encounter-${dbConnection.target_encounter_id}`
+              el.source === String(dbConnection.source_encounter_id) &&
+              el.target === String(dbConnection.target_encounter_id)
           )
 
           if (elementIndex !== -1) {
@@ -627,9 +624,7 @@
 
         // Remove isNew flags from updated items
         response.updated_encounters.forEach((dbEncounter) => {
-          const elementIndex = elements.value.findIndex(
-            (el) => el.id === `encounter-${dbEncounter.id}`
-          )
+          const elementIndex = elements.value.findIndex((el) => el.id === String(dbEncounter.id))
           if (elementIndex !== -1) {
             elements.value[elementIndex].data.isNew = false
           }
