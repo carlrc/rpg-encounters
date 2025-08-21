@@ -15,6 +15,7 @@ INFLUENCES_TABLE = "influences"
 ENCOUNTERS_TABLE = "encounters"
 CONNECTIONS_TABLE = "connections"
 WORLDS_TABLE = "worlds"
+CONVERSATIONS_TABLE = "conversations"
 
 # Database URLs
 DATABASE_URL = os.getenv("DATABASE_URL")

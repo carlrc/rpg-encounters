@@ -5,7 +5,11 @@ from typing import List, Optional
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
-from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    TextPart,
+)
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
@@ -17,13 +21,15 @@ from app.agents.prompts.utils import (
     structure_encounter,
     structure_reveals,
 )
+from app.data.conversation_store import ConversationStore
 from app.http import create_retrying_client
 from app.models.character import Character
+from app.models.encounter import Encounter
 from app.models.influence import Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
-from app.services.conversation_manager import ConversationManager, select_response
+from app.services.conversation_manager import select_response
 from app.telemetry import TelemetryFunc
 
 logger = logging.getLogger(__name__)
@@ -31,10 +37,11 @@ logger = logging.getLogger(__name__)
 
 class ConversationAgentDeps(BaseModel):
     reveals: List[Reveal]
-    encounter_description: str
+    encounter: Encounter
     influence: Influence
     user_id: int
     telemetry: Optional[TelemetryFunc]
+    message_history: List[ModelMessage] | None
 
 
 class ConversationAgent(BaseAgent):
@@ -44,13 +51,14 @@ class ConversationAgent(BaseAgent):
         player: Player,
         system_prompt: str,
         memories: List[Memory],
-        conversation_manager: ConversationManager,
+        conversation_store: ConversationStore,
         influence_calculator_agent: InfluenceCalculatorAgent,
     ):
         super().__init__()
-        self.convo_manager = conversation_manager
+        self.conversation_store = conversation_store
         self.influence_calculator_agent = influence_calculator_agent
-
+        self.player = player
+        self.character = character
         agent = Agent(
             OpenAIModel(
                 model_name="gpt-4o-mini",
@@ -67,7 +75,6 @@ class ConversationAgent(BaseAgent):
             retries=self.retries,
             instrument=True,
         )
-        self.run_result: AgentRunResult[ConversationAgentOutput] = None
 
         # Decorator does not work on self.agent.instructions
         @agent.instructions
@@ -78,7 +85,7 @@ class ConversationAgent(BaseAgent):
 
         @agent.instructions
         def add_encounter(ctx: RunContext[ConversationAgentDeps]) -> str:
-            return structure_encounter(ctx.deps.encounter_description)
+            return structure_encounter(ctx.deps.encounter.description)
 
         # Decorator does not work on self.agent.output_validator
         @agent.output_validator
@@ -101,17 +108,17 @@ class ConversationAgent(BaseAgent):
             agent_task = self.agent.run(
                 user_prompt=player_transcript,
                 deps=deps,
-                message_history=self.convo_manager.get_history(),
+                message_history=deps.message_history,
             )
             influence_task = self.influence_calculator_agent.process(player_transcript)
-            self.run_result, influence_result = await asyncio.gather(
+            run_result, influence_result = await asyncio.gather(
                 agent_task, influence_task
             )
         except UnexpectedModelBehavior as e:
-            logger.error(f"Convo agent failure. {e.message}")
+            logger.error(f"Agent failure. {e.message}")
             raise
         except Exception as e:
-            logger.error(f"Convo agent response generation failed. {e}")
+            logger.error(f"Agent response generation failed. {e}")
             raise
 
         try:
@@ -120,22 +127,26 @@ class ConversationAgent(BaseAgent):
 
             selected_response, level = select_response(
                 reveals=deps.reveals,
-                agent_result=self.run_result.output,
-                # Pass total influence score
+                agent_result=run_result.output,
                 influence_score=deps.influence.score,
             )
 
-            # Persist messages in custom history
+            # TODO: I think this is a bit blunt and can remove failed calls we might want to keep
+            # User model request
+            model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
-            self.convo_manager.add_user_message(
-                message=self.run_result.new_messages()[0]
+            model_response = ModelResponse(parts=[TextPart(content=selected_response)])
+            self.conversation_store.add_messages(
+                player_id=self.player.id,
+                character_id=self.character.id,
+                encounter_id=deps.encounter.id,
+                new_messages=[model_request, model_response],
             )
-            self.convo_manager.add_agent_response(response=selected_response)
 
             # Add trace and span metadata
             deps.telemetry()
         except Exception as e:
-            logger.error(f"Convo agent could not process response. {e}")
+            logger.error(f"Could not process agent response. {e}")
             raise
 
         return selected_response, level, deps.influence

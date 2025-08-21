@@ -1,22 +1,21 @@
 import os
+from unittest.mock import Mock
 
-from sqlalchemy import create_engine
-
-from app.agents.conversations.conversation_agent import (
-    ConversationAgent,
-    ConversationAgentDeps,
+from app.agents.conversations.negative_conversation_agent import (
+    NegativeConvoAgent,
+    NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.data.conversation_store import ConversationStore
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
 from app.models.encounter import Encounter
-from app.models.influence import BASE_INFLUENCE_MAX, Influence
+from app.models.influence import BASE_INFLUENCE_MIN, Influence
+from app.models.memory import Memory
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
-from app.models.reveal import DifficultyClass, RevealLayer
+from app.models.reveal import DifficultyClass
 
 CHARACTER = Character(
     id=100,
@@ -34,8 +33,6 @@ CHARACTER = Character(
     class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
     gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
     size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
-    appearance_keywords=None,
-    storytelling_keywords=None,
 )
 
 PLAYER = Player(
@@ -56,22 +53,26 @@ PLAYER = Player(
     },
 )
 
+CHAR_SYSTEM_PROMPT = import_system_prompt("negative_conversation_agent")
+SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
+
+ALL_MEMORIES = [
+    Memory(
+        id=1,
+        title="Oldest Inn",
+        character_ids=[CHARACTER.id],
+        content="This inn is the oldest in the city.",
+    )
+]
+
 INFLUENCE_STATE = Influence(
     character_id=CHARACTER.id,
     player_id=PLAYER.id,
-    base=BASE_INFLUENCE_MAX,
+    base=BASE_INFLUENCE_MIN,
     earned=0,
 )
 
-CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
-
-TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
-CONVERSATION_STORE = ConversationStore(
-    user_id=1, world_id=1, engine=create_engine(TEST_DB_URL)
-)
-
-DEPENDENCIES = ConversationAgentDeps(
+DEPENDENCIES = NegativeConvoAgentDeps(
     reveals=[],
     encounter=Encounter(
         id=1,
@@ -87,23 +88,26 @@ DEPENDENCIES = ConversationAgentDeps(
     telemetry=lambda: None,
 )
 
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
+CONVERSATION_STORE = Mock()
 
-async def test_agent_handles_no_reveals():
 
-    agent = ConversationAgent(
+async def test_negative_agent_is_negative():
+    agent = NegativeConvoAgent(
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
+            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
-        memories=[],
+        memories=ALL_MEMORIES,
     )
 
-    _, level, _ = await agent.chat(
-        player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
+    response, influence = await agent.chat(
+        player_transcript="Hello, how are you?",
         deps=DEPENDENCIES,
     )
-    # No reveals linked to character should result in standard response
-    assert level == RevealLayer.STANDARD
+    # Bias with max base influence and basic inquiry should only result in standard level
+    assert response is not None
+    assert influence.score < 0
