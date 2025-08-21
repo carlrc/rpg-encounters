@@ -64,10 +64,16 @@ Run docker
 docker compose up -d
 ```
 
-Create dev db
+Create dev db tables
 
 ```bash
 python -m app.db.init_db
+```
+
+Drop dev db tables
+
+```bash
+python -m app.db.init_db --drop
 ```
 
 Create and seed test db with fixture data
@@ -79,7 +85,7 @@ python -m tests.fixtures.seed_data
 Create and seed dev db with fixture data
 
 ```bash
-python -m tests.fixtures.seed_data --live
+python -m tests.fixtures.seed_data --dev
 ```
 
 Run backend

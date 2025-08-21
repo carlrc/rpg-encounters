@@ -1,3 +1,5 @@
+import sys
+
 from sqlalchemy import Engine
 
 from app.db.connection import get_db_engine
@@ -11,6 +13,7 @@ from app.db.models.associations import (  # noqa: F401
 from app.db.models.base import SimpleBase, UnifiedBase
 from app.db.models.character import CharacterORM  # noqa: F401
 from app.db.models.connection import ConnectionORM  # noqa: F401
+from app.db.models.conversation import ConversationORM  # noqa: F401
 from app.db.models.encounter import EncounterORM  # noqa: F401
 from app.db.models.influence import InfluenceORM  # noqa: F401
 from app.db.models.memory import MemoryORM  # noqa: F401
@@ -36,4 +39,11 @@ def drop_tables(engine: Engine):
 
 
 if __name__ == "__main__":
-    create_tables(get_db_engine())
+    engine = get_db_engine()
+
+    if "--drop" in sys.argv:
+        print("🔴 Dropping tables...")
+        drop_tables(engine)
+    else:
+        print("🟢 Creating tables...")
+        create_tables(engine)

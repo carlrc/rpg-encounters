@@ -1,18 +1,23 @@
+import os
+
+from sqlalchemy import create_engine
+
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
     ConversationAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.data.conversation_store import ConversationStore
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
+from app.models.encounter import Encounter
 from app.models.influence import BASE_INFLUENCE_MAX, BASE_INFLUENCE_MIN, Influence
 from app.models.memory import Memory
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass, Reveal, RevealLayer
-from app.services.conversation_manager import ConversationManager
 from tests.utilities import assert_does_not_contain_keywords
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
@@ -89,10 +94,23 @@ INFLUENCE_STATE = Influence(
 
 DEPENDENCIES = ConversationAgentDeps(
     reveals=ALL_REVEALS,
-    encounter_description="",
+    encounter=Encounter(
+        id=1,
+        name="test",
+        description="test",
+        position_x=0.1,
+        position_y=0.2,
+        character_ids=[CHARACTER.id],
+    ),
     influence=INFLUENCE_STATE,
+    message_history=None,
     user_id=1,
     telemetry=lambda: None,
+)
+
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
+CONVERSATION_STORE = ConversationStore(
+    user_id=1, world_id=1, engine=create_engine(TEST_DB_URL)
 )
 
 
@@ -101,9 +119,7 @@ async def test_personality_based_earned_influence_respects_standard_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(
-            player_id=PLAYER.id, character_id=CHARACTER.id
-        ),
+        conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
@@ -123,9 +139,7 @@ async def test_personality_based_earned_influence_respects_privileged_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(
-            player_id=PLAYER.id, character_id=CHARACTER.id
-        ),
+        conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
@@ -158,9 +172,7 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(
-            player_id=PLAYER.id, character_id=CHARACTER.id
-        ),
+        conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
         ),
@@ -169,13 +181,7 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
 
     _, level, _ = await agent.chat(
         player_transcript="My good man, in fact I need the best room because I'm here to help the town on an important quest...",
-        deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS,
-            encounter_description="",
-            influence=influence,
-            user_id=1,
-            telemetry=lambda: None,
-        ),
+        deps=DEPENDENCIES.model_copy(update={"influence": influence}),
     )
 
     # Bias with max base influence and high alignment story with repetition should get exclusive
@@ -208,9 +214,7 @@ async def test_personality_based_earned_influence_can_be_negative():
         character=CHARACTER,
         player=opposing_player,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(
-            player_id=opposing_player.id, character_id=CHARACTER.id
-        ),
+        conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=SCORE_SYSTEM_PROMPT,
             character=CHARACTER,
@@ -221,13 +225,7 @@ async def test_personality_based_earned_influence_can_be_negative():
 
     _, level, influence = await agent.chat(
         player_transcript="I need a room for the night you dirty old man!",
-        deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS,
-            encounter_description="",
-            influence=influence,
-            user_id=1,
-            telemetry=lambda: None,
-        ),
+        deps=DEPENDENCIES.model_copy(update={"influence": influence}),
     )
 
     assert influence.earned < 0
@@ -235,13 +233,7 @@ async def test_personality_based_earned_influence_can_be_negative():
 
     _, level, influence = await agent.chat(
         player_transcript="That isn't good enough you old man!",
-        deps=ConversationAgentDeps(
-            reveals=ALL_REVEALS,
-            encounter_description="",
-            influence=influence,
-            user_id=1,
-            telemetry=lambda: None,
-        ),
+        deps=DEPENDENCIES.model_copy(update={"influence": influence}),
     )
 
     assert influence.earned < 0
@@ -254,9 +246,7 @@ async def test_conversation_agent_handles_multiple_reveals():
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
         memories=ALL_MEMORIES,
-        conversation_manager=ConversationManager(
-            player_id=PLAYER.id, character_id=CHARACTER.id
-        ),
+        conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
         ),
@@ -277,42 +267,25 @@ async def test_conversation_agent_handles_multiple_reveals():
     garden_keywords = ["vandalizing", "garden", "foreigner", "Merry"]
     room_keywords = ["room", "standard", "balcony", "corridor"]
 
+    dependencies = DEPENDENCIES.model_copy(update={"reveals": reveals})
     # Start asking about the first reveal (available rooms) and switch mid conversation to the garden vandal
     result, _, _ = await agent.chat(
         player_transcript="I need a room",
-        deps=ConversationAgentDeps(
-            reveals=reveals,
-            encounter_description="",
-            influence=INFLUENCE_STATE,
-            user_id=1,
-            telemetry=lambda: None,
-        ),
+        deps=dependencies,
     )
 
     assert_does_not_contain_keywords(result, garden_keywords)
 
     result, _, _ = await agent.chat(
         player_transcript="I want a better one with a view",
-        deps=ConversationAgentDeps(
-            reveals=reveals,
-            encounter_description="",
-            influence=INFLUENCE_STATE,
-            user_id=1,
-            telemetry=lambda: None,
-        ),
+        deps=dependencies,
     )
 
     assert_does_not_contain_keywords(result, garden_keywords)
 
     result, _, _ = await agent.chat(
         player_transcript="Alright, also i want to know about this garden vandal. What gossip do you have?",
-        deps=ConversationAgentDeps(
-            reveals=reveals,
-            encounter_description="",
-            influence=INFLUENCE_STATE,
-            user_id=1,
-            telemetry=lambda: None,
-        ),
+        deps=dependencies,
     )
 
     assert_does_not_contain_keywords(result, room_keywords)

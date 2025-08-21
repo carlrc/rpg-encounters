@@ -4,6 +4,7 @@ from typing import List, Tuple
 
 from fastapi import WebSocket
 from langfuse import get_client
+from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from sqlalchemy.orm import sessionmaker
 
 from app.agents.conversations.conversation_agent import (
@@ -17,12 +18,14 @@ from app.agents.conversations.negative_conversation_agent import (
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
+from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
 from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
+from app.db.models.conversation import ConversationORM
 from app.db.models.encounter import EncounterORM
 from app.db.models.influence import InfluenceORM
 from app.db.models.memory import MemoryORM
@@ -54,7 +57,7 @@ def get_conversation_context(
     character_id: int,
     encounter_id: int,
     base_influence: int,
-) -> Tuple[Encounter, Influence, List[Reveal], List[Memory]]:
+) -> Tuple[Encounter, Influence, List[Reveal], List[Memory], List[ModelMessage] | None]:
     """
     Get all conversation-related data for a character in a single database session.
     """
@@ -86,6 +89,33 @@ def get_conversation_context(
                 .filter(CharacterORM.id == character_id)
                 .all()
             )
+
+            conversation_orm = (
+                session.query(ConversationORM)
+                .filter(
+                    ConversationORM.player_id == player_id,
+                    ConversationORM.character_id == character_id,
+                    ConversationORM.encounter_id == encounter_id,
+                    ConversationORM.user_id == user_id,
+                    ConversationORM.world_id == world_id,
+                )
+                .first()
+            )
+
+            # Create conversation if it doesn't exist
+            if not conversation_orm:
+                conversation_orm = ConversationORM(
+                    player_id=player_id,
+                    character_id=character_id,
+                    encounter_id=encounter_id,
+                    user_id=user_id,
+                    world_id=world_id,
+                    messages=None,
+                )
+                session.add(conversation_orm)
+                session.flush()
+                session.commit()
+                session.refresh(conversation_orm)
 
             # Get or create influence in the same session
             influence_orm = (
@@ -119,8 +149,13 @@ def get_conversation_context(
             influence = Influence.model_validate(influence_orm)
             reveals = [RevealStore.orm_to_reveal(reveal) for reveal in reveals_orm]
             memories = [MemoryStore.orm_to_memory(memory) for memory in memories_orm]
+            messages = (
+                ModelMessagesTypeAdapter.validate_json(conversation_orm.messages)
+                if conversation_orm and conversation_orm.messages
+                else None
+            )
 
-            return encounter, influence, reveals, memories
+            return encounter, influence, reveals, memories, messages
     except Exception as e:
         logger.error(f"Failed to get conversation context: {e}")
         raise e
@@ -153,13 +188,15 @@ async def have_conversation(
         )
         base_influence = calculate_base_influence(character=character, player=player)
         # Get all conversation context
-        encounter, influence, all_reveals, all_memories = get_conversation_context(
-            world_id=world_id,
-            user_id=user_id,
-            player_id=player.id,
-            character_id=character.id,
-            encounter_id=encounter_id,
-            base_influence=base_influence,
+        encounter, influence, all_reveals, all_memories, messages = (
+            get_conversation_context(
+                world_id=world_id,
+                user_id=user_id,
+                player_id=player.id,
+                character_id=character.id,
+                encounter_id=encounter_id,
+                base_influence=base_influence,
+            )
         )
 
         # TODO: getting all reveals and memories even through the agent manager caches instances
@@ -208,8 +245,8 @@ async def have_conversation(
                 player=player,
                 system_prompt=char_system_prompt,
                 memories=all_memories,
-                conversation_manager=get_conversation_manager(
-                    player_id=player.id, character_id=character.id
+                conversation_store=ConversationStore(
+                    user_id=user_id, world_id=world_id
                 ),
                 influence_calculator_agent=InfluenceCalculatorAgent(
                     system_prompt=scoring_system_prompt,
@@ -222,9 +259,10 @@ async def have_conversation(
                 player_transcript=transcription,
                 deps=ConversationAgentDeps(
                     reveals=all_reveals,
-                    encounter_description=encounter.description,
+                    encounter=encounter,
                     influence=influence,
                     user_id=user_id,
+                    message_history=messages,
                     telemetry=lambda: get_client().update_current_trace(
                         user_id=user_id,
                         name="positive-convo-agent",

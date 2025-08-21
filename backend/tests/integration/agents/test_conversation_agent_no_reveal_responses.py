@@ -1,17 +1,22 @@
+import os
+
+from sqlalchemy import create_engine
+
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
     ConversationAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
+from app.data.conversation_store import ConversationStore
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
+from app.models.encounter import Encounter
 from app.models.influence import BASE_INFLUENCE_MAX, Influence
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass, RevealLayer
-from app.services.conversation_manager import ConversationManager
 
 CHARACTER = Character(
     id=100,
@@ -61,6 +66,27 @@ INFLUENCE_STATE = Influence(
 CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
 SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
+TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
+CONVERSATION_STORE = ConversationStore(
+    user_id=1, world_id=1, engine=create_engine(TEST_DB_URL)
+)
+
+DEPENDENCIES = ConversationAgentDeps(
+    reveals=[],
+    encounter=Encounter(
+        id=1,
+        name="test",
+        description="test",
+        position_x=0.1,
+        position_y=0.2,
+        character_ids=[CHARACTER.id],
+    ),
+    influence=INFLUENCE_STATE,
+    message_history=None,
+    user_id=1,
+    telemetry=lambda: None,
+)
+
 
 async def test_agent_handles_no_reveals():
 
@@ -68,9 +94,7 @@ async def test_agent_handles_no_reveals():
         character=CHARACTER,
         player=PLAYER,
         system_prompt=CHAR_SYSTEM_PROMPT,
-        conversation_manager=ConversationManager(
-            player_id=PLAYER.id, character_id=CHARACTER.id
-        ),
+        conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
         ),
@@ -79,9 +103,7 @@ async def test_agent_handles_no_reveals():
 
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=ConversationAgentDeps(
-            reveals=[], encounter_description="", influence=INFLUENCE_STATE, user_id=1
-        ),
+        deps=DEPENDENCIES,
     )
     # No reveals linked to character should result in standard response
     assert level == RevealLayer.STANDARD

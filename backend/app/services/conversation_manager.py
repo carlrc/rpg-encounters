@@ -1,7 +1,5 @@
 import logging
-from typing import List, Tuple
-
-from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart
+from typing import Tuple
 
 from app.agents.agent_output import ConversationAgentOutput
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
@@ -9,37 +7,17 @@ from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
 logger = logging.getLogger(__name__)
 
 
-class ConversationManager:
-    def __init__(self, player_id: int, character_id: int):
-        self.messages: List[ModelMessage] = []
-        self.player_id = player_id
-        self.character_id = character_id
-
-    def add_user_message(self, message: ModelRequest) -> None:
-        """Add user message to conversation history"""
-        self.messages.append(message)
-
-    def add_agent_response(self, response: str) -> None:
-        """Add agent response to conversation history"""
-        message = ModelResponse(parts=[TextPart(content=response)])
-
-        self.messages.append(message)
-
-    def get_history(self) -> List[ModelMessage]:
-        """Get conversation history for agent runs"""
-        return self.messages.copy()
-
-
 def select_response(
     reveals: list[Reveal],
     agent_result: ConversationAgentOutput,
     influence_score: int,
 ) -> Tuple[str, RevealLayer]:
-    # Handle response attitude given no reveals
+
     negative_attitude = (
         influence_score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
     )
-    if not reveals:
+    # Handle response attitude given no reveals or no referenced reveal
+    if not reveals or agent_result.reveal_id is None:
         if negative_attitude:
             return agent_result.negative_response, RevealLayer.NEGATIVE
         else:
