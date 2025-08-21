@@ -1,6 +1,6 @@
 import logging
 
-from pydantic_ai import Agent
+from pydantic_ai import Agent, UnexpectedModelBehavior
 from pydantic_ai.models.openai import OpenAIModel
 
 from app.agents.base_agent import MAX_RETRIES
@@ -14,7 +14,6 @@ class PersonalityGenerator:
     async def generate_personality(character_data: CharacterCreate) -> str:
         """Generate personality profile from character attributes"""
 
-        # Create Pydantic AI agent for personality generation
         agent = Agent(
             OpenAIModel(model_name="gpt-4o"),
             system_prompt="""You are an expert at analyzing D&D characters and creating personality profiles for social interactions.
@@ -31,30 +30,31 @@ class PersonalityGenerator:
         )
 
         prompt = f"""
-        Analyze this D&D character and generate a personality profile for live interactions:
-        Name: {character_data.name}
-        Race: {character_data.race}
-        Profession: {character_data.profession}
-        Alignment: {character_data.alignment}
-        Background: {character_data.background}
-        Communication Style: {character_data.communication_style}
-        Motivation: {character_data.motivation}
-        Bias Preferences:
-        Race Preferences: {character_data.race_preferences or 'None specified'}
-        Class Preferences: {character_data.class_preferences or 'None specified'}
-        Gender Preferences: {character_data.gender_preferences or 'None specified'}
-        Size Preferences: {character_data.size_preferences or 'None specified'}
-        Appearance Keywords: {character_data.appearance_keywords or 'None specified'}
-        Storytelling Keywords: {character_data.storytelling_keywords or 'None specified'}
-        IMPORTANT: Explain WHY this character has these specific bias preferences based on their background and experiences, and how these biases affect their trust evaluation of different types of people.
+            Analyze this D&D character and generate a personality profile for live interactions:
+            Name: {character_data.name}
+            Race: {character_data.race}
+            Profession: {character_data.profession}
+            Alignment: {character_data.alignment}
+            Background: {character_data.background}
+            Communication Style: {character_data.communication_style}
+            Motivation: {character_data.motivation}
+            Bias Preferences:
+            Race Preferences: {character_data.race_preferences or 'None specified'}
+            Class Preferences: {character_data.class_preferences or 'None specified'}
+            Gender Preferences: {character_data.gender_preferences or 'None specified'}
+            Size Preferences: {character_data.size_preferences or 'None specified'}
+            Appearance Keywords: {character_data.appearance_keywords or 'None specified'}
+            Storytelling Keywords: {character_data.storytelling_keywords or 'None specified'}
+            IMPORTANT: Explain WHY this character has these specific bias preferences based on their background and experiences, and how these biases affect their trust evaluation of different types of people.
         """
 
         try:
             result = await agent.run(prompt)
             return result.output.strip()
 
+        except UnexpectedModelBehavior as e:
+            logger.error(f"Agent failure. {e.message}")
+            raise
         except Exception as e:
-            logger.error(
-                f"Could not generate personality for {character_data.name}. Error: {e}"
-            )
+            logger.error(f"Agent response generation failed. {e}")
             raise

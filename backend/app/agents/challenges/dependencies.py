@@ -1,5 +1,5 @@
-from pydantic import BaseModel
+from app.agents.base_agent import AgentDeps
 
 
-class ChallengeAgentDeps(BaseModel):
+class ChallengeAgentDeps(AgentDeps):
     encounter_description: str

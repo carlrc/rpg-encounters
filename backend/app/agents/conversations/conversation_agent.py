@@ -1,9 +1,8 @@
 import asyncio
 import logging
-from typing import List, Optional
+from typing import List
 
 from langfuse import observe as langfuse_observe
-from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.messages import (
     ModelMessage,
@@ -14,7 +13,7 @@ from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.agent_output import ConversationAgentOutput
-from app.agents.base_agent import BaseAgent
+from app.agents.base_agent import AgentDeps, BaseAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.utils import (
     structure_character_memories,
@@ -30,17 +29,14 @@ from app.models.memory import Memory
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
 from app.services.conversation_manager import select_response
-from app.telemetry import TelemetryFunc
 
 logger = logging.getLogger(__name__)
 
 
-class ConversationAgentDeps(BaseModel):
+class ConversationAgentDeps(AgentDeps):
     reveals: List[Reveal]
     encounter: Encounter
     influence: Influence
-    user_id: int
-    telemetry: Optional[TelemetryFunc]
     message_history: List[ModelMessage] | None
 
 

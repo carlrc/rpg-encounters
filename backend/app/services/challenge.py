@@ -1,6 +1,8 @@
 import logging
+import os
 
 from fastapi import WebSocket
+from langfuse import get_client
 
 from app.agents.challenges.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
@@ -44,6 +46,7 @@ async def challenge_character(
     skill: str,
     d20_roll: int,
 ):
+    # TODO: Need to get chat history and incorporate it into responses
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
     # TODO: saving to WAV needs to be made async
@@ -85,6 +88,7 @@ async def challenge_character(
                 memories=all_memories,
                 reveals=filtered_reveals,
             )
+            challenge_agent_name = "crit-success-agent"
         elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
             agent = CriticalFailureAgent(
                 character=character,
@@ -92,6 +96,7 @@ async def challenge_character(
                 system_prompt=challenge_agent_critical_failure_system_prompt,
                 memories=all_memories,
             )
+            challenge_agent_name = "crit-failure-agent"
         else:
             agent = ChallengeAgent(
                 character=character,
@@ -100,9 +105,21 @@ async def challenge_character(
                 memories=all_memories,
                 reveals=filtered_reveals,
             )
+            challenge_agent_name = "challenge-agent"
 
         # Create deps with encounter context
-        deps = ChallengeAgentDeps(encounter_description=encounter.description)
+        deps = ChallengeAgentDeps(
+            encounter_description=encounter.description,
+            telemetry=lambda: get_client().update_current_trace(
+                user_id=user_id,
+                name=challenge_agent_name,
+                tags=["challenge"],
+                metadata={
+                    "service": "backend",
+                    "env": os.getenv("ENVIRONMENT"),
+                },
+            ),
+        )
         response = await agent.chat(player_transcript=transcription, deps=deps)
         logger.debug(
             f"Generated character response for D20 roll {d20_roll}: {response}"
