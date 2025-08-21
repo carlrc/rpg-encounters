@@ -1,6 +1,7 @@
 from pydantic_ai.messages import ModelMessage
 
-MAX_MESSAGE_HISTORY = 20
+# TODO: Put this very high to avoid message trimming issue. This should be based on tokens anyways in future
+MAX_MESSAGE_HISTORY = 30
 
 MAX_RETRIES = 3
 
@@ -11,6 +12,8 @@ class BaseAgent:
     def __init__(self):
         self.retries = MAX_RETRIES
 
+    # TODO: This doesn't work well. Needs to be summarizing convo instead
+    # https://ai.pydantic.dev/message-history/#summarize-old-messages
     async def _keep_recent_messages(
         self, messages: list[ModelMessage]
     ) -> list[ModelMessage]:

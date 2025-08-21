@@ -5,7 +5,6 @@ from typing import List, Optional
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
-from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
@@ -76,7 +75,6 @@ class ConversationAgent(BaseAgent):
             retries=self.retries,
             instrument=True,
         )
-        self.run_result: AgentRunResult[ConversationAgentOutput] = None
 
         # Decorator does not work on self.agent.instructions
         @agent.instructions
@@ -113,7 +111,7 @@ class ConversationAgent(BaseAgent):
                 message_history=deps.message_history,
             )
             influence_task = self.influence_calculator_agent.process(player_transcript)
-            self.run_result, influence_result = await asyncio.gather(
+            run_result, influence_result = await asyncio.gather(
                 agent_task, influence_task
             )
         except UnexpectedModelBehavior as e:
@@ -129,13 +127,13 @@ class ConversationAgent(BaseAgent):
 
             selected_response, level = select_response(
                 reveals=deps.reveals,
-                agent_result=self.run_result.output,
+                agent_result=run_result.output,
                 influence_score=deps.influence.score,
             )
 
             # TODO: I think this is a bit blunt and can remove failed calls we might want to keep
             # User model request
-            model_request = self.run_result.new_messages()[0]
+            model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=selected_response)])
             self.conversation_store.add_messages(

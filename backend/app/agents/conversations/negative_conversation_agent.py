@@ -5,7 +5,6 @@ from typing import List, Optional
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
 from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
-from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -69,7 +68,6 @@ class NegativeConvoAgent(BaseAgent):
             retries=self.retries,
             instrument=True,
         )
-        self.run_result: AgentRunResult[StandardAgentOutput] = None
 
         @agent.instructions
         def add_encounter(ctx: RunContext[NegativeConvoAgentDeps]) -> str:
@@ -89,14 +87,14 @@ class NegativeConvoAgent(BaseAgent):
                 message_history=deps.message_history,
             )
             influence_task = self.influence_calculator_agent.process(player_transcript)
-            self.run_result, influence_result = await asyncio.gather(
+            run_result, influence_result = await asyncio.gather(
                 agent_task, influence_task
             )
         except UnexpectedModelBehavior as e:
             logger.error(f"Agent failure. {e.message}")
             raise
         except Exception as e:
-            logger.error(f"Response generation failed. {e}")
+            logger.error(f"Agent response generation failed. {e}")
             raise
 
         try:
@@ -105,10 +103,10 @@ class NegativeConvoAgent(BaseAgent):
 
             # TODO: Sometimes new messages returns nothing?
             # User model request
-            model_request = self.run_result.new_messages()[0]
+            model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(
-                parts=[TextPart(content=self.run_result.output.response)]
+                parts=[TextPart(content=run_result.output.response)]
             )
             self.conversation_store.add_messages(
                 player_id=self.player.id,
@@ -120,7 +118,7 @@ class NegativeConvoAgent(BaseAgent):
             # Add trace and span metadata
             deps.telemetry()
 
-            return self.run_result.output.response, deps.influence
+            return run_result.output.response, deps.influence
         except Exception as e:
             logger.error(f"Could not process agent response. {e}")
             raise
