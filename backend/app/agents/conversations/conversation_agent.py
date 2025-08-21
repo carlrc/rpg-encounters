@@ -117,10 +117,10 @@ class ConversationAgent(BaseAgent):
                 agent_task, influence_task
             )
         except UnexpectedModelBehavior as e:
-            logger.error(f"Convo agent failure. {e.message}")
+            logger.error(f"Agent failure. {e.message}")
             raise
         except Exception as e:
-            logger.error(f"Convo agent response generation failed. {e}")
+            logger.error(f"Agent response generation failed. {e}")
             raise
 
         try:
@@ -148,7 +148,7 @@ class ConversationAgent(BaseAgent):
             # Add trace and span metadata
             deps.telemetry()
         except Exception as e:
-            logger.error(f"Convo agent could not process response. {e}")
+            logger.error(f"Could not process agent response. {e}")
             raise
 
         return selected_response, level, deps.influence

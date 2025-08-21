@@ -31,7 +31,6 @@ from app.db.models.influence import InfluenceORM
 from app.db.models.memory import MemoryORM
 from app.db.models.reveal import RevealORM
 from app.dependencies import (
-    get_conversation_manager,
     get_transcription_service,
     get_tts_service,
 )
@@ -205,14 +204,21 @@ async def have_conversation(
         # TODO: Convo history not persisting between convo agents
 
         # If negative sentiment, make the conversation negative
-        if base_influence < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]:
+        negative_attitude = (
+            influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
+        )
+        logger.info(
+            f"char {character.id} influence to player {player.id} = {influence.score}"
+        )
+        if negative_attitude:
+            logger.info("Using negative conversation agent...")
             agent = NegativeConvoAgent(
                 character=character,
                 player=player,
                 system_prompt=negative_char_system_prompt,
                 memories=all_memories,
-                conversation_manager=get_conversation_manager(
-                    player_id=player.id, character_id=character.id
+                conversation_store=ConversationStore(
+                    user_id=user_id, world_id=world_id
                 ),
                 influence_calculator_agent=InfluenceCalculatorAgent(
                     system_prompt=scoring_system_prompt,
@@ -225,7 +231,7 @@ async def have_conversation(
             response, influence = await agent.chat(
                 player_transcript=transcription,
                 deps=NegativeConvoAgentDeps(
-                    encounter_description=encounter.description,
+                    encounter=encounter,
                     influence=influence,
                     user_id=user_id,
                     telemetry=lambda: get_client().update_current_trace(
@@ -237,9 +243,11 @@ async def have_conversation(
                             "env": os.getenv("ENVIRONMENT"),
                         },
                     ),
+                    message_history=messages,
                 ),
             )
         else:
+            logger.info("Using positive conversation agent...")
             agent = ConversationAgent(
                 character=character,
                 player=player,

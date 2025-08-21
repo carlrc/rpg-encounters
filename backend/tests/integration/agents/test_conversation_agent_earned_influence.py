@@ -1,6 +1,4 @@
-import os
-
-from sqlalchemy import create_engine
+from unittest.mock import Mock
 
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
@@ -8,7 +6,6 @@ from app.agents.conversations.conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
-from app.data.conversation_store import ConversationStore
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -108,10 +105,7 @@ DEPENDENCIES = ConversationAgentDeps(
     telemetry=lambda: None,
 )
 
-TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
-CONVERSATION_STORE = ConversationStore(
-    user_id=1, world_id=1, engine=create_engine(TEST_DB_URL)
-)
+CONVERSATION_STORE = Mock()
 
 
 async def test_personality_based_earned_influence_respects_standard_level():

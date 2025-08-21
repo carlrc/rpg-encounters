@@ -1,6 +1,6 @@
 from pydantic_ai.messages import ModelMessage
 
-MAX_MESSAGE_HISTORY = 10
+MAX_MESSAGE_HISTORY = 20
 
 MAX_RETRIES = 3
 
