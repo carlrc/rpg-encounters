@@ -114,7 +114,7 @@ async def challenge_character(
         # Create deps with encounter context
         deps = ChallengeAgentDeps(
             encounter=encounter,
-            messages=conversation.messages,
+            messages=conversation.messages if conversation else None,
             telemetry=lambda: get_client().update_current_trace(
                 user_id=user_id,
                 name=challenge_agent_name,
