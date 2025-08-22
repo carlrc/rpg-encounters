@@ -80,13 +80,14 @@
 </template>
 
 <script>
-  import { ref, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { useNotification } from '../composables/useNotification.js'
   import { generateTempId, isTemporaryId } from '../utils/idUtils.js'
 
   export default {
@@ -98,6 +99,7 @@
     },
     setup() {
       const { gameData, loadGameData } = useGameData()
+      const { showSuccess, showError } = useNotification()
 
       // State
       const characters = ref([])
@@ -666,16 +668,37 @@
           // Clear deletion tracking after successful save
           deletedEncounterIds.value = []
           deletedConnectionIds.value = []
+
+          // Show success notification
+          showSuccess('Canvas saved successfully!')
         } catch (error) {
           console.error('Failed to save canvas:', error)
-          error.value = `Failed to save canvas: ${error.message}`
+          showError(`Failed to save canvas: ${error.message}`)
         } finally {
           isSaving.value = false
         }
       }
 
+      // Handle world change events
+      const handleWorldChange = (event) => {
+        // Clear current elements
+        elements.value = []
+        // Clear deletion tracking
+        deletedEncounterIds.value = []
+        deletedConnectionIds.value = []
+        // Reload data for new world
+        loadData()
+      }
+
       onMounted(() => {
         loadData()
+        // Listen for world changes
+        window.addEventListener('world-changed', handleWorldChange)
+      })
+
+      onUnmounted(() => {
+        // Clean up event listener
+        window.removeEventListener('world-changed', handleWorldChange)
       })
 
       return {

@@ -19,20 +19,31 @@ class ConnectionStore:
         self.world_id = world_id
 
     def get_all_connections(self) -> List[Connection]:
-        """Get all connections"""
+        """Get all connections for the current user and world"""
         with self.Session() as session:
-            connection_orms = session.query(ConnectionORM).all()
+            connection_orms = (
+                session.query(ConnectionORM)
+                .filter(
+                    ConnectionORM.user_id == self.user_id,
+                    ConnectionORM.world_id == self.world_id,
+                )
+                .all()
+            )
             return [
                 Connection.model_validate(connection_orm)
                 for connection_orm in connection_orms
             ]
 
     def get_connection_by_id(self, connection_id: int) -> Connection | None:
-        """Get a specific connection by ID"""
+        """Get a specific connection by ID for the current user and world"""
         with self.Session() as session:
             connection_orm = (
                 session.query(ConnectionORM)
-                .filter(ConnectionORM.id == connection_id)
+                .filter(
+                    ConnectionORM.id == connection_id,
+                    ConnectionORM.user_id == self.user_id,
+                    ConnectionORM.world_id == self.world_id,
+                )
                 .first()
             )
             if connection_orm:
@@ -54,11 +65,15 @@ class ConnectionStore:
     def update_connection(
         self, connection_id: int, connection_update: ConnectionUpdate
     ) -> Connection | None:
-        """Update an existing connection"""
+        """Update an existing connection for the current user and world"""
         with self.Session() as session:
             connection_orm = (
                 session.query(ConnectionORM)
-                .filter(ConnectionORM.id == connection_id)
+                .filter(
+                    ConnectionORM.id == connection_id,
+                    ConnectionORM.user_id == self.user_id,
+                    ConnectionORM.world_id == self.world_id,
+                )
                 .first()
             )
             if not connection_orm:
@@ -76,11 +91,15 @@ class ConnectionStore:
             return Connection.model_validate(connection_orm)
 
     def delete_connection(self, connection_id: int) -> bool:
-        """Delete a connection"""
+        """Delete a connection for the current user and world"""
         with self.Session() as session:
             connection_orm = (
                 session.query(ConnectionORM)
-                .filter(ConnectionORM.id == connection_id)
+                .filter(
+                    ConnectionORM.id == connection_id,
+                    ConnectionORM.user_id == self.user_id,
+                    ConnectionORM.world_id == self.world_id,
+                )
                 .first()
             )
             if not connection_orm:
@@ -91,13 +110,15 @@ class ConnectionStore:
             return True
 
     def get_connections_for_encounter(self, encounter_id: int) -> List[Connection]:
-        """Get all connections that involve a specific encounter"""
+        """Get all connections that involve a specific encounter for the current user and world"""
         with self.Session() as session:
             connection_orms = (
                 session.query(ConnectionORM)
                 .filter(
                     (ConnectionORM.source_encounter_id == encounter_id)
-                    | (ConnectionORM.target_encounter_id == encounter_id)
+                    | (ConnectionORM.target_encounter_id == encounter_id),
+                    ConnectionORM.user_id == self.user_id,
+                    ConnectionORM.world_id == self.world_id,
                 )
                 .all()
             )
@@ -107,11 +128,15 @@ class ConnectionStore:
             ]
 
     def connection_exists(self, connection_id: int) -> bool:
-        """Check if a connection exists"""
+        """Check if a connection exists for the current user and world"""
         with self.Session() as session:
             return (
                 session.query(ConnectionORM)
-                .filter(ConnectionORM.id == connection_id)
+                .filter(
+                    ConnectionORM.id == connection_id,
+                    ConnectionORM.user_id == self.user_id,
+                    ConnectionORM.world_id == self.world_id,
+                )
                 .first()
                 is not None
             )
