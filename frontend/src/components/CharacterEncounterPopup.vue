@@ -437,17 +437,19 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     max-width: 600px;
     width: 90%;
-    max-height: 80vh;
+    max-height: 90vh;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   .popup-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 20px 0 20px;
+    padding: 15px 20px;
     border-bottom: 1px solid #e9ecef;
-    margin-bottom: 20px;
+    flex-shrink: 0;
   }
 
   .popup-header h3 {
@@ -482,17 +484,21 @@
     max-width: 600px;
     margin: 0 auto;
     padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .character-header {
     display: flex;
     align-items: center;
     gap: 20px;
-    margin-bottom: 40px;
-    padding: 20px;
+    margin-bottom: 30px;
+    padding: 15px;
     background: #f8f9fa;
     border-radius: 12px;
     border: 1px solid #e9ecef;
+    flex-shrink: 0;
   }
 
   .character-avatar {
@@ -540,10 +546,14 @@
 
   .encounter-controls {
     text-align: center;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
 
   .player-selection {
-    margin-bottom: 30px;
+    margin-bottom: 20px;
   }
 
   .player-selection label {
@@ -647,7 +657,7 @@
   }
 
   .skill-selection {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
 
   .skill-selection label {
@@ -659,20 +669,33 @@
   }
 
   .dice-result {
-    margin-bottom: 20px;
+    margin: 15px auto;
     text-align: center;
+    /* Enhanced container styling for better visibility */
+    min-width: 150px;
+    min-height: 100px;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .dice-number {
-    font-size: 3em;
+    font-size: 3.5em;
     font-weight: bold;
     color: #007bff;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 5px;
+    margin-bottom: 10px;
+    line-height: 1;
   }
 
   .dice-label {
-    font-size: 1em;
+    font-size: 1.1em;
     color: #6c757d;
     font-weight: 600;
     text-transform: uppercase;
