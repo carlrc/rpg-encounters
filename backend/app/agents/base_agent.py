@@ -1,9 +1,16 @@
+from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
+
+from app.telemetry import TelemetryFunc
 
 # TODO: Put this very high to avoid message trimming issue. This should be based on tokens anyways in future
 MAX_MESSAGE_HISTORY = 30
 
 MAX_RETRIES = 3
+
+
+class AgentDeps(BaseModel):
+    telemetry: TelemetryFunc
 
 
 class BaseAgent:

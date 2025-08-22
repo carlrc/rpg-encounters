@@ -1,7 +1,8 @@
 import logging
 from typing import List
 
-from pydantic_ai import Agent, NativeOutput, RunContext
+from langfuse import observe as langfuse_observe
+from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
@@ -29,7 +30,7 @@ class CriticalFailureAgent(BaseAgent):
         super().__init__()
         agent = Agent(
             OpenAIModel(
-                model_name="gpt-4o",
+                model_name="gpt-4o-mini",
                 provider=OpenAIProvider(http_client=create_retrying_client()),
             ),
             instructions=system_prompt
@@ -46,10 +47,10 @@ class CriticalFailureAgent(BaseAgent):
 
         @agent.instructions
         def add_encounter(ctx: RunContext[ChallengeAgentDeps]) -> str:
-            if ctx.deps.encounter_description:
+            if ctx.deps.encounter.description:
                 return f"""# Physical Location Context
                     Your character is currently in the following encounter. Use this information as your physical world context.
-                    {ctx.deps.encounter_description}
+                    {ctx.deps.encounter.description}
                     """
             else:
                 return ""
@@ -57,13 +58,19 @@ class CriticalFailureAgent(BaseAgent):
         # Set instance variable after decorators defined
         self.agent = agent
 
+    @langfuse_observe
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
-            history = self.run_result.all_messages() if self.run_result else None
             self.run_result = await self.agent.run(
-                user_prompt=player_transcript, message_history=history, deps=deps
+                user_prompt=player_transcript, message_history=deps.messages, deps=deps
             )
+
+            deps.telemetry()
+
             return self.run_result.output.response
+        except UnexpectedModelBehavior as e:
+            logger.error(f"Agent failure. {e.message}")
+            raise
         except Exception as e:
-            logger.error(f"Critical failure agent error. {e}")
+            logger.error(f"Agent response generation failed. {e}")
             raise
