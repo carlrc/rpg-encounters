@@ -42,17 +42,12 @@
       </div>
 
       <!-- Reveal Character Selection -->
-      <div v-if="entityType === 'reveal'" class="character-field">
-        <label class="shared-field-label">Characters</label>
-        <div class="character-selection">
-          <div v-for="character in characters" :key="character.id" class="character-checkbox">
-            <label class="shared-checkbox-option">
-              <input type="checkbox" :value="character.id" v-model="formData.character_ids" />
-              <span>{{ character.name }}</span>
-            </label>
-          </div>
-        </div>
-      </div>
+      <CharacterSelector
+        v-if="entityType === 'reveal'"
+        v-model="formData.character_ids"
+        :characters="characters"
+        label="Characters"
+      />
 
       <!-- Reveal Level Toggles -->
       <template v-if="entityType === 'reveal'">
@@ -98,6 +93,7 @@
   import EntityBasicFields from './EntityBasicFields.vue'
   import EntityTextFields from './EntityTextFields.vue'
   import BaseFormField from '../base/BaseFormField.vue'
+  import CharacterSelector from './CharacterSelector.vue'
   import { useEntityValidation } from '../../composables/useEntityValidation.js'
 
   export default {
@@ -107,6 +103,7 @@
       EntityBasicFields,
       EntityTextFields,
       BaseFormField,
+      CharacterSelector,
     },
     props: {
       entityType: {
@@ -260,24 +257,5 @@
 </script>
 
 <style scoped>
-  .character-field {
-    margin-bottom: 1.5rem;
-  }
-
-  .character-selection {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    max-height: 150px;
-    overflow-y: auto;
-    padding: var(--spacing-lg);
-    border: 2px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--bg-light);
-  }
-
-  .character-checkbox {
-    display: flex;
-    align-items: center;
-  }
+  /* Character selection styles are now handled by CharacterSelector component */
 </style>
