@@ -6,9 +6,12 @@
         <h3>{{ listTitle }}</h3>
       </div>
 
+      <!-- Search Input -->
+      <SearchInput :placeholder="`Search ${listTitle.toLowerCase()}...`" @search="handleSearch" />
+
       <div class="list-content">
         <div
-          v-for="item in items"
+          v-for="item in filteredItems"
           :key="item.id"
           :class="['list-item', { active: selectedItemId === item.id }]"
           @click="$emit('select-item', item.id)"
@@ -16,7 +19,11 @@
           {{ item.name || item.title }}
         </div>
 
-        <div v-if="items.length === 0" class="empty-state">
+        <div v-if="filteredItems.length === 0 && searchQuery" class="empty-state">
+          No {{ listTitle.toLowerCase() }} found matching "{{ searchQuery }}"
+        </div>
+
+        <div v-else-if="filteredItems.length === 0" class="empty-state">
           {{ emptyMessage }}
         </div>
       </div>
@@ -39,8 +46,14 @@
 </template>
 
 <script>
+  import { ref, computed } from 'vue'
+  import SearchInput from '../ui/SearchInput.vue'
+
   export default {
     name: 'SplitViewLayout',
+    components: {
+      SearchInput,
+    },
     props: {
       items: {
         type: Array,
@@ -64,6 +77,31 @@
       },
     },
     emits: ['select-item', 'create-item'],
+    setup(props) {
+      const searchQuery = ref('')
+
+      const filteredItems = computed(() => {
+        if (!searchQuery.value) {
+          return props.items
+        }
+
+        const query = searchQuery.value.toLowerCase()
+        return props.items.filter((item) => {
+          const name = item.name || item.title || ''
+          return name.toLowerCase().includes(query)
+        })
+      })
+
+      const handleSearch = (query) => {
+        searchQuery.value = query
+      }
+
+      return {
+        searchQuery,
+        filteredItems,
+        handleSearch,
+      }
+    },
   }
 </script>
 
