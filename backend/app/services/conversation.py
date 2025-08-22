@@ -302,16 +302,15 @@ async def have_conversation(
             await websocket.send_text("AUDIO_COMPLETE")
         except Exception as e:
             logger.error(f"Failed to send completion signal: {e}")
+            raise
+
     except Exception as e:
         logger.error(f"Processing conversation failed: {e}")
-
+        raise
     finally:
         try:
             # TODO: This crashes if no transcription was recorded and its an empty file
             # Clean up temporary files
             cleanup_files(wav_path)
         except Exception as e:
-            logger.warning(f"Could not destroy temp wav_path {wav_path}. {e}")
-
-    # WebSocket will be closed automatically by FastAPI
-    logger.debug("Closing websocket connection...")
+            logger.error(f"Could not destroy temp wav_path {wav_path}. {e}")

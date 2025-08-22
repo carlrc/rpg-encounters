@@ -47,10 +47,10 @@ class CriticalFailureAgent(BaseAgent):
 
         @agent.instructions
         def add_encounter(ctx: RunContext[ChallengeAgentDeps]) -> str:
-            if ctx.deps.encounter_description:
+            if ctx.deps.encounter.description:
                 return f"""# Physical Location Context
                     Your character is currently in the following encounter. Use this information as your physical world context.
-                    {ctx.deps.encounter_description}
+                    {ctx.deps.encounter.description}
                     """
             else:
                 return ""
@@ -61,9 +61,8 @@ class CriticalFailureAgent(BaseAgent):
     @langfuse_observe
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
-            history = self.run_result.all_messages() if self.run_result else None
             self.run_result = await self.agent.run(
-                user_prompt=player_transcript, message_history=history, deps=deps
+                user_prompt=player_transcript, message_history=deps.messages, deps=deps
             )
 
             deps.telemetry()
