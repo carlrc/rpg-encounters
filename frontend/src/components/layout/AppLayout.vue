@@ -7,6 +7,9 @@
       </div>
     </header>
 
+    <!-- World Tabs positioned in left margin -->
+    <WorldTabs class="world-tabs-positioned" @world-changed="handleWorldChange" />
+
     <!-- Main Layout -->
     <div class="main-layout">
       <!-- Left Sidebar Navigation -->
@@ -38,9 +41,13 @@
 <script>
   import { computed, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import WorldTabs from '../WorldTabs.vue'
 
   export default {
     name: 'AppLayout',
+    components: {
+      WorldTabs,
+    },
     setup() {
       const route = useRoute()
       const router = useRouter()
@@ -68,11 +75,17 @@
         }, 1500)
       }
 
+      const handleWorldChange = (worldId) => {
+        // Emit event to trigger data refresh in current page
+        window.dispatchEvent(new CustomEvent('world-changed', { detail: { worldId } }))
+      }
+
       return {
         navigationRoutes,
         pageTitle,
         successMessage,
         showSuccessMessage,
+        handleWorldChange,
       }
     },
   }
@@ -117,11 +130,19 @@
     background-clip: text;
   }
 
+  .world-tabs-positioned {
+    position: fixed;
+    left: 10px;
+    top: 90px;
+    z-index: 50;
+  }
+
   .main-layout {
     display: flex;
     flex: 1;
-    max-width: 1400px;
+    max-width: calc(1400px - 80px);
     margin: 0 auto;
+    margin-left: 80px;
     width: 100%;
   }
 
@@ -199,8 +220,17 @@
   }
 
   @media (max-width: 768px) {
+    .world-tabs-positioned {
+      position: static;
+      margin: 8px 0;
+      left: auto;
+      top: auto;
+    }
+
     .main-layout {
       flex-direction: column;
+      margin-left: 0;
+      max-width: 1400px;
     }
 
     .sidebar {
@@ -213,6 +243,12 @@
     .nav-button {
       white-space: nowrap;
       margin: 0 4px;
+    }
+  }
+
+  @media (max-width: 1480px) {
+    .main-layout {
+      max-width: calc(100vw - 80px);
     }
   }
 </style>

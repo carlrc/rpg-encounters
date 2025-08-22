@@ -16,9 +16,16 @@ class RevealStore:
         self.world_id = world_id
 
     def get_all_reveals(self) -> List[Reveal]:
-        """Get all reveals across all characters"""
+        """Get all reveals for the current user and world"""
         with self.Session() as session:
-            reveal_orms = session.query(RevealORM).all()
+            reveal_orms = (
+                session.query(RevealORM)
+                .filter(
+                    RevealORM.user_id == self.user_id,
+                    RevealORM.world_id == self.world_id,
+                )
+                .all()
+            )
             return [RevealStore.orm_to_reveal(reveal_orm) for reveal_orm in reveal_orms]
 
     def get_by_character_id(self, character_id: int) -> List[Reveal]:
@@ -38,10 +45,16 @@ class RevealStore:
                 return []
 
     def get_reveal(self, reveal_id: int) -> Reveal | None:
-        """Get a specific reveal by ID"""
+        """Get a specific reveal by ID for the current user and world"""
         with self.Session() as session:
             reveal_orm = (
-                session.query(RevealORM).filter(RevealORM.id == reveal_id).first()
+                session.query(RevealORM)
+                .filter(
+                    RevealORM.id == reveal_id,
+                    RevealORM.user_id == self.user_id,
+                    RevealORM.world_id == self.world_id,
+                )
+                .first()
             )
             if reveal_orm:
                 return RevealStore.orm_to_reveal(reveal_orm)
@@ -80,7 +93,13 @@ class RevealStore:
         """Update an existing reveal"""
         with self.Session() as session:
             reveal_orm = (
-                session.query(RevealORM).filter(RevealORM.id == reveal_id).first()
+                session.query(RevealORM)
+                .filter(
+                    RevealORM.id == reveal_id,
+                    RevealORM.user_id == self.user_id,
+                    RevealORM.world_id == self.world_id,
+                )
+                .first()
             )
 
             if not reveal_orm:
@@ -110,7 +129,13 @@ class RevealStore:
         """Delete a reveal"""
         with self.Session() as session:
             reveal_orm = (
-                session.query(RevealORM).filter(RevealORM.id == reveal_id).first()
+                session.query(RevealORM)
+                .filter(
+                    RevealORM.id == reveal_id,
+                    RevealORM.user_id == self.user_id,
+                    RevealORM.world_id == self.world_id,
+                )
+                .first()
             )
             if not reveal_orm:
                 return False
@@ -123,7 +148,13 @@ class RevealStore:
         """Check if a reveal exists"""
         with self.Session() as session:
             return (
-                session.query(RevealORM).filter(RevealORM.id == reveal_id).first()
+                session.query(RevealORM)
+                .filter(
+                    RevealORM.id == reveal_id,
+                    RevealORM.user_id == self.user_id,
+                    RevealORM.world_id == self.world_id,
+                )
+                .first()
                 is not None
             )
 

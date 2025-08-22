@@ -15,16 +15,29 @@ class PlayerStore:
         self.world_id = world_id
 
     def get_all_players(self) -> List[Player]:
-        """Get all players"""
+        """Get all players for the current user and world"""
         with self.Session() as session:
-            player_orms = session.query(PlayerORM).all()
+            player_orms = (
+                session.query(PlayerORM)
+                .filter(
+                    PlayerORM.user_id == self.user_id,
+                    PlayerORM.world_id == self.world_id,
+                )
+                .all()
+            )
             return [Player.model_validate(player_orm) for player_orm in player_orms]
 
     def get_player_by_id(self, player_id: int) -> Player | None:
-        """Get a specific player by ID"""
+        """Get a specific player by ID for the current user and world"""
         with self.Session() as session:
             player_orm = (
-                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+                session.query(PlayerORM)
+                .filter(
+                    PlayerORM.id == player_id,
+                    PlayerORM.user_id == self.user_id,
+                    PlayerORM.world_id == self.world_id,
+                )
+                .first()
             )
             if player_orm:
                 return Player.model_validate(player_orm)
@@ -44,10 +57,16 @@ class PlayerStore:
     def update_player(
         self, player_id: int, player_update: PlayerUpdate
     ) -> Player | None:
-        """Update an existing player"""
+        """Update an existing player for the current user and world"""
         with self.Session() as session:
             player_orm = (
-                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+                session.query(PlayerORM)
+                .filter(
+                    PlayerORM.id == player_id,
+                    PlayerORM.user_id == self.user_id,
+                    PlayerORM.world_id == self.world_id,
+                )
+                .first()
             )
             if not player_orm:
                 return None
@@ -61,10 +80,16 @@ class PlayerStore:
             return Player.model_validate(player_orm)
 
     def delete_player(self, player_id: int) -> bool:
-        """Delete a player"""
+        """Delete a player for the current user and world"""
         with self.Session() as session:
             player_orm = (
-                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+                session.query(PlayerORM)
+                .filter(
+                    PlayerORM.id == player_id,
+                    PlayerORM.user_id == self.user_id,
+                    PlayerORM.world_id == self.world_id,
+                )
+                .first()
             )
             if not player_orm:
                 return False
@@ -74,9 +99,15 @@ class PlayerStore:
             return True
 
     def player_exists(self, player_id: int) -> bool:
-        """Check if a player exists"""
+        """Check if a player exists for the current user and world"""
         with self.Session() as session:
             return (
-                session.query(PlayerORM).filter(PlayerORM.id == player_id).first()
+                session.query(PlayerORM)
+                .filter(
+                    PlayerORM.id == player_id,
+                    PlayerORM.user_id == self.user_id,
+                    PlayerORM.world_id == self.world_id,
+                )
+                .first()
                 is not None
             )

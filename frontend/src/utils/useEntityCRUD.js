@@ -1,6 +1,7 @@
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import apiService from '../services/api.js'
 import { useNotification } from '../composables/useNotification.js'
+import { getCurrentWorldIdRef } from '../services/worldState.js'
 
 export function useEntityCRUD(entityType) {
   const entities = ref([])
@@ -112,6 +113,15 @@ export function useEntityCRUD(entityType) {
   const cancelCreate = () => {
     showCreateForm.value = false
   }
+
+  // Watch for world changes and reload data
+  const currentWorldId = getCurrentWorldIdRef()
+
+  watch(currentWorldId, () => {
+    selectedEntityId.value = null
+    showCreateForm.value = false
+    loadEntities()
+  })
 
   return {
     entities,

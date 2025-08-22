@@ -336,8 +336,9 @@ async def websocket_convo_endpoint(
     encounter_id: int,
     player_id: int,
     character_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    user_id, world_id = get_current_user_world()
+    user_id, world_id = user_world
     return await have_conversation(
         websocket=websocket,
         world_id=world_id,

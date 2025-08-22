@@ -15,20 +15,31 @@ class CharacterStore:
         self.world_id = world_id
 
     def get_all_characters(self) -> List[Character]:
-        """Get all characters"""
+        """Get all characters for the current user and world"""
         with self.Session() as session:
-            character_orms = session.query(CharacterORM).all()
+            character_orms = (
+                session.query(CharacterORM)
+                .filter(
+                    CharacterORM.user_id == self.user_id,
+                    CharacterORM.world_id == self.world_id,
+                )
+                .all()
+            )
             return [
                 Character.model_validate(character_orm)
                 for character_orm in character_orms
             ]
 
     def get_character_by_id(self, character_id: int) -> Character | None:
-        """Get a specific character by ID"""
+        """Get a specific character by ID for the current user and world"""
         with self.Session() as session:
             character_orm = (
                 session.query(CharacterORM)
-                .filter(CharacterORM.id == character_id)
+                .filter(
+                    CharacterORM.id == character_id,
+                    CharacterORM.user_id == self.user_id,
+                    CharacterORM.world_id == self.world_id,
+                )
                 .first()
             )
             if character_orm:
@@ -51,11 +62,15 @@ class CharacterStore:
     def update_character(
         self, character_id: int, character_update: CharacterUpdate
     ) -> Character | None:
-        """Update an existing character"""
+        """Update an existing character for the current user and world"""
         with self.Session() as session:
             character_orm = (
                 session.query(CharacterORM)
-                .filter(CharacterORM.id == character_id)
+                .filter(
+                    CharacterORM.id == character_id,
+                    CharacterORM.user_id == self.user_id,
+                    CharacterORM.world_id == self.world_id,
+                )
                 .first()
             )
             if not character_orm:
@@ -70,11 +85,15 @@ class CharacterStore:
             return Character.model_validate(character_orm)
 
     def delete_character(self, character_id: int) -> bool:
-        """Delete a character"""
+        """Delete a character for the current user and world"""
         with self.Session() as session:
             character_orm = (
                 session.query(CharacterORM)
-                .filter(CharacterORM.id == character_id)
+                .filter(
+                    CharacterORM.id == character_id,
+                    CharacterORM.user_id == self.user_id,
+                    CharacterORM.world_id == self.world_id,
+                )
                 .first()
             )
             if not character_orm:
@@ -85,11 +104,15 @@ class CharacterStore:
             return True
 
     def character_exists(self, character_id: int) -> bool:
-        """Check if a character exists"""
+        """Check if a character exists for the current user and world"""
         with self.Session() as session:
             return (
                 session.query(CharacterORM)
-                .filter(CharacterORM.id == character_id)
+                .filter(
+                    CharacterORM.id == character_id,
+                    CharacterORM.user_id == self.user_id,
+                    CharacterORM.world_id == self.world_id,
+                )
                 .first()
                 is not None
             )

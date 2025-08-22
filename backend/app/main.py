@@ -12,6 +12,7 @@ from app.routers import (
     memories,
     players,
     reveals,
+    worlds,
 )
 from app.telemetry import setup_telemetry
 
@@ -39,6 +40,7 @@ app.include_router(reveals.router)
 app.include_router(encounters.router)
 app.include_router(canvas.router)
 app.include_router(game.router)
+app.include_router(worlds.router)
 
 setup_telemetry()
 

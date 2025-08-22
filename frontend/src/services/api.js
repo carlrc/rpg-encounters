@@ -1,11 +1,28 @@
+import { getCurrentWorldId } from './worldState.js'
+
+// TODO: Env vars for base urls
 const API_BASE_URL = 'http://localhost:8000/api'
 
 class ApiService {
+  constructor() {
+    this._cachedWorldId = null
+  }
+
+  _getWorldIdHeader() {
+    // Cache world ID to avoid repeated function calls
+    const currentWorldId = getCurrentWorldId()
+    if (this._cachedWorldId !== currentWorldId) {
+      this._cachedWorldId = currentWorldId
+    }
+    return this._cachedWorldId
+  }
+
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`
     const config = {
       headers: {
         'Content-Type': 'application/json',
+        'X-World-Id': this._getWorldIdHeader(),
         ...options.headers,
       },
       ...options,
@@ -148,7 +165,7 @@ class ApiService {
 
   // Encounter CRUD operations
   async getEncounters() {
-    return this.request('/canvas')
+    return this.request('/encounters')
   }
 
   async getEncounter(id) {
@@ -186,6 +203,23 @@ class ApiService {
   // Game data operations
   async getGameData() {
     return this.request('/game')
+  }
+
+  // World management operations
+  async getWorlds() {
+    return this.request('/worlds')
+  }
+
+  async createWorld() {
+    return this.request('/worlds', {
+      method: 'POST',
+    })
+  }
+
+  async deleteWorld(worldId) {
+    return this.request(`/worlds/${worldId}`, {
+      method: 'DELETE',
+    })
   }
 
   // Note: Influence profiles are now integrated into character model

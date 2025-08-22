@@ -1,14 +1,17 @@
 from functools import lru_cache
-from typing import Tuple
+from typing import Optional, Tuple
+
+from fastapi import Header
 
 from app.services.transcription import WhisperTranscriptionService
 from app.services.tts import ElevenLabsTTS
 
 
-def get_current_user_world() -> Tuple[int, int]:
-    """Get the current user ID and world ID. For now, returns hardcoded values."""
-    # TODO: Replace with actual authentication and world selection logic
-    return 1, 1
+def get_current_user_world(x_world_id: Optional[int] = Header(None)) -> Tuple[int, int]:
+    """Get the current user ID and world ID. User ID is hardcoded, world ID comes from header."""
+    user_id = 1  # Still hardcoded for now
+    world_id = x_world_id if x_world_id is not None else 1  # Default to world 1
+    return user_id, world_id
 
 
 @lru_cache(maxsize=1)

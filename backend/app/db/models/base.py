@@ -11,7 +11,7 @@ class UserWorldBase:
         Integer, ForeignKey(f"{USERS_TABLE}.id"), nullable=False
     )
     world_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey(f"{WORLDS_TABLE}.id"), nullable=False
+        Integer, ForeignKey(f"{WORLDS_TABLE}.id", ondelete="CASCADE"), nullable=False
     )
 
 

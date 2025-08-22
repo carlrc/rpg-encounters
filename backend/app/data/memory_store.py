@@ -16,9 +16,16 @@ class MemoryStore:
         self.world_id = world_id
 
     def get_all_memories(self) -> List[Memory]:
-        """Get all memories across all characters"""
+        """Get all memories for the current user and world"""
         with self.Session() as session:
-            memory_orms = session.query(MemoryORM).all()
+            memory_orms = (
+                session.query(MemoryORM)
+                .filter(
+                    MemoryORM.user_id == self.user_id,
+                    MemoryORM.world_id == self.world_id,
+                )
+                .all()
+            )
             return [MemoryStore.orm_to_memory(memory_orm) for memory_orm in memory_orms]
 
     def get_by_character_id(self, character_id: int) -> List[Memory]:
@@ -38,10 +45,16 @@ class MemoryStore:
                 return []
 
     def get_memory(self, memory_id: int) -> Memory | None:
-        """Get a specific memory by ID"""
+        """Get a specific memory by ID for the current user and world"""
         with self.Session() as session:
             memory_orm = (
-                session.query(MemoryORM).filter(MemoryORM.id == memory_id).first()
+                session.query(MemoryORM)
+                .filter(
+                    MemoryORM.id == memory_id,
+                    MemoryORM.user_id == self.user_id,
+                    MemoryORM.world_id == self.world_id,
+                )
+                .first()
             )
             if memory_orm:
                 return MemoryStore.orm_to_memory(memory_orm)
@@ -81,7 +94,13 @@ class MemoryStore:
         """Update memory with simplified association handling"""
         with self.Session() as session:
             memory_orm = (
-                session.query(MemoryORM).filter(MemoryORM.id == memory_id).first()
+                session.query(MemoryORM)
+                .filter(
+                    MemoryORM.id == memory_id,
+                    MemoryORM.user_id == self.user_id,
+                    MemoryORM.world_id == self.world_id,
+                )
+                .first()
             )
 
             if not memory_orm:
@@ -111,7 +130,13 @@ class MemoryStore:
         """Delete a memory"""
         with self.Session() as session:
             memory_orm = (
-                session.query(MemoryORM).filter(MemoryORM.id == memory_id).first()
+                session.query(MemoryORM)
+                .filter(
+                    MemoryORM.id == memory_id,
+                    MemoryORM.user_id == self.user_id,
+                    MemoryORM.world_id == self.world_id,
+                )
+                .first()
             )
             if not memory_orm:
                 return False
@@ -124,7 +149,13 @@ class MemoryStore:
         """Check if a memory exists"""
         with self.Session() as session:
             return (
-                session.query(MemoryORM).filter(MemoryORM.id == memory_id).first()
+                session.query(MemoryORM)
+                .filter(
+                    MemoryORM.id == memory_id,
+                    MemoryORM.user_id == self.user_id,
+                    MemoryORM.world_id == self.world_id,
+                )
+                .first()
                 is not None
             )
 

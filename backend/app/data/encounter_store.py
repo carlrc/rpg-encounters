@@ -16,20 +16,31 @@ class EncounterStore:
         self.world_id = world_id
 
     def get_all_encounters(self) -> List[Encounter]:
-        """Get all encounters"""
+        """Get all encounters for the current user and world"""
         with self.Session() as session:
-            encounter_orms = session.query(EncounterORM).all()
+            encounter_orms = (
+                session.query(EncounterORM)
+                .filter(
+                    EncounterORM.user_id == self.user_id,
+                    EncounterORM.world_id == self.world_id,
+                )
+                .all()
+            )
             return [
                 self._orm_to_encounter(encounter_orm)
                 for encounter_orm in encounter_orms
             ]
 
     def get_encounter_by_id(self, encounter_id: int) -> Encounter | None:
-        """Get a specific encounter by ID"""
+        """Get a specific encounter by ID for the current user and world"""
         with self.Session() as session:
             encounter_orm = (
                 session.query(EncounterORM)
-                .filter(EncounterORM.id == encounter_id)
+                .filter(
+                    EncounterORM.id == encounter_id,
+                    EncounterORM.user_id == self.user_id,
+                    EncounterORM.world_id == self.world_id,
+                )
                 .first()
             )
             if encounter_orm:
@@ -66,7 +77,11 @@ class EncounterStore:
         with self.Session() as session:
             encounter_orm = (
                 session.query(EncounterORM)
-                .filter(EncounterORM.id == encounter_id)
+                .filter(
+                    EncounterORM.id == encounter_id,
+                    EncounterORM.user_id == self.user_id,
+                    EncounterORM.world_id == self.world_id,
+                )
                 .first()
             )
 
@@ -98,7 +113,11 @@ class EncounterStore:
         with self.Session() as session:
             encounter_orm = (
                 session.query(EncounterORM)
-                .filter(EncounterORM.id == encounter_id)
+                .filter(
+                    EncounterORM.id == encounter_id,
+                    EncounterORM.user_id == self.user_id,
+                    EncounterORM.world_id == self.world_id,
+                )
                 .first()
             )
             if not encounter_orm:
