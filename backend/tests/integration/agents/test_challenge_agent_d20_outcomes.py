@@ -6,6 +6,7 @@ from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
+from app.models.encounter import Encounter
 from app.models.memory import Memory
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
@@ -73,6 +74,19 @@ ALL_MEMORIES = [
     ),
 ]
 
+ENCOUNTER = Encounter(
+    id=1,
+    name="test",
+    description="test",
+    position_x=0.1,
+    position_y=0.2,
+    character_ids=[CHARACTER.id],
+)
+
+DEPENDENCIES = ChallengeAgentDeps(
+    encounter=ENCOUNTER, messages=None, telemetry=lambda: None
+)
+
 
 async def test_challenge_agent_standard():
     """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
@@ -86,7 +100,7 @@ async def test_challenge_agent_standard():
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
-        deps=ChallengeAgentDeps(encounter_description=""),
+        deps=DEPENDENCIES,
     )
 
     assert_contains_any_keywords(text=response, keywords=["mayor"])
@@ -104,7 +118,7 @@ async def test_challenge_agent_critical_success():
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
-        deps=ChallengeAgentDeps(encounter_description=""),
+        deps=DEPENDENCIES,
     )
 
     assert_contains_any_keywords(
@@ -123,7 +137,7 @@ async def test_challenge_agent_critical_failure():
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
-        deps=ChallengeAgentDeps(encounter_description=""),
+        deps=DEPENDENCIES,
     )
 
     # TODO: How to assert against negativity?
