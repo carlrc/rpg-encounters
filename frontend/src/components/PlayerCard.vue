@@ -16,8 +16,11 @@
         </div>
       </div>
 
-      <!-- Name with Gender Emoji -->
-      <h3 class="shared-title">{{ getGenderEmoji(player.gender) }} {{ player.name }}</h3>
+      <!-- Player Names Section -->
+      <div class="player-title-section">
+        <h3 class="real-name">{{ player.rl_name }}</h3>
+        <h4 class="character-name">{{ getGenderEmoji(player.gender) }} {{ player.name }}</h4>
+      </div>
 
       <!-- Two Column Layout -->
       <div class="player-fields">
@@ -89,10 +92,17 @@
       <!-- Avatar Upload -->
       <AvatarUpload v-model="editForm.avatar" :name="editForm.name" />
 
-      <!-- Name -->
+      <!-- Real Name -->
+      <input
+        v-model="editForm.rl_name"
+        placeholder="Real-life player name"
+        class="shared-input shared-input-name"
+      />
+
+      <!-- Character Name -->
       <input
         v-model="editForm.name"
-        placeholder="Player name"
+        placeholder="Character name"
         class="shared-input shared-input-name"
       />
 
@@ -263,6 +273,7 @@
 
       const editForm = reactive({
         name: '',
+        rl_name: '',
         avatar: null,
         appearance: '',
         race: '',
@@ -283,6 +294,7 @@
 
       const startEdit = () => {
         editForm.name = props.player.name || ''
+        editForm.rl_name = props.player.rl_name || ''
         editForm.avatar = props.player.avatar || null
         editForm.appearance = props.player.appearance || ''
         editForm.race = props.player.race || ''
@@ -312,6 +324,7 @@
         if (isFormValid.value) {
           emit('update', props.player.id, {
             name: editForm.name.trim(),
+            rl_name: editForm.rl_name.trim(),
             avatar: editForm.avatar,
             appearance: editForm.appearance.trim(),
             race: editForm.race,
@@ -491,6 +504,29 @@
     background: var(--primary-color);
     cursor: pointer;
     border: none;
+  }
+
+  /* Player title section - replaces shared-title for proper layout */
+  .player-title-section {
+    margin: 0 0 var(--spacing-xxl) 0;
+    text-align: center;
+    border-bottom: 3px solid var(--primary-color);
+    padding-bottom: var(--spacing-sm);
+  }
+
+  .real-name {
+    margin: 0 0 var(--spacing-xs) 0;
+    color: var(--text-primary);
+    font-size: var(--font-size-xxl);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .character-name {
+    margin: 0;
+    color: #6c757d;
+    font-size: 1.2em;
+    font-weight: 500;
+    font-style: italic;
   }
 
   /* Responsive styles handled by TraitsDisplay component */

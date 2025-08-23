@@ -37,7 +37,7 @@
             >
               <option value="">Select a player</option>
               <option v-for="player in players" :key="player.id" :value="player.id">
-                {{ player.name }}
+                {{ player.rl_name }}
               </option>
             </select>
           </div>

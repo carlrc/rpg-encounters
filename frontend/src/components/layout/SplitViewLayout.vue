@@ -16,7 +16,7 @@
           :class="['list-item', { active: selectedItemId === item.id }]"
           @click="$emit('select-item', item.id)"
         >
-          {{ item.name || item.title }}
+          {{ item.rl_name || item.name || item.title }}
         </div>
 
         <div v-if="filteredItems.length === 0 && searchQuery" class="empty-state">
@@ -88,7 +88,8 @@
         const query = searchQuery.value.toLowerCase()
         return props.items.filter((item) => {
           const name = item.name || item.title || ''
-          return name.toLowerCase().includes(query)
+          const rlName = item.rl_name || ''
+          return name.toLowerCase().includes(query) || rlName.toLowerCase().includes(query)
         })
       })
 
