@@ -88,30 +88,7 @@ memories_db = [
         character_ids=[2]  # Salty only
     ),
     
-    # Finnian 'Finn' Swift (character_id: 3)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Dreams of Adventure",
-        content="Six months ago I was mending nets in Thistledown village. Now I'm sailing the Sword Coast! The other sailors tell such tales - pirates, sea monsters, lost treasures. Maybe one day I'll have stories of my own. For now, I just try not to embarrass myself in the rigging.",
-        character_ids=[3]  # Finn only
-    ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Fear of Gregor",
-        content="Gregor One-Eye cornered me in the hold last week, said he'd teach me 'how things really work at sea.' The way he smiled made my skin crawl. I've been avoiding him since, volunteering for every watch aloft just to stay clear of him.",
-        character_ids=[3]  # Finn only
-    ),
-    
     # Mara Stone (character_id: 4)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="The Galley Network",
-        content="Everyone comes to my galley eventually - for food, for warmth, for someone to listen. I hear everything that happens on this ship. The captain's worried about something in the hold, Barthus is on edge, and those passengers... the dwarf priestess seems kind enough, but the others are definitely up to something.",
-        character_ids=[4]  # Mara only
-    ),
     MemoryCreate(
         user_id=1,
         world_id=1,
@@ -124,31 +101,8 @@ memories_db = [
     MemoryCreate(
         user_id=1,
         world_id=1,
-        title="The Old Days",
-        content="I miss the freedom of the pirate life - taking what you want, answering to no one. But the Waterdhavian navy has gotten too good, too organized. Better to hide in plain sight on a merchant vessel. Still, if the right opportunity presents itself... that mysterious cargo might be worth more than my wages.",
-        character_ids=[5]  # Gregor only
-    ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
         title="Watching for Weakness",
         content="The halfling passenger - she moves like a thief. Takes one to know one. I've been watching her, and she's definitely casing the ship. Maybe we can come to an arrangement, or maybe I'll just wait and take whatever she finds. Young Finn would make good bait if I need a distraction.",
         character_ids=[5]  # Gregor only
-    ),
-    
-    # Lady Seraphina Valerius (character_id: 6)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="The Real Mission",
-        content="My contacts in Neverwinter were quite specific - Captain Thorne is transporting something of great value, something that certain parties in Waterdeep would pay handsomely to acquire. I must maintain my cover as a textile merchant while determining what lies in that heavily guarded crate.",
-        character_ids=[6]  # Lady Valerius only
-    ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Observing the Passengers",
-        content="These adventurers are not mere travelers. The way they coordinate their movements, their subtle signals... they're planning something. The halfling has been scouting, the paladin provides distraction with his noble bearing, while the others gather information. They might prove useful - or problematic - to my own plans.",
-        character_ids=[6]  # Lady Valerius only
     ),
 ]

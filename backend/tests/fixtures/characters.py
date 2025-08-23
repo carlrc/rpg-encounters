@@ -19,7 +19,7 @@ characters_db = [
     communication_style="Uses formal, clipped nautical terms. He addresses the crew as 'men' or by their rank, never by name. For example: 'Mr. Croft, see to the main sail. Look lively now.' Does not engage in casual banter and expects his orders to be followed without question.",
     motivation="To restore his family's name and fortune, and to prove his worth as a captain and a nobleman. He is secretly transporting a valuable and ancient artifact to a wealthy collector in Waterdeep.",
     personality="Proud, ambitious, and deeply conscious of social status. He is courteous to nobles and patrons but disdainful of commoners and non-humans. He is meticulous and detail-oriented, especially when it comes to the ship's log and cargo manifests.",
-    voice="JBFqnCBsd6RMkjVDRZzb",
+    voice="froLDspwCiytX4g1Pobg",
     race_preferences={
       Race.HIGH_ELF.value: -2,
       Race.WOOD_ELF.value: -2,
