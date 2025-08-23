@@ -8,6 +8,7 @@ from app.db.limits import (
     CHARACTER_BACKGROUND_LIMIT,
     CHARACTER_COMMUNICATION_LIMIT,
     CHARACTER_MOTIVATION_LIMIT,
+    NAME_LIMIT,
 )
 from app.db.models.associations import (
     encounter_characters,
@@ -21,7 +22,7 @@ class CharacterORM(UnifiedBase):
     __tablename__ = CHARACTERS_TABLE
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str] = mapped_column(String(NAME_LIMIT))
     avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
     race: Mapped[str] = mapped_column(String(50))
     size: Mapped[str] = mapped_column(String(20))

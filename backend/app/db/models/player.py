@@ -2,7 +2,7 @@ from sqlalchemy import JSON, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.connection import PLAYERS_TABLE
-from app.db.limits import PLAYER_APPEARANCE_MAX_LIMIT
+from app.db.limits import NAME_LIMIT, PLAYER_APPEARANCE_MAX_LIMIT
 from app.db.models.base import UnifiedBase
 
 
@@ -10,7 +10,7 @@ class PlayerORM(UnifiedBase):
     __tablename__ = PLAYERS_TABLE
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    name: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
     appearance: Mapped[str] = mapped_column(
         String(PLAYER_APPEARANCE_MAX_LIMIT), nullable=False
     )

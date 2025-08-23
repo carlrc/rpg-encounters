@@ -4,7 +4,7 @@ from sqlalchemy import Float, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.connection import ENCOUNTERS_TABLE
-from app.db.limits import ENCOUNTER_DESCRIPTION_LIMIT, ENCOUNTER_NAME_LIMIT
+from app.db.limits import ENCOUNTER_DESCRIPTION_LIMIT, TITLE_LIMIT
 from app.db.models.associations import encounter_characters
 from app.db.models.base import UnifiedBase
 
@@ -17,7 +17,7 @@ class EncounterORM(UnifiedBase):
     __tablename__ = ENCOUNTERS_TABLE
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(ENCOUNTER_NAME_LIMIT))
+    name: Mapped[str] = mapped_column(String(TITLE_LIMIT))
     description: Mapped[str | None] = mapped_column(
         String(ENCOUNTER_DESCRIPTION_LIMIT), nullable=True
     )

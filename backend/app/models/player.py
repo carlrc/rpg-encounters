@@ -15,12 +15,14 @@ from .class_traits import (
     VALID_SKILLS,
 )
 from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
-from .util import validate_character_count, validate_choice
+from .util import validate_choice
 
 
 class PlayerBase(BaseModel):
-    name: str
-    appearance: str = Field(..., description="Player appearance (max 40 words)")
+    name: str = Field(..., description="Player name", max_length=NAME_LIMIT)
+    appearance: str = Field(
+        ..., description="Player appearance", max_length=PLAYER_APPEARANCE_MAX_LIMIT
+    )
     race: str = Field(..., description="Player race")
     class_name: str = Field(..., description="Player class")
     size: str = Field(..., description="Player size")
@@ -28,22 +30,6 @@ class PlayerBase(BaseModel):
     gender: str = Field(..., description="Player gender")
     abilities: Dict[str, int] = Field(..., description="Abilities of the player")
     skills: Dict[str, int] = Field(..., description="Skills of the player")
-
-    @field_validator("name")
-    @classmethod
-    def validate_name_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, NAME_LIMIT, "Name")
-        return v
-
-    @field_validator("appearance")
-    @classmethod
-    def validate_appearance_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(
-                v, PLAYER_APPEARANCE_MAX_LIMIT, "Appearance"
-            )
-        return v
 
     @field_validator("race")
     @classmethod

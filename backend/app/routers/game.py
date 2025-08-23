@@ -6,11 +6,10 @@ from app.db.limits import (
     CHARACTER_MOTIVATION_LIMIT,
     CHARACTER_PROFESSION_LIMIT,
     MEMORY_CONTENT_LIMIT,
-    MEMORY_TITLE_LIMIT,
     NAME_LIMIT,
     PLAYER_APPEARANCE_MAX_LIMIT,
     REVEAL_CONTENT_LIMIT,
-    REVEAL_TITLE_LIMIT,
+    TITLE_LIMIT,
 )
 from app.models.alignment import VALID_ALIGNMENTS
 from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
@@ -46,9 +45,9 @@ async def get_game_data():
             "character_background": CHARACTER_BACKGROUND_LIMIT,
             "character_communication": CHARACTER_COMMUNICATION_LIMIT,
             "character_motivation": CHARACTER_MOTIVATION_LIMIT,
-            "memory_title": MEMORY_TITLE_LIMIT,
+            "memory_title": TITLE_LIMIT,
             "memory_content": MEMORY_CONTENT_LIMIT,
-            "reveal_title": REVEAL_TITLE_LIMIT,
+            "reveal_title": TITLE_LIMIT,
             "reveal_content": REVEAL_CONTENT_LIMIT,
         },
         "threshold_limits": {

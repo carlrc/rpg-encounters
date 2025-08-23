@@ -14,13 +14,13 @@ from app.db.limits import (
 
 from .alignment import VALID_ALIGNMENTS
 from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
-from .util import validate_character_count, validate_choice
+from .util import validate_choice
 
 # Character field limits
 
 
 class CharacterBase(BaseModel):
-    name: str
+    name: str = Field(..., description="Character name", max_length=NAME_LIMIT)
     avatar: str | None = Field(
         None, description="Character avatar image (base64 or URL)"
     )
@@ -28,15 +28,25 @@ class CharacterBase(BaseModel):
     size: str = Field(..., description="Character size")
     alignment: str = Field(..., description="Character alignment")
     gender: str = Field(..., description="Character gender")
-    profession: str = Field(..., description="Character profession")
-    background: str = Field(..., description="Character background")
-    communication_style: str = Field(..., description="Character communication style")
-    motivation: str = Field(..., description="Character motivation")
+    profession: str = Field(
+        ..., description="Character profession", max_length=CHARACTER_PROFESSION_LIMIT
+    )
+    background: str = Field(
+        ..., description="Character background", max_length=CHARACTER_BACKGROUND_LIMIT
+    )
+    communication_style: str = Field(
+        ...,
+        description="Character communication style",
+        max_length=CHARACTER_COMMUNICATION_LIMIT,
+    )
+    motivation: str = Field(
+        ..., description="Character motivation", max_length=CHARACTER_MOTIVATION_LIMIT
+    )
     personality: str = Field(
         "", description="AI-generated personality profile for influence decisions"
     )
     # TODO: This can't be here ultimately
-    voice: str | None = Field(
+    voice: str = Field(
         "JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS"
     )
 
@@ -53,43 +63,6 @@ class CharacterBase(BaseModel):
     size_preferences: Dict[str, int] | None = Field(
         None, description="Size preferences for influence calculation"
     )
-
-    @field_validator("name")
-    @classmethod
-    def validate_name_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, NAME_LIMIT, "Name")
-        return v
-
-    @field_validator("profession")
-    @classmethod
-    def validate_profession_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, CHARACTER_PROFESSION_LIMIT, "Profession")
-        return v
-
-    @field_validator("background")
-    @classmethod
-    def validate_background_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, CHARACTER_BACKGROUND_LIMIT, "Background")
-        return v
-
-    @field_validator("communication_style")
-    @classmethod
-    def validate_communication_style_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(
-                v, CHARACTER_COMMUNICATION_LIMIT, "Communication style"
-            )
-        return v
-
-    @field_validator("motivation")
-    @classmethod
-    def validate_motivation_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, CHARACTER_MOTIVATION_LIMIT, "Motivation")
-        return v
 
     @field_validator("race")
     @classmethod

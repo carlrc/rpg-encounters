@@ -1,30 +1,18 @@
 from typing import List
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
-from app.db.limits import MEMORY_CONTENT_LIMIT, MEMORY_TITLE_LIMIT
-
-from .util import validate_character_count
+from app.db.limits import MEMORY_CONTENT_LIMIT, TITLE_LIMIT
 
 
 class MemoryBase(BaseModel):
-    title: str = Field(..., description="Title of the memory")
-    content: str = Field(..., description="Static memories to assign to characters")
+    title: str = Field(..., description="Title of the memory", max_length=TITLE_LIMIT)
+    content: str = Field(
+        ...,
+        description="Static memories to assign to characters",
+        max_length=MEMORY_CONTENT_LIMIT,
+    )
     character_ids: List[int]
-
-    @field_validator("title")
-    @classmethod
-    def validate_title_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, MEMORY_TITLE_LIMIT, "Title")
-        return v
-
-    @field_validator("content")
-    @classmethod
-    def validate_content_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, MEMORY_CONTENT_LIMIT, "Content")
-        return v
 
 
 class MemoryCreate(MemoryBase):

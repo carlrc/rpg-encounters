@@ -2,16 +2,11 @@ from typing import List
 
 from pydantic import BaseModel, Field, field_validator
 
-from .util import validate_character_count
-
-ENCOUNTER_NAME_LIMIT = 100
-ENCOUNTER_DESCRIPTION_LIMIT = 1000
+from app.db.limits import ENCOUNTER_DESCRIPTION_LIMIT, TITLE_LIMIT
 
 
 class EncounterBase(BaseModel):
-    name: str = Field(
-        ..., description="Encounter name", max_length=ENCOUNTER_NAME_LIMIT
-    )
+    name: str = Field(..., description="Encounter name", max_length=TITLE_LIMIT)
     description: str | None = Field(
         None,
         description="Encounter description",
@@ -22,22 +17,6 @@ class EncounterBase(BaseModel):
     character_ids: List[int] | None = Field(
         default=None, description="Character IDs in this encounter"
     )
-
-    @field_validator("name")
-    @classmethod
-    def validate_name_not_empty(cls, v):
-        if not v or not v.strip():
-            raise ValueError("Encounter name cannot be empty")
-        return v.strip()
-
-    @field_validator("description")
-    @classmethod
-    def validate_description_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(
-                v, ENCOUNTER_DESCRIPTION_LIMIT, "Description"
-            )
-        return v
 
     @field_validator("position_x", "position_y")
     @classmethod

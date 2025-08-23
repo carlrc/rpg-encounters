@@ -1,11 +1,9 @@
 from enum import Enum
 from typing import List
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
-from app.db.limits import REVEAL_CONTENT_LIMIT, REVEAL_TITLE_LIMIT
-
-from .util import validate_character_count
+from app.db.limits import REVEAL_CONTENT_LIMIT, TITLE_LIMIT
 
 
 class RevealLayer(Enum):
@@ -33,28 +31,27 @@ REVEAL_DEFAULT_THRESHOLDS = {
 
 
 class RevealBase(BaseModel):
-    title: str
+    title: str = Field(..., description="Reveal title", max_length=TITLE_LIMIT)
     character_ids: List[int]
-    level_1_content: str  # Standard level content
-    level_2_content: str | None = None  # Privileged level content
-    level_3_content: str | None = None  # Exclusive level content
-    standard_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
-    privileged_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED]
-    exclusive_threshold: int = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE]
-
-    @field_validator("title")
-    @classmethod
-    def validate_title_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, REVEAL_TITLE_LIMIT, "Title")
-        return v
-
-    @field_validator("level_1_content", "level_2_content", "level_3_content")
-    @classmethod
-    def validate_content_character_count(cls, v):
-        if v is not None:
-            return validate_character_count(v, REVEAL_CONTENT_LIMIT, "Content")
-        return v
+    level_1_content: str = Field(
+        ..., description="Standard reveal content", max_length=REVEAL_CONTENT_LIMIT
+    )
+    level_2_content: str | None = Field(
+        None, description="Privileged reveal content", max_length=REVEAL_CONTENT_LIMIT
+    )
+    level_3_content: str | None = Field(
+        None, description="Exclusive reveal content", max_length=REVEAL_CONTENT_LIMIT
+    )
+    standard_threshold: int = Field(
+        REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD], description="Reveal threshold"
+    )
+    privileged_threshold: int = Field(
+        REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED],
+        description="Reveal threshold",
+    )
+    exclusive_threshold: int = Field(
+        REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE], description="Reveal threshold"
+    )
 
     @field_validator(
         "standard_threshold", "privileged_threshold", "exclusive_threshold"
