@@ -82,6 +82,15 @@
 
         const worldDisplayName = getWorldDisplayName(worlds.value, worldId)
 
+        // Show confirmation dialog
+        if (
+          !confirm(
+            `Are you sure you want to delete ${worldDisplayName}? This action cannot be undone.`
+          )
+        ) {
+          return
+        }
+
         try {
           await apiService.deleteWorld(worldId)
           worlds.value = worlds.value.filter((w) => w.id !== worldId)
