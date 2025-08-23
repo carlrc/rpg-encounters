@@ -1,13 +1,22 @@
 <template>
   <SplitViewLayout
-    :items="entities"
+    :items="filteredEntities"
     :selected-item-id="selectedEntityId"
+    :enable-attribute-filter="true"
+    :attribute-filters="activeFilters"
     list-title="Characters"
     create-button-text="Add Character"
     empty-message="No characters yet"
     @select-item="selectEntity"
     @create-item="startCreate"
   >
+    <template #filter-content>
+      <FilterPanel
+        v-model="activeFilters"
+        :enable-tabs="true"
+        :available-tabs="characterFilterTabs"
+      />
+    </template>
     <template #footer-actions>
       <ImportButton entity-type="Character" :importing="importing" @import="handleImportFile" />
     </template>
@@ -124,11 +133,13 @@
   import CharacterCard from '../components/CharacterCard.vue'
   import EntityAvatarSection from '../components/entity/EntityAvatarSection.vue'
   import ImportButton from '../components/ui/ImportButton.vue'
+  import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import { useFileImport } from '../utils/useFileImport.js'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { applyFilters, createEmptyFilters } from '../utils/filterUtils.js'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
 
   export default {
@@ -139,6 +150,7 @@
       CharacterCard,
       EntityAvatarSection,
       ImportButton,
+      FilterPanel,
       BaseTextareaWithCharacterCounter,
     },
     setup() {
@@ -179,6 +191,29 @@
       const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'CHARACTER')
 
       const { genders } = useDropdownOptions()
+
+      // Character filter tabs configuration
+      const characterFilterTabs = [
+        { id: 'race', label: 'Race' },
+        { id: 'alignment', label: 'Alignment' },
+        { id: 'size', label: 'Size' },
+        { id: 'gender', label: 'Gender' },
+        { id: 'class', label: 'Class' },
+      ]
+
+      // Filter state management (tabbed filtering - search is handled by SplitViewLayout)
+      const activeFilters = ref({
+        race: [],
+        alignment: [],
+        size: [],
+        gender: [],
+        class: [],
+      })
+
+      // Computed filtered entities (only apply FilterBar filters, search is handled by SplitViewLayout)
+      const filteredEntities = computed(() => {
+        return applyFilters(entities.value, activeFilters.value)
+      })
 
       const selectedCharacter = computed(() => {
         return entities.value.find((c) => c.id === selectedEntityId.value) || null
@@ -273,6 +308,9 @@
       return {
         gameData,
         entities,
+        filteredEntities,
+        activeFilters,
+        characterFilterTabs,
         loading,
         error,
         selectedEntityId,

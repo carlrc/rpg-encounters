@@ -6,44 +6,55 @@
         <h3>{{ listTitle }}</h3>
       </div>
 
+      <!-- Custom header content (for FilterBar - deprecated) -->
+      <slot name="header-content" />
+
       <!-- Search and Filter Controls -->
       <div class="filter-controls">
         <SearchInput :placeholder="`Search ${listTitle.toLowerCase()}...`" @search="handleSearch" />
 
         <!-- Filter toggle button -->
         <button
-          v-if="enableCharacterFilter && characters?.length > 0"
+          v-if="(enableCharacterFilter && characters?.length > 0) || enableAttributeFilter"
           @click="toggleFilterPanel"
-          :class="['filter-toggle-btn', { 'has-active-filters': hasActiveCharacterFilters }]"
-          title="Filter by characters"
+          :class="['filter-toggle-btn', { 'has-active-filters': hasAnyActiveFilters }]"
+          :title="filterButtonTitle"
         >
           ⚙️
         </button>
       </div>
 
       <!-- Collapsible filter panel -->
-      <div v-if="showFilterPanel" class="filter-panel">
-        <div class="filter-header">
-          <span>Filter by Characters</span>
-          <button
-            v-if="selectedCharacterIds.length > 0 || showUnassigned"
-            @click="clearCharacterFilters"
-            class="shared-btn shared-btn-secondary"
-            style="padding: var(--spacing-xs) var(--spacing-sm); font-size: var(--font-size-sm)"
-          >
-            Clear
-          </button>
+      <div v-if="showFilterPanel" class="filter-panel-container">
+        <!-- Character filter panel (for memories/reveals) -->
+        <div v-if="enableCharacterFilter && !enableAttributeFilter" class="filter-panel">
+          <div class="filter-header">
+            <span>Filter by Characters</span>
+            <button
+              v-if="selectedCharacterIds.length > 0 || showUnassigned"
+              @click="clearCharacterFilters"
+              class="shared-btn shared-btn-secondary"
+              style="padding: var(--spacing-xs) var(--spacing-sm); font-size: var(--font-size-sm)"
+            >
+              Clear
+            </button>
+          </div>
+
+          <!-- Reuse CharacterSelector in filter mode -->
+          <CharacterSelector
+            v-model:character-ids="selectedCharacterIds"
+            v-model:show-unassigned="showUnassigned"
+            :characters="characters"
+            :label="''"
+            :show-all-option="true"
+            :show-no-characters-option="true"
+          />
         </div>
 
-        <!-- Reuse CharacterSelector in filter mode -->
-        <CharacterSelector
-          v-model:character-ids="selectedCharacterIds"
-          v-model:show-unassigned="showUnassigned"
-          :characters="characters"
-          :label="''"
-          :show-all-option="true"
-          :show-no-characters-option="true"
-        />
+        <!-- Attribute filter panel (for characters page) -->
+        <div v-else-if="enableAttributeFilter" class="attribute-filter-panel">
+          <slot name="filter-content" />
+        </div>
       </div>
 
       <div class="list-content">
@@ -122,6 +133,14 @@
         type: Boolean,
         default: false,
       },
+      enableAttributeFilter: {
+        type: Boolean,
+        default: false,
+      },
+      attributeFilters: {
+        type: Object,
+        default: () => ({}),
+      },
     },
     emits: ['select-item', 'create-item'],
     setup(props) {
@@ -169,6 +188,27 @@
         return selectedCharacterIds.value.length > 0 || showUnassigned.value
       })
 
+      const hasActiveAttributeFilters = computed(() => {
+        if (!props.attributeFilters) return false
+        return Object.values(props.attributeFilters).some((filterValue) => {
+          if (Array.isArray(filterValue)) {
+            return filterValue.length > 0
+          }
+          return Boolean(filterValue)
+        })
+      })
+
+      const hasAnyActiveFilters = computed(() => {
+        return hasActiveCharacterFilters.value || hasActiveAttributeFilters.value
+      })
+
+      const filterButtonTitle = computed(() => {
+        if (props.enableAttributeFilter) {
+          return 'Filter by attributes'
+        }
+        return 'Filter by characters'
+      })
+
       const handleSearch = (query) => {
         searchQuery.value = query
       }
@@ -189,6 +229,9 @@
         showUnassigned,
         filteredItems,
         hasActiveCharacterFilters,
+        hasActiveAttributeFilters,
+        hasAnyActiveFilters,
+        filterButtonTitle,
         handleSearch,
         toggleFilterPanel,
         clearCharacterFilters,
@@ -261,11 +304,18 @@
     border-color: var(--primary-color);
   }
 
-  .filter-panel {
-    padding: var(--spacing-md) var(--spacing-lg);
+  .filter-panel-container {
     background: var(--bg-white);
     border-bottom: 2px solid var(--border-default);
     animation: slideDown var(--transition-fast);
+  }
+
+  .filter-panel {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .attribute-filter-panel {
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 
   .filter-header {
