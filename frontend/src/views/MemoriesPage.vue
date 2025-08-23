@@ -2,6 +2,7 @@
   <SplitViewLayout
     :items="filteredEntities"
     :selected-item-id="selectedEntityId"
+    :loading="loading"
     :enable-attribute-filter="true"
     :attribute-filters="activeFilters"
     list-title="Memories"

@@ -71,7 +71,7 @@
           No {{ listTitle.toLowerCase() }} found matching "{{ searchQuery }}"
         </div>
 
-        <div v-else-if="filteredItems.length === 0" class="empty-state">
+        <div v-else-if="!loading && filteredItems.length === 0" class="empty-state">
           {{ emptyMessage }}
         </div>
       </div>
@@ -140,6 +140,10 @@
       attributeFilters: {
         type: Object,
         default: () => ({}),
+      },
+      loading: {
+        type: Boolean,
+        default: false,
       },
     },
     emits: ['select-item', 'create-item'],
