@@ -1,15 +1,24 @@
 <template>
   <SplitViewLayout
-    :items="entities"
+    :items="filteredEntities"
     :selected-item-id="selectedEntityId"
-    :characters="characters"
-    :enable-character-filter="true"
+    :loading="loading"
+    :enable-attribute-filter="true"
+    :attribute-filters="activeFilters"
     list-title="Memories"
     create-button-text="Add Memory"
     empty-message="No memories yet"
     @select-item="selectEntity"
     @create-item="startCreate"
   >
+    <template #filter-content>
+      <FilterPanel
+        v-model="activeFilters"
+        :enable-tabs="true"
+        :available-tabs="memoryFilterTabs"
+        :characters="characters"
+      />
+    </template>
     <template #detail-content>
       <div v-if="loading" class="shared-loading">Loading memories...</div>
       <div v-else-if="error" class="shared-error">{{ error }}</div>
@@ -35,8 +44,8 @@
             <label class="shared-field-label">Content <span class="required">*</span></label>
             <BaseTextareaWithCharacterCounter
               v-model="createForm.content"
-              :placeholder="`Memory content (max ${CONTENT_WORD_LIMIT} words)`"
-              :max-words="CONTENT_WORD_LIMIT"
+              :placeholder="`Memory content`"
+              :max-characters="1000"
             />
           </div>
 
@@ -44,6 +53,7 @@
           <CharacterSelector
             v-model="createForm.character_ids"
             :characters="characters"
+            :enable-filtering="true"
             label="Characters"
           />
 
@@ -78,7 +88,9 @@
   import MemoryCard from '../components/MemoryCard.vue'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from '../components/entity/CharacterSelector.vue'
+  import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
+  import { applyCharacterFilters } from '../utils/filterUtils.js'
   import apiService from '../services/api.js'
 
   const CONTENT_WORD_LIMIT = 200
@@ -91,6 +103,7 @@
       MemoryCard,
       BaseTextareaWithCharacterCounter,
       CharacterSelector,
+      FilterPanel,
     },
     setup() {
       const {
@@ -109,6 +122,15 @@
       } = useEntityCRUD('Memory')
 
       const characters = ref([])
+
+      // Memory filter tabs configuration
+      const memoryFilterTabs = [{ id: 'characters', label: 'Characters' }]
+
+      // Character filtering state
+      const activeFilters = ref({
+        characterIds: [],
+        showUnassigned: false,
+      })
 
       const createForm = reactive({
         title: '',
@@ -151,7 +173,7 @@
             const memoryData = {
               title: createForm.title.trim(),
               content: createForm.content.trim(),
-              character_ids: createForm.character_ids.map((id) => parseInt(id)),
+              character_ids: createForm.character_ids,
             }
 
             await createEntity(memoryData)
@@ -172,8 +194,25 @@
         await loadCharacters()
       })
 
+      // Filtered entities based on character filters
+      const filteredEntities = computed(() => {
+        return applyCharacterFilters(entities.value, activeFilters.value)
+      })
+
+      const hasActiveCharacterFilters = computed(() => {
+        return activeFilters.value.characterIds.length > 0 || activeFilters.value.showUnassigned
+      })
+
+      const clearCharacterFilters = () => {
+        activeFilters.value.characterIds = []
+        activeFilters.value.showUnassigned = false
+      }
+
       return {
         entities,
+        filteredEntities,
+        activeFilters,
+        memoryFilterTabs,
         loading,
         error,
         selectedEntityId,
@@ -183,12 +222,14 @@
         createForm,
         isCreateFormValid,
         CONTENT_WORD_LIMIT,
+        hasActiveCharacterFilters,
         selectEntity,
         startCreate,
         updateEntity,
         deleteEntity,
         saveCreate,
         cancelCreate: handleCancelCreate,
+        clearCharacterFilters,
       }
     },
   }

@@ -50,8 +50,8 @@
         <label class="shared-field-label">Content</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.content"
-          :placeholder="`Memory content (max ${CONTENT_WORD_LIMIT} words)`"
-          :max-words="CONTENT_WORD_LIMIT"
+          :placeholder="`Memory content (max ${gameData?.validation_limits?.memory_content || 1000} characters)`"
+          :max-characters="gameData?.validation_limits?.memory_content || 1000"
         />
       </div>
 
@@ -59,6 +59,7 @@
       <CharacterSelector
         v-model="editForm.character_ids"
         :characters="characters"
+        :enable-filtering="true"
         label="Characters"
       />
 
@@ -76,6 +77,8 @@
   import { ref, reactive, computed } from 'vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
+  import { useGameData } from '../composables/useGameData.js'
+  import { getCharacterName } from '../utils/characterUtils.js'
 
   const CONTENT_WORD_LIMIT = 200
 
@@ -97,6 +100,7 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
+      const { gameData } = useGameData()
       const isEditing = ref(false)
 
       const editForm = reactive({
@@ -114,11 +118,6 @@
         )
       })
 
-      const getCharacterName = (characterId) => {
-        const character = props.characters.find((c) => c.id === characterId)
-        return character ? character.name : `Character ${characterId}`
-      }
-
       const startEdit = () => {
         editForm.title = props.memory.title || ''
         editForm.content = props.memory.content || ''
@@ -135,7 +134,7 @@
           emit('update', props.memory.id, {
             title: editForm.title.trim(),
             content: editForm.content.trim(),
-            character_ids: editForm.character_ids.map((id) => parseInt(id)),
+            character_ids: editForm.character_ids,
           })
           isEditing.value = false
         }
@@ -148,11 +147,12 @@
       }
 
       return {
+        gameData,
         isEditing,
         editForm,
         isFormValid,
         CONTENT_WORD_LIMIT,
-        getCharacterName,
+        getCharacterName: (id) => getCharacterName(id, props.characters),
         startEdit,
         cancelEdit,
         saveEdit,

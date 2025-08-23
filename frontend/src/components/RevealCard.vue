@@ -74,6 +74,7 @@
         <CharacterSelector
           v-model="editForm.character_ids"
           :characters="characters"
+          :enable-filtering="true"
           label="Characters"
         />
 
@@ -208,6 +209,7 @@
   import { useRevealValidation } from '../composables/useRevealValidation.js'
   import { useGameData } from '../composables/useGameData.js'
   import { getDCLabel } from '../utils/dcUtils.js'
+  import { getCharacterName } from '../utils/characterUtils.js'
 
   export default {
     name: 'RevealCard',
@@ -249,19 +251,6 @@
       // Pass the form directly to validation
       const { isFormValid } = useRevealValidation(editForm)
 
-      const getCharacterName = (characterId) => {
-        const character = props.characters.find((c) => c.id === characterId)
-        return character ? character.name : `Character ${characterId}`
-      }
-
-      const getCharacterNames = (characterIds) => {
-        if (!characterIds || characterIds.length === 0) return 'No Characters'
-        if (characterIds.length === 1) return getCharacterName(characterIds[0])
-        if (characterIds.length === 2)
-          return `${getCharacterName(characterIds[0])} & ${getCharacterName(characterIds[1])}`
-        return `${getCharacterName(characterIds[0])} & ${characterIds.length - 1} others`
-      }
-
       const startEdit = () => {
         Object.assign(editForm, {
           title: props.reveal.title,
@@ -286,7 +275,7 @@
         if (isFormValid.value) {
           const updateData = {
             title: editForm.title.trim(),
-            character_ids: editForm.character_ids.map((id) => parseInt(id)),
+            character_ids: editForm.character_ids,
             level_1_content: editForm.level_1_content.trim(),
             level_2_content: editForm.enable_level_2 ? editForm.level_2_content.trim() : null,
             level_3_content: editForm.enable_level_3 ? editForm.level_3_content.trim() : null,
@@ -319,8 +308,7 @@
       }
 
       const confirmDelete = () => {
-        const characterNames = getCharacterNames(props.reveal.character_ids)
-        if (confirm(`Are you sure you want to delete the reveal for ${characterNames}?`)) {
+        if (confirm(`Are you sure you want to delete this reveal?`)) {
           emit('delete', props.reveal.id)
         }
       }
@@ -343,8 +331,7 @@
         isEditing,
         editForm,
         isFormValid,
-        getCharacterName,
-        getCharacterNames,
+        getCharacterName: (id) => getCharacterName(id, props.characters),
         startEdit,
         cancelEdit,
         saveEdit,

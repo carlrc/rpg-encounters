@@ -1,15 +1,24 @@
 <template>
   <SplitViewLayout
-    :items="entities"
+    :items="filteredEntities"
     :selected-item-id="selectedEntityId"
-    :characters="characters"
-    :enable-character-filter="true"
+    :loading="loading"
+    :enable-attribute-filter="true"
+    :attribute-filters="activeFilters"
     list-title="Reveals"
     create-button-text="Add Reveal"
     empty-message="No reveals yet"
     @select-item="selectEntity"
     @create-item="startCreate"
   >
+    <template #filter-content>
+      <FilterPanel
+        v-model="activeFilters"
+        :enable-tabs="true"
+        :available-tabs="revealFilterTabs"
+        :characters="characters"
+      />
+    </template>
     <template #detail-content>
       <div v-if="loading" class="shared-loading">Loading reveals...</div>
       <div v-else-if="error" class="shared-error">{{ error }}</div>
@@ -34,6 +43,7 @@
           <CharacterSelector
             v-model="createForm.character_ids"
             :characters="characters"
+            :enable-filtering="true"
             label="Characters"
           />
 
@@ -189,8 +199,10 @@
   import RevealCard from '../components/RevealCard.vue'
   import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from '../components/entity/CharacterSelector.vue'
+  import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
+  import { applyCharacterFilters } from '../utils/filterUtils.js'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
   import { getDCLabel } from '../utils/dcUtils.js'
@@ -203,6 +215,7 @@
       RevealCard,
       BaseTextareaWithCharacterCounter,
       CharacterSelector,
+      FilterPanel,
     },
     setup() {
       const {
@@ -222,6 +235,16 @@
 
       const { gameData, loadGameData } = useGameData()
       const characters = ref([])
+
+      // Reveal filter tabs configuration
+      const revealFilterTabs = [{ id: 'characters', label: 'Characters' }]
+
+      // Character filtering state
+      const activeFilters = ref({
+        characters: [], // Use 'characters' to match the tab id
+        characterIds: [], // Keep for compatibility with applyCharacterFilters
+        showUnassigned: false,
+      })
 
       const createForm = reactive({
         title: '',
@@ -320,9 +343,26 @@
         await loadCharacters()
       })
 
+      // Filtered entities based on character filters
+      const filteredEntities = computed(() => {
+        return applyCharacterFilters(entities.value, activeFilters.value)
+      })
+
+      const hasActiveCharacterFilters = computed(() => {
+        return activeFilters.value.characterIds.length > 0 || activeFilters.value.showUnassigned
+      })
+
+      const clearCharacterFilters = () => {
+        activeFilters.value.characterIds = []
+        activeFilters.value.showUnassigned = false
+      }
+
       return {
         gameData,
         entities,
+        filteredEntities,
+        activeFilters,
+        revealFilterTabs,
         loading,
         error,
         selectedEntityId,
@@ -331,6 +371,7 @@
         characters,
         createForm,
         isCreateFormValid,
+        hasActiveCharacterFilters,
         selectEntity,
         startCreate,
         updateEntity,
@@ -339,6 +380,7 @@
         cancelCreate: handleCancelCreate,
         handleLevel2Toggle,
         handleLevel3Toggle,
+        clearCharacterFilters,
         getDCLabel: (value) => getDCLabel(value, gameData.value?.difficulty_classes),
       }
     },

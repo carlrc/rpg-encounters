@@ -2,6 +2,7 @@
   <SplitViewLayout
     :items="entities"
     :selected-item-id="selectedEntityId"
+    :loading="loading"
     list-title="Players"
     create-button-text="Add Player"
     empty-message="No players yet"
