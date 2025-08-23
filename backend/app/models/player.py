@@ -20,6 +20,9 @@ from .util import validate_choice
 
 class PlayerBase(BaseModel):
     name: str = Field(..., description="Player name", max_length=NAME_LIMIT)
+    rl_name: str = Field(
+        ..., description="Real-life player name", max_length=NAME_LIMIT
+    )
     appearance: str = Field(
         ..., description="Player appearance", max_length=PLAYER_APPEARANCE_MAX_LIMIT
     )
@@ -103,6 +106,7 @@ class PlayerUpdate(PlayerBase):
     """Player update model - all fields optional with same validation rules."""
 
     name: str | None = None
+    rl_name: str | None = None
     appearance: str | None = None
     race: str | None = None
     class_name: str | None = None

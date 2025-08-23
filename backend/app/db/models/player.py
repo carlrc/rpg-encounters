@@ -11,6 +11,7 @@ class PlayerORM(UnifiedBase):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
+    rl_name: Mapped[str] = mapped_column(String(NAME_LIMIT), nullable=False)
     appearance: Mapped[str] = mapped_column(
         String(PLAYER_APPEARANCE_MAX_LIMIT), nullable=False
     )
