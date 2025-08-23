@@ -2,6 +2,8 @@
   <SplitViewLayout
     :items="entities"
     :selected-item-id="selectedEntityId"
+    :characters="characters"
+    :enable-character-filter="true"
     list-title="Memories"
     create-button-text="Add Memory"
     empty-message="No memories yet"

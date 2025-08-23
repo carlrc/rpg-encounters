@@ -6,8 +6,45 @@
         <h3>{{ listTitle }}</h3>
       </div>
 
-      <!-- Search Input -->
-      <SearchInput :placeholder="`Search ${listTitle.toLowerCase()}...`" @search="handleSearch" />
+      <!-- Search and Filter Controls -->
+      <div class="filter-controls">
+        <SearchInput :placeholder="`Search ${listTitle.toLowerCase()}...`" @search="handleSearch" />
+
+        <!-- Filter toggle button -->
+        <button
+          v-if="enableCharacterFilter && characters?.length > 0"
+          @click="toggleFilterPanel"
+          :class="['filter-toggle-btn', { 'has-active-filters': hasActiveCharacterFilters }]"
+          title="Filter by characters"
+        >
+          ⚙️
+        </button>
+      </div>
+
+      <!-- Collapsible filter panel -->
+      <div v-if="showFilterPanel" class="filter-panel">
+        <div class="filter-header">
+          <span>Filter by Characters</span>
+          <button
+            v-if="selectedCharacterIds.length > 0 || showUnassigned"
+            @click="clearCharacterFilters"
+            class="shared-btn shared-btn-secondary"
+            style="padding: var(--spacing-xs) var(--spacing-sm); font-size: var(--font-size-sm)"
+          >
+            Clear
+          </button>
+        </div>
+
+        <!-- Reuse CharacterSelector in filter mode -->
+        <CharacterSelector
+          v-model:character-ids="selectedCharacterIds"
+          v-model:show-unassigned="showUnassigned"
+          :characters="characters"
+          :label="''"
+          :show-all-option="true"
+          :show-no-characters-option="true"
+        />
+      </div>
 
       <div class="list-content">
         <div
@@ -48,11 +85,13 @@
 <script>
   import { ref, computed } from 'vue'
   import SearchInput from '../ui/SearchInput.vue'
+  import CharacterSelector from '../entity/CharacterSelector.vue'
 
   export default {
     name: 'SplitViewLayout',
     components: {
       SearchInput,
+      CharacterSelector,
     },
     props: {
       items: {
@@ -75,32 +114,84 @@
         type: String,
         default: 'No items yet',
       },
+      characters: {
+        type: Array,
+        default: () => [],
+      },
+      enableCharacterFilter: {
+        type: Boolean,
+        default: false,
+      },
     },
     emits: ['select-item', 'create-item'],
     setup(props) {
       const searchQuery = ref('')
+      const showFilterPanel = ref(false)
+      const selectedCharacterIds = ref([])
+      const showUnassigned = ref(false)
 
       const filteredItems = computed(() => {
-        if (!searchQuery.value) {
-          return props.items
+        let items = props.items
+
+        // Apply text search filter (existing)
+        if (searchQuery.value) {
+          const query = searchQuery.value.toLowerCase()
+          items = items.filter((item) => {
+            const name = item.name || item.title || ''
+            const rlName = item.rl_name || ''
+            return name.toLowerCase().includes(query) || rlName.toLowerCase().includes(query)
+          })
         }
 
-        const query = searchQuery.value.toLowerCase()
-        return props.items.filter((item) => {
-          const name = item.name || item.title || ''
-          const rlName = item.rl_name || ''
-          return name.toLowerCase().includes(query) || rlName.toLowerCase().includes(query)
-        })
+        // Apply character filter (new)
+        if (selectedCharacterIds.value.length > 0 || showUnassigned.value) {
+          items = items.filter((item) => {
+            const hasNoCharacters = !item.character_ids || item.character_ids.length === 0
+
+            // Check unassigned filter
+            if (showUnassigned.value && hasNoCharacters) {
+              return true
+            }
+
+            // Check character filters
+            if (selectedCharacterIds.value.length > 0 && item.character_ids) {
+              return item.character_ids.some((id) => selectedCharacterIds.value.includes(id))
+            }
+
+            return false
+          })
+        }
+
+        return items
+      })
+
+      const hasActiveCharacterFilters = computed(() => {
+        return selectedCharacterIds.value.length > 0 || showUnassigned.value
       })
 
       const handleSearch = (query) => {
         searchQuery.value = query
       }
 
+      const toggleFilterPanel = () => {
+        showFilterPanel.value = !showFilterPanel.value
+      }
+
+      const clearCharacterFilters = () => {
+        selectedCharacterIds.value = []
+        showUnassigned.value = false
+      }
+
       return {
         searchQuery,
+        showFilterPanel,
+        selectedCharacterIds,
+        showUnassigned,
         filteredItems,
+        hasActiveCharacterFilters,
         handleSearch,
+        toggleFilterPanel,
+        clearCharacterFilters,
       }
     },
   }
@@ -118,40 +209,101 @@
     min-width: 250px;
     display: flex;
     flex-direction: column;
-    background: #f8f9fa;
-    border-right: 2px solid #e9ecef;
+    background: var(--bg-light);
+    border-right: 2px solid var(--border-default);
   }
 
   .list-header {
-    padding: 20px 16px 16px 16px;
-    border-bottom: 1px solid #e9ecef;
-    background: white;
+    padding: var(--spacing-xl) var(--spacing-lg) var(--spacing-lg) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-default);
+    background: var(--bg-white);
   }
 
   .list-header h3 {
     margin: 0;
-    font-size: 1.1em;
-    font-weight: 700;
-    color: #2c3e50;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-label);
     text-align: center;
+  }
+
+  .filter-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+  }
+
+  .filter-controls :deep(.search-container) {
+    flex: 1;
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin: 0;
+  }
+
+  .filter-toggle-btn {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-white);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: var(--font-size-xl);
+    transition: var(--transition-fast);
+    margin: var(--spacing-md) var(--spacing-lg) var(--spacing-md) 0;
+    align-self: center;
+  }
+
+  .filter-toggle-btn:hover {
+    background: var(--bg-light);
+    border-color: var(--primary-color);
+  }
+
+  .filter-toggle-btn.has-active-filters {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .filter-panel {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-white);
+    border-bottom: 2px solid var(--border-default);
+    animation: slideDown var(--transition-fast);
+  }
+
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .list-content {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 0;
+    padding: var(--spacing-sm) 0;
   }
 
   .list-item {
-    padding: 12px 16px;
+    padding: var(--spacing-md) var(--spacing-lg);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: var(--transition-fast);
     border-left: 3px solid transparent;
-    font-weight: 500;
-    color: #495057;
-    background: white;
-    margin: 2px 8px;
-    border-radius: 6px;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    background: var(--bg-white);
+    margin: 2px var(--spacing-sm);
+    border-radius: var(--radius-md);
     border: 1px solid transparent;
   }
 
@@ -162,65 +314,65 @@
   }
 
   .list-item.active {
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
-    border-left-color: #004085;
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+    border-left-color: var(--primary-darker);
+    font-weight: var(--font-weight-semibold);
+    box-shadow: var(--shadow-button);
   }
 
   .list-item.active:hover {
-    background: linear-gradient(135deg, #0056b3, #004085);
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
   }
 
   .empty-state {
-    padding: 40px 16px;
+    padding: 40px var(--spacing-lg);
     text-align: center;
-    color: #6c757d;
+    color: var(--text-muted);
     font-style: italic;
-    font-size: 0.9em;
+    font-size: var(--font-size-base);
   }
 
   .list-footer {
-    padding: 16px;
-    border-top: 1px solid #e9ecef;
-    background: white;
+    padding: var(--spacing-lg);
+    border-top: 1px solid var(--border-default);
+    background: var(--bg-white);
   }
 
   .add-btn {
     width: 100%;
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #28a745, #218838);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, var(--success-color), var(--success-dark));
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
     cursor: pointer;
-    font-size: 0.9em;
-    font-weight: 600;
-    transition: all 0.2s ease;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    transition: var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    gap: var(--spacing-sm);
+    box-shadow: var(--shadow-success);
   }
 
   .add-btn:hover {
-    background: linear-gradient(135deg, #218838, #1e7e34);
+    background: linear-gradient(135deg, var(--success-dark), var(--success-darker));
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+    box-shadow: var(--shadow-success-hover);
   }
 
   .plus-icon {
-    font-size: 1.2em;
-    font-weight: bold;
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
   }
 
   .detail-pane {
     flex: 1;
-    padding: 20px;
+    padding: var(--spacing-xl);
     overflow-y: auto;
-    background: #ffffff;
+    background: var(--bg-white);
   }
 
   /* Scrollbar styling for list */
@@ -229,16 +381,16 @@
   }
 
   .list-content::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--bg-light);
   }
 
   .list-content::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--border-default);
     border-radius: 3px;
   }
 
   .list-content::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: var(--text-muted);
   }
 
   @media (max-width: 768px) {

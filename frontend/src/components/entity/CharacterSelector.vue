@@ -3,7 +3,7 @@
     <label class="shared-field-label">{{ label }}</label>
     <div class="character-selection">
       <!-- ALL option -->
-      <div class="character-checkbox all-option">
+      <div v-if="showAllOption" class="character-checkbox all-option">
         <label class="character-option">
           <input
             type="checkbox"
@@ -16,8 +16,21 @@
         </label>
       </div>
 
+      <!-- No Characters option -->
+      <div v-if="showNoCharactersOption" class="character-checkbox all-option">
+        <label class="character-option">
+          <input
+            type="checkbox"
+            :value="'no-characters'"
+            :checked="currentShowUnassigned"
+            @change="toggleNoCharacters"
+          />
+          <span>NONE - Select items with no assignments</span>
+        </label>
+      </div>
+
       <!-- Separator -->
-      <div class="separator"></div>
+      <div v-if="showAllOption || showNoCharactersOption" class="separator"></div>
 
       <!-- Individual characters -->
       <div v-for="character in characters" :key="character.id" class="character-checkbox">
@@ -25,7 +38,7 @@
           <input
             type="checkbox"
             :value="character.id"
-            :checked="modelValue.includes(character.id)"
+            :checked="currentCharacterIds.includes(character.id)"
             @change="toggleCharacter(character.id)"
           />
           <span>{{ character.name }}</span>
@@ -45,6 +58,14 @@
         type: Array,
         default: () => [],
       },
+      characterIds: {
+        type: Array,
+        default: () => [],
+      },
+      showUnassigned: {
+        type: Boolean,
+        default: false,
+      },
       characters: {
         type: Array,
         default: () => [],
@@ -53,18 +74,45 @@
         type: String,
         default: 'Characters',
       },
+      showAllOption: {
+        type: Boolean,
+        default: true,
+      },
+      showNoCharactersOption: {
+        type: Boolean,
+        default: false,
+      },
     },
-    emits: ['update:modelValue'],
+    emits: ['update:modelValue', 'update:characterIds', 'update:showUnassigned'],
     setup(props, { emit }) {
       const allCheckbox = ref(null)
 
+      // Use the appropriate prop based on which v-model is being used
+      const currentCharacterIds = computed(() => {
+        return props.characterIds !== undefined
+          ? props.characterIds
+          : props.modelValue.filter((id) => id !== 'no-characters')
+      })
+
+      const currentShowUnassigned = computed(() => {
+        return props.showUnassigned !== undefined
+          ? props.showUnassigned
+          : props.modelValue.includes('no-characters')
+      })
+
       // Computed properties
       const isAllSelected = computed(() => {
-        return props.characters.length > 0 && props.modelValue.length === props.characters.length
+        return (
+          props.characters.length > 0 &&
+          currentCharacterIds.value.length === props.characters.length
+        )
       })
 
       const isIndeterminate = computed(() => {
-        return props.modelValue.length > 0 && props.modelValue.length < props.characters.length
+        return (
+          currentCharacterIds.value.length > 0 &&
+          currentCharacterIds.value.length < props.characters.length
+        )
       })
 
       // Watch for indeterminate state changes
@@ -76,35 +124,81 @@
 
       // Methods
       const toggleAll = () => {
-        if (isAllSelected.value) {
-          // Deselect all
-          emit('update:modelValue', [])
+        if (props.characterIds !== undefined) {
+          // Using dual v-model
+          if (isAllSelected.value) {
+            emit('update:characterIds', [])
+          } else {
+            const allIds = props.characters.map((char) => char.id)
+            emit('update:characterIds', allIds)
+          }
         } else {
-          // Select all
-          const allIds = props.characters.map((char) => char.id)
-          emit('update:modelValue', allIds)
+          // Using single v-model (legacy)
+          if (isAllSelected.value) {
+            emit('update:modelValue', [])
+          } else {
+            const allIds = props.characters.map((char) => char.id)
+            emit('update:modelValue', allIds)
+          }
         }
       }
 
       const toggleCharacter = (characterId) => {
-        const currentSelection = [...props.modelValue]
-        const index = currentSelection.indexOf(characterId)
+        if (props.characterIds !== undefined) {
+          // Using dual v-model
+          const currentSelection = [...currentCharacterIds.value]
+          const index = currentSelection.indexOf(characterId)
 
-        if (index > -1) {
-          currentSelection.splice(index, 1)
+          if (index > -1) {
+            currentSelection.splice(index, 1)
+          } else {
+            currentSelection.push(characterId)
+          }
+
+          emit('update:characterIds', currentSelection)
         } else {
-          currentSelection.push(characterId)
-        }
+          // Using single v-model (legacy)
+          const currentSelection = [...props.modelValue]
+          const index = currentSelection.indexOf(characterId)
 
-        emit('update:modelValue', currentSelection)
+          if (index > -1) {
+            currentSelection.splice(index, 1)
+          } else {
+            currentSelection.push(characterId)
+          }
+
+          emit('update:modelValue', currentSelection)
+        }
+      }
+
+      const toggleNoCharacters = () => {
+        if (props.showUnassigned !== undefined) {
+          // Using dual v-model
+          emit('update:showUnassigned', !props.showUnassigned)
+        } else {
+          // Using single v-model (legacy)
+          const currentSelection = [...props.modelValue]
+          const index = currentSelection.indexOf('no-characters')
+
+          if (index > -1) {
+            currentSelection.splice(index, 1)
+          } else {
+            currentSelection.push('no-characters')
+          }
+
+          emit('update:modelValue', currentSelection)
+        }
       }
 
       return {
         allCheckbox,
+        currentCharacterIds,
+        currentShowUnassigned,
         isAllSelected,
         isIndeterminate,
         toggleAll,
         toggleCharacter,
+        toggleNoCharacters,
       }
     },
   }
@@ -112,19 +206,19 @@
 
 <style scoped>
   .character-field {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xxl);
   }
 
   .character-selection {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--spacing-xs);
     max-height: 150px;
     overflow-y: auto;
-    padding: 0.75rem;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    background: #f8f9fa;
+    padding: var(--spacing-md);
+    border: 2px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-light);
   }
 
   .character-checkbox {
@@ -135,17 +229,17 @@
   .character-option {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
     width: 100%;
-    font-size: 0.9rem;
+    font-size: var(--font-size-base);
   }
 
   .character-option:hover {
-    background-color: #e9ecef;
+    background-color: var(--border-light);
   }
 
   .character-option input[type='checkbox'] {
@@ -154,31 +248,33 @@
   }
 
   .character-option span {
-    font-weight: 500;
-    color: #495057;
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
   }
 
   /* ALL option specific styles */
   .all-option {
-    background-color: #f0f4f8;
+    background-color: var(--bg-white);
     margin-bottom: 0;
-    padding: 0.25rem 0;
+    padding: var(--spacing-xs) 0;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
   }
 
   .all-option .character-option {
-    font-weight: 600;
-    color: #2c3e50;
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-label);
   }
 
   .all-option .character-option:hover {
-    background-color: #e2e8f0;
+    background-color: var(--bg-light);
   }
 
   /* Separator */
   .separator {
     height: 1px;
-    background-color: #dee2e6;
-    margin: 0.5rem 0;
+    background-color: var(--border-default);
+    margin: var(--spacing-sm) 0;
   }
 
   /* Indeterminate checkbox styling */
@@ -195,6 +291,6 @@
     transform: translate(-50%, -50%);
     width: 8px;
     height: 2px;
-    background-color: #007bff;
+    background-color: var(--primary-color);
   }
 </style>

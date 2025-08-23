@@ -2,6 +2,8 @@
   <SplitViewLayout
     :items="entities"
     :selected-item-id="selectedEntityId"
+    :characters="characters"
+    :enable-character-filter="true"
     list-title="Reveals"
     create-button-text="Add Reveal"
     empty-message="No reveals yet"
