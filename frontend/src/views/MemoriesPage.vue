@@ -43,8 +43,8 @@
             <label class="shared-field-label">Content <span class="required">*</span></label>
             <BaseTextareaWithCharacterCounter
               v-model="createForm.content"
-              :placeholder="`Memory content (max ${CONTENT_WORD_LIMIT} words)`"
-              :max-words="CONTENT_WORD_LIMIT"
+              :placeholder="`Memory content`"
+              :max-characters="1000"
             />
           </div>
 
@@ -52,6 +52,7 @@
           <CharacterSelector
             v-model="createForm.character_ids"
             :characters="characters"
+            :enable-filtering="true"
             label="Characters"
           />
 
@@ -126,8 +127,7 @@
 
       // Character filtering state
       const activeFilters = ref({
-        characters: [], // Use 'characters' to match the tab id
-        characterIds: [], // Keep for compatibility with applyCharacterFilters
+        characterIds: [],
         showUnassigned: false,
       })
 
@@ -172,7 +172,7 @@
             const memoryData = {
               title: createForm.title.trim(),
               content: createForm.content.trim(),
-              character_ids: createForm.character_ids.map((id) => parseInt(id)),
+              character_ids: createForm.character_ids,
             }
 
             await createEntity(memoryData)

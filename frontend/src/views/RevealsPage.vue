@@ -42,6 +42,7 @@
           <CharacterSelector
             v-model="createForm.character_ids"
             :characters="characters"
+            :enable-filtering="true"
             label="Characters"
           />
 

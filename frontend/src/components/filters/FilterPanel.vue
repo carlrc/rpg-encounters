@@ -134,8 +134,7 @@
             </button>
           </div>
           <CharacterSelector
-            v-model:character-ids="filters.characterIds"
-            v-model:show-unassigned="filters.showUnassigned"
+            v-model="characterSelectorValue"
             :characters="charactersFromParent"
             :label="''"
             :show-all-option="true"
@@ -148,16 +147,6 @@
     <!-- Simple interface for character-only filtering -->
     <div v-else class="filter-panel-content simple">
       <slot />
-    </div>
-
-    <!-- Active filters summary -->
-    <div v-if="hasActiveFilters" class="active-filters-summary">
-      <div class="filter-info">
-        <span class="filter-count">
-          {{ totalActiveFilters }} filter{{ totalActiveFilters === 1 ? '' : 's' }} active
-        </span>
-      </div>
-      <button @click="clearAllFilters" class="clear-all-btn" type="button">Clear All</button>
     </div>
   </div>
 </template>
@@ -213,6 +202,21 @@
       })
 
       const charactersFromParent = computed(() => props.characters)
+
+      // Computed property to handle character selector v-model
+      const characterSelectorValue = computed({
+        get() {
+          const value = [...filters.value.characterIds]
+          if (filters.value.showUnassigned) {
+            value.push('no-characters')
+          }
+          return value
+        },
+        set(newValue) {
+          filters.value.characterIds = newValue.filter((id) => id !== 'no-characters')
+          filters.value.showUnassigned = newValue.includes('no-characters')
+        },
+      })
 
       // Watch for changes and emit updates
       watch(
@@ -287,6 +291,7 @@
         gameData,
         genders,
         charactersFromParent,
+        characterSelectorValue,
         activeTab,
         filters,
         hasActiveFilters,
@@ -363,45 +368,6 @@
     padding: 0;
   }
 
-  .active-filters-summary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    border-top: 1px solid #e5e7eb;
-    background: #f9fafb;
-    flex-shrink: 0;
-  }
-
-  .filter-info {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .filter-count {
-    font-size: 0.875rem;
-    color: #6b7280;
-    font-weight: 500;
-  }
-
-  .clear-all-btn {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid #ef4444;
-    border-radius: 0.375rem;
-    background: white;
-    color: #ef4444;
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .clear-all-btn:hover {
-    background: #ef4444;
-    color: white;
-  }
-
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -440,17 +406,6 @@
 
     .filter-panel-content {
       padding: 0.75rem;
-    }
-
-    .active-filters-summary {
-      flex-direction: column;
-      gap: 0.5rem;
-      align-items: stretch;
-    }
-
-    .clear-all-btn {
-      width: 100%;
-      justify-content: center;
     }
   }
 </style>
