@@ -117,7 +117,8 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted } from 'vue'
+  import { ref, reactive, computed, onMounted, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import CharacterCard from '../components/CharacterCard.vue'
@@ -141,6 +142,8 @@
       BaseTextareaWithCharacterCounter,
     },
     setup() {
+      const route = useRoute()
+
       const {
         entities,
         loading,
@@ -244,7 +247,27 @@
 
       onMounted(async () => {
         await loadGameData()
-        loadEntities()
+        await loadEntities()
+
+        // Auto-select character if ID is provided in query params
+        const characterId = route.query.id
+        if (characterId) {
+          const id = parseInt(characterId, 10)
+          if (entities.value.some((char) => char.id === id)) {
+            selectEntity(id)
+          }
+        }
+      })
+
+      // Watch for changes in entities to handle auto-selection after data loads
+      watch(entities, (newEntities) => {
+        const characterId = route.query.id
+        if (characterId && newEntities.length > 0 && !selectedEntityId.value) {
+          const id = parseInt(characterId, 10)
+          if (newEntities.some((char) => char.id === id)) {
+            selectEntity(id)
+          }
+        }
       })
 
       return {

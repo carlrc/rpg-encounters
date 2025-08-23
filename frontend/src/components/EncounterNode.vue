@@ -107,7 +107,7 @@
           </div>
           <div class="option-info">
             <div class="option-name">{{ character.name }}</div>
-            <div class="option-race">{{ character.race }}</div>
+            <div class="option-profession">{{ character.profession }}</div>
           </div>
         </div>
       </div>
@@ -137,7 +137,10 @@
         <div v-else class="avatar-placeholder">
           <span class="avatar-initials">{{ getInitials(character.name) }}</span>
         </div>
-        <span class="character-name">{{ character.name }}</span>
+        <div class="character-info">
+          <span class="character-profession">{{ character.profession }}</span>
+          <span class="character-name">{{ character.name }}</span>
+        </div>
       </div>
 
       <!-- Add Character Button (reusing add encounter button styling) -->
@@ -578,7 +581,7 @@
     text-overflow: ellipsis;
   }
 
-  .option-race {
+  .option-profession {
     font-size: 10px;
     color: #6c757d;
     white-space: nowrap;
@@ -671,16 +674,36 @@
     font-weight: bold;
   }
 
+  .character-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    min-height: 32px;
+  }
+
+  .character-profession {
+    font-size: 11px;
+    color: #2c3e50;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+
   .character-name {
-    font-size: 10px;
+    font-size: 9px;
     color: #6c757d;
     text-align: center;
     line-height: 1.2;
     max-width: 100%;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-    hyphens: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Add Encounter Button (reused from EncounterBuilder) */

@@ -21,8 +21,11 @@
             </div>
           </div>
           <div class="character-info">
-            <h2>{{ character?.name }}</h2>
-            <p v-if="character?.race">{{ character.race }}</p>
+            <h2 class="character-name-link" @click="navigateToCharacter">{{ character?.name }}</h2>
+            <div class="character-details">
+              <span class="character-race">{{ character?.race }}</span>
+              <span class="character-profession">{{ character?.profession }}</span>
+            </div>
           </div>
         </div>
 
@@ -91,6 +94,7 @@
 
 <script>
   import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { useRouter } from 'vue-router'
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameData } from '../composables/useGameData.js'
   import apiService from '../services/api.js'
@@ -120,6 +124,7 @@
     emits: ['close'],
     setup(props, { emit }) {
       const { gameData, loadGameData } = useGameData()
+      const router = useRouter()
 
       // Use existing data from API (same as EncountersPage.vue)
       const players = ref([])
@@ -374,6 +379,15 @@
         }
       }
 
+      const navigateToCharacter = () => {
+        if (props.character?.id) {
+          router.push({
+            path: '/characters',
+            query: { id: props.character.id },
+          })
+        }
+      }
+
       onMounted(async () => {
         await loadGameData()
         loadData()
@@ -410,6 +424,7 @@
         closePopup,
         toggleRecording,
         toggleChallengeMode,
+        navigateToCharacter,
         getInitials,
       }
     },
@@ -537,11 +552,37 @@
     font-weight: 700;
   }
 
-  .character-info p {
-    margin: 0;
+  .character-name-link {
+    cursor: pointer;
+    transition: color 0.2s ease;
+  }
+
+  .character-name-link:hover {
+    color: #007bff;
+    text-decoration: underline;
+  }
+
+  .character-details {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .character-race,
+  .character-profession {
     color: #6c757d;
     font-size: 1.1em;
     font-style: italic;
+  }
+
+  .character-profession {
+    font-weight: 600;
+  }
+
+  .character-race::after {
+    content: '•';
+    margin-left: 8px;
+    color: #dee2e6;
   }
 
   .encounter-controls {
