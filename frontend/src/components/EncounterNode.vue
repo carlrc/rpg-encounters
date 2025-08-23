@@ -55,39 +55,63 @@
           class="info-btn"
           :class="{ active: showDescription }"
           :title="showDescription ? 'Hide description' : 'Show description'"
+          :aria-expanded="showDescription"
+          :aria-describedby="showDescription ? `description-${encounter.id}` : null"
+          aria-label="Toggle encounter description"
         >
           ⓘ
         </button>
       </div>
     </div>
 
-    <!-- Encounter Description Section -->
-    <div v-if="showDescription" class="encounter-description-section">
+    <!-- Encounter Description Section - Floating Box -->
+    <div
+      v-if="showDescription"
+      class="encounter-description-section"
+      :id="`description-${encounter.id}`"
+      role="tooltip"
+      @click.stop
+    >
       <div
         v-if="!isEditingDescription"
         @click="startEditingDescription"
-        class="encounter-description"
+        @mousedown.stop
+        @mousemove.stop
+        @mouseup.stop
+        @dragstart.prevent
+        class="encounter-description-display"
         :title="'Click to edit encounter description'"
       >
         {{ encounter.description || 'No description available. Click to add one.' }}
       </div>
-      <textarea
+      <BaseTextareaWithCharacterCounter
         v-else
         v-model="editingDescription"
         @blur="saveEncounterDescription"
         @keyup.ctrl.enter="saveEncounterDescription"
         @keyup.escape="cancelEditingDescription"
-        class="encounter-description-input"
-        ref="descriptionInput"
+        @mousedown.stop
+        @mousemove.stop
+        @mouseup.stop
+        @dragstart.prevent
+        :max-characters="500"
         placeholder="Enter encounter description..."
-        rows="3"
+        ref="descriptionInput"
+        class="encounter-description-input"
       />
     </div>
 
     <!-- Add Character Dropdown -->
-    <div v-if="showAddCharacter" class="add-character-dropdown">
+    <div v-if="showAddCharacter" class="add-character-dropdown" @click.stop>
       <div class="dropdown-header">Add Character:</div>
-      <div class="character-options">
+      <div
+        class="character-options"
+        @wheel.stop
+        @scroll.stop
+        @mousedown.stop
+        @mousemove.stop
+        @mouseup.stop
+      >
         <div
           v-for="character in availableCharacters"
           :key="character.id"
@@ -163,14 +187,16 @@
 </template>
 
 <script>
-  import { ref, nextTick, watch, onMounted } from 'vue'
+  import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { getInitials } from '../utils/avatarUtils.js'
+  import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
   export default {
     name: 'EncounterNode',
     components: {
       Handle,
+      BaseTextareaWithCharacterCounter,
     },
     props: {
       encounter: {
@@ -238,6 +264,24 @@
         showDescription.value = !showDescription.value
       }
 
+      // Handle click outside to close description
+      const handleClickOutside = (event) => {
+        const encounterNode = event.target.closest('.encounter-node')
+        const isInfoButton = event.target.closest('.info-btn')
+        const isDescriptionSection = event.target.closest('.encounter-description-section')
+
+        if (!encounterNode && !isInfoButton && !isDescriptionSection && showDescription.value) {
+          showDescription.value = false
+        }
+      }
+
+      // Handle escape key to close description
+      const handleEscapeKey = (event) => {
+        if (event.key === 'Escape' && showDescription.value) {
+          showDescription.value = false
+        }
+      }
+
       const startEditingDescription = () => {
         isEditingDescription.value = true
         editingDescription.value = props.encounter.description || ''
@@ -245,7 +289,7 @@
         nextTick(() => {
           if (descriptionInput.value) {
             descriptionInput.value.focus()
-            descriptionInput.value.select()
+            // Remove auto-select to prevent highlighting
           }
         })
       }
@@ -295,6 +339,15 @@
         if (props.encounter.autoOpenDescription) {
           handleAutoOpenDescription()
         }
+        // Add event listeners for click outside and escape key
+        document.addEventListener('click', handleClickOutside)
+        document.addEventListener('keydown', handleEscapeKey)
+      })
+
+      onUnmounted(() => {
+        // Clean up event listeners
+        document.removeEventListener('click', handleClickOutside)
+        document.removeEventListener('keydown', handleEscapeKey)
       })
 
       return {
@@ -324,7 +377,6 @@
         const charWidth = 120 // Fixed character width from CSS
         const encounterPadding = 24 // 12px padding on each side
         const gapBetweenChars = 12 // Gap between characters
-        const descriptionHeight = this.showDescription ? 80 : 0 // Height for description section
 
         // Count characters + add character button if available
         const totalItems =
@@ -333,7 +385,7 @@
         if (totalItems === 0) {
           return {
             width: `300px`,
-            height: `${baseHeight + descriptionHeight}px`,
+            height: `${baseHeight}px`,
             minHeight: `${baseHeight}px`,
           }
         }
@@ -352,7 +404,7 @@
 
         return {
           width: `${calculatedWidth}px`,
-          height: `${baseHeight + extraHeight + descriptionHeight}px`,
+          height: `${baseHeight + extraHeight}px`,
           minHeight: `${baseHeight}px`,
         }
       },
@@ -362,11 +414,11 @@
 
 <style scoped>
   .encounter-node {
-    background: #ffffff;
-    border: 2px solid #007bff;
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: var(--bg-white);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-card);
     position: relative;
     min-width: 150px;
     min-height: 100px;
@@ -376,120 +428,220 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    border-bottom: 1px solid #e9ecef;
-    padding-bottom: 4px;
+    margin-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-default);
+    padding-bottom: var(--spacing-xs);
   }
 
   .encounter-header h4 {
     margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: #2c3e50;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-label);
   }
 
   .encounter-name {
     cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
+    padding: var(--spacing-xs) var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
   }
 
   .encounter-name:hover {
-    background-color: #f8f9fa;
+    background-color: var(--bg-light);
   }
 
   .encounter-name-input {
     margin: 0;
-    padding: 2px 4px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #2c3e50;
-    border: 1px solid #007bff;
-    border-radius: 4px;
-    background: white;
+    padding: var(--spacing-xs) var(--spacing-xs);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-label);
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-white);
     outline: none;
     min-width: 80px;
     max-width: 200px;
   }
 
   .encounter-name-input:focus {
-    border-color: #0056b3;
+    border-color: var(--primary-dark);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
   }
 
   .encounter-actions {
     display: flex;
-    gap: 4px;
+    gap: var(--spacing-xs);
   }
 
   .info-btn {
     width: 20px;
     height: 20px;
     border: none;
-    border-radius: 50%;
-    background: #007bff;
+    border-radius: var(--radius-round);
+    background: var(--primary-color);
     color: white;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
   }
 
   .info-btn:hover {
-    background: #0056b3;
+    background: var(--primary-dark);
     transform: scale(1.1);
   }
 
   .info-btn.active {
-    background: #28a745;
+    background: var(--success-color);
   }
 
-  /* Encounter Description Section */
+  /* Encounter Description Section - Floating Box */
   .encounter-description-section {
-    margin-top: 8px;
-    margin-bottom: 8px;
-    padding: 8px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    border: 1px solid #e9ecef;
+    position: absolute;
+    bottom: calc(100% + var(--spacing-sm));
+    left: 0;
+    right: 0;
+    height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    background: var(--bg-white);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card-hover);
+    padding: var(--spacing-md);
+    animation: fadeInSlide var(--transition-fast);
+    display: flex;
+    flex-direction: column;
   }
 
-  .encounter-description {
+  @keyframes fadeInSlide {
+    from {
+      opacity: 0;
+      transform: translateY(var(--spacing-sm));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Add a small arrow pointing down to the info button */
+  .encounter-description-section::before {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    right: var(--spacing-md);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--primary-color);
+  }
+
+  .encounter-description-section::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    right: calc(var(--spacing-md) + 1px);
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 7px solid var(--bg-white);
+  }
+
+  .encounter-description-display {
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: background-color 0.2s ease;
-    font-size: 12px;
-    color: #495057;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    transition: background-color var(--transition-fast);
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
     line-height: 1.4;
-    min-height: 20px;
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg-light);
+    border: 1px solid var(--border-default);
+    white-space: pre-wrap;
+    word-wrap: break-word;
   }
 
-  .encounter-description:hover {
-    background-color: #e9ecef;
+  .encounter-description-display:hover {
+    background-color: var(--border-default);
+    border-color: var(--primary-color);
+  }
+
+  /* Scrollbar styling for description display */
+  .encounter-description-display::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .encounter-description-display::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 2px;
+  }
+
+  .encounter-description-display::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 2px;
+  }
+
+  .encounter-description-display::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
   }
 
   .encounter-description-input {
-    width: 100%;
-    padding: 4px;
-    font-size: 12px;
-    color: #495057;
-    border: 1px solid #007bff;
-    border-radius: 4px;
-    background: white;
-    outline: none;
-    resize: vertical;
-    min-height: 60px;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
     font-family: inherit;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
-  .encounter-description-input:focus {
-    border-color: #0056b3;
+  /* Override the BaseTextareaWithCharacterCounter styles for better integration */
+  .encounter-description-input :deep(.shared-word-counter-field) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .encounter-description-input :deep(.shared-textarea) {
+    border: 1px solid var(--primary-color);
+    border-radius: var(--radius-sm);
+    background: var(--bg-white);
+    outline: none;
+    resize: none;
+    flex: 1;
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-family: inherit;
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+  }
+
+  .encounter-description-input :deep(.shared-textarea:focus) {
+    border-color: var(--primary-dark);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+
+  .encounter-description-input :deep(.shared-word-counter) {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: var(--spacing-xs);
+  }
+
+  .encounter-description-input :deep(.shared-word-counter.over-limit) {
+    color: var(--danger-color);
+    font-weight: var(--font-weight-semibold);
   }
 
   .add-character-dropdown {
@@ -497,22 +649,22 @@
     top: 100%;
     left: 0;
     right: 0;
-    background: white;
-    border: 2px solid #007bff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: var(--bg-white);
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card-hover);
     z-index: 1000;
     max-height: 200px;
     overflow-y: auto;
   }
 
   .dropdown-header {
-    padding: 8px 12px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-    font-size: 12px;
-    font-weight: 600;
-    color: #495057;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-light);
+    border-bottom: 1px solid var(--border-default);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
   }
 
   .character-options {
@@ -523,11 +675,11 @@
   .character-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid #f8f9fa;
+    transition: background-color var(--transition-fast);
+    border-bottom: 1px solid var(--bg-light);
   }
 
   .character-option:hover {
@@ -545,26 +697,26 @@
   .option-avatar-image {
     width: 24px;
     height: 24px;
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     object-fit: cover;
-    border: 1px solid #007bff;
+    border: 1px solid var(--primary-color);
   }
 
   .option-avatar-placeholder {
     width: 24px;
     height: 24px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-radius: var(--radius-round);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid #004085;
+    border: 1px solid var(--primary-darker);
   }
 
   .option-avatar-initials {
     color: white;
-    font-size: 10px;
-    font-weight: bold;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
   }
 
   .option-info {
@@ -573,17 +725,17 @@
   }
 
   .option-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: #2c3e50;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-label);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .option-profession {
-    font-size: 10px;
-    color: #6c757d;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -592,11 +744,11 @@
   .character-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--spacing-md);
     justify-content: flex-start;
     align-items: flex-start;
     min-height: 60px;
-    margin-top: 8px;
+    margin-top: var(--spacing-sm);
   }
 
   .character-avatar {
@@ -604,16 +756,16 @@
     flex-direction: column;
     align-items: center;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
     position: relative;
     width: 120px;
     flex-shrink: 0;
   }
 
   .character-avatar:hover {
-    background: #f8f9fa;
+    background: var(--bg-light);
     transform: scale(1.05);
   }
 
@@ -628,50 +780,50 @@
     width: 16px;
     height: 16px;
     border: none;
-    border-radius: 50%;
-    background: #dc3545;
+    border-radius: var(--radius-round);
+    background: var(--danger-color);
     color: white;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
     z-index: 10;
   }
 
   .remove-character-btn:hover {
-    background: #c82333;
+    background: var(--danger-dark);
     transform: scale(1.1);
   }
 
   .avatar-image {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
+    border-radius: var(--radius-round);
     object-fit: cover;
-    border: 2px solid #007bff;
+    border: 2px solid var(--primary-color);
     margin-bottom: 2px;
   }
 
   .avatar-placeholder {
     width: 32px;
     height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-radius: var(--radius-round);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #004085;
+    border: 2px solid var(--primary-darker);
     margin-bottom: 2px;
   }
 
   .avatar-initials {
     color: white;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
   }
 
   .character-info {
@@ -683,9 +835,9 @@
   }
 
   .character-profession {
-    font-size: 11px;
-    color: #2c3e50;
-    font-weight: 600;
+    font-size: var(--font-size-sm);
+    color: var(--text-label);
+    font-weight: var(--font-weight-semibold);
     text-align: center;
     line-height: 1.2;
     max-width: 100%;
@@ -696,8 +848,8 @@
   }
 
   .character-name {
-    font-size: 9px;
-    color: #6c757d;
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
     text-align: center;
     line-height: 1.2;
     max-width: 100%;
@@ -711,32 +863,32 @@
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 50%;
-    background: #28a745;
+    border-radius: var(--radius-round);
+    background: var(--success-color);
     color: white;
-    font-size: 16px;
-    font-weight: bold;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-success);
   }
 
   .add-encounter-btn:hover {
-    background: #218838;
+    background: var(--success-dark);
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    box-shadow: var(--shadow-success-hover);
   }
 
   .add-character-btn.active {
-    background: #dc3545;
+    background: var(--danger-color);
     transform: rotate(45deg);
   }
 
   .add-character-btn.active:hover {
-    background: #c82333;
+    background: var(--danger-dark);
   }
 
   /* Scrollbar styling for dropdown */
@@ -745,27 +897,46 @@
   }
 
   .character-options::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--bg-light);
   }
 
   .character-options::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--text-muted);
     border-radius: 2px;
   }
 
   .character-options::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: var(--text-secondary);
+  }
+
+  /* Scrollbar styling for description section */
+  .encounter-description-section::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .encounter-description-section::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 3px;
+  }
+
+  .encounter-description-section::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+  }
+
+  .encounter-description-section::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
   }
 
   /* Connection handle styles */
   .connection-handle {
     width: 12px;
     height: 12px;
-    border: 2px solid #007bff;
-    border-radius: 50%;
-    background: white;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--radius-round);
+    background: var(--bg-white);
     position: absolute;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
     cursor: crosshair;
     z-index: 10;
   }
@@ -774,7 +945,7 @@
     width: 16px;
     height: 16px;
     border-width: 3px;
-    background: #007bff;
+    background: var(--primary-color);
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
   }
 
