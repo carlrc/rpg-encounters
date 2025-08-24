@@ -3,12 +3,10 @@ import logging
 from typing import List
 
 from langfuse import observe as langfuse_observe
-from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
+from pydantic_ai import Agent, RunContext, UnexpectedModelBehavior
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
-from app.agents.agent_output import StandardAgentOutput
 from app.agents.base_agent import AgentDeps, BaseAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.utils import (
@@ -16,7 +14,6 @@ from app.agents.prompts.utils import (
     structure_encounter,
 )
 from app.data.conversation_store import ConversationStore
-from app.http import create_retrying_client
 from app.models.character import Character
 from app.models.encounter import Encounter
 from app.models.influence import Influence
@@ -49,18 +46,11 @@ class NegativeConvoAgent(BaseAgent):
         self.influence_calculator_agent = influence_calculator_agent
 
         agent = Agent(
-            OpenAIModel(
-                model_name="gpt-4o-mini",
-                provider=OpenAIProvider(http_client=create_retrying_client()),
-            ),
+            OpenAIModel(model_name="gpt-4o-mini"),
             # Moving character.to_prompt() to instructions caused instability in output validation
             system_prompt=system_prompt + "\n" + character.to_prompt(),
             instructions=structure_character_memories(memories=memories, player=player),
             history_processors=[self._keep_recent_messages],
-            output_type=NativeOutput(
-                StandardAgentOutput,
-                description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
-            ),
             retries=self.retries,
             instrument=True,
         )
@@ -101,9 +91,7 @@ class NegativeConvoAgent(BaseAgent):
             # User model request
             model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
-            model_response = ModelResponse(
-                parts=[TextPart(content=run_result.output.response)]
-            )
+            model_response = ModelResponse(parts=[TextPart(content=run_result.output)])
             self.conversation_store.add_messages(
                 player_id=self.player.id,
                 character_id=self.character.id,
@@ -114,7 +102,7 @@ class NegativeConvoAgent(BaseAgent):
             # Add trace and span metadata
             deps.telemetry()
 
-            return run_result.output.response, deps.influence
+            return run_result.output, deps.influence
         except Exception as e:
             logger.error(f"Could not process agent response. {e}")
             raise

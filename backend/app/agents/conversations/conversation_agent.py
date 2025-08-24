@@ -3,14 +3,13 @@ import logging
 from typing import List
 
 from langfuse import observe as langfuse_observe
-from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
+from pydantic_ai import Agent, RunContext, UnexpectedModelBehavior
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
     TextPart,
 )
 from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.agent_output import ConversationAgentOutput
 from app.agents.base_agent import AgentDeps, BaseAgent
@@ -21,7 +20,6 @@ from app.agents.prompts.utils import (
     structure_reveals,
 )
 from app.data.conversation_store import ConversationStore
-from app.http import create_retrying_client
 from app.models.character import Character
 from app.models.encounter import Encounter
 from app.models.influence import Influence
@@ -56,18 +54,12 @@ class ConversationAgent(BaseAgent):
         self.player = player
         self.character = character
         agent = Agent(
-            OpenAIModel(
-                model_name="gpt-4o-mini",
-                provider=OpenAIProvider(http_client=create_retrying_client()),
-            ),
+            OpenAIModel(model_name="gpt-4o-mini"),
             # Moving character.to_prompt() to instructions caused instability in output validation
             system_prompt=system_prompt + "\n" + character.to_prompt(),
             instructions=structure_character_memories(memories=memories, player=player),
             history_processors=[self._keep_recent_messages],
-            output_type=NativeOutput(
-                ConversationAgentOutput,
-                description="Fill in the different response levels and return the ID of the reveal you used if it exists.",
-            ),
+            output_type=ConversationAgentOutput,
             retries=self.retries,
             instrument=True,
         )

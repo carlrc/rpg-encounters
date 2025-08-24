@@ -4,7 +4,7 @@ from typing import Any
 from langfuse import get_client
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
-from pydantic_ai import Agent, NativeOutput, RunContext, UnexpectedModelBehavior
+from pydantic_ai import Agent, RunContext, UnexpectedModelBehavior
 from pydantic_ai.models.openai import OpenAIModel
 
 from app.agents.base_agent import MAX_RETRIES
@@ -34,10 +34,7 @@ class InfluenceCalculatorAgent:
             OpenAIModel(model_name="gpt-4o-mini"),
             system_prompt=system_prompt + "\n" + self.character.to_prompt(),
             instructions=self._build_base_instruction(),
-            output_type=NativeOutput(
-                InfluenceCalculatorAgentOutput,
-                description="Score the players message to your character",
-            ),
+            output_type=InfluenceCalculatorAgentOutput,
             retries=MAX_RETRIES,
         )
 
