@@ -42,6 +42,9 @@
         :max-zoom="4"
         @connect="onConnect"
         @edge-click="onEdgeClick"
+        @move-end="onViewportChange"
+        @zoom-end="onViewportChange"
+        @pane-ready="onPaneReady"
         :connection-line-style="{ stroke: '#007bff', strokeWidth: 2 }"
         :is-valid-connection="isValidConnection"
         :connect-on-click="false"
@@ -89,6 +92,7 @@
   import { useGameData } from '../composables/useGameData.js'
   import { useNotification } from '../composables/useNotification.js'
   import { generateTempId, isTemporaryId } from '../utils/idUtils.js'
+  import { saveViewport, getViewport } from '../utils/viewportState.js'
 
   export default {
     name: 'EncounterBuilder',
@@ -701,6 +705,22 @@
         window.removeEventListener('world-changed', handleWorldChange)
       })
 
+      // Handle viewport changes
+      const onViewportChange = () => {
+        if (vueFlowRef.value) {
+          const viewport = vueFlowRef.value.getViewport()
+          saveViewport(viewport)
+        }
+      }
+
+      // Handle when pane is ready to restore viewport
+      const onPaneReady = () => {
+        const savedViewport = getViewport()
+        if (savedViewport && vueFlowRef.value) {
+          vueFlowRef.value.setViewport(savedViewport)
+        }
+      }
+
       return {
         loading,
         error,
@@ -724,6 +744,8 @@
         clearAutoOpenDescription,
         onEdgeClick,
         saveCanvas,
+        onViewportChange,
+        onPaneReady,
       }
     },
   }
