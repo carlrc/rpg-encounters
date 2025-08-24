@@ -252,8 +252,6 @@
               class_preferences: {},
               gender_preferences: {},
               size_preferences: {},
-              appearance_keywords: [],
-              storytelling_keywords: [],
             })
             resetCreateForm()
           } catch (err) {

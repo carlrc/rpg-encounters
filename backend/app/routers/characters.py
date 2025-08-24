@@ -31,7 +31,7 @@ async def get_character(
     return character
 
 
-@router.post("/", response_model=Character, status_code=201)
+@router.post("", response_model=Character, status_code=201)
 async def create_character(
     character_data: CharacterCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
@@ -43,9 +43,9 @@ async def create_character(
     personality = await PersonalityGenerator.generate_personality(character_data)
 
     # Create new CharacterCreate object with generated personality
-    character_with_personality = CharacterCreate(
-        **character_data.model_dump(), personality=personality
-    )
+    character_data.personality = personality
+    character_dict = character_data.model_dump()
+    character_with_personality = CharacterCreate(**character_dict)
 
     return CharacterStore(user_id=user_id, world_id=world_id).create_character(
         character_with_personality

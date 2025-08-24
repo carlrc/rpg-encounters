@@ -199,3 +199,71 @@ export function applyCharacterFilters(items, filters) {
     return false
   })
 }
+
+/**
+ * Apply character attribute filters to a list of items (for memories/reveals)
+ * Filters items based on the race/alignment/etc of their associated characters
+ * @param {Array} items - Array of items to filter (memories/reveals with character_ids)
+ * @param {Object} filters - Filter configuration object with race/alignment arrays
+ * @param {Array} characters - Array of character objects to lookup attributes from
+ * @returns {Array} Filtered array of items
+ */
+export function applyCharacterAttributeFilters(items, filters, characters) {
+  if (!items || !Array.isArray(items)) {
+    return []
+  }
+
+  if (!filters || !characters || !Array.isArray(characters)) {
+    return items
+  }
+
+  // If no attribute filters are active, return all items
+  const hasRaceFilter = filters.race && filters.race.length > 0
+  const hasAlignmentFilter = filters.alignment && filters.alignment.length > 0
+
+  if (!hasRaceFilter && !hasAlignmentFilter) {
+    return items
+  }
+
+  // Create a lookup map for faster character attribute access
+  const characterMap = new Map()
+  characters.forEach((char) => {
+    characterMap.set(char.id, char)
+  })
+
+  return items.filter((item) => {
+    // Skip items with no character associations
+    if (!item.character_ids || item.character_ids.length === 0) {
+      return false
+    }
+
+    // Get all associated characters for this item
+    const associatedCharacters = item.character_ids
+      .map((id) => characterMap.get(id))
+      .filter(Boolean) // Remove any undefined characters
+
+    if (associatedCharacters.length === 0) {
+      return false
+    }
+
+    // Check if ANY associated character matches the race filter
+    if (hasRaceFilter) {
+      const hasMatchingRace = associatedCharacters.some((char) => filters.race.includes(char.race))
+      if (!hasMatchingRace) {
+        return false
+      }
+    }
+
+    // Check if ANY associated character matches the alignment filter
+    if (hasAlignmentFilter) {
+      const hasMatchingAlignment = associatedCharacters.some((char) =>
+        filters.alignment.includes(char.alignment)
+      )
+      if (!hasMatchingAlignment) {
+        return false
+      }
+    }
+
+    return true
+  })
+}

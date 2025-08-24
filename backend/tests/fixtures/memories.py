@@ -37,13 +37,6 @@ memories_db = [
         content="Most of us have been sailing together for at least two years now, except young Finn who joined us six months back in Neverwinter. The captain's had this ship for five years, and Barthus has been with him since the beginning. Old Salty's been on these waters for thirty years, though only the last three with us.",
         character_ids=[0, 1, 2, 3, 4, 5, 6]  # All crew members
     ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Our Current Passengers",
-        content="We've taken on some passengers in Neverwinter - a mixed group of adventurers by the look of them. There's a halfling woman with quick eyes, a human in shining mail who carries himself like nobility, an elf fighter with more weapons than sense, a dwarf priestess with a holy symbol, and another elf who looks like a scholar. They paid well for passage and keep mostly to themselves, though they've been asking questions about the ship and cargo.",
-        character_ids=[0, 1, 2, 3, 4, 5, 6]  # All crew members
-    ),
     
     # Individual character memories
     
@@ -72,22 +65,6 @@ memories_db = [
         character_ids=[1]  # Barthus only
     ),
     
-    # Silas 'Salty' Croft (character_id: 2)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Old Sailor's Intuition",
-        content="In thirty years at sea, I've learned to read the signs. This voyage feels different. The captain's nervous as a cat in a storm, and that crate in the hold... I swear I heard something humming from it during the middle watch. Mark my words, there's more than textiles in our hold.",
-        character_ids=[2]  # Salty only
-    ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Side Business",
-        content="I've got a small package hidden in my sea chest - some Moonshae tobacco for my contact in Waterdeep. Nothing major, just enough to supplement my wages. Been doing these small runs for years. The captain don't know, and what he don't know won't hurt him.",
-        character_ids=[2]  # Salty only
-    ),
-    
     # Mara Stone (character_id: 4)
     MemoryCreate(
         user_id=1,
@@ -96,13 +73,5 @@ memories_db = [
         content="Twenty souls to feed, three meals a day, and supplies running lower than I'd like. We should have restocked more in Neverwinter, but the captain was in a hurry to sail. I'll make do - always have. But if we hit bad weather and delays, we'll be on half rations before Waterdeep.",
         character_ids=[4]  # Mara only
     ),
-    
-    # Gregor 'One-Eye' Nilsen (character_id: 5)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Watching for Weakness",
-        content="The halfling passenger - she moves like a thief. Takes one to know one. I've been watching her, and she's definitely casing the ship. Maybe we can come to an arrangement, or maybe I'll just wait and take whatever she finds. Young Finn would make good bait if I need a distraction.",
-        character_ids=[5]  # Gregor only
-    ),
+
 ]

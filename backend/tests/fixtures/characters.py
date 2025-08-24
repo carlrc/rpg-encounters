@@ -87,7 +87,7 @@ characters_db = [
     communication_style="Classic sailor speech, thick with slang and superstition. Calls people 'matey' or 'shipmate.' Often spins yarns and gives unsolicited advice. 'Mind the kraken's pull, lad. She's a fickle beast, the sea.'",
     motivation="To earn enough coin to retire comfortably in a quiet port town. He's not above a bit of smuggling on the side if the opportunity arises.",
     personality="Grizzled and weathered, with a twinkle in his eye. He's a gossip and knows every rumor circulating on the ship. He judges people by their ability to handle themselves on a ship, not by their birth.",
-    voice="JBFqnCBsd6RMkjVDRZzb",
+    voice="7kBsLPSomsBitGHuwCdF",
     race_preferences={
       Race.HILL_DWARF.value: 1,
       Race.MOUNTAIN_DWARF.value: 1,
@@ -115,7 +115,7 @@ characters_db = [
     communication_style="Speaks with a thick, rural accent, often mumbling. He uses simple, un-nautical language unless repeating an order. He says 'aye' and 'right' a lot. He's not confident enough to engage in the typical sailor banter.",
     motivation="To see the world beyond his small village and perhaps find his fortune. He is impressionable and eager to prove his worth.",
     personality="Hardworking and diligent, but a bit naive. He is easily intimidated by the older crew members and is wary of strangers.",
-    voice="JBFqnCBsd6RMkjVDRZzb",
+    voice="HYM6YgFANZinEBanknZK",
     race_preferences={},
     class_preferences={},
     gender_preferences={},
@@ -135,7 +135,7 @@ characters_db = [
     communication_style="Shouts and curses like the saltiest of sailors, but with a maternal twist. 'Get this swill in ye before it gets cold, ye scurvy dogs!' Her compliments are as rare as a calm sea, but her insults are plentiful and creative.",
     motivation="To provide good, hearty meals for the crew and ensure everyone is well-fed and healthy. She feels a sense of responsibility for the crew's well-being.",
     personality="Motherly but stern. She is an excellent source of information, as everyone comes to her for food and tends to talk. She dislikes laziness and waste.",
-    voice="JBFqnCBsd6RMkjVDRZzb",
+    voice="FVQMzxJGPUBtfz1Azdoy",
     race_preferences={
       Race.LIGHTFOOT_HALFLING.value: 1,
       Race.STOUT_HALFLING.value: 1
@@ -160,7 +160,7 @@ characters_db = [
     communication_style="A low, gravelly voice. He peppers his speech with guttural laughs and cruel jokes. He uses mockingly endearing terms like 'pal' or 'friend' before delivering a threat. 'Don't you worry your pretty little head about it, pal. Accidents happen at sea.'",
     motivation="Greed and self-preservation. He is always looking for an angle to exploit for personal gain and is not loyal to anyone but himself.",
     personality="A bully who preys on the weaker members of the crew like Finn. He is constantly scanning for weaknesses and opportunities. He despises authority but is smart enough to feign obedience to Captain Thorne.",
-    voice="JBFqnCBsd6RMkjVDRZzb",
+    voice="2EVscXwJhGYuLiX1PgKA",
     race_preferences={
         Race.HALF_ORC.value: 1,
         Race.TIEFLING.value: 1
@@ -187,7 +187,7 @@ characters_db = [
     communication_style="Polite, eloquent, and condescending. She speaks with the refined accent of the nobility and treats the crew as mere servants. She makes a point of not using any nautical terms, highlighting her detachment from the world of the ship.",
     motivation="Her true motives are unknown. She is watchful and observant, taking note of everything that happens on the ship. She might be a rival agent, a spy, or something else entirely.",
     personality="Aloof, intelligent, and manipulative. She exudes an aura of superiority and entitlement. She is patient and calculating, never revealing her true intentions.",
-    voice="JBFqnCBsd6RMkjVDRZzb",
+    voice="CAm8Nf1Krs1nSXtbaMmI",
     race_preferences={
         Race.HUMAN.value: 3
     },

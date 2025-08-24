@@ -202,7 +202,7 @@
   import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useEntityCRUD } from '../utils/useEntityCRUD.js'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
-  import { applyCharacterFilters } from '../utils/filterUtils.js'
+  import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
   import { getDCLabel } from '../utils/dcUtils.js'
@@ -237,13 +237,19 @@
       const characters = ref([])
 
       // Reveal filter tabs configuration
-      const revealFilterTabs = [{ id: 'characters', label: 'Characters' }]
+      const revealFilterTabs = [
+        { id: 'characters', label: 'Characters' },
+        { id: 'race', label: 'Race' },
+        { id: 'alignment', label: 'Alignment' },
+      ]
 
       // Character filtering state
       const activeFilters = ref({
         characters: [], // Use 'characters' to match the tab id
         characterIds: [], // Keep for compatibility with applyCharacterFilters
         showUnassigned: false,
+        race: [],
+        alignment: [],
       })
 
       const createForm = reactive({
@@ -343,18 +349,31 @@
         await loadCharacters()
       })
 
-      // Filtered entities based on character filters
+      // Filtered entities based on character filters and character attributes
       const filteredEntities = computed(() => {
-        return applyCharacterFilters(entities.value, activeFilters.value)
+        // First apply character ID filters (existing functionality)
+        let filtered = applyCharacterFilters(entities.value, activeFilters.value)
+
+        // Then apply character attribute filters (new functionality)
+        filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
+
+        return filtered
       })
 
       const hasActiveCharacterFilters = computed(() => {
-        return activeFilters.value.characterIds.length > 0 || activeFilters.value.showUnassigned
+        return (
+          activeFilters.value.characterIds.length > 0 ||
+          activeFilters.value.showUnassigned ||
+          activeFilters.value.race.length > 0 ||
+          activeFilters.value.alignment.length > 0
+        )
       })
 
       const clearCharacterFilters = () => {
         activeFilters.value.characterIds = []
         activeFilters.value.showUnassigned = false
+        activeFilters.value.race = []
+        activeFilters.value.alignment = []
       }
 
       return {

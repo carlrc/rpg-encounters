@@ -43,8 +43,6 @@ class PersonalityGenerator:
             Class Preferences: {character_data.class_preferences or 'None specified'}
             Gender Preferences: {character_data.gender_preferences or 'None specified'}
             Size Preferences: {character_data.size_preferences or 'None specified'}
-            Appearance Keywords: {character_data.appearance_keywords or 'None specified'}
-            Storytelling Keywords: {character_data.storytelling_keywords or 'None specified'}
             IMPORTANT: Explain WHY this character has these specific bias preferences based on their background and experiences, and how these biases affect their trust evaluation of different types of people.
         """
 
