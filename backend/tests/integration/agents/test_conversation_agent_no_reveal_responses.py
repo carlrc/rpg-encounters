@@ -38,6 +38,7 @@ CHARACTER = Character(
 
 PLAYER = Player(
     id=100,
+    rl_name="Test",
     name="Wondering Bard",
     appearance="A small women with long brown hair with strong cheek bones.",
     race=Race.LIGHTFOOT_HALFLING.value,

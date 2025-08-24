@@ -43,6 +43,7 @@ CHARACTER = Character(
 
 PLAYER = Player(
     id=100,
+    rl_name="Test",
     name="Wondering Bard",
     appearance="A small women with long brown hair with strong cheek bones.",
     race=Race.LIGHTFOOT_HALFLING.value,
@@ -186,6 +187,7 @@ async def test_personality_based_earned_influence_can_be_negative():
     # Make player not to the characters preferences
     opposing_player = Player(
         id=101,
+        rl_name="Test",
         name="Wondering Barbarian",
         appearance="A large man with a big black beard.",
         race=Race.HUMAN.value,
