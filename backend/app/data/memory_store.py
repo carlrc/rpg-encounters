@@ -1,23 +1,29 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.db.models.memory import MemoryORM
 from app.models.memory import Memory, MemoryCreate, MemoryUpdate
 
 
-class MemoryStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class MemoryStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def get_all_memories(self) -> List[Memory]:
         """Get all memories for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             memory_orms = (
                 session.query(MemoryORM)
                 .filter(
@@ -30,7 +36,7 @@ class MemoryStore:
 
     def get_by_character_id(self, character_id: int) -> List[Memory]:
         """Get all memories for a character using relationship"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character = (
                 session.query(CharacterORM)
                 .filter(CharacterORM.id == character_id)
@@ -46,7 +52,7 @@ class MemoryStore:
 
     def get_memory(self, memory_id: int) -> Memory | None:
         """Get a specific memory by ID for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             memory_orm = (
                 session.query(MemoryORM)
                 .filter(
@@ -66,7 +72,7 @@ class MemoryStore:
 
     def create_memory(self, memory_data: MemoryCreate) -> Memory:
         """Create a new memory with automatic association management"""
-        with self.Session() as session:
+        with self.get_session() as session:
             memory_orm = MemoryORM(
                 title=memory_data.title,
                 content=memory_data.content,
@@ -92,7 +98,7 @@ class MemoryStore:
         self, memory_id: int, memory_update: MemoryUpdate
     ) -> Memory | None:
         """Update memory with simplified association handling"""
-        with self.Session() as session:
+        with self.get_session() as session:
             memory_orm = (
                 session.query(MemoryORM)
                 .filter(
@@ -128,7 +134,7 @@ class MemoryStore:
 
     def delete_memory(self, memory_id: int) -> bool:
         """Delete a memory"""
-        with self.Session() as session:
+        with self.get_session() as session:
             memory_orm = (
                 session.query(MemoryORM)
                 .filter(
@@ -147,7 +153,7 @@ class MemoryStore:
 
     def memory_exists(self, memory_id: int) -> bool:
         """Check if a memory exists"""
-        with self.Session() as session:
+        with self.get_session() as session:
             return (
                 session.query(MemoryORM)
                 .filter(

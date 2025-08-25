@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 from fastapi import WebSocket
 from langfuse import get_client
-from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelMessage
 from sqlalchemy.orm import sessionmaker
 
 from app.agents.conversations.conversation_agent import (
@@ -19,17 +19,12 @@ from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
+from app.data.encounter_store import EncounterStore
 from app.data.influence_store import InfluenceStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
 from app.db.connection import get_db_engine
-from app.db.models.character import CharacterORM
-from app.db.models.conversation import ConversationORM
-from app.db.models.encounter import EncounterORM
-from app.db.models.influence import InfluenceORM
-from app.db.models.memory import MemoryORM
-from app.db.models.reveal import RevealORM
 from app.dependencies import (
     get_transcription_service,
     get_tts_service,
@@ -40,6 +35,7 @@ from app.models.memory import Memory
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.influence_calculator import calculate_base_influence
+from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
@@ -59,100 +55,67 @@ def get_conversation_context(
 ) -> Tuple[Encounter, Influence, List[Reveal], List[Memory], List[ModelMessage] | None]:
     """
     Get all conversation-related data for a character in a single database session.
+    Auto-adds character to encounter if not already present.
     """
     Session = sessionmaker(get_db_engine())
 
     try:
         with Session() as session:
+            # Create store instances with shared session
+            encounter_store = EncounterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            reveal_store = RevealStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            memory_store = MemoryStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            conversation_store = ConversationStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            influence_store = InfluenceStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+
             # Get encounter
-            encounter_orm = (
-                session.query(EncounterORM)
-                .filter(
-                    EncounterORM.id == encounter_id,
-                    EncounterORM.world_id == world_id,
-                    EncounterORM.user_id == user_id,
+            encounter = encounter_store.get_encounter_by_id(encounter_id)
+            if not encounter:
+                raise ValueError(f"Encounter {encounter_id} not found")
+
+            # Auto-add character to encounter if not already present
+            if character_id not in encounter.character_ids:
+                logger.debug(
+                    f"Auto-adding character {character_id} to encounter {encounter_id}"
                 )
-                .first()
-            )
+                encounter_store.add_character_to_encounter(encounter_id, character_id)
+                # Refresh encounter data after adding character
+                encounter = encounter_store.get_encounter_by_id(encounter_id)
 
-            reveals_orm = (
-                session.query(RevealORM)
-                .join(RevealORM.characters)
-                .filter(CharacterORM.id == character_id)
-                .all()
-            )
+            # Get all related data using shared session
+            reveals = reveal_store.get_by_character_id(character_id)
+            memories = memory_store.get_by_character_id(character_id)
 
-            memories_orm = (
-                session.query(MemoryORM)
-                .join(MemoryORM.characters)
-                .filter(CharacterORM.id == character_id)
-                .all()
-            )
+            # Get or create conversation
+            conversation = conversation_store.get(player_id, character_id, encounter_id)
+            if not conversation:
+                from app.models.conversation import ConversationCreate
 
-            conversation_orm = (
-                session.query(ConversationORM)
-                .filter(
-                    ConversationORM.player_id == player_id,
-                    ConversationORM.character_id == character_id,
-                    ConversationORM.encounter_id == encounter_id,
-                    ConversationORM.user_id == user_id,
-                    ConversationORM.world_id == world_id,
-                )
-                .first()
-            )
-
-            # Create conversation if it doesn't exist
-            if not conversation_orm:
-                conversation_orm = ConversationORM(
+                conversation_data = ConversationCreate(
                     player_id=player_id,
                     character_id=character_id,
                     encounter_id=encounter_id,
-                    user_id=user_id,
-                    world_id=world_id,
-                    messages=None,
+                    messages=[],
                 )
-                session.add(conversation_orm)
-                session.flush()
-                session.commit()
-                session.refresh(conversation_orm)
+                conversation = conversation_store.create(conversation_data)
 
-            # Get or create influence in the same session
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
-                    InfluenceORM.character_id == character_id,
-                    InfluenceORM.player_id == player_id,
-                    InfluenceORM.user_id == user_id,
-                    InfluenceORM.world_id == world_id,
-                )
-                .first()
+            # Get or create influence
+            influence = influence_store.get_or_create(
+                character_id, player_id, base_influence
             )
 
-            # Create influence if it doesn't exist
-            if not influence_orm:
-                influence_orm = InfluenceORM(
-                    character_id=character_id,
-                    player_id=player_id,
-                    base=base_influence,
-                    earned=0,
-                    user_id=user_id,
-                    world_id=world_id,
-                )
-                session.add(influence_orm)
-                session.flush()
-                session.commit()
-                session.refresh(influence_orm)
-
-            # Convert to domain models
-            encounter = Encounter.model_validate(encounter_orm)
-            influence = Influence.model_validate(influence_orm)
-            reveals = [RevealStore.orm_to_reveal(reveal) for reveal in reveals_orm]
-            memories = [MemoryStore.orm_to_memory(memory) for memory in memories_orm]
-            messages = (
-                ModelMessagesTypeAdapter.validate_json(conversation_orm.messages)
-                if conversation_orm and conversation_orm.messages
-                else None
-            )
+            # Extract messages
+            messages = conversation.messages if conversation else None
 
             return encounter, influence, reveals, memories, messages
     except Exception as e:
@@ -286,6 +249,21 @@ async def have_conversation(
         InfluenceStore(user_id=user_id, world_id=world_id).update_influence(
             influence=influence
         )
+
+        # Send conversation data before audio streaming
+        conversation_data = {
+            "type": "conversation_data",
+            "influence": influence.score,
+            "reveals": [
+                calculate_reveal_progress(reveal, influence.score)
+                for reveal in all_reveals
+            ],
+        }
+
+        try:
+            await websocket.send_json(conversation_data)
+        except Exception as e:
+            logger.error(f"Failed to send conversation data: {e}")
 
         # Stream TTS audio chunks back to frontend
         for audio_chunk in get_tts_service().text_to_speech_stream(

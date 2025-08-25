@@ -29,6 +29,31 @@
           </div>
         </div>
 
+        <!-- Conversation stats display -->
+        <div class="conversation-stats" v-if="influenceScore !== null || revealsData.length > 0">
+          <div class="influence-display" v-if="influenceScore !== null">
+            <span class="stat-label">Influence:</span>
+            <span class="stat-value">{{ influenceScore }}</span>
+          </div>
+
+          <div class="reveals-section" v-if="revealsData.length > 0">
+            <h4 class="reveals-title">Reveals</h4>
+            <div class="reveals-list">
+              <div
+                v-for="reveal in revealsData"
+                :key="reveal.id"
+                class="reveal-item reveal-clickable"
+                @click="navigateToReveal(reveal)"
+              >
+                <span class="reveal-title">{{ reveal.title }}</span>
+                <span class="reveal-progress" :class="getProgressClass(reveal)">
+                  {{ reveal.progress }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="encounter-controls">
           <div class="player-selection">
             <label for="player-select">Speaking Player:</label>
@@ -93,7 +118,7 @@
 </template>
 
 <script>
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameData } from '../composables/useGameData.js'
@@ -139,6 +164,10 @@
       const mediaRecorder = ref(null)
       const audioContext = ref(null)
       const audioChunks = ref([])
+
+      // NEW: Conversation data state
+      const influenceScore = ref(null)
+      const revealsData = ref([])
 
       // Challenge mode state
       const isChallengeMode = ref(false)
@@ -225,6 +254,42 @@
         websocket.value = null
       }
 
+      const isConversationData = (v) =>
+        v && v.type === 'conversation_data' && 'influence' in v && 'reveals' in v
+
+      const CONTROL = {
+        AUDIO_COMPLETE: () => {
+          playAccumulatedAudio()
+          isProcessing.value = false
+          closeWebSocket()
+        },
+      }
+
+      const handleWSMessage = (data) => {
+        // Binary audio chunks
+        if (data instanceof Blob) {
+          processAudioChunk(data)
+          return
+        }
+
+        // Text frames: fast path for control tokens
+        if (typeof data === 'string') {
+          const control = CONTROL[data]
+          if (control) {
+            control()
+            return
+          }
+
+          // Assume its JSON
+          const json = JSON.parse(data)
+          if (isConversationData(json)) {
+            influenceScore.value = json.influence ?? null
+            revealsData.value = Array.isArray(json.reveals) ? json.reveals : []
+            return
+          }
+        }
+      }
+
       const connectWebSocket = () => {
         if (!selectedPlayerId.value || !props.character?.id) return
 
@@ -239,21 +304,14 @@
         try {
           websocket.value = new WebSocket(wsUrl)
 
+          // Set binary type explicitly for better performance
+          websocket.value.binaryType = 'blob'
+
           websocket.value.onopen = () => {
             // WebSocket connected
           }
 
-          websocket.value.onmessage = (event) => {
-            if (event.data instanceof Blob) {
-              processAudioChunk(event.data)
-            } else if (typeof event.data === 'string') {
-              if (event.data === 'AUDIO_COMPLETE') {
-                playAccumulatedAudio()
-                isProcessing.value = false
-                closeWebSocket()
-              }
-            }
-          }
+          websocket.value.onmessage = (event) => handleWSMessage(event.data)
 
           websocket.value.onerror = (error) => {
             console.error('WebSocket connection error')
@@ -388,6 +446,54 @@
         }
       }
 
+      const navigateToReveal = (reveal) => {
+        router.push({
+          path: '/reveals',
+          query: { id: reveal.id },
+        })
+      }
+
+      const getProgressClass = (reveal) => {
+        const { unlocked_layers, total_layers } = reveal
+        if (unlocked_layers === 0) return 'progress-locked'
+        if (unlocked_layers === total_layers) return 'progress-complete'
+        return 'progress-partial'
+      }
+
+      const fetchConversationData = async () => {
+        if (!selectedPlayerId.value) {
+          return
+        }
+
+        const data = await apiService.getConversationData(
+          props.encounterId,
+          selectedPlayerId.value,
+          props.character.id
+        )
+
+        influenceScore.value = data.influence
+        revealsData.value = data.reveals
+      }
+
+      // Automatically reset conversation data when character changes
+      watch(
+        () => props.character?.id,
+        () => {
+          influenceScore.value = null
+          revealsData.value = []
+        }
+      )
+
+      // Fetch conversation data when player selection changes
+      watch(
+        () => selectedPlayerId.value,
+        () => {
+          if (selectedPlayerId.value) {
+            fetchConversationData()
+          }
+        }
+      )
+
       onMounted(async () => {
         await loadGameData()
         loadData()
@@ -426,6 +532,11 @@
         toggleChallengeMode,
         navigateToCharacter,
         getInitials,
+        influenceScore,
+        revealsData,
+        getProgressClass,
+        navigateToReveal,
+        fetchConversationData,
       }
     },
   }
@@ -759,5 +870,101 @@
   .status.processing {
     color: #ffc107;
     font-weight: 600;
+  }
+
+  /* Conversation stats container */
+  .conversation-stats {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+  }
+
+  /* Influence display */
+  .influence-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+  }
+
+  .stat-label {
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .stat-value {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 1.3em;
+  }
+
+  /* Reveals section */
+  .reveals-section {
+    margin-top: 20px;
+  }
+
+  .reveals-title {
+    margin: 0 0 10px 0;
+    font-size: 1.1em;
+    color: #495057;
+    font-weight: 600;
+  }
+
+  .reveals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .reveal-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease;
+  }
+
+  .reveal-clickable {
+    cursor: pointer;
+  }
+
+  .reveal-clickable:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.15);
+  }
+
+  .reveal-title {
+    color: #2c3e50;
+    flex: 1;
+  }
+
+  .reveal-progress {
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .progress-locked {
+    background: #e9ecef;
+    color: #6c757d;
+  }
+
+  .progress-partial {
+    background: #fff3cd;
+    color: #856404;
+  }
+
+  .progress-complete {
+    background: #d4edda;
+    color: #155724;
   }
 </style>

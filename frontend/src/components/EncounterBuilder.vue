@@ -84,6 +84,7 @@
 
 <script>
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
@@ -91,7 +92,7 @@
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
   import { useNotification } from '../composables/useNotification.js'
-  import { generateTempId, isTemporaryId } from '../utils/idUtils.js'
+  import { isTemporaryId } from '../utils/idUtils.js'
   import { saveViewport, getViewport } from '../utils/viewportState.js'
 
   export default {
@@ -104,6 +105,8 @@
     setup() {
       const { gameData, loadGameData } = useGameData()
       const { showSuccess, showError } = useNotification()
+      const router = useRouter()
+      const route = useRoute()
 
       // State
       const characters = ref([])
@@ -311,18 +314,29 @@
           return
         }
 
-        // Check if this is a temporary UUID or existing database ID
-        const numericEncounterId = isTemporaryId(encounterId) ? null : parseInt(encounterId)
-
         selectedCharacter.value = character
-        selectedEncounterId.value = numericEncounterId
+        selectedEncounterId.value = encounterId
         showEncounterPopup.value = true
+
+        // Add popup state to URL
+        router.replace({
+          query: {
+            ...route.query,
+            popup: 'encounter',
+            characterId: character.id,
+            encounterId: encounterId,
+          },
+        })
       }
 
       const closeEncounterPopup = () => {
         showEncounterPopup.value = false
         selectedCharacter.value = null
         selectedEncounterId.value = null
+
+        // Remove popup params from URL
+        const { popup, characterId, encounterId, ...remainingQuery } = route.query
+        router.replace({ query: remainingQuery })
       }
 
       // Handle new connections created by dragging
@@ -375,39 +389,52 @@
       }
 
       // Add new encounter at current viewport center
-      const addNewEncounter = () => {
+      const addNewEncounter = async () => {
         if (!vueFlowRef.value) return
 
-        // Get current viewport to position encounter at center
-        const viewport = vueFlowRef.value.getViewport()
-        const canvasRect = vueFlowRef.value.$el.getBoundingClientRect()
+        try {
+          // Get current viewport to position encounter at center
+          const viewport = vueFlowRef.value.getViewport()
+          const canvasRect = vueFlowRef.value.$el.getBoundingClientRect()
 
-        // Calculate center position accounting for viewport transform
-        const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
-        const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
+          // Calculate center position accounting for viewport transform
+          const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
+          const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
 
-        // Generate unique encounter ID using UUID
-        const encounterId = generateTempId()
-
-        // Create new encounter object
-        const newEncounter = {
-          id: encounterId,
-          type: 'encounter',
-          position: {
-            x: centerX - 150, // Offset by half encounter width for centering
-            y: centerY - 75, // Offset by half encounter height for centering
-          },
-          data: {
+          // Create encounter in database immediately
+          const encounterData = {
             name: 'New Encounter',
             description: '',
-            characters: [],
-            isNew: true, // New encounter created by user
-            autoOpenDescription: true, // Auto-open description for new encounters
-          },
-        }
+            position_x: centerX,
+            position_y: centerY,
+            character_ids: [],
+          }
 
-        // Add encounter to elements
-        elements.value.push(newEncounter)
+          const createdEncounter = await apiService.createEncounter(encounterData)
+
+          // Create new encounter object
+          const newEncounter = {
+            id: String(createdEncounter.id), // Vue Flow requires string IDs
+            type: 'encounter',
+            position: {
+              x: createdEncounter.position_x,
+              y: createdEncounter.position_y,
+            },
+            data: {
+              name: createdEncounter.name,
+              description: createdEncounter.description,
+              characters: [],
+              isNew: false, // Already saved to database
+              autoOpenDescription: true,
+            },
+          }
+
+          // Add encounter to elements
+          elements.value.push(newEncounter)
+          showSuccess('New encounter created!')
+        } catch (error) {
+          showError(`Failed to create encounter: ${error.message}`)
+        }
       }
 
       // Update encounter name
@@ -694,10 +721,30 @@
         loadData()
       }
 
+      // Restore popup from URL params
+      const restorePopupFromParams = () => {
+        const { popup, characterId, encounterId } = route.query
+        if (popup === 'encounter' && characterId && encounterId) {
+          const character = characters.value.find((c) => c.id === parseInt(characterId))
+          if (character) {
+            selectedCharacter.value = character
+            selectedEncounterId.value = encounterId
+            showEncounterPopup.value = true
+          }
+        }
+      }
+
       onMounted(() => {
         loadData()
         // Listen for world changes
         window.addEventListener('world-changed', handleWorldChange)
+      })
+
+      // Restore popup when characters load
+      watch(characters, () => {
+        if (characters.value.length > 0) {
+          restorePopupFromParams()
+        }
       })
 
       onUnmounted(() => {

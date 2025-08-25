@@ -1,28 +1,30 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.user import UserORM
 from app.models.user import User, UserCreate, UserUpdate
 
 
-class UserStore:
-    def __init__(self, user_id: int = None, engine: Engine = get_db_engine()):
+class UserStore(BaseStore):
+    def __init__(
+        self, user_id: int = None, engine: Engine = get_db_engine(), session=None
+    ):
         """Initialize UserStore with user_id to follow the same pattern as other stores"""
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
+        # UserStore doesn't have world_id, so we pass None
+        super().__init__(user_id=user_id, world_id=None, engine=engine, session=session)
 
     def get_all_users(self) -> List[User]:
         """Get all users"""
-        with self.Session() as session:
+        with self.get_session() as session:
             user_orms = session.query(UserORM).all()
             return [User.model_validate(user_orm) for user_orm in user_orms]
 
     def get_user_by_id(self, user_id: int) -> User | None:
         """Get a specific user by ID"""
-        with self.Session() as session:
+        with self.get_session() as session:
             user_orm = session.query(UserORM).filter(UserORM.id == user_id).first()
             if user_orm:
                 return User.model_validate(user_orm)
@@ -30,7 +32,7 @@ class UserStore:
 
     def create_user(self, user_data: UserCreate) -> User:
         """Create a new user"""
-        with self.Session() as session:
+        with self.get_session() as session:
             user_orm = UserORM(**user_data.model_dump())
             session.add(user_orm)
             session.commit()
@@ -39,7 +41,7 @@ class UserStore:
 
     def update_user(self, user_id: int, user_update: UserUpdate) -> User | None:
         """Update an existing user"""
-        with self.Session() as session:
+        with self.get_session() as session:
             user_orm = session.query(UserORM).filter(UserORM.id == user_id).first()
             if not user_orm:
                 return None
@@ -54,7 +56,7 @@ class UserStore:
 
     def delete_user(self) -> bool:
         """Delete a user"""
-        with self.Session() as session:
+        with self.get_session() as session:
             user_orm = session.query(UserORM).filter(UserORM.id == self.user_id).first()
             if not user_orm:
                 return False
@@ -65,7 +67,7 @@ class UserStore:
 
     def user_exists(self, user_id: int) -> bool:
         """Check if a user exists"""
-        with self.Session() as session:
+        with self.get_session() as session:
             return (
                 session.query(UserORM).filter(UserORM.id == user_id).first() is not None
             )

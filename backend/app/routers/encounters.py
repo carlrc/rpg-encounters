@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
 
@@ -20,7 +20,8 @@ from app.models.encounter_connection import (
     ConnectionUpdate,
 )
 from app.services.challenge import challenge_character
-from app.services.conversation import have_conversation
+from app.services.conversation import get_conversation_context, have_conversation
+from app.services.reveal_progress import calculate_reveal_progress
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
@@ -175,6 +176,43 @@ async def get_encounter_connections(
     return ConnectionStore(
         user_id=user_id, world_id=world_id
     ).get_connections_for_encounter(encounter_id)
+
+
+@router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
+async def get_conversation_data(
+    encounter_id: int,
+    player_id: int,
+    character_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+) -> Dict:
+    """Get current influence and reveals data for a player/character combination"""
+    user_id, world_id = user_world
+
+    try:
+        # TODO: Wasted db calls to influence, memories and messages
+        _, influence, all_reveals, _, _ = get_conversation_context(
+            world_id=world_id,
+            player_id=player_id,
+            user_id=user_id,
+            character_id=character_id,
+            encounter_id=encounter_id,
+            base_influence=0,
+        )
+
+        # Format response to match WebSocket conversation_data format
+        return {
+            "type": "conversation_data",
+            "influence": influence.score,
+            "reveals": [
+                calculate_reveal_progress(reveal, influence.score)
+                for reveal in all_reveals
+            ],
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get conversation data: {str(e)}"
+        )
 
 
 # Batch endpoints

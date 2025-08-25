@@ -1,8 +1,8 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.connection import ConnectionORM
 from app.models.encounter_connection import (
@@ -12,15 +12,21 @@ from app.models.encounter_connection import (
 )
 
 
-class ConnectionStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class ConnectionStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def get_all_connections(self) -> List[Connection]:
         """Get all connections for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             connection_orms = (
                 session.query(ConnectionORM)
                 .filter(
@@ -36,7 +42,7 @@ class ConnectionStore:
 
     def get_connection_by_id(self, connection_id: int) -> Connection | None:
         """Get a specific connection by ID for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             connection_orm = (
                 session.query(ConnectionORM)
                 .filter(
@@ -52,7 +58,7 @@ class ConnectionStore:
 
     def create_connection(self, connection_data: ConnectionCreate) -> Connection:
         """Create a new connection"""
-        with self.Session() as session:
+        with self.get_session() as session:
             connection_dict = connection_data.model_dump()
             connection_orm = ConnectionORM(
                 **connection_dict, user_id=self.user_id, world_id=self.world_id
@@ -66,7 +72,7 @@ class ConnectionStore:
         self, connection_id: int, connection_update: ConnectionUpdate
     ) -> Connection | None:
         """Update an existing connection for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             connection_orm = (
                 session.query(ConnectionORM)
                 .filter(
@@ -92,7 +98,7 @@ class ConnectionStore:
 
     def delete_connection(self, connection_id: int) -> bool:
         """Delete a connection for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             connection_orm = (
                 session.query(ConnectionORM)
                 .filter(
@@ -111,7 +117,7 @@ class ConnectionStore:
 
     def get_connections_for_encounter(self, encounter_id: int) -> List[Connection]:
         """Get all connections that involve a specific encounter for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             connection_orms = (
                 session.query(ConnectionORM)
                 .filter(
@@ -129,7 +135,7 @@ class ConnectionStore:
 
     def connection_exists(self, connection_id: int) -> bool:
         """Check if a connection exists for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             return (
                 session.query(ConnectionORM)
                 .filter(
