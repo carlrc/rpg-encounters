@@ -92,7 +92,7 @@
   import apiService from '../services/api.js'
   import { useGameData } from '../composables/useGameData.js'
   import { useNotification } from '../composables/useNotification.js'
-  import { generateTempId, isTemporaryId } from '../utils/idUtils.js'
+  import { isTemporaryId } from '../utils/idUtils.js'
   import { saveViewport, getViewport } from '../utils/viewportState.js'
 
   export default {
@@ -389,39 +389,52 @@
       }
 
       // Add new encounter at current viewport center
-      const addNewEncounter = () => {
+      const addNewEncounter = async () => {
         if (!vueFlowRef.value) return
 
-        // Get current viewport to position encounter at center
-        const viewport = vueFlowRef.value.getViewport()
-        const canvasRect = vueFlowRef.value.$el.getBoundingClientRect()
+        try {
+          // Get current viewport to position encounter at center
+          const viewport = vueFlowRef.value.getViewport()
+          const canvasRect = vueFlowRef.value.$el.getBoundingClientRect()
 
-        // Calculate center position accounting for viewport transform
-        const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
-        const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
+          // Calculate center position accounting for viewport transform
+          const centerX = (canvasRect.width / 2 - viewport.x) / viewport.zoom
+          const centerY = (canvasRect.height / 2 - viewport.y) / viewport.zoom
 
-        // Generate unique encounter ID using UUID
-        const encounterId = generateTempId()
-
-        // Create new encounter object
-        const newEncounter = {
-          id: encounterId,
-          type: 'encounter',
-          position: {
-            x: centerX - 150, // Offset by half encounter width for centering
-            y: centerY - 75, // Offset by half encounter height for centering
-          },
-          data: {
+          // Create encounter in database immediately
+          const encounterData = {
             name: 'New Encounter',
             description: '',
-            characters: [],
-            isNew: true, // New encounter created by user
-            autoOpenDescription: true, // Auto-open description for new encounters
-          },
-        }
+            position_x: centerX,
+            position_y: centerY,
+            character_ids: [],
+          }
 
-        // Add encounter to elements
-        elements.value.push(newEncounter)
+          const createdEncounter = await apiService.createEncounter(encounterData)
+
+          // Create new encounter object
+          const newEncounter = {
+            id: String(createdEncounter.id), // Vue Flow requires string IDs
+            type: 'encounter',
+            position: {
+              x: createdEncounter.position_x,
+              y: createdEncounter.position_y,
+            },
+            data: {
+              name: createdEncounter.name,
+              description: createdEncounter.description,
+              characters: [],
+              isNew: false, // Already saved to database
+              autoOpenDescription: true,
+            },
+          }
+
+          // Add encounter to elements
+          elements.value.push(newEncounter)
+          showSuccess('New encounter created!')
+        } catch (error) {
+          showError(`Failed to create encounter: ${error.message}`)
+        }
       }
 
       // Update encounter name

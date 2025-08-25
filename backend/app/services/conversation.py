@@ -60,6 +60,7 @@ def get_conversation_context(
 ) -> Tuple[Encounter, Influence, List[Reveal], List[Memory], List[ModelMessage] | None]:
     """
     Get all conversation-related data for a character in a single database session.
+    Auto-adds character to encounter if not already present.
     """
     Session = sessionmaker(get_db_engine())
 
@@ -75,6 +76,26 @@ def get_conversation_context(
                 )
                 .first()
             )
+
+            # Auto-add character to encounter if not already present
+            current_character_ids = [char.id for char in encounter_orm.characters]
+            if character_id not in current_character_ids:
+                logger.debug(
+                    f"Auto-adding character {character_id} to encounter {encounter_id}"
+                )
+                # Get the character ORM object and add to relationship
+                character_orm = (
+                    session.query(CharacterORM)
+                    .filter(
+                        CharacterORM.id == character_id,
+                        CharacterORM.world_id == world_id,
+                        CharacterORM.user_id == user_id,
+                    )
+                    .first()
+                )
+                encounter_orm.characters.append(character_orm)
+                session.flush()
+                session.commit()
 
             reveals_orm = (
                 session.query(RevealORM)

@@ -18,6 +18,7 @@ from app.dependencies import (
     get_transcription_service,
     get_tts_service,
 )
+from app.models.encounter import EncounterUpdate
 from app.services.ability_challenge import (
     D20Outcomes,
     calculate_skill_check,
@@ -63,9 +64,18 @@ async def challenge_character(
         player = PlayerStore(world_id=world_id, user_id=user_id).get_player_by_id(
             player_id=player_id
         )
-        encounter = EncounterStore(
-            world_id=world_id, user_id=user_id
-        ).get_encounter_by_id(encounter_id=encounter_id)
+        encounter_store = EncounterStore(world_id=world_id, user_id=user_id)
+        encounter = encounter_store.get_encounter_by_id(encounter_id=encounter_id)
+
+        # Auto-add character to encounter if not already present
+        # Can happen if you create an encounter and add a character without saving
+        current_character_ids = encounter.character_ids or []
+        if character_id not in current_character_ids:
+            current_character_ids.append(character_id)
+            encounter_update = EncounterUpdate(
+                id=encounter_id, character_ids=current_character_ids
+            )
+            encounter_store.update_encounter(encounter_id, encounter_update)
 
         # Calculate skill check: d20 + player skill bonus
         total_roll = calculate_skill_check(
