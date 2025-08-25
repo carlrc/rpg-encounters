@@ -192,6 +192,10 @@ class ApiService {
     })
   }
 
+  async getConversationData(encounterId, playerId, characterId) {
+    return this.request(`/encounters/${encounterId}/conversation/${playerId}/${characterId}`)
+  }
+
   // Canvas save operation
   async saveCanvas(canvasData) {
     return this.request('/canvas/save', {

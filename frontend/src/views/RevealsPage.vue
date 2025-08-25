@@ -193,7 +193,8 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted } from 'vue'
+  import { ref, reactive, computed, onMounted, watch } from 'vue'
+  import { useRoute } from 'vue-router'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import RevealCard from '../components/RevealCard.vue'
@@ -218,6 +219,7 @@
       FilterPanel,
     },
     setup() {
+      const route = useRoute()
       const {
         entities,
         loading,
@@ -347,6 +349,15 @@
         createForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
         await loadEntities()
         await loadCharacters()
+
+        // Auto-select reveal if ID is provided in query params
+        const revealId = route.query.id
+        if (revealId) {
+          const id = parseInt(revealId)
+          if (!isNaN(id) && entities.value.length > 0) {
+            selectEntity(id)
+          }
+        }
       })
 
       // Filtered entities based on character filters and character attributes

@@ -84,6 +84,7 @@
 
 <script>
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+  import { useRouter, useRoute } from 'vue-router'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
@@ -104,6 +105,8 @@
     setup() {
       const { gameData, loadGameData } = useGameData()
       const { showSuccess, showError } = useNotification()
+      const router = useRouter()
+      const route = useRoute()
 
       // State
       const characters = ref([])
@@ -311,18 +314,29 @@
           return
         }
 
-        // Check if this is a temporary UUID or existing database ID
-        const numericEncounterId = isTemporaryId(encounterId) ? null : parseInt(encounterId)
-
         selectedCharacter.value = character
-        selectedEncounterId.value = numericEncounterId
+        selectedEncounterId.value = encounterId
         showEncounterPopup.value = true
+
+        // Add popup state to URL
+        router.replace({
+          query: {
+            ...route.query,
+            popup: 'encounter',
+            characterId: character.id,
+            encounterId: encounterId,
+          },
+        })
       }
 
       const closeEncounterPopup = () => {
         showEncounterPopup.value = false
         selectedCharacter.value = null
         selectedEncounterId.value = null
+
+        // Remove popup params from URL
+        const { popup, characterId, encounterId, ...remainingQuery } = route.query
+        router.replace({ query: remainingQuery })
       }
 
       // Handle new connections created by dragging
@@ -694,10 +708,30 @@
         loadData()
       }
 
+      // Restore popup from URL params
+      const restorePopupFromParams = () => {
+        const { popup, characterId, encounterId } = route.query
+        if (popup === 'encounter' && characterId && encounterId) {
+          const character = characters.value.find((c) => c.id === parseInt(characterId))
+          if (character) {
+            selectedCharacter.value = character
+            selectedEncounterId.value = encounterId
+            showEncounterPopup.value = true
+          }
+        }
+      }
+
       onMounted(() => {
         loadData()
         // Listen for world changes
         window.addEventListener('world-changed', handleWorldChange)
+      })
+
+      // Restore popup when characters load
+      watch(characters, () => {
+        if (characters.value.length > 0) {
+          restorePopupFromParams()
+        }
       })
 
       onUnmounted(() => {

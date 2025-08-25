@@ -40,6 +40,7 @@ from app.models.memory import Memory
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.influence_calculator import calculate_base_influence
+from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
@@ -286,6 +287,21 @@ async def have_conversation(
         InfluenceStore(user_id=user_id, world_id=world_id).update_influence(
             influence=influence
         )
+
+        # Send conversation data before audio streaming
+        conversation_data = {
+            "type": "conversation_data",
+            "influence": influence.score,
+            "reveals": [
+                calculate_reveal_progress(reveal, influence.score)
+                for reveal in all_reveals
+            ],
+        }
+
+        try:
+            await websocket.send_json(conversation_data)
+        except Exception as e:
+            logger.error(f"Failed to send conversation data: {e}")
 
         # Stream TTS audio chunks back to frontend
         for audio_chunk in get_tts_service().text_to_speech_stream(
