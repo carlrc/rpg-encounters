@@ -32,6 +32,7 @@ def test_influence_calculation():
     )
     player = Player(
         id=1,
+        rl_name="test",
         user_id=1,
         world_id=1,
         name="Sir Alaric Duskbane",
