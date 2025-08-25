@@ -252,8 +252,8 @@
   }
 
   .list-pane {
-    width: 25%;
-    min-width: 250px;
+    width: 30%;
+    min-width: 280px;
     display: flex;
     flex-direction: column;
     background: var(--bg-light);
