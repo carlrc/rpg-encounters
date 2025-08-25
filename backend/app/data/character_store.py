@@ -1,22 +1,28 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.models.character import Character, CharacterCreate, CharacterUpdate
 
 
-class CharacterStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class CharacterStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def get_all_characters(self) -> List[Character]:
         """Get all characters for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character_orms = (
                 session.query(CharacterORM)
                 .filter(
@@ -32,7 +38,7 @@ class CharacterStore:
 
     def get_character_by_id(self, character_id: int) -> Character | None:
         """Get a specific character by ID for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character_orm = (
                 session.query(CharacterORM)
                 .filter(
@@ -48,7 +54,7 @@ class CharacterStore:
 
     def create_character(self, character_data: CharacterCreate) -> Character:
         """Create a new character"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character_orm = CharacterORM(
                 **character_data.model_dump(),
                 user_id=self.user_id,
@@ -63,7 +69,7 @@ class CharacterStore:
         self, character_id: int, character_update: CharacterUpdate
     ) -> Character | None:
         """Update an existing character for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character_orm = (
                 session.query(CharacterORM)
                 .filter(
@@ -86,7 +92,7 @@ class CharacterStore:
 
     def delete_character(self, character_id: int) -> bool:
         """Delete a character for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character_orm = (
                 session.query(CharacterORM)
                 .filter(
@@ -105,7 +111,7 @@ class CharacterStore:
 
     def character_exists(self, character_id: int) -> bool:
         """Check if a character exists for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             return (
                 session.query(CharacterORM)
                 .filter(

@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 from fastapi import WebSocket
 from langfuse import get_client
-from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
+from pydantic_ai.messages import ModelMessage
 from sqlalchemy.orm import sessionmaker
 
 from app.agents.conversations.conversation_agent import (
@@ -19,17 +19,12 @@ from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
+from app.data.encounter_store import EncounterStore
 from app.data.influence_store import InfluenceStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
 from app.db.connection import get_db_engine
-from app.db.models.character import CharacterORM
-from app.db.models.conversation import ConversationORM
-from app.db.models.encounter import EncounterORM
-from app.db.models.influence import InfluenceORM
-from app.db.models.memory import MemoryORM
-from app.db.models.reveal import RevealORM
 from app.dependencies import (
     get_transcription_service,
     get_tts_service,
@@ -66,115 +61,61 @@ def get_conversation_context(
 
     try:
         with Session() as session:
-            # Get encounter
-            encounter_orm = (
-                session.query(EncounterORM)
-                .filter(
-                    EncounterORM.id == encounter_id,
-                    EncounterORM.world_id == world_id,
-                    EncounterORM.user_id == user_id,
-                )
-                .first()
+            # Create store instances with shared session
+            encounter_store = EncounterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            reveal_store = RevealStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            memory_store = MemoryStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            conversation_store = ConversationStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            influence_store = InfluenceStore(
+                user_id=user_id, world_id=world_id, session=session
             )
 
+            # Get encounter
+            encounter = encounter_store.get_encounter_by_id(encounter_id)
+            if not encounter:
+                raise ValueError(f"Encounter {encounter_id} not found")
+
             # Auto-add character to encounter if not already present
-            current_character_ids = [char.id for char in encounter_orm.characters]
-            if character_id not in current_character_ids:
+            if character_id not in encounter.character_ids:
                 logger.debug(
                     f"Auto-adding character {character_id} to encounter {encounter_id}"
                 )
-                # Get the character ORM object and add to relationship
-                character_orm = (
-                    session.query(CharacterORM)
-                    .filter(
-                        CharacterORM.id == character_id,
-                        CharacterORM.world_id == world_id,
-                        CharacterORM.user_id == user_id,
-                    )
-                    .first()
-                )
-                encounter_orm.characters.append(character_orm)
-                session.flush()
-                session.commit()
+                encounter_store.add_character_to_encounter(encounter_id, character_id)
+                # Refresh encounter data after adding character
+                encounter = encounter_store.get_encounter_by_id(encounter_id)
 
-            reveals_orm = (
-                session.query(RevealORM)
-                .join(RevealORM.characters)
-                .filter(CharacterORM.id == character_id)
-                .all()
-            )
+            # Get all related data using shared session
+            reveals = reveal_store.get_by_character_id(character_id)
+            memories = memory_store.get_by_character_id(character_id)
 
-            memories_orm = (
-                session.query(MemoryORM)
-                .join(MemoryORM.characters)
-                .filter(CharacterORM.id == character_id)
-                .all()
-            )
+            # Get or create conversation
+            conversation = conversation_store.get(player_id, character_id, encounter_id)
+            if not conversation:
+                from app.models.conversation import ConversationCreate
 
-            conversation_orm = (
-                session.query(ConversationORM)
-                .filter(
-                    ConversationORM.player_id == player_id,
-                    ConversationORM.character_id == character_id,
-                    ConversationORM.encounter_id == encounter_id,
-                    ConversationORM.user_id == user_id,
-                    ConversationORM.world_id == world_id,
-                )
-                .first()
-            )
-
-            # Create conversation if it doesn't exist
-            if not conversation_orm:
-                conversation_orm = ConversationORM(
+                conversation_data = ConversationCreate(
                     player_id=player_id,
                     character_id=character_id,
                     encounter_id=encounter_id,
-                    user_id=user_id,
-                    world_id=world_id,
-                    messages=None,
+                    messages=[],
                 )
-                session.add(conversation_orm)
-                session.flush()
-                session.commit()
-                session.refresh(conversation_orm)
+                conversation = conversation_store.create(conversation_data)
 
-            # Get or create influence in the same session
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
-                    InfluenceORM.character_id == character_id,
-                    InfluenceORM.player_id == player_id,
-                    InfluenceORM.user_id == user_id,
-                    InfluenceORM.world_id == world_id,
-                )
-                .first()
+            # Get or create influence
+            influence = influence_store.get_or_create(
+                character_id, player_id, base_influence
             )
 
-            # Create influence if it doesn't exist
-            if not influence_orm:
-                influence_orm = InfluenceORM(
-                    character_id=character_id,
-                    player_id=player_id,
-                    base=base_influence,
-                    earned=0,
-                    user_id=user_id,
-                    world_id=world_id,
-                )
-                session.add(influence_orm)
-                session.flush()
-                session.commit()
-                session.refresh(influence_orm)
-
-            # Convert to domain models
-            encounter = Encounter.model_validate(encounter_orm)
-            influence = Influence.model_validate(influence_orm)
-            reveals = [RevealStore.orm_to_reveal(reveal) for reveal in reveals_orm]
-            memories = [MemoryStore.orm_to_memory(memory) for memory in memories_orm]
-            messages = (
-                ModelMessagesTypeAdapter.validate_json(conversation_orm.messages)
-                if conversation_orm and conversation_orm.messages
-                else None
-            )
+            # Extract messages
+            messages = conversation.messages if conversation else None
 
             return encounter, influence, reveals, memories, messages
     except Exception as e:

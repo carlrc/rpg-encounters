@@ -1,23 +1,29 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.db.models.reveal import RevealORM
 from app.models.reveal import Reveal, RevealCreate, RevealUpdate
 
 
-class RevealStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class RevealStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def get_all_reveals(self) -> List[Reveal]:
         """Get all reveals for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             reveal_orms = (
                 session.query(RevealORM)
                 .filter(
@@ -30,7 +36,7 @@ class RevealStore:
 
     def get_by_character_id(self, character_id: int) -> List[Reveal]:
         """Get all reveals for a character"""
-        with self.Session() as session:
+        with self.get_session() as session:
             character = (
                 session.query(CharacterORM)
                 .filter(CharacterORM.id == character_id)
@@ -46,7 +52,7 @@ class RevealStore:
 
     def get_reveal(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             reveal_orm = (
                 session.query(RevealORM)
                 .filter(
@@ -66,7 +72,7 @@ class RevealStore:
 
     def create_reveal(self, reveal_data: RevealCreate) -> Reveal:
         """Create a new reveal"""
-        with self.Session() as session:
+        with self.get_session() as session:
             # Create the reveal without character_ids - much cleaner!
             reveal_dict = reveal_data.model_dump(exclude={"character_ids"})
             reveal_orm = RevealORM(
@@ -91,7 +97,7 @@ class RevealStore:
         self, reveal_id: int, reveal_update: RevealUpdate
     ) -> Reveal | None:
         """Update an existing reveal"""
-        with self.Session() as session:
+        with self.get_session() as session:
             reveal_orm = (
                 session.query(RevealORM)
                 .filter(
@@ -127,7 +133,7 @@ class RevealStore:
 
     def delete_reveal(self, reveal_id: int) -> bool:
         """Delete a reveal"""
-        with self.Session() as session:
+        with self.get_session() as session:
             reveal_orm = (
                 session.query(RevealORM)
                 .filter(
@@ -146,7 +152,7 @@ class RevealStore:
 
     def reveal_exists(self, reveal_id: int) -> bool:
         """Check if a reveal exists"""
-        with self.Session() as session:
+        with self.get_session() as session:
             return (
                 session.query(RevealORM)
                 .filter(

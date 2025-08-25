@@ -3,6 +3,7 @@ import os
 
 from fastapi import WebSocket
 from langfuse import get_client
+from sqlalchemy.orm import sessionmaker
 
 from app.agents.challenges.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
@@ -14,11 +15,11 @@ from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
+from app.db.connection import get_db_engine
 from app.dependencies import (
     get_transcription_service,
     get_tts_service,
 )
-from app.models.encounter import EncounterUpdate
 from app.services.ability_challenge import (
     D20Outcomes,
     calculate_skill_check,
@@ -57,42 +58,54 @@ async def challenge_character(
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
-        # Get player and character data
-        character = CharacterStore(
-            world_id=world_id, user_id=user_id
-        ).get_character_by_id(character_id)
-        player = PlayerStore(world_id=world_id, user_id=user_id).get_player_by_id(
-            player_id=player_id
-        )
-        encounter_store = EncounterStore(world_id=world_id, user_id=user_id)
-        encounter = encounter_store.get_encounter_by_id(encounter_id=encounter_id)
-
-        # Auto-add character to encounter if not already present
-        # Can happen if you create an encounter and add a character without saving
-        current_character_ids = encounter.character_ids or []
-        if character_id not in current_character_ids:
-            current_character_ids.append(character_id)
-            encounter_update = EncounterUpdate(
-                id=encounter_id, character_ids=current_character_ids
+        Session = sessionmaker(get_db_engine())
+        with Session() as session:
+            # Create store instances with shared session
+            character_store = CharacterStore(
+                user_id=user_id, world_id=world_id, session=session
             )
-            encounter_store.update_encounter(encounter_id, encounter_update)
+            player_store = PlayerStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            encounter_store = EncounterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            reveal_store = RevealStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            conversation_store = ConversationStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            memory_store = MemoryStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
 
-        # Calculate skill check: d20 + player skill bonus
+            # Get all data using shared session
+            character = character_store.get_character_by_id(character_id)
+            player = player_store.get_player_by_id(player_id)
+            encounter = encounter_store.get_encounter_by_id(encounter_id)
+
+            # Auto-add character to encounter if not already present
+            # Can happen if you create an encounter and add a character without saving
+            if character_id not in encounter.character_ids:
+                encounter_store.add_character_to_encounter(encounter_id, character_id)
+                # Refresh encounter data after adding character
+                encounter = encounter_store.get_encounter_by_id(encounter_id)
+
+            # Get information tied to character using shared session
+            all_reveals = reveal_store.get_by_character_id(character_id)
+            conversation = conversation_store.get(
+                player_id=player_id,
+                character_id=character_id,
+                encounter_id=encounter_id,
+            )
+            all_memories = memory_store.get_by_character_id(character_id)
+
+        # Calculate skill check and filter reveals outside of session
         total_roll = calculate_skill_check(
             skill=skill, player=player, d20_roll=d20_roll
         )
-
-        # Get information tied to character
-        all_reveals = RevealStore(
-            world_id=world_id, user_id=user_id
-        ).get_by_character_id(character_id)
-        conversation = ConversationStore(user_id=user_id, world_id=world_id).get(
-            player_id=player_id, character_id=character_id, encounter_id=encounter_id
-        )
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
-        all_memories = MemoryStore(
-            world_id=world_id, user_id=user_id
-        ).get_by_character_id(character_id)
 
         if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
             agent = CriticalSuccessAgent(

@@ -3,8 +3,8 @@ from typing import List
 
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.conversation import ConversationORM
 from app.models.conversation import Conversation, ConversationCreate
@@ -12,15 +12,21 @@ from app.models.conversation import Conversation, ConversationCreate
 logger = logging.getLogger(__name__)
 
 
-class ConversationStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class ConversationStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def create(self, conversation_data: ConversationCreate) -> Conversation:
         """Create a new conversation."""
-        with self.Session() as session:
+        with self.get_session() as session:
             # Serialize messages to JSON bytes
             messages_json = (
                 ModelMessagesTypeAdapter.dump_json(conversation_data.messages)
@@ -45,7 +51,7 @@ class ConversationStore:
     def get(
         self, player_id: int, character_id: int, encounter_id: int
     ) -> Conversation | None:
-        with self.Session() as session:
+        with self.get_session() as session:
             conversation_orm = (
                 session.query(ConversationORM)
                 .filter(
@@ -59,9 +65,6 @@ class ConversationStore:
             )
 
             if not conversation_orm:
-                logger.warning(
-                    f"Could not find conversation for player_id={player_id}, character_id={character_id}, encounter_id={encounter_id}, user_id={self.user_id}, world_id={self.world_id}"
-                )
                 return None
 
             return self._orm_to_conversation(conversation_orm)
@@ -76,7 +79,7 @@ class ConversationStore:
         """
         Append messages to an existing conversation.
         """
-        with self.Session() as session:
+        with self.get_session() as session:
             # Find existing conversation
             conversation_orm = (
                 session.query(ConversationORM)
@@ -115,7 +118,7 @@ class ConversationStore:
         self, player_id: int, character_id: int, encounter_id: int
     ) -> bool:
         """Check if a conversation exists."""
-        with self.Session() as session:
+        with self.get_session() as session:
             conversation_orm = (
                 session.query(ConversationORM)
                 .filter(
@@ -133,7 +136,7 @@ class ConversationStore:
         self, player_id: int, character_id: int, encounter_id: int
     ) -> bool:
         """Delete a conversation."""
-        with self.Session() as session:
+        with self.get_session() as session:
             conversation_orm = (
                 session.query(ConversationORM)
                 .filter(

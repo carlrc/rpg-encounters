@@ -1,22 +1,28 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.player import PlayerORM
 from app.models.player import Player, PlayerCreate, PlayerUpdate
 
 
-class PlayerStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class PlayerStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def get_all_players(self) -> List[Player]:
         """Get all players for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             player_orms = (
                 session.query(PlayerORM)
                 .filter(
@@ -29,7 +35,7 @@ class PlayerStore:
 
     def get_player_by_id(self, player_id: int) -> Player | None:
         """Get a specific player by ID for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             player_orm = (
                 session.query(PlayerORM)
                 .filter(
@@ -45,7 +51,7 @@ class PlayerStore:
 
     def create_player(self, player_data: PlayerCreate) -> Player:
         """Create a new player"""
-        with self.Session() as session:
+        with self.get_session() as session:
             player_orm = PlayerORM(
                 **player_data.model_dump(), user_id=self.user_id, world_id=self.world_id
             )
@@ -58,7 +64,7 @@ class PlayerStore:
         self, player_id: int, player_update: PlayerUpdate
     ) -> Player | None:
         """Update an existing player for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             player_orm = (
                 session.query(PlayerORM)
                 .filter(
@@ -81,7 +87,7 @@ class PlayerStore:
 
     def delete_player(self, player_id: int) -> bool:
         """Delete a player for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             player_orm = (
                 session.query(PlayerORM)
                 .filter(
@@ -100,7 +106,7 @@ class PlayerStore:
 
     def player_exists(self, player_id: int) -> bool:
         """Check if a player exists for the current user and world"""
-        with self.Session() as session:
+        with self.get_session() as session:
             return (
                 session.query(PlayerORM)
                 .filter(

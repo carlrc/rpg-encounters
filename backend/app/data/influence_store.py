@@ -1,24 +1,30 @@
 from typing import List
 
 from sqlalchemy import Engine
-from sqlalchemy.orm import sessionmaker
 
+from app.data.base_store import BaseStore
 from app.db.connection import get_db_engine
 from app.db.models.influence import InfluenceORM
 from app.models.influence import Influence
 
 
-class InfluenceStore:
-    def __init__(self, user_id: int, world_id: int, engine: Engine = get_db_engine()):
-        self.Session = sessionmaker(engine)
-        self.user_id = user_id
-        self.world_id = world_id
+class InfluenceStore(BaseStore):
+    def __init__(
+        self,
+        user_id: int,
+        world_id: int,
+        engine: Engine = get_db_engine(),
+        session=None,
+    ):
+        super().__init__(
+            user_id=user_id, world_id=world_id, engine=engine, session=session
+        )
 
     def get_or_create(
         self, character_id: int, player_id: int, base: int = 0
     ) -> Influence:
         """Get existing influence state or create new one"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orm = (
                 session.query(InfluenceORM)
                 .filter(
@@ -50,7 +56,7 @@ class InfluenceStore:
 
     def update_influence(self, influence: Influence) -> Influence | None:
         """Update existing influence"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orm = (
                 session.query(InfluenceORM)
                 .filter(
@@ -75,7 +81,7 @@ class InfluenceStore:
 
     def create_influence(self, influence: Influence) -> Influence:
         """Separate method for creating new influence records"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orm = InfluenceORM(
                 character_id=influence.character_id,
                 player_id=influence.player_id,
@@ -91,7 +97,7 @@ class InfluenceStore:
 
     def get_influence(self, character_id: int, player_id: int) -> Influence | None:
         """Get influence state for character-player pair"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orm = (
                 session.query(InfluenceORM)
                 .filter(
@@ -107,7 +113,7 @@ class InfluenceStore:
 
     def reset_influence(self, character_id: int, player_id: int) -> bool:
         """Reset earned influence to 0, keep base influence"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orm = (
                 session.query(InfluenceORM)
                 .filter(
@@ -125,13 +131,13 @@ class InfluenceStore:
 
     def get_all_influences(self) -> List[Influence]:
         """Get all influence records"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orms = session.query(InfluenceORM).all()
             return [Influence.model_validate(orm) for orm in influence_orms]
 
     def get_by_character_id(self, character_id: int) -> List[Influence]:
         """Get all influence records for a character"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orms = (
                 session.query(InfluenceORM)
                 .filter(InfluenceORM.character_id == character_id)
@@ -141,7 +147,7 @@ class InfluenceStore:
 
     def get_by_player_id(self, player_id: int) -> List[Influence]:
         """Get all influence records for a player"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orms = (
                 session.query(InfluenceORM)
                 .filter(InfluenceORM.player_id == player_id)
@@ -151,7 +157,7 @@ class InfluenceStore:
 
     def delete_influence(self, character_id: int, player_id: int) -> bool:
         """Delete an influence record"""
-        with self.Session() as session:
+        with self.get_session() as session:
             influence_orm = (
                 session.query(InfluenceORM)
                 .filter(
@@ -170,6 +176,6 @@ class InfluenceStore:
 
     def clear(self) -> None:
         """Clear all influence states - used for testing"""
-        with self.Session() as session:
+        with self.get_session() as session:
             session.query(InfluenceORM).delete()
             session.commit()
