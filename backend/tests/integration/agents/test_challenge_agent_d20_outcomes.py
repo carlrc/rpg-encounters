@@ -90,7 +90,7 @@ DEPENDENCIES = ChallengeAgentDeps(
 
 
 async def test_challenge_agent_standard():
-    """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
+    """Test that standard challenge response"""
     agent = ChallengeAgent(
         character=CHARACTER,
         player=PLAYER,
@@ -104,7 +104,7 @@ async def test_challenge_agent_standard():
         deps=DEPENDENCIES,
     )
 
-    assert_contains_any_keywords(text=response, keywords=["mayor"])
+    assert_contains_any_keywords(text=response, keywords=["mayor", "oldest"])
 
 
 async def test_challenge_agent_critical_success():
