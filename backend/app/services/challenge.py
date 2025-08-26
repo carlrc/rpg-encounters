@@ -127,11 +127,12 @@ async def challenge_character(
             agent = CriticalFailureAgent(system_prompt=rendered_prompt)
             challenge_agent_name = "crit-failure-agent"
         else:
-            # Add filtered reveals and 40 word limit for standard challenge
+            # Add filtered reveals, d20_roll, and 40 word limit for standard challenge
             template_context = {
                 **base_template_context,
                 "filtered_reveals": filtered_reveals,
                 "max_response_length": 40,
+                "d20_roll": total_roll,
             }
             rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
             agent = ChallengeAgent(system_prompt=rendered_prompt)

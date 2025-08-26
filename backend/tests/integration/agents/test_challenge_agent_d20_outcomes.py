@@ -100,6 +100,7 @@ async def test_challenge_agent_standard():
         **BASE_TEMPLATE_CONTEXT,
         "filtered_reveals": [MAYOR_SECRET],
         "max_response_length": 40,
+        "d20_roll": 15,
     }
     rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
     agent = ChallengeAgent(system_prompt=rendered_prompt)
