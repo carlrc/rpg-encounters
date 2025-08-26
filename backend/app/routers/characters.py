@@ -1,11 +1,19 @@
+import asyncio
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.agents.communication_style_agent import CommunicationStyleAgent
 from app.agents.personality_agent import PersonalityGenerator
+from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
 from app.dependencies import get_current_user_world
-from app.models.character import Character, CharacterCreate, CharacterUpdate
+from app.models.character import (
+    Character,
+    CharacterCreate,
+    CharacterUpdate,
+    CommunicationStyle,
+)
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -39,16 +47,32 @@ async def create_character(
     """Create a new character with AI-generated personality"""
     user_id, world_id = user_world
 
-    # Generate personality profile
-    personality = await PersonalityGenerator.generate_personality(character_data)
+    custom_style = (
+        character_data.communication_style_type == CommunicationStyle.CUSTOM.value
+    )
+    if not custom_style:
+        communication_style_agent = CommunicationStyleAgent(
+            system_prompt=import_system_prompt("communication_style_agent")
+        )
 
-    # Create new CharacterCreate object with generated personality
+        personality, communication_style_summary = await asyncio.gather(
+            PersonalityGenerator.generate_personality(character_data),
+            communication_style_agent.generate(character_data),
+        )
+        character_data.communication_style = communication_style_summary
+    else:
+        # For CUSTOM communication style, only generate personality
+        personality = await PersonalityGenerator.generate_personality(character_data)
+        return None, personality
+
+    # Update character data with generated summaries
     character_data.personality = personality
-    character_dict = character_data.model_dump()
-    character_with_personality = CharacterCreate(**character_dict)
+
+    # Create character with generated summaries
+    character = CharacterCreate(**character_data.model_dump())
 
     return CharacterStore(user_id=user_id, world_id=world_id).create_character(
-        character_with_personality
+        character
     )
 
 

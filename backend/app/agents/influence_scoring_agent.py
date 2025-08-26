@@ -74,6 +74,6 @@ class InfluenceCalculatorAgent:
         """Build streamlined influence-aware instruction for the AI"""
 
         base_instruction = f"""# Current Interaction Context
-            You are speaking with **{self.player.name}**: a {self.player.race} {self.player.gender} {self.player.class_name} who looks like {self.player.appearance}."""
+            You are interacting with **{self.player.name}**: a {self.player.race} {self.player.gender} {self.player.class_name} who looks like {self.player.appearance}."""
 
         return base_instruction

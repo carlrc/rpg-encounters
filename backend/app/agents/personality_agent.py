@@ -16,7 +16,7 @@ class PersonalityGenerator:
 
         agent = Agent(
             OpenAIModel(model_name="gpt-4o"),
-            system_prompt="""You are an expert at analyzing D&D characters and creating personality profiles for social interactions.
+            instructions="""You are an expert at analyzing D&D characters and creating personality profiles for social interactions.
             Generate concise personality profiles (2-3 short sentences) that describe:
             1. Their social interaction style and preferences
             2. What behaviors/topics they appreciate (builds influence)
