@@ -1,11 +1,8 @@
 import logging
 import os
-from typing import List, Tuple
 
 from fastapi import WebSocket
 from langfuse import get_client
-from pydantic_ai.messages import ModelMessage
-from sqlalchemy.orm import sessionmaker
 
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
@@ -16,111 +13,25 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import import_system_prompt, render_jinja_prompt
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
-from app.data.encounter_store import EncounterStore
 from app.data.influence_store import InfluenceStore
-from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
-from app.data.reveal_store import RevealStore
-from app.db.connection import get_db_engine
 from app.dependencies import (
     get_transcription_service,
     get_tts_service,
 )
-from app.models.encounter import Encounter
-from app.models.influence import Influence
-from app.models.memory import Memory
-from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, Reveal, RevealLayer
+from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
+from app.services.context import get_conversation_context
 from app.services.influence_calculator import calculate_base_influence
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
 
-char_system_prompt = import_system_prompt("conversation_agent")
-negative_char_system_prompt = import_system_prompt("negative_conversation_agent")
 scoring_system_prompt = import_system_prompt("influence_scoring_agent")
-
-
-def get_conversation_context(
-    world_id: int,
-    player_id: int,
-    user_id: int,
-    character_id: int,
-    encounter_id: int,
-    base_influence: int,
-) -> Tuple[Encounter, Influence, List[Reveal], List[Memory], List[ModelMessage] | None]:
-    """
-    Get all conversation-related data for a character in a single database session.
-    Auto-adds character to encounter if not already present.
-    """
-    Session = sessionmaker(get_db_engine())
-
-    try:
-        with Session() as session:
-            # Create store instances with shared session
-            encounter_store = EncounterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            reveal_store = RevealStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            memory_store = MemoryStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            conversation_store = ConversationStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            influence_store = InfluenceStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-
-            # Get encounter
-            encounter = encounter_store.get_encounter_by_id(encounter_id)
-            if not encounter:
-                raise ValueError(f"Encounter {encounter_id} not found")
-
-            # Auto-add character to encounter if not already present
-            if character_id not in encounter.character_ids:
-                logger.debug(
-                    f"Auto-adding character {character_id} to encounter {encounter_id}"
-                )
-                encounter_store.add_character_to_encounter(encounter_id, character_id)
-                # Refresh encounter data after adding character
-                encounter = encounter_store.get_encounter_by_id(encounter_id)
-
-            # Get all related data using shared session
-            reveals = reveal_store.get_by_character_id(character_id)
-            memories = memory_store.get_by_character_id(character_id)
-
-            # Get or create conversation
-            conversation = conversation_store.get(player_id, character_id, encounter_id)
-            if not conversation:
-                from app.models.conversation import ConversationCreate
-
-                conversation_data = ConversationCreate(
-                    player_id=player_id,
-                    character_id=character_id,
-                    encounter_id=encounter_id,
-                    messages=[],
-                )
-                conversation = conversation_store.create(conversation_data)
-
-            # Get or create influence
-            influence = influence_store.get_or_create(
-                character_id, player_id, base_influence
-            )
-
-            # Extract messages
-            messages = conversation.messages if conversation else None
-
-            return encounter, influence, reveals, memories, messages
-    except Exception as e:
-        logger.error(f"Failed to get conversation context: {e}")
-        raise e
 
 
 async def have_conversation(
@@ -149,37 +60,38 @@ async def have_conversation(
             player_id=player_id
         )
         base_influence = calculate_base_influence(character=character, player=player)
-        # Get all conversation context
-        encounter, influence, all_reveals, all_memories, messages = (
-            get_conversation_context(
-                world_id=world_id,
-                user_id=user_id,
-                player_id=player.id,
-                character_id=character.id,
-                encounter_id=encounter_id,
-                base_influence=base_influence,
-            )
+        context = get_conversation_context(
+            world_id=world_id,
+            user_id=user_id,
+            player_id=player.id,
+            character_id=character.id,
+            encounter_id=encounter_id,
+            base_influence=base_influence,
         )
 
-        # TODO: getting all reveals and memories even through the agent manager caches instances
-        # TODO: Need to only cache convo manager realistically and pass in reveals and memories dynamically
-        # If the DM removes memories between conversations or adds something it should be used
-        # TODO: Convo history not persisting between convo agents
+        # Common template context for both conversation agents
+        template_context = {
+            "max_response_length": 30,
+            "character": character,
+            "character_memories": context.memories,
+            "player": player,
+            "encounter": context.encounter,
+        }
 
         # If negative sentiment, make the conversation negative
         negative_attitude = (
-            influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
-        )
-        logger.info(
-            f"char {character.id} influence to player {player.id} = {influence.score}"
+            context.influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
         )
         if negative_attitude:
             logger.info("Using negative conversation agent...")
+
+            # Render the Jinja template
+            rendered_negative_system_prompt = render_jinja_prompt(
+                "negative_conversation_agent", template_context
+            )
+
             agent = NegativeConvoAgent(
-                character=character,
-                player=player,
-                system_prompt=negative_char_system_prompt,
-                memories=all_memories,
+                system_prompt=rendered_negative_system_prompt,
                 conversation_store=ConversationStore(
                     user_id=user_id, world_id=world_id
                 ),
@@ -194,8 +106,9 @@ async def have_conversation(
             response, influence = await agent.chat(
                 player_transcript=transcription,
                 deps=NegativeConvoAgentDeps(
-                    encounter=encounter,
-                    influence=influence,
+                    player=player,
+                    character=character,
+                    context=context,
                     user_id=user_id,
                     telemetry=lambda: get_client().update_current_trace(
                         user_id=user_id,
@@ -206,16 +119,21 @@ async def have_conversation(
                             "env": os.getenv("ENVIRONMENT"),
                         },
                     ),
-                    message_history=messages,
                 ),
             )
         else:
             logger.info("Using positive conversation agent...")
+
+            # Add reveals for positive conversation agent
+            template_context["character_reveals"] = context.reveals
+
+            # Render the Jinja template
+            rendered_system_prompt = render_jinja_prompt(
+                "conversation_agent", template_context
+            )
+
             agent = ConversationAgent(
-                character=character,
-                player=player,
-                system_prompt=char_system_prompt,
-                memories=all_memories,
+                system_prompt=rendered_system_prompt,
                 conversation_store=ConversationStore(
                     user_id=user_id, world_id=world_id
                 ),
@@ -229,11 +147,10 @@ async def have_conversation(
             response, _, influence = await agent.chat(
                 player_transcript=transcription,
                 deps=ConversationAgentDeps(
-                    reveals=all_reveals,
-                    encounter=encounter,
-                    influence=influence,
+                    player=player,
+                    character=character,
+                    context=context,
                     user_id=user_id,
-                    message_history=messages,
                     telemetry=lambda: get_client().update_current_trace(
                         user_id=user_id,
                         name="positive-convo-agent",
@@ -256,7 +173,7 @@ async def have_conversation(
             "influence": influence.score,
             "reveals": [
                 calculate_reveal_progress(reveal, influence.score)
-                for reveal in all_reveals
+                for reveal in context.reveals
             ],
         }
 

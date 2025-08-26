@@ -4,15 +4,24 @@ from typing import Dict, List
 from langfuse import get_client
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, UnexpectedModelBehavior
-from pydantic_ai.agent import ModelSettings
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai import UnexpectedModelBehavior
 
-from app.agents.base_agent import MAX_RETRIES
+from app.agents.base_agent import BaseAgent
 from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.models.character import CharacterCreate, CommunicationStyle
 
 logger = logging.getLogger(__name__)
+
+
+class CommunicationStyleAgentOutput(BaseModel):
+    examples: List[str] = Field(
+        ...,
+        description="Examples of the characters communication style",
+    )
+    style_summary: str = Field(
+        ...,
+        description="Summary of the characters communication style",
+    )
 
 
 class CommunicationStylePresetProfile(BaseModel):
@@ -60,9 +69,9 @@ COMMUNICATION_STYLE_PROFILES: Dict[str, CommunicationStylePresetProfile] = {
     ),
     CommunicationStyle.PROFANE.value: CommunicationStylePresetProfile(
         style=CommunicationStyle.PROFANE.value,
-        style_summary="Blunt, vulgar, and unfiltered; swears freely and speaks without restraint. Every reply uses harsh language.",
+        style_summary="Blunt, vulgar, and unfiltered; swears (.e.g, fuck off, fuck you) freely and speaks without restraint. Every reply uses harsh language.",
         examples=[
-            "That’s a damn terrible idea, but let’s roll with it.",
+            "That’s a terrible fucking idea, but let’s roll with it.",
             "Move your ass before we waste more time.",
             "Well, shit, nothing ever goes smooth.",
         ],
@@ -79,34 +88,39 @@ COMMUNICATION_STYLE_PROFILES: Dict[str, CommunicationStylePresetProfile] = {
 }
 
 
-class CommunicationStyleAgent:
+class CommunicationStyleAgent(BaseAgent):
     def __init__(
         self,
         system_prompt: str,
     ):
+        super().__init__()
 
-        agent = Agent(
-            OpenAIModel(model_name="gpt-4o-mini"),
-            instructions=system_prompt,
-            retries=MAX_RETRIES,
-            model_settings=ModelSettings(temperature=0.5),
+        agent = self._generate_agent(
+            system_prompt=system_prompt, output_type=CommunicationStyleAgentOutput
         )
 
         @agent.output_validator
-        async def validate_length(_, output: str) -> str:
+        async def trim_length(
+            _, output: CommunicationStyleAgentOutput
+        ) -> CommunicationStyleAgentOutput:
             """Trim communication style to character limit if needed"""
-            if len(output) > CHARACTER_COMMUNICATION_LIMIT:
+            length = len(output.style_summary)
+            if length > CHARACTER_COMMUNICATION_LIMIT:
                 logger.warning(
-                    f"Communication style truncated from {len(output)} to {CHARACTER_COMMUNICATION_LIMIT} characters"
+                    f"Communication style truncated from {length} to {CHARACTER_COMMUNICATION_LIMIT} characters"
                 )
-                return output[:CHARACTER_COMMUNICATION_LIMIT].rstrip()
+                output.style_summary = output.style_summary[
+                    :CHARACTER_COMMUNICATION_LIMIT
+                ].rstrip()
             return output
 
         # Set after decorators
         self.agent = agent
 
     @langfuse_observe
-    async def generate(self, character: CharacterCreate) -> str:
+    async def generate(
+        self, character: CharacterCreate
+    ) -> CommunicationStyleAgentOutput:
         try:
             # Exclude personality as its not generated yet
             prompt = f"""

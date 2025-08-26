@@ -18,7 +18,7 @@ from app.db.models.world import WorldORM
 from app.db.models.influence import InfluenceORM  # noqa: F401
 from app.db.init_db import create_tables, drop_tables
 from app.agents.communication_style_agent import CommunicationStyleAgent
-from app.agents.personality_agent import PersonalityGenerator
+from app.agents.personality_agent import PersonalityAgent, PersonalityGenerator
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.models.character import CommunicationStyle
 from app.telemetry import setup_telemetry
@@ -128,8 +128,8 @@ def seed_player_data(engine: Engine):
                 
                 player_orm = PlayerORM(**player_data, user_id=user_id, world_id=world_id)
                 session.add(player_orm)
-            
-            session.commit()
+                session.commit()
+    
             logger.info(f"Successfully seeded {len(players_db)} players to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding player data: {e}")
@@ -158,16 +158,18 @@ async def seed_character_data(engine: Engine):
             # Seed fixture data
             for character in characters_db:
                 if character.communication_style_type != CommunicationStyle.CUSTOM.value:
-                    character.communication_style = await communication_style_agent.generate(character=character)
+                    communication_style = await communication_style_agent.generate(character=character)
+                    character.communication_style = communication_style.style_summary
+                    character.communication_style_examples = communication_style.examples
                     
-                character.personality = await PersonalityGenerator.generate_personality(character_data=character)
+                character.personality = await PersonalityAgent().generate(character_data=character)
                 character_data = character.model_dump()
                 logger.info(f"Creating character '{character_data['name']}' with user_id={user_id}, world_id={world_id}")
                 
                 character_orm = CharacterORM(**character_data, user_id=user_id, world_id=world_id)
                 session.add(character_orm)
+                session.commit()
             
-            session.commit()
             logger.info(f"Successfully seeded {len(characters_db)} characters to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding character data: {e}")

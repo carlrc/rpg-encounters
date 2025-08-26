@@ -4,10 +4,9 @@ from typing import Any
 from langfuse import get_client
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext, UnexpectedModelBehavior
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai import RunContext, UnexpectedModelBehavior
 
-from app.agents.base_agent import MAX_RETRIES
+from app.agents.base_agent import BaseAgent
 from app.models.character import Character
 from app.models.influence import INFLUENCE_CHANGE_MAX, INFLUENCE_CHANGE_MIN
 from app.models.player import Player
@@ -20,22 +19,19 @@ class InfluenceCalculatorAgentOutput(BaseModel):
     reason: str
 
 
-class InfluenceCalculatorAgent:
+class InfluenceCalculatorAgent(BaseAgent):
     def __init__(
         self,
         system_prompt: str,
         character: Character,
         player: Player,
     ):
+        super().__init__()
         self.character = character
         self.player = player
 
-        agent = Agent(
-            OpenAIModel(model_name="gpt-4o-mini"),
-            system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=self._build_base_instruction(),
-            output_type=InfluenceCalculatorAgentOutput,
-            retries=MAX_RETRIES,
+        agent = self._generate_agent(
+            system_prompt=system_prompt, output_type=InfluenceCalculatorAgentOutput
         )
 
         @agent.output_validator

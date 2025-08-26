@@ -1,10 +1,9 @@
-import asyncio
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.agents.communication_style_agent import CommunicationStyleAgent
-from app.agents.personality_agent import PersonalityGenerator
+from app.agents.personality_agent import PersonalityAgent
 from app.agents.prompts.import_prompts import import_system_prompt
 from app.data.character_store import CharacterStore
 from app.dependencies import get_current_user_world
@@ -55,18 +54,12 @@ async def create_character(
             system_prompt=import_system_prompt("communication_style_agent")
         )
 
-        personality, communication_style_summary = await asyncio.gather(
-            PersonalityGenerator.generate_personality(character_data),
-            communication_style_agent.generate(character_data),
-        )
-        character_data.communication_style = communication_style_summary
-    else:
-        # For CUSTOM communication style, only generate personality
-        personality = await PersonalityGenerator.generate_personality(character_data)
-        return None, personality
+        communication_style = await communication_style_agent.generate(character_data)
+        character_data.communication_style = communication_style.style_summary
+        character_data.communication_style_examples = communication_style.examples
 
-    # Update character data with generated summaries
-    character_data.personality = personality
+    # For CUSTOM communication style, only generate personality and leave custom communication style
+    character_data.personality = await PersonalityAgent().generate(character_data)
 
     # Create character with generated summaries
     character = CharacterCreate(**character_data.model_dump())

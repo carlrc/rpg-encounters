@@ -1,5 +1,11 @@
+import os
+from typing import Any
+
 from pydantic import BaseModel
+from pydantic_ai import Agent
+from pydantic_ai.agent import ModelSettings
 from pydantic_ai.messages import ModelMessage
+from pydantic_ai.models.openai import OpenAIModel
 
 from app.telemetry import TelemetryFunc
 
@@ -30,3 +36,25 @@ class BaseAgent:
             if len(messages) > MAX_MESSAGE_HISTORY
             else messages
         )
+
+    def _generate_agent(
+        self, system_prompt: str | None, output_type: Any | None = None
+    ):
+        """Generate a standard agent with common configuration."""
+        agent_kwargs = {
+            "model": OpenAIModel(model_name="gpt-4o-mini"),
+            "history_processors": [self._keep_recent_messages],
+            "retries": self.retries,
+            "instrument": True,
+            "model_settings": ModelSettings(
+                temperature=float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
+            ),
+        }
+
+        if system_prompt:
+            agent_kwargs["system_prompt"] = system_prompt
+
+        if output_type:
+            agent_kwargs["output_type"] = output_type
+
+        return Agent(**agent_kwargs)

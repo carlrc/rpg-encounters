@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict
+from typing import Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -44,9 +44,14 @@ class CharacterBase(BaseModel):
         ..., description="Character background", max_length=CHARACTER_BACKGROUND_LIMIT
     )
     communication_style: str = Field(
-        ...,
+        "",
         description="Character communication style",
         max_length=CHARACTER_COMMUNICATION_LIMIT,
+    )
+    communication_style_examples: List[str] | None = Field(
+        None,
+        description="Examples of the characters communication style",
+        exclude=True,
     )
     communication_style_type: str = Field(
         CommunicationStyle.CUSTOM.value,

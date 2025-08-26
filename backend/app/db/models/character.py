@@ -16,6 +16,7 @@ from app.db.models.associations import (
     reveal_characters,
 )
 from app.db.models.base import UnifiedBase
+from app.models.character import CommunicationStyle
 
 
 class CharacterORM(UnifiedBase):
@@ -32,6 +33,12 @@ class CharacterORM(UnifiedBase):
     background: Mapped[str] = mapped_column(String(CHARACTER_BACKGROUND_LIMIT))
     communication_style: Mapped[str] = mapped_column(
         String(CHARACTER_COMMUNICATION_LIMIT)
+    )
+    communication_style_examples: Mapped[List[str] | None] = mapped_column(
+        JSON, nullable=True
+    )
+    communication_style_type: Mapped[str] = mapped_column(
+        String(20), default=CommunicationStyle.CUSTOM.value
     )
     motivation: Mapped[str] = mapped_column(String(CHARACTER_MOTIVATION_LIMIT))
     personality: Mapped[str] = mapped_column(Text, default="")
