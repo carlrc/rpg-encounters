@@ -2,7 +2,7 @@ from app.agents.challenges.challenge_agent import ChallengeAgent
 from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
 from app.agents.challenges.critical_success_agent import CriticalSuccessAgent
 from app.agents.challenges.dependencies import ChallengeAgentDeps
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -58,8 +58,6 @@ PLAYER = Player(
     },
 )
 
-CHALLENGE_SYSTEM_PROMPT = import_system_prompt("challenge_agent")
-
 ALL_MEMORIES = [
     Memory(
         id=1,
@@ -88,16 +86,23 @@ DEPENDENCIES = ChallengeAgentDeps(
     encounter=ENCOUNTER, messages=None, telemetry=lambda: None
 )
 
+BASE_TEMPLATE_CONTEXT = {
+    "character": CHARACTER,
+    "player": PLAYER,
+    "character_memories": ALL_MEMORIES,
+    "encounter": ENCOUNTER,
+}
+
 
 async def test_challenge_agent_standard():
     """Test that standard challenge response"""
-    agent = ChallengeAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=import_system_prompt("challenge_agent"),
-        memories=ALL_MEMORIES,
-        reveals=[MAYOR_SECRET],
-    )
+    template_context = {
+        **BASE_TEMPLATE_CONTEXT,
+        "filtered_reveals": [MAYOR_SECRET],
+        "max_response_length": 40,
+    }
+    rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
+    agent = ChallengeAgent(system_prompt=rendered_prompt)
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
@@ -109,13 +114,15 @@ async def test_challenge_agent_standard():
 
 async def test_challenge_agent_critical_success():
     """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
-    agent = CriticalSuccessAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=import_system_prompt("challenge_agent_critical_success"),
-        memories=ALL_MEMORIES,
-        reveals=[SECRET_CORRIDOR, MAYOR_SECRET],
+    template_context = {
+        **BASE_TEMPLATE_CONTEXT,
+        "filtered_reveals": [SECRET_CORRIDOR, MAYOR_SECRET],
+        "max_response_length": 70,
+    }
+    rendered_prompt = render_jinja_prompt(
+        "challenge_agent_critical_success", template_context
     )
+    agent = CriticalSuccessAgent(system_prompt=rendered_prompt)
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
@@ -128,13 +135,12 @@ async def test_challenge_agent_critical_success():
 
 
 async def test_challenge_agent_critical_failure():
-    """Test that critical success (d20=20) produces enthusiastic response with maximum information"""
-    agent = CriticalFailureAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=import_system_prompt("challenge_agent_critical_failure"),
-        memories=ALL_MEMORIES,
+    """Test that critical failure (d20=1) produces hostile response with no information"""
+    template_context = {**BASE_TEMPLATE_CONTEXT, "max_response_length": 40}
+    rendered_prompt = render_jinja_prompt(
+        "challenge_agent_critical_failure", template_context
     )
+    agent = CriticalFailureAgent(system_prompt=rendered_prompt)
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",

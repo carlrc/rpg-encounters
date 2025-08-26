@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from app.agents.challenges.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
 from app.agents.challenges.critical_success_agent import CriticalSuccessAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
 from app.data.encounter_store import EncounterStore
@@ -29,14 +29,6 @@ from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
-
-challenge_agent_system_prompt = import_system_prompt("challenge_agent")
-challenge_agent_critical_success_system_prompt = import_system_prompt(
-    "challenge_agent_critical_success"
-)
-challenge_agent_critical_failure_system_prompt = import_system_prompt(
-    "challenge_agent_critical_failure"
-)
 
 
 async def challenge_character(
@@ -107,31 +99,42 @@ async def challenge_character(
         )
         filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
 
+        # Common template context for all challenge agents
+        base_template_context = {
+            "character": character,
+            "player": player,
+            "character_memories": all_memories,
+            "encounter": encounter,
+        }
+
         if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
-            agent = CriticalSuccessAgent(
-                character=character,
-                player=player,
-                system_prompt=challenge_agent_critical_success_system_prompt,
-                memories=all_memories,
-                reveals=filtered_reveals,
+            # Add filtered reveals and 70 word limit for critical success
+            template_context = {
+                **base_template_context,
+                "filtered_reveals": filtered_reveals,
+                "max_response_length": 70,
+            }
+            rendered_prompt = render_jinja_prompt(
+                "challenge_agent_critical_success", template_context
             )
+            agent = CriticalSuccessAgent(system_prompt=rendered_prompt)
             challenge_agent_name = "crit-success-agent"
         elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
-            agent = CriticalFailureAgent(
-                character=character,
-                player=player,
-                system_prompt=challenge_agent_critical_failure_system_prompt,
-                memories=all_memories,
+            template_context = {**base_template_context, "max_response_length": 40}
+            rendered_prompt = render_jinja_prompt(
+                "challenge_agent_critical_failure", template_context
             )
+            agent = CriticalFailureAgent(system_prompt=rendered_prompt)
             challenge_agent_name = "crit-failure-agent"
         else:
-            agent = ChallengeAgent(
-                character=character,
-                player=player,
-                system_prompt=challenge_agent_system_prompt,
-                memories=all_memories,
-                reveals=filtered_reveals,
-            )
+            # Add filtered reveals and 40 word limit for standard challenge
+            template_context = {
+                **base_template_context,
+                "filtered_reveals": filtered_reveals,
+                "max_response_length": 40,
+            }
+            rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
+            agent = ChallengeAgent(system_prompt=rendered_prompt)
             challenge_agent_name = "challenge-agent"
 
         # Create deps with encounter context
