@@ -1,0 +1,9 @@
+{# Filtered reveals for challenge agents - expects: filtered_reveals (list of strings) #}
+{% if filtered_reveals %}
+<reveals>
+    The following information should be used in your response.
+    {% for reveal in filtered_reveals %}
+    - {{ reveal }}
+    {% endfor %}
+</reveals>
+{% endif %}
