@@ -6,7 +6,7 @@
     Available Reveals:
     {% for reveal in character_reveals %}
         <reveal>
-            REVEAL ID {{ reveal.id }}: {{ reveal.title }}:
+            **REVEAL ID {{ reveal.id }}: {{ reveal.title }}**:
                 - STANDARD: {{ reveal.level_1_content }}
                 {% if reveal.level_2_content %}
                 - PRIVILEGED: {{ reveal.level_2_content }}

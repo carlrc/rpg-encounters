@@ -32,6 +32,8 @@ class ConversationAgent(BaseAgent):
     def __init__(
         self,
         system_prompt: str,
+        # The LLM cannot reference the memories and reveals well when they are combined in system prompt
+        instructions: str,
         conversation_store: ConversationStore,
         influence_calculator_agent: InfluenceCalculatorAgent,
     ):
@@ -40,7 +42,9 @@ class ConversationAgent(BaseAgent):
         self.influence_calculator_agent = influence_calculator_agent
 
         self.agent = self._generate_agent(
-            system_prompt=system_prompt, output_type=ConversationAgentOutput
+            system_prompt=system_prompt,
+            instructions=instructions,
+            output_type=ConversationAgentOutput,
         )
 
     @langfuse_observe

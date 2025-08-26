@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.agent import ModelSettings
 from pydantic_ai.messages import ModelMessage
+from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIModel
 
 from app.telemetry import TelemetryFunc
@@ -39,17 +40,23 @@ class BaseAgent:
 
     def _generate_agent(
         self,
-        system_prompt: str | None,
+        model: Model | None = None,
+        system_prompt: str | None = None,
+        instructions: str | None = None,
         output_type: Any | None = None,
         model_temp: float | None = None,
     ):
         """Generate a standard agent with common configuration."""
         agent_kwargs = {
-            "model": OpenAIModel(model_name="gpt-4o-mini"),
             "history_processors": [self._keep_recent_messages],
             "retries": self.retries,
             "instrument": True,
         }
+
+        if not model:
+            model = OpenAIModel(model_name="gpt-4o-mini")
+
+        agent_kwargs["model"] = model
 
         if not model_temp:
             model_temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
@@ -58,6 +65,9 @@ class BaseAgent:
 
         if system_prompt:
             agent_kwargs["system_prompt"] = system_prompt
+
+        if instructions:
+            agent_kwargs["instructions"] = instructions
 
         if output_type:
             agent_kwargs["output_type"] = output_type

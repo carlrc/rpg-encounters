@@ -120,8 +120,6 @@ async def test_negative_agent_is_negative():
             system_prompt=render_jinja_prompt(
                 "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
             ),
-            character=CHARACTER,
-            player=PLAYER,
         ),
     )
 

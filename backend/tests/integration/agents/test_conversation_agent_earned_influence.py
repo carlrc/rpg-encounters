@@ -34,7 +34,7 @@ CHARACTER = Character(
     profession="Inn Owner",
     background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
     communication_style="Chatty and welcoming, always ready with a story or bit of news.",
-    motivation="To keep the tavern running smoothly, keep customers happy and make money.",
+    motivation="To keep the tavern running smoothly and make more money and attract more customers",
     personality="Appreciates friendly conversation and local gossip sharing.",
     race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
     class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
@@ -125,26 +125,28 @@ BASE_TEMPLATE_CONTEXT = {
 RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
     "conversation_agent", BASE_TEMPLATE_CONTEXT
 )
+RENDERED_INSTRUCTIONS = render_jinja_prompt(
+    "conversation_agent_instructions", BASE_TEMPLATE_CONTEXT
+)
 
 INFLUENCE_CALCULATOR_AGENT = InfluenceCalculatorAgent(
     system_prompt=render_jinja_prompt(
         "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
-    ),
-    character=CHARACTER,
-    player=PLAYER,
+    )
 )
 
 
 async def test_personality_based_earned_influence_respects_standard_level():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
+        instructions=RENDERED_INSTRUCTIONS,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )
 
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=DEPENDENCIES,
+        deps=DEPENDENCIES.model_copy(),
     )
     # Bias with max base influence and basic inquiry should only result in standard level
     assert level == RevealLayer.STANDARD
@@ -153,18 +155,15 @@ async def test_personality_based_earned_influence_respects_standard_level():
 async def test_personality_based_earned_influence_respects_privileged_level():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
+        instructions=RENDERED_INSTRUCTIONS,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )
 
-    _, level, _ = await agent.chat(
-        player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=DEPENDENCIES,
-    )
     # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
     _, level, _ = await agent.chat(
-        player_transcript="What type of room is it? I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! And my fame will drive customers to you...",
-        deps=DEPENDENCIES,
+        player_transcript="Hello good man! I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! I need the best room that you have.",
+        deps=DEPENDENCIES.model_copy(),
     )
 
     # Bias with max base influence and high alignment story should get privileged (not exclusive)
@@ -176,11 +175,12 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
         character_id=CHARACTER.id,
         player_id=PLAYER.id,
         base=BASE_INFLUENCE_MAX,  # Force max base influence
-        earned=5,  # Start above PRIVILEGED when combined with base
+        earned=2,  # Start above PRIVILEGED when combined with base
     )
 
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
+        instructions=RENDERED_INSTRUCTIONS,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )
@@ -225,17 +225,19 @@ async def test_personality_based_earned_influence_can_be_negative():
     template_context["player"] = opposing_player
 
     rendered_system_prompt = render_jinja_prompt("conversation_agent", template_context)
+    rendered_instructions = render_jinja_prompt(
+        "conversation_agent_instructions", template_context
+    )
 
     agent = ConversationAgent(
         system_prompt=rendered_system_prompt,
+        instructions=rendered_instructions,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=render_jinja_prompt(
                 "influence_scoring_agent",
                 {"character": CHARACTER, "player": opposing_player},
-            ),
-            character=CHARACTER,
-            player=opposing_player,
+            )
         ),
     )
 
@@ -287,9 +289,13 @@ async def test_conversation_agent_handles_multiple_reveals():
     template_context["character_reveals"] = reveals
 
     rendered_system_prompt = render_jinja_prompt("conversation_agent", template_context)
+    rendered_instructions = render_jinja_prompt(
+        "conversation_agent_instructions", template_context
+    )
 
     agent = ConversationAgent(
         system_prompt=rendered_system_prompt,
+        instructions=rendered_instructions,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )

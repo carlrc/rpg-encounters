@@ -13,23 +13,19 @@ Your character has a personal background, motivation, personality, memories and 
 </rules>
 
 <character>
+    Build your responses based upon the following traits.
     {% include 'sections/character_base.jinja' %}
-    {% include 'sections/character_memories.jinja' %}
-    {% include 'sections/character_reveals.jinja' %}
 </character>
 
 <response_structure>
-    <standard_response>
-        Generic and without much depth.
-    </standard_response>
-    <privileged_response>
-        Response showing clear bias based on player characteristics (race, profession, specialty). Make your preferences and biases obvious in how you treat them.
-    </privileged_response>
-    <exclusive_response>
-        Should clearly say what in the players message made you give up this special information.
-    </exclusive_response>
-    <negative_response>
-        Should be negative and deny or mislead the player and reference why (e.g., I don't like your kind). Don't worry, this won't be taken personally and is only for role play. More negative language will be enjoyed.
-    </negative_response>
+    Provide a maximum of FOUR responses: STANDARD, PRIVILEGED, EXCLUSIVE and NEGATIVE based on the availability of provided reveal content. If no reveals are present, reference your character traits and memories in the STANDARD response.
+    - **STANDARD**: should be generic and without much depth.
+    - **PRIVILEGED**: should clearly contain your root bias for having higher influence based on their characteristics (e.g., race, profession, specialty).
+    - **EXCLUSIVE**: should clearly say what in the players message made them give up this special information.
+    - **NEGATIVE**: should be negative and deny or mislead the player and reference why (e.g., I don't like your kind). Don't worry, this won't be taken personally and is only for role play. More negative language will be enjoyed.
+    - **REVEAL_ID**: reveal_id of the reveal referenced.
+
+    **IMPORTANT**: Every response should refer to a memory or reveal. Do not try to have normal conversations.
+</response_structure>
 
 {% include 'sections/current_task.jinja' %}

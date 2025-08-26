@@ -76,6 +76,16 @@ async def have_conversation(
             "encounter": context.encounter,
         }
 
+        influence_agent = InfluenceCalculatorAgent(
+            system_prompt=render_jinja_prompt(
+                "influence_scoring_agent",
+                {
+                    "character": character,
+                    "player": player,
+                },
+            ),
+        )
+
         # If negative sentiment, make the conversation negative
         negative_attitude = (
             context.influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
@@ -93,17 +103,7 @@ async def have_conversation(
                 conversation_store=ConversationStore(
                     user_id=user_id, world_id=world_id
                 ),
-                influence_calculator_agent=InfluenceCalculatorAgent(
-                    system_prompt=render_jinja_prompt(
-                        "influence_scoring_agent",
-                        {
-                            "character": character,
-                            "player": player,
-                        },
-                    ),
-                    character=character,
-                    player=player,
-                ),
+                influence_calculator_agent=influence_agent,
             )
 
             # Reveals thresholds cannot be negative, so don't pass any
@@ -135,23 +135,18 @@ async def have_conversation(
             rendered_system_prompt = render_jinja_prompt(
                 "conversation_agent", template_context
             )
+            # LLM does not handle choosing reveals and memories well when combined in system prompt
+            rendered_instructions = render_jinja_prompt(
+                "conversation_agent_instructions", template_context
+            )
 
             agent = ConversationAgent(
                 system_prompt=rendered_system_prompt,
+                instructions=rendered_instructions,
                 conversation_store=ConversationStore(
                     user_id=user_id, world_id=world_id
                 ),
-                influence_calculator_agent=InfluenceCalculatorAgent(
-                    system_prompt=render_jinja_prompt(
-                        "influence_scoring_agent",
-                        {
-                            "character": character,
-                            "player": player,
-                        },
-                    ),
-                    character=character,
-                    player=player,
-                ),
+                influence_calculator_agent=influence_agent,
             )
 
             response, _, influence = await agent.chat(

@@ -41,6 +41,7 @@ def test_influence_store():
 
     player_data = PlayerCreate(
         name="Test Player",
+        rl_name="test",
         appearance="A tall elf with flowing silver hair",
         race=Race.HIGH_ELF.value,
         class_name=Class.WIZARD.value,

@@ -103,18 +103,20 @@ BASE_TEMPLATE_CONTEXT = {
 RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
     "conversation_agent", BASE_TEMPLATE_CONTEXT
 )
+RENDERED_INSTRUCTIONS = render_jinja_prompt(
+    "conversation_agent_instructions", BASE_TEMPLATE_CONTEXT
+)
 
 
 async def test_agent_handles_no_reveals():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
+        instructions=RENDERED_INSTRUCTIONS,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=render_jinja_prompt(
                 "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
-            ),
-            character=CHARACTER,
-            player=PLAYER,
+            )
         ),
     )
 
