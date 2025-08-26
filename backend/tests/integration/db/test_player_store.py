@@ -18,6 +18,7 @@ def test_player_store():
     # Test 1: Create a player
     new_player_data = PlayerCreate(
         name="Test Warrior",
+        rl_name="test",
         appearance="A brave warrior with shining armor",
         race=Race.HUMAN.value,
         class_name=Class.FIGHTER.value,

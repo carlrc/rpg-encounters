@@ -4,13 +4,10 @@ from typing import Any
 from langfuse import get_client
 from langfuse import observe as langfuse_observe
 from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext, UnexpectedModelBehavior
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai import RunContext, UnexpectedModelBehavior
 
-from app.agents.base_agent import MAX_RETRIES
-from app.models.character import Character
+from app.agents.base_agent import BaseAgent
 from app.models.influence import INFLUENCE_CHANGE_MAX, INFLUENCE_CHANGE_MIN
-from app.models.player import Player
 
 logger = logging.getLogger(__name__)
 
@@ -20,22 +17,14 @@ class InfluenceCalculatorAgentOutput(BaseModel):
     reason: str
 
 
-class InfluenceCalculatorAgent:
-    def __init__(
-        self,
-        system_prompt: str,
-        character: Character,
-        player: Player,
-    ):
-        self.character = character
-        self.player = player
+class InfluenceCalculatorAgent(BaseAgent):
+    def __init__(self, system_prompt: str):
+        super().__init__()
 
-        agent = Agent(
-            OpenAIModel(model_name="gpt-4o-mini"),
-            system_prompt=system_prompt + "\n" + self.character.to_prompt(),
-            instructions=self._build_base_instruction(),
+        agent = self._generate_agent(
+            system_prompt=system_prompt,
             output_type=InfluenceCalculatorAgentOutput,
-            retries=MAX_RETRIES,
+            model_temp=0.0,
         )
 
         @agent.output_validator
@@ -55,10 +44,6 @@ class InfluenceCalculatorAgent:
         try:
             run_result = await self.agent.run(msg)
 
-            logger.info(
-                f"{self.player.name} influence adjustment {run_result.output.score}"
-            )
-
             # Called from other agents, therefore add to their traces
             get_client().update_current_span(name="influence-agent")
 
@@ -69,11 +54,3 @@ class InfluenceCalculatorAgent:
         except Exception as e:
             logger.error(f"Agent response generation failed. {e}")
             raise
-
-    def _build_base_instruction(self) -> str:
-        """Build streamlined influence-aware instruction for the AI"""
-
-        base_instruction = f"""# Current Interaction Context
-            You are speaking with **{self.player.name}**: a {self.player.race} {self.player.gender} {self.player.class_name} who looks like {self.player.appearance}."""
-
-        return base_instruction

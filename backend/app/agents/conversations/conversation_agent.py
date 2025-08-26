@@ -1,92 +1,51 @@
 import asyncio
 import logging
-from typing import List
 
 from langfuse import observe as langfuse_observe
-from pydantic_ai import Agent, RunContext, UnexpectedModelBehavior
+from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.messages import (
-    ModelMessage,
     ModelResponse,
     TextPart,
 )
-from pydantic_ai.models.openai import OpenAIModel
 
 from app.agents.agent_output import ConversationAgentOutput
 from app.agents.base_agent import AgentDeps, BaseAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.utils import (
-    structure_character_memories,
-    structure_encounter,
-    structure_reveals,
-)
 from app.data.conversation_store import ConversationStore
 from app.models.character import Character
-from app.models.encounter import Encounter
 from app.models.influence import Influence
-from app.models.memory import Memory
 from app.models.player import Player
-from app.models.reveal import Reveal, RevealLayer
+from app.models.reveal import RevealLayer
+from app.services.context import ConvoContext
 from app.services.conversation_manager import select_response
 
 logger = logging.getLogger(__name__)
 
 
 class ConversationAgentDeps(AgentDeps):
-    reveals: List[Reveal]
-    encounter: Encounter
-    influence: Influence
-    message_history: List[ModelMessage] | None
+    player: Player
+    character: Character
+    context: ConvoContext
 
 
 class ConversationAgent(BaseAgent):
     def __init__(
         self,
-        character: Character,
-        player: Player,
         system_prompt: str,
-        memories: List[Memory],
+        # The LLM cannot reference the memories and reveals well when they are combined in system prompt
+        instructions: str,
         conversation_store: ConversationStore,
         influence_calculator_agent: InfluenceCalculatorAgent,
     ):
         super().__init__()
         self.conversation_store = conversation_store
         self.influence_calculator_agent = influence_calculator_agent
-        self.player = player
-        self.character = character
-        agent = Agent(
-            OpenAIModel(model_name="gpt-4o-mini"),
-            # Moving character.to_prompt() to instructions caused instability in output validation
-            system_prompt=system_prompt + "\n" + character.to_prompt(),
-            instructions=structure_character_memories(memories=memories, player=player),
-            history_processors=[self._keep_recent_messages],
+
+        self.agent = self._generate_agent(
+            system_prompt=system_prompt,
+            instructions=instructions,
             output_type=ConversationAgentOutput,
-            retries=self.retries,
-            instrument=True,
         )
-
-        # Decorator does not work on self.agent.instructions
-        @agent.instructions
-        def add_reveals(ctx: RunContext[ConversationAgentDeps]) -> str:
-            all_reveals = [reveal for reveal in ctx.deps.reveals]
-
-            return structure_reveals(reveals=all_reveals)
-
-        @agent.instructions
-        def add_encounter(ctx: RunContext[ConversationAgentDeps]) -> str:
-            return structure_encounter(ctx.deps.encounter.description)
-
-        # Decorator does not work on self.agent.output_validator
-        @agent.output_validator
-        def validate_reveal_id(
-            ctx: RunContext[ConversationAgentDeps], output: ConversationAgentOutput
-        ) -> ConversationAgentOutput:
-            # If empty array of reveals, don't allow hallucinations of reveal_id
-            if not ctx.deps.reveals:
-                output.reveal_id = None
-            return output
-
-        # Set instance variable after decorators defined
-        self.agent = agent
 
     @langfuse_observe
     async def chat(
@@ -96,7 +55,7 @@ class ConversationAgent(BaseAgent):
             agent_task = self.agent.run(
                 user_prompt=player_transcript,
                 deps=deps,
-                message_history=deps.message_history,
+                message_history=deps.context.messages,
             )
             influence_task = self.influence_calculator_agent.process(player_transcript)
             run_result, influence_result = await asyncio.gather(
@@ -111,12 +70,12 @@ class ConversationAgent(BaseAgent):
 
         try:
             # Add to running earned total
-            deps.influence.earned += influence_result.score
+            deps.context.influence.earned += influence_result.score
 
             selected_response, level = select_response(
-                reveals=deps.reveals,
+                reveals=deps.context.reveals,
                 agent_result=run_result.output,
-                influence_score=deps.influence.score,
+                influence_score=deps.context.influence.score,
             )
 
             # TODO: I think this is a bit blunt and can remove failed calls we might want to keep
@@ -125,9 +84,9 @@ class ConversationAgent(BaseAgent):
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=selected_response)])
             self.conversation_store.add_messages(
-                player_id=self.player.id,
-                character_id=self.character.id,
-                encounter_id=deps.encounter.id,
+                player_id=deps.player.id,
+                character_id=deps.character.id,
+                encounter_id=deps.context.encounter.id,
                 new_messages=[model_request, model_response],
             )
 
@@ -137,4 +96,4 @@ class ConversationAgent(BaseAgent):
             logger.error(f"Could not process agent response. {e}")
             raise
 
-        return selected_response, level, deps.influence
+        return selected_response, level, deps.context.influence

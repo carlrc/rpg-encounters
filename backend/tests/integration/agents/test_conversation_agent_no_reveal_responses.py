@@ -6,7 +6,7 @@ from app.agents.conversations.conversation_agent import (
     ConversationAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -15,6 +15,7 @@ from app.models.influence import BASE_INFLUENCE_MAX, Influence
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass, RevealLayer
+from app.services.context import ConvoContext
 
 CHARACTER = Character(
     id=100,
@@ -62,14 +63,12 @@ INFLUENCE_STATE = Influence(
     earned=0,
 )
 
-CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
 TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
 CONVERSATION_STORE = Mock()
 
-DEPENDENCIES = ConversationAgentDeps(
-    reveals=[],
+
+CONTEXT = ConvoContext(
     encounter=Encounter(
         id=1,
         name="test",
@@ -79,23 +78,46 @@ DEPENDENCIES = ConversationAgentDeps(
         character_ids=[CHARACTER.id],
     ),
     influence=INFLUENCE_STATE,
-    message_history=None,
+    reveals=[],
+    memories=[],
+    messages=None,
+)
+
+DEPENDENCIES = ConversationAgentDeps(
+    player=PLAYER,
+    character=CHARACTER,
+    context=CONTEXT,
     user_id=1,
     telemetry=lambda: None,
 )
 
+BASE_TEMPLATE_CONTEXT = {
+    "max_response_length": 30,
+    "character": CHARACTER,
+    "character_memories": [],
+    "character_reveals": [],
+    "player": PLAYER,
+    "encounter": CONTEXT.encounter,
+}
+
+RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
+    "conversation_agent", BASE_TEMPLATE_CONTEXT
+)
+RENDERED_INSTRUCTIONS = render_jinja_prompt(
+    "conversation_agent_instructions", BASE_TEMPLATE_CONTEXT
+)
+
 
 async def test_agent_handles_no_reveals():
-
     agent = ConversationAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=RENDERED_SYSTEM_PROMPT,
+        instructions=RENDERED_INSTRUCTIONS,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
+            system_prompt=render_jinja_prompt(
+                "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+            )
         ),
-        memories=[],
     )
 
     _, level, _ = await agent.chat(

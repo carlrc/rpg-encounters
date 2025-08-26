@@ -51,6 +51,7 @@ def test_conversation_store():
     # Create test player
     player_data = PlayerCreate(
         name="Test Bard",
+        rl_name="test",
         appearance="A cheerful halfling with curly hair and bright eyes.",
         race=Race.LIGHTFOOT_HALFLING.value,
         class_name=Class.BARD.value,

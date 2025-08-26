@@ -20,7 +20,8 @@ from app.models.encounter_connection import (
     ConnectionUpdate,
 )
 from app.services.challenge import challenge_character
-from app.services.conversation import get_conversation_context, have_conversation
+from app.services.context import get_conversation_context
+from app.services.conversation import have_conversation
 from app.services.reveal_progress import calculate_reveal_progress
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
@@ -190,7 +191,7 @@ async def get_conversation_data(
 
     try:
         # TODO: Wasted db calls to influence, memories and messages
-        _, influence, all_reveals, _, _ = get_conversation_context(
+        context = get_conversation_context(
             world_id=world_id,
             player_id=player_id,
             user_id=user_id,
@@ -202,10 +203,10 @@ async def get_conversation_data(
         # Format response to match WebSocket conversation_data format
         return {
             "type": "conversation_data",
-            "influence": influence.score,
+            "influence": context.influence.score,
             "reveals": [
-                calculate_reveal_progress(reveal, influence.score)
-                for reveal in all_reveals
+                calculate_reveal_progress(reveal, context.influence.score)
+                for reveal in context.reveals
             ],
         }
 

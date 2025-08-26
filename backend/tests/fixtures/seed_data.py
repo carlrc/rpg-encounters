@@ -1,11 +1,11 @@
 import os
 import sys
+import asyncio
 import logging
 from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from app.db.connection import get_db_engine
 from app.db.models.player import PlayerORM
 from app.db.models.character import CharacterORM
 from app.db.models.encounter import EncounterORM
@@ -17,6 +17,12 @@ from app.db.models.world import WorldORM
 # Needs to be imported for sqlalchemy
 from app.db.models.influence import InfluenceORM  # noqa: F401
 from app.db.init_db import create_tables, drop_tables
+from app.agents.communication_style_agent import CommunicationStyleAgent, COMMUNICATION_STYLE_PROFILES
+from app.agents.personality_agent import PersonalityAgent
+from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
+from app.models.character import CommunicationStyle
+from app.telemetry import setup_telemetry
 from tests.fixtures.players import players_db
 from tests.fixtures.characters import characters_db
 from tests.fixtures.encounters import encounters_db
@@ -123,8 +129,8 @@ def seed_player_data(engine: Engine):
                 
                 player_orm = PlayerORM(**player_data, user_id=user_id, world_id=world_id)
                 session.add(player_orm)
-            
-            session.commit()
+                session.commit()
+    
             logger.info(f"Successfully seeded {len(players_db)} players to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding player data: {e}")
@@ -134,7 +140,7 @@ def seed_player_data(engine: Engine):
         raise
 
 
-def seed_character_data(engine: Engine):
+async def seed_character_data(engine: Engine):
     """Seed character data from fixtures to database"""
     Session = sessionmaker(bind=engine)
     
@@ -149,15 +155,31 @@ def seed_character_data(engine: Engine):
             # Get the actual user and world IDs from the database
             user_id, world_id = get_user_and_world_ids(session)
             
-            # Seed fixture data with actual user_id and world_id
+            # Seed fixture data
             for character in characters_db:
+                if character.communication_style_type != CommunicationStyle.CUSTOM.value:
+                    # Create communication style agent for each character with proper context
+                    system_prompt = render_jinja_prompt(
+                        "communication_style_agent",
+                        {
+                            "character": character,
+                            "style_profile": COMMUNICATION_STYLE_PROFILES[character.communication_style_type],
+                            "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+                        }
+                    )
+                    communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
+                    communication_style = await communication_style_agent.generate(character=character)
+                    character.communication_style = communication_style.style_summary
+                    character.communication_style_examples = communication_style.examples
+                    
+                character.personality = await PersonalityAgent().generate(character=character)
                 character_data = character.model_dump()
                 logger.info(f"Creating character '{character_data['name']}' with user_id={user_id}, world_id={world_id}")
                 
                 character_orm = CharacterORM(**character_data, user_id=user_id, world_id=world_id)
                 session.add(character_orm)
+                session.commit()
             
-            session.commit()
             logger.info(f"Successfully seeded {len(characters_db)} characters to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding character data: {e}")
@@ -341,7 +363,7 @@ def seed_connection_data(engine: Engine):
         raise
 
 
-def seed_all_data(engine: Engine):
+async def seed_all_data(engine: Engine):
     """Seed all fixture data to database in the correct order"""
     try:
         # Seed required user and world data first
@@ -350,7 +372,7 @@ def seed_all_data(engine: Engine):
         
         # Seed in dependency order
         seed_player_data(engine=engine)
-        seed_character_data(engine=engine)
+        await seed_character_data(engine=engine)
         seed_encounter_data(engine=engine)
         seed_memory_data(engine=engine)
         seed_reveal_data(engine=engine)
@@ -377,4 +399,5 @@ if __name__ == "__main__":
     engine = create_engine(url)
     drop_tables(engine=engine)
     create_tables(engine=engine)
-    seed_all_data(engine=engine)
+    setup_telemetry()
+    asyncio.run(seed_all_data(engine=engine))

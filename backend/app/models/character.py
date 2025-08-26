@@ -1,4 +1,5 @@
-from typing import Dict
+from enum import Enum
+from typing import Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -16,13 +17,21 @@ from .alignment import VALID_ALIGNMENTS
 from .race import VALID_GENDERS, VALID_RACES, VALID_SIZES
 from .util import validate_choice
 
-# Character field limits
+
+class CommunicationStyle(Enum):
+    NERDY = "Nerdy"
+    THEATRICAL = "Theatrical"
+    JOKING = "Joking"
+    PARANOID = "Paranoid"
+    PROFANE = "Profane"
+    FLIRTATIOUS = "Flirtatious"
+    CUSTOM = "Custom"
 
 
 class CharacterBase(BaseModel):
     name: str = Field(..., description="Character name", max_length=NAME_LIMIT)
     avatar: str | None = Field(
-        None, description="Character avatar image (base64 or URL)"
+        None, description="Character avatar image (base64 or URL)", exclude=True
     )
     race: str = Field(..., description="Character race")
     size: str = Field(..., description="Character size")
@@ -35,9 +44,19 @@ class CharacterBase(BaseModel):
         ..., description="Character background", max_length=CHARACTER_BACKGROUND_LIMIT
     )
     communication_style: str = Field(
-        ...,
+        "",
         description="Character communication style",
         max_length=CHARACTER_COMMUNICATION_LIMIT,
+    )
+    communication_style_examples: List[str] | None = Field(
+        None,
+        description="Examples of the characters communication style",
+        exclude=True,
+    )
+    communication_style_type: str = Field(
+        CommunicationStyle.CUSTOM.value,
+        description="Whether the character users a communication style preset or not",
+        exclude=True,
     )
     motivation: str = Field(
         ..., description="Character motivation", max_length=CHARACTER_MOTIVATION_LIMIT
@@ -47,7 +66,7 @@ class CharacterBase(BaseModel):
     )
     # TODO: This can't be here ultimately
     voice: str = Field(
-        "JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS"
+        "JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS", exclude=True
     )
 
     # Bias
@@ -146,7 +165,6 @@ class Character(CharacterBase):
         # Reminder that personality includes bias summaries
         return f"""# Character Identity
             You are {self.name}, a {self.race} {self.profession}. You ARE this character completely.
-            ## Your Core Identity
             **Background**: {self.background}
             **Motivation**: {self.motivation}
             **Communication Style**: {self.communication_style}

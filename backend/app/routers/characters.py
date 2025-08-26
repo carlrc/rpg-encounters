@@ -2,10 +2,21 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.agents.personality_agent import PersonalityGenerator
+from app.agents.communication_style_agent import (
+    COMMUNICATION_STYLE_PROFILES,
+    CommunicationStyleAgent,
+)
+from app.agents.personality_agent import PersonalityAgent
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.data.character_store import CharacterStore
+from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.dependencies import get_current_user_world
-from app.models.character import Character, CharacterCreate, CharacterUpdate
+from app.models.character import (
+    Character,
+    CharacterCreate,
+    CharacterUpdate,
+    CommunicationStyle,
+)
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -39,16 +50,35 @@ async def create_character(
     """Create a new character with AI-generated personality"""
     user_id, world_id = user_world
 
-    # Generate personality profile
-    personality = await PersonalityGenerator.generate_personality(character_data)
+    custom_style = (
+        character_data.communication_style_type == CommunicationStyle.CUSTOM.value
+    )
+    if not custom_style:
+        # Render the system prompt with character context
+        system_prompt = render_jinja_prompt(
+            "communication_style_agent",
+            {
+                "character": character_data,
+                "style_profile": COMMUNICATION_STYLE_PROFILES[
+                    character_data.communication_style_type
+                ],
+                "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+            },
+        )
+        communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
 
-    # Create new CharacterCreate object with generated personality
-    character_data.personality = personality
-    character_dict = character_data.model_dump()
-    character_with_personality = CharacterCreate(**character_dict)
+        communication_style = await communication_style_agent.generate(character_data)
+        character_data.communication_style = communication_style.style_summary
+        character_data.communication_style_examples = communication_style.examples
+
+    # For CUSTOM communication style, only generate personality and leave custom communication style
+    character_data.personality = await PersonalityAgent().generate(character_data)
+
+    # Create character with generated summaries
+    character = CharacterCreate(**character_data.model_dump())
 
     return CharacterStore(user_id=user_id, world_id=world_id).create_character(
-        character_with_personality
+        character
     )
 
 
