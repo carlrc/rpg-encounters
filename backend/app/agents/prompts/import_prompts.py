@@ -2,7 +2,7 @@ import logging
 from os import path
 from typing import Any, Dict
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,9 @@ def render_jinja_prompt(template_name: str, context: Dict[str, Any]) -> str:
 
     try:
         # Create Jinja2 environment
-        env = Environment(loader=FileSystemLoader(current_dir))
+        env = Environment(
+            loader=FileSystemLoader(current_dir), undefined=StrictUndefined
+        )
         template = env.get_template(f"{template_name}.jinja")
 
         # Render template with context

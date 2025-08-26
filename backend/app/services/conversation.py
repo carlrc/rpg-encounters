@@ -13,7 +13,7 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import import_system_prompt, render_jinja_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
@@ -30,8 +30,6 @@ from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
-
-scoring_system_prompt = import_system_prompt("influence_scoring_agent")
 
 
 async def have_conversation(
@@ -96,7 +94,13 @@ async def have_conversation(
                     user_id=user_id, world_id=world_id
                 ),
                 influence_calculator_agent=InfluenceCalculatorAgent(
-                    system_prompt=scoring_system_prompt,
+                    system_prompt=render_jinja_prompt(
+                        "influence_scoring_agent",
+                        {
+                            "character": character,
+                            "player": player,
+                        },
+                    ),
                     character=character,
                     player=player,
                 ),
@@ -138,7 +142,13 @@ async def have_conversation(
                     user_id=user_id, world_id=world_id
                 ),
                 influence_calculator_agent=InfluenceCalculatorAgent(
-                    system_prompt=scoring_system_prompt,
+                    system_prompt=render_jinja_prompt(
+                        "influence_scoring_agent",
+                        {
+                            "character": character,
+                            "player": player,
+                        },
+                    ),
                     character=character,
                     player=player,
                 ),

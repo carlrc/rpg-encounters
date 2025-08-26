@@ -5,14 +5,16 @@
     
     Available Reveals:
     {% for reveal in character_reveals %}
-        * REVEAL ID {{ reveal.id }}: {{ reveal.title }}:
-            - STANDARD: {{ reveal.level_1_content }}
-            {% if reveal.level_2_content %}
-            - PRIVILEGED: {{ reveal.level_2_content }}
-            {% endif %}
-            {% if reveal.level_3_content %}
-            - EXCLUSIVE: {{ reveal.level_3_content }}
-            {% endif %}
+        <reveal>
+            REVEAL ID {{ reveal.id }}: {{ reveal.title }}:
+                - STANDARD: {{ reveal.level_1_content }}
+                {% if reveal.level_2_content %}
+                - PRIVILEGED: {{ reveal.level_2_content }}
+                {% endif %}
+                {% if reveal.level_3_content %}
+                - EXCLUSIVE: {{ reveal.level_3_content }}
+                {% endif %}
+        </reveal>
     {% endfor %}
 </reveals>
 {% else %}

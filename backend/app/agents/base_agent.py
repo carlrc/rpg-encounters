@@ -38,7 +38,10 @@ class BaseAgent:
         )
 
     def _generate_agent(
-        self, system_prompt: str | None, output_type: Any | None = None
+        self,
+        system_prompt: str | None,
+        output_type: Any | None = None,
+        model_temp: float | None = None,
     ):
         """Generate a standard agent with common configuration."""
         agent_kwargs = {
@@ -46,10 +49,12 @@ class BaseAgent:
             "history_processors": [self._keep_recent_messages],
             "retries": self.retries,
             "instrument": True,
-            "model_settings": ModelSettings(
-                temperature=float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
-            ),
         }
+
+        if not model_temp:
+            model_temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
+
+        agent_kwargs["model_settings"] = ModelSettings(temperature=model_temp)
 
         if system_prompt:
             agent_kwargs["system_prompt"] = system_prompt

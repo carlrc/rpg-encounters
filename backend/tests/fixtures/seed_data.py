@@ -17,9 +17,10 @@ from app.db.models.world import WorldORM
 # Needs to be imported for sqlalchemy
 from app.db.models.influence import InfluenceORM  # noqa: F401
 from app.db.init_db import create_tables, drop_tables
-from app.agents.communication_style_agent import CommunicationStyleAgent
-from app.agents.personality_agent import PersonalityAgent, PersonalityGenerator
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.communication_style_agent import CommunicationStyleAgent, COMMUNICATION_STYLE_PROFILES
+from app.agents.personality_agent import PersonalityAgent
+from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.models.character import CommunicationStyle
 from app.telemetry import setup_telemetry
 from tests.fixtures.players import players_db
@@ -154,15 +155,24 @@ async def seed_character_data(engine: Engine):
             # Get the actual user and world IDs from the database
             user_id, world_id = get_user_and_world_ids(session)
             
-            communication_style_agent = CommunicationStyleAgent(import_system_prompt("communication_style_agent"))
             # Seed fixture data
             for character in characters_db:
                 if character.communication_style_type != CommunicationStyle.CUSTOM.value:
+                    # Create communication style agent for each character with proper context
+                    system_prompt = render_jinja_prompt(
+                        "communication_style_agent",
+                        {
+                            "character": character,
+                            "style_profile": COMMUNICATION_STYLE_PROFILES[character.communication_style_type],
+                            "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+                        }
+                    )
+                    communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
                     communication_style = await communication_style_agent.generate(character=character)
                     character.communication_style = communication_style.style_summary
                     character.communication_style_examples = communication_style.examples
                     
-                character.personality = await PersonalityAgent().generate(character_data=character)
+                character.personality = await PersonalityAgent().generate(character=character)
                 character_data = character.model_dump()
                 logger.info(f"Creating character '{character_data['name']}' with user_id={user_id}, world_id={world_id}")
                 

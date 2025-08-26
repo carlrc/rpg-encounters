@@ -39,10 +39,9 @@ class ConversationAgent(BaseAgent):
         self.conversation_store = conversation_store
         self.influence_calculator_agent = influence_calculator_agent
 
-        agent = self._generate_agent(system_prompt, ConversationAgentOutput)
-
-        # Set instance variable after decorators defined
-        self.agent = agent
+        self.agent = self._generate_agent(
+            system_prompt=system_prompt, output_type=ConversationAgentOutput
+        )
 
     @langfuse_observe
     async def chat(

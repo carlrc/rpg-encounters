@@ -6,7 +6,7 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -16,6 +16,7 @@ from app.models.memory import Memory
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass
+from app.services.context import ConvoContext
 
 CHARACTER = Character(
     id=100,
@@ -54,8 +55,6 @@ PLAYER = Player(
     },
 )
 
-CHAR_SYSTEM_PROMPT = import_system_prompt("negative_conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
 ALL_MEMORIES = [
     Memory(
@@ -73,8 +72,8 @@ INFLUENCE_STATE = Influence(
     earned=0,
 )
 
-DEPENDENCIES = NegativeConvoAgentDeps(
-    reveals=[],
+
+CONTEXT = ConvoContext(
     encounter=Encounter(
         id=1,
         name="test",
@@ -84,9 +83,29 @@ DEPENDENCIES = NegativeConvoAgentDeps(
         character_ids=[CHARACTER.id],
     ),
     influence=INFLUENCE_STATE,
-    message_history=None,
+    reveals=[],
+    memories=ALL_MEMORIES,
+    messages=None,
+)
+
+DEPENDENCIES = NegativeConvoAgentDeps(
+    player=PLAYER,
+    character=CHARACTER,
+    context=CONTEXT,
     user_id=1,
     telemetry=lambda: None,
+)
+
+BASE_TEMPLATE_CONTEXT = {
+    "max_response_length": 30,
+    "character": CHARACTER,
+    "character_memories": ALL_MEMORIES,
+    "player": PLAYER,
+    "encounter": CONTEXT.encounter,
+}
+
+RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
+    "negative_conversation_agent", BASE_TEMPLATE_CONTEXT
 )
 
 TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
@@ -95,14 +114,15 @@ CONVERSATION_STORE = Mock()
 
 async def test_negative_agent_is_negative():
     agent = NegativeConvoAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=RENDERED_SYSTEM_PROMPT,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
+            system_prompt=render_jinja_prompt(
+                "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+            ),
+            character=CHARACTER,
+            player=PLAYER,
         ),
-        memories=ALL_MEMORIES,
     )
 
     response, influence = await agent.chat(

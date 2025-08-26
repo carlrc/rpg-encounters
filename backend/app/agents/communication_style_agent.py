@@ -89,10 +89,7 @@ COMMUNICATION_STYLE_PROFILES: Dict[str, CommunicationStylePresetProfile] = {
 
 
 class CommunicationStyleAgent(BaseAgent):
-    def __init__(
-        self,
-        system_prompt: str,
-    ):
+    def __init__(self, system_prompt: str):
         super().__init__()
 
         agent = self._generate_agent(
@@ -122,15 +119,7 @@ class CommunicationStyleAgent(BaseAgent):
         self, character: CharacterCreate
     ) -> CommunicationStyleAgentOutput:
         try:
-            # Exclude personality as its not generated yet
-            prompt = f"""
-                Create a communication style summary in under {CHARACTER_COMMUNICATION_LIMIT} characters.
-                # Character Summary
-                {character.model_dump_json(exclude={"personality"})}
-                # Communication Style Archetype
-                {COMMUNICATION_STYLE_PROFILES[character.communication_style_type].model_dump_json()}
-            """
-            run_result = await self.agent.run(prompt)
+            run_result = await self.agent.run("Generate the communication style.")
 
             get_client().update_current_trace(name="communication-style-agent")
 

@@ -31,7 +31,9 @@ class InfluenceCalculatorAgent(BaseAgent):
         self.player = player
 
         agent = self._generate_agent(
-            system_prompt=system_prompt, output_type=InfluenceCalculatorAgentOutput
+            system_prompt=system_prompt,
+            output_type=InfluenceCalculatorAgentOutput,
+            model_temp=0.0,
         )
 
         @agent.output_validator
@@ -65,11 +67,3 @@ class InfluenceCalculatorAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Agent response generation failed. {e}")
             raise
-
-    def _build_base_instruction(self) -> str:
-        """Build streamlined influence-aware instruction for the AI"""
-
-        base_instruction = f"""# Current Interaction Context
-            You are interacting with **{self.player.name}**: a {self.player.race} {self.player.gender} {self.player.class_name} who looks like {self.player.appearance}."""
-
-        return base_instruction

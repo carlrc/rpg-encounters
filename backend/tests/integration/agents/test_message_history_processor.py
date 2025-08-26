@@ -10,7 +10,7 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -58,8 +58,6 @@ PLAYER = Player(
     },
 )
 
-CHAR_SYSTEM_PROMPT = import_system_prompt("negative_conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
 
 ALL_MEMORIES = [
     Memory(
@@ -111,15 +109,30 @@ def create_message_history(num_pairs: int):
 @pytest.mark.skip(reason="proper context summaries are required for this to be useful")
 async def test_message_history_processor_trims_at_max_limit():
     """Test that the message history processor trims messages when exceeding MAX_MESSAGE_HISTORY."""
+
+    # Template context for rendering Jinja prompt
+    template_context = {
+        "max_response_length": 30,
+        "character": CHARACTER,
+        "character_memories": ALL_MEMORIES,
+        "player": PLAYER,
+        "encounter": ENCOUNTER,
+    }
+
+    rendered_system_prompt = render_jinja_prompt(
+        "negative_conversation_agent", template_context
+    )
+
     agent = NegativeConvoAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=rendered_system_prompt,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
+            system_prompt=render_jinja_prompt(
+                "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+            ),
+            character=CHARACTER,
+            player=PLAYER,
         ),
-        memories=ALL_MEMORIES,
     )
 
     # Create message history with MAX_MESSAGE_HISTORY - 2 messages (18 messages = 9 pairs)
@@ -128,11 +141,21 @@ async def test_message_history_processor_trims_at_max_limit():
     message_pairs = initial_message_count // 2
     initial_messages = create_message_history(message_pairs)
 
-    # Create dependencies with the initial message history
-    deps = NegativeConvoAgentDeps(
+    # Create context and dependencies with the initial message history
+    from app.services.context import ConvoContext
+
+    context = ConvoContext(
         encounter=ENCOUNTER,
         influence=INFLUENCE_STATE,
-        message_history=initial_messages,
+        reveals=[],
+        memories=ALL_MEMORIES,
+        messages=initial_messages,
+    )
+
+    deps = NegativeConvoAgentDeps(
+        player=PLAYER,
+        character=CHARACTER,
+        context=context,
         user_id=1,
         telemetry=lambda: None,
     )

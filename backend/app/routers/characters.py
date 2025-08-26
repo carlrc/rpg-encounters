@@ -2,10 +2,14 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.agents.communication_style_agent import CommunicationStyleAgent
+from app.agents.communication_style_agent import (
+    COMMUNICATION_STYLE_PROFILES,
+    CommunicationStyleAgent,
+)
 from app.agents.personality_agent import PersonalityAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.data.character_store import CharacterStore
+from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.dependencies import get_current_user_world
 from app.models.character import (
     Character,
@@ -50,9 +54,18 @@ async def create_character(
         character_data.communication_style_type == CommunicationStyle.CUSTOM.value
     )
     if not custom_style:
-        communication_style_agent = CommunicationStyleAgent(
-            system_prompt=import_system_prompt("communication_style_agent")
+        # Render the system prompt with character context
+        system_prompt = render_jinja_prompt(
+            "communication_style_agent",
+            {
+                "character": character_data,
+                "style_profile": COMMUNICATION_STYLE_PROFILES[
+                    character_data.communication_style_type
+                ],
+                "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+            },
         )
+        communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
 
         communication_style = await communication_style_agent.generate(character_data)
         character_data.communication_style = communication_style.style_summary

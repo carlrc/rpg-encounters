@@ -5,7 +5,7 @@ from app.agents.conversations.conversation_agent import (
     ConversationAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import import_system_prompt
+from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
@@ -15,6 +15,7 @@ from app.models.memory import Memory
 from app.models.player import Player
 from app.models.race import Gender, Race, Size
 from app.models.reveal import DifficultyClass, Reveal, RevealLayer
+from app.services.context import ConvoContext
 from tests.utilities import assert_does_not_contain_keywords
 
 REVEAL_LEVEL_1 = "For normal customers, the Inn has only 1 standard single bed room left for the evening."
@@ -60,9 +61,6 @@ PLAYER = Player(
     },
 )
 
-CHAR_SYSTEM_PROMPT = import_system_prompt("conversation_agent")
-SCORE_SYSTEM_PROMPT = import_system_prompt("influence_scoring_agent")
-
 ALL_REVEALS = [
     Reveal(
         id=1,  # Static ID since we're not persisting
@@ -86,12 +84,11 @@ ALL_MEMORIES = [
 INFLUENCE_STATE = Influence(
     character_id=CHARACTER.id,
     player_id=PLAYER.id,
-    base=BASE_INFLUENCE_MAX,  # Force max base influence
+    base=BASE_INFLUENCE_MAX - 2,  # Just below max base
     earned=0,
 )
 
-DEPENDENCIES = ConversationAgentDeps(
-    reveals=ALL_REVEALS,
+CONTEXT = ConvoContext(
     encounter=Encounter(
         id=1,
         name="test",
@@ -101,24 +98,48 @@ DEPENDENCIES = ConversationAgentDeps(
         character_ids=[CHARACTER.id],
     ),
     influence=INFLUENCE_STATE,
-    message_history=None,
+    reveals=ALL_REVEALS,
+    memories=ALL_MEMORIES,
+    messages=None,
+)
+
+DEPENDENCIES = ConversationAgentDeps(
+    player=PLAYER,
+    character=CHARACTER,
+    context=CONTEXT,
     user_id=1,
     telemetry=lambda: None,
 )
 
 CONVERSATION_STORE = Mock()
 
+BASE_TEMPLATE_CONTEXT = {
+    "max_response_length": 30,
+    "character": CHARACTER,
+    "character_memories": ALL_MEMORIES,
+    "character_reveals": ALL_REVEALS,
+    "player": PLAYER,
+    "encounter": CONTEXT.encounter,
+}
+
+RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
+    "conversation_agent", BASE_TEMPLATE_CONTEXT
+)
+
+INFLUENCE_CALCULATOR_AGENT = InfluenceCalculatorAgent(
+    system_prompt=render_jinja_prompt(
+        "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+    ),
+    character=CHARACTER,
+    player=PLAYER,
+)
+
 
 async def test_personality_based_earned_influence_respects_standard_level():
     agent = ConversationAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=RENDERED_SYSTEM_PROMPT,
         conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
-        ),
-        memories=ALL_MEMORIES,
+        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )
 
     _, level, _ = await agent.chat(
@@ -131,14 +152,9 @@ async def test_personality_based_earned_influence_respects_standard_level():
 
 async def test_personality_based_earned_influence_respects_privileged_level():
     agent = ConversationAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=RENDERED_SYSTEM_PROMPT,
         conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
-        ),
-        memories=ALL_MEMORIES,
+        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )
 
     _, level, _ = await agent.chat(
@@ -164,19 +180,17 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
     )
 
     agent = ConversationAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=RENDERED_SYSTEM_PROMPT,
         conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=SCORE_SYSTEM_PROMPT, character=CHARACTER, player=PLAYER
-        ),
-        memories=ALL_MEMORIES,
+        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
     )
+
+    updated_context = CONTEXT.model_copy(update={"influence": influence})
+    updated_deps = DEPENDENCIES.model_copy(update={"context": updated_context})
 
     _, level, _ = await agent.chat(
         player_transcript="My good man, in fact I need the best room because I'm here to help the town on an important quest...",
-        deps=DEPENDENCIES.model_copy(update={"influence": influence}),
+        deps=updated_deps,
     )
 
     # Bias with max base influence and high alignment story with repetition should get exclusive
@@ -206,30 +220,49 @@ async def test_personality_based_earned_influence_can_be_negative():
         earned=0,
     )
 
+    # Create custom template context for opposing player
+    template_context = BASE_TEMPLATE_CONTEXT.copy()
+    template_context["player"] = opposing_player
+
+    rendered_system_prompt = render_jinja_prompt("conversation_agent", template_context)
+
     agent = ConversationAgent(
-        character=CHARACTER,
-        player=opposing_player,
-        system_prompt=CHAR_SYSTEM_PROMPT,
+        system_prompt=rendered_system_prompt,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=SCORE_SYSTEM_PROMPT,
+            system_prompt=render_jinja_prompt(
+                "influence_scoring_agent",
+                {"character": CHARACTER, "player": opposing_player},
+            ),
             character=CHARACTER,
             player=opposing_player,
         ),
-        memories=ALL_MEMORIES,
+    )
+
+    updated_context = CONTEXT.model_copy(update={"influence": influence})
+    updated_deps = DEPENDENCIES.model_copy(
+        update={
+            "context": updated_context,
+            "character": CHARACTER,
+            "player": opposing_player,
+        }
     )
 
     _, level, influence = await agent.chat(
         player_transcript="I need a room for the night you dirty old man!",
-        deps=DEPENDENCIES.model_copy(update={"influence": influence}),
+        deps=updated_deps,
     )
 
     assert influence.earned < 0
     assert level == RevealLayer.NEGATIVE
 
+    # Update the context again with the new influence
+    updated_context = updated_context.model_copy(update={"influence": influence})
+    updated_deps = updated_deps.model_copy(update={"context": updated_context})
+
     _, level, influence = await agent.chat(
         player_transcript="That isn't good enough you old man!",
-        deps=DEPENDENCIES.model_copy(update={"influence": influence}),
+        deps=updated_deps,
     )
 
     assert influence.earned < 0
@@ -237,17 +270,6 @@ async def test_personality_based_earned_influence_can_be_negative():
 
 
 async def test_conversation_agent_handles_multiple_reveals():
-    agent = ConversationAgent(
-        character=CHARACTER,
-        player=PLAYER,
-        system_prompt=CHAR_SYSTEM_PROMPT,
-        memories=ALL_MEMORIES,
-        conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=InfluenceCalculatorAgent(
-            SCORE_SYSTEM_PROMPT, CHARACTER, PLAYER
-        ),
-    )
-
     reveals = [
         *ALL_REVEALS,
         Reveal(
@@ -260,10 +282,24 @@ async def test_conversation_agent_handles_multiple_reveals():
         ),
     ]
 
+    # Create custom template context for different reveals
+    template_context = BASE_TEMPLATE_CONTEXT.copy()
+    template_context["character_reveals"] = reveals
+
+    rendered_system_prompt = render_jinja_prompt("conversation_agent", template_context)
+
+    agent = ConversationAgent(
+        system_prompt=rendered_system_prompt,
+        conversation_store=CONVERSATION_STORE,
+        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
+    )
+
     garden_keywords = ["vandalizing", "garden", "foreigner", "Merry"]
     room_keywords = ["room", "standard", "balcony", "corridor"]
 
-    dependencies = DEPENDENCIES.model_copy(update={"reveals": reveals})
+    updated_context = CONTEXT.model_copy(update={"reveals": reveals})
+    dependencies = DEPENDENCIES.model_copy(update={"context": updated_context})
+
     # Start asking about the first reveal (available rooms) and switch mid conversation to the garden vandal
     result, _, _ = await agent.chat(
         player_transcript="I need a room",
