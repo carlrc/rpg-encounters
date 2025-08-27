@@ -153,6 +153,7 @@
               profession: '',
               background: '',
               communication_style: '',
+              communication_style_type: 'Custom',
               motivation: '',
             }
           case 'player':

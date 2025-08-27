@@ -14,17 +14,30 @@
     />
 
     <!-- Communication Style Field (Characters only) -->
-    <BaseFormField
-      v-if="showField('communication_style')"
-      v-model="localData.communication_style"
-      type="textarea"
-      label="Communication Style"
-      :placeholder="`Communication style (max ${limits.communication_style} characters)`"
-      :max-length="limits.communication_style"
-      show-counter
-      full-width
-      @update:modelValue="updateField('communication_style', $event)"
-    />
+    <template v-if="showField('communication_style')">
+      <BaseFormField
+        v-model="localData.communication_style_type"
+        type="select"
+        label="Communication Style"
+        placeholder="Select Communication Style"
+        :options="gameData.communication_styles"
+        full-width
+        @update:modelValue="handleCommunicationStyleTypeChange"
+      />
+
+      <!-- Custom Communication Style Textarea -->
+      <BaseFormField
+        v-if="localData.communication_style_type === 'Custom'"
+        v-model="localData.communication_style"
+        type="textarea"
+        label="Custom Communication Style"
+        :placeholder="`Describe custom communication style (max ${limits.communication_style} characters)`"
+        :max-length="limits.communication_style"
+        show-counter
+        full-width
+        @update:modelValue="updateField('communication_style', $event)"
+      />
+    </template>
 
     <!-- Motivation Field (Characters only) -->
     <BaseFormField
@@ -131,6 +144,7 @@
       const localData = reactive({
         background: '',
         communication_style: '',
+        communication_style_type: 'Custom',
         motivation: '',
         appearance: '',
         level_1_content: '',
@@ -170,6 +184,7 @@
         character: {
           background: { show: true },
           communication_style: { show: true },
+          communication_style_type: { show: true },
           motivation: { show: true },
           appearance: { show: false },
         },
@@ -201,6 +216,15 @@
         emit('update:modelValue', { ...localData })
       }
 
+      const handleCommunicationStyleTypeChange = (value) => {
+        localData.communication_style_type = value
+        // Clear communication_style when switching away from Custom
+        if (value !== 'Custom') {
+          localData.communication_style = ''
+        }
+        emit('update:modelValue', { ...localData })
+      }
+
       // Watch for external changes to modelValue
       watch(
         () => props.modelValue,
@@ -217,6 +241,7 @@
         fieldConfig,
         showField,
         updateField,
+        handleCommunicationStyleTypeChange,
       }
     },
   }

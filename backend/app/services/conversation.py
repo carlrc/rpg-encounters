@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import WebSocket
 from langfuse import get_client
@@ -118,10 +117,7 @@ async def have_conversation(
                         user_id=user_id,
                         name="negative-convo-agent",
                         tags=["conversation"],
-                        metadata={
-                            "service": "backend",
-                            "env": os.getenv("ENVIRONMENT"),
-                        },
+                        metadata=agent.metadata,
                     ),
                 ),
             )
@@ -160,10 +156,7 @@ async def have_conversation(
                         user_id=user_id,
                         name="positive-convo-agent",
                         tags=["conversation"],
-                        metadata={
-                            "service": "backend",
-                            "env": os.getenv("ENVIRONMENT"),
-                        },
+                        metadata=agent.metadata,
                     ),
                 ),
             )

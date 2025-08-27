@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import WebSocket
 from langfuse import get_client
@@ -138,10 +137,7 @@ async def challenge_character(
                 user_id=user_id,
                 name="challenge-agent",
                 tags=["challenge"],
-                metadata={
-                    "service": "backend",
-                    "env": os.getenv("ENVIRONMENT"),
-                },
+                metadata=agent.metadata,
             ),
         )
         response = await agent.chat(player_transcript=transcription, deps=deps)
