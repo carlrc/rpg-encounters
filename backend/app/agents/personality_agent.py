@@ -27,7 +27,9 @@ class PersonalityAgent(BaseAgent):
 
             run_result = await self.agent.run(rendered_prompt)
 
-            get_client().update_current_trace(name="personality-agent")
+            get_client().update_current_trace(
+                name="personality-agent", metadata=self.metadata
+            )
 
             return run_result.output.strip()
 

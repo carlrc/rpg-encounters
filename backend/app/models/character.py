@@ -54,9 +54,8 @@ class CharacterBase(BaseModel):
         exclude=True,
     )
     communication_style_type: str = Field(
-        CommunicationStyle.CUSTOM.value,
+        ...,
         description="Whether the character users a communication style preset or not",
-        exclude=True,
     )
     motivation: str = Field(
         ..., description="Character motivation", max_length=CHARACTER_MOTIVATION_LIMIT
@@ -147,6 +146,7 @@ class CharacterUpdate(CharacterBase):
     profession: str | None = None
     background: str | None = None
     communication_style: str | None = None
+    communication_style_type: str | None = None
     motivation: str | None = None
     personality: str | None = None
     voice: str | None = None

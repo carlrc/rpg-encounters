@@ -25,6 +25,12 @@ class BaseAgent:
 
     def __init__(self):
         self.retries = MAX_RETRIES
+        self.temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
+        self.metadata = {
+            "service": os.getenv("SERVICE"),
+            "temperature": self.temp,
+            "env": os.getenv("ENVIRONMENT"),
+        }
 
     # TODO: This doesn't work well. Needs to be summarizing convo instead
     # https://ai.pydantic.dev/message-history/#summarize-old-messages
@@ -59,7 +65,7 @@ class BaseAgent:
         agent_kwargs["model"] = model
 
         if not model_temp:
-            model_temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
+            model_temp = self.temp
 
         agent_kwargs["model_settings"] = ModelSettings(temperature=model_temp)
 

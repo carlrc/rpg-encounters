@@ -45,7 +45,9 @@ class InfluenceCalculatorAgent(BaseAgent):
             run_result = await self.agent.run(msg)
 
             # Called from other agents, therefore add to their traces
-            get_client().update_current_span(name="influence-agent")
+            get_client().update_current_span(
+                name="influence-agent", metadata=self.metadata
+            )
 
             return run_result.output
         except UnexpectedModelBehavior as e:

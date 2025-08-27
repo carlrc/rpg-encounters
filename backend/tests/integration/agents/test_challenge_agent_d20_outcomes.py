@@ -1,70 +1,27 @@
-from app.agents.challenges.challenge_agent import ChallengeAgent
-from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
-from app.agents.challenges.critical_success_agent import CriticalSuccessAgent
-from app.agents.challenges.dependencies import ChallengeAgentDeps
+from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_jinja_prompt
-from app.models.alignment import Alignment
-from app.models.character import Character
-from app.models.class_traits import Abilities, Class, Skills
-from app.models.encounter import Encounter
 from app.models.memory import Memory
-from app.models.player import Player
-from app.models.race import Gender, Race, Size
-from app.models.reveal import DifficultyClass
+from tests.fixtures.generate import (
+    REVEAL_LEVEL_3,
+    default_character,
+    default_encounter,
+    default_memories,
+    default_player,
+)
 from tests.utilities import (
     assert_contains_any_keywords,
     assert_does_not_contain_keywords,
 )
 
-SECRET_CORRIDOR = "For important customers, a secret suite is available with a secret corridor which connects to all the rooms."
+SECRET_CORRIDOR = REVEAL_LEVEL_3
 MAYOR_SECRET = "The mayor used to bring foreign diplomats to this secret suite without his wife knowing."
 
-CHARACTER = Character(
-    id=100,
-    name="Bingo Bracegirdle",
-    race=Race.LIGHTFOOT_HALFLING.value,
-    size=Size.SMALL.value,
-    alignment=Alignment.NEUTRAL_GOOD.value,
-    gender=Gender.MALE.value,
-    profession="Inn Owner",
-    background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
-    communication_style="Chatty and welcoming, always ready with a story or bit of news.",
-    motivation="To keep the tavern running smoothly, keep customers happy and make money.",
-    personality="Appreciates friendly conversation and local gossip sharing.",
-    race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
-    class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
-    gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
-    size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
-    appearance_keywords=None,
-    storytelling_keywords=None,
-)
-
-PLAYER = Player(
-    id=100,
-    rl_name="Test",
-    name="Wondering Bard",
-    appearance="A small women with long brown hair with strong cheek bones.",
-    race=Race.LIGHTFOOT_HALFLING.value,
-    class_name=Class.BARD.value,
-    size=Size.SMALL.value,
-    alignment=Alignment.NEUTRAL_GOOD.value,
-    gender=Gender.FEMALE.value,
-    abilities={Abilities.CHARISMA.value: 16},
-    skills={
-        Skills.PERSUASION.value: 5,
-        Skills.DECEPTION.value: 2,
-        Skills.INTIMIDATION.value: 3,
-        Skills.PERFORMANCE.value: 4,
-    },
-)
+# Use default fixtures
+CHARACTER = default_character()
+PLAYER = default_player()
 
 ALL_MEMORIES = [
-    Memory(
-        id=1,
-        title="Oldest Inn",
-        character_ids=[CHARACTER.id],
-        content="This inn is the oldest in the city.",
-    ),
+    *default_memories(),
     Memory(
         id=2,
         title="Old Mayors favourite room",
@@ -73,14 +30,7 @@ ALL_MEMORIES = [
     ),
 ]
 
-ENCOUNTER = Encounter(
-    id=1,
-    name="test",
-    description="test",
-    position_x=0.1,
-    position_y=0.2,
-    character_ids=[CHARACTER.id],
-)
+ENCOUNTER = default_encounter()
 
 DEPENDENCIES = ChallengeAgentDeps(
     encounter=ENCOUNTER, messages=None, telemetry=lambda: None
@@ -100,9 +50,15 @@ async def test_challenge_agent_standard():
         **BASE_TEMPLATE_CONTEXT,
         "filtered_reveals": [MAYOR_SECRET],
         "max_response_length": 40,
+        "d20_roll": 15,
     }
     rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
-    agent = ChallengeAgent(system_prompt=rendered_prompt)
+    rendered_instructions = render_jinja_prompt(
+        "challenge_agent_instructions", template_context
+    )
+    agent = ChallengeAgent(
+        system_prompt=rendered_prompt, instructions=rendered_instructions
+    )
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
@@ -122,7 +78,12 @@ async def test_challenge_agent_critical_success():
     rendered_prompt = render_jinja_prompt(
         "challenge_agent_critical_success", template_context
     )
-    agent = CriticalSuccessAgent(system_prompt=rendered_prompt)
+    rendered_instructions = render_jinja_prompt(
+        "challenge_agent_instructions", template_context
+    )
+    agent = ChallengeAgent(
+        system_prompt=rendered_prompt, instructions=rendered_instructions
+    )
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",
@@ -136,11 +97,11 @@ async def test_challenge_agent_critical_success():
 
 async def test_challenge_agent_critical_failure():
     """Test that critical failure (d20=1) produces hostile response with no information"""
-    template_context = {**BASE_TEMPLATE_CONTEXT, "max_response_length": 40}
     rendered_prompt = render_jinja_prompt(
-        "challenge_agent_critical_failure", template_context
+        "challenge_agent_critical_failure",
+        {**BASE_TEMPLATE_CONTEXT, "max_response_length": 40},
     )
-    agent = CriticalFailureAgent(system_prompt=rendered_prompt)
+    agent = ChallengeAgent(system_prompt=rendered_prompt)
 
     response = await agent.chat(
         player_transcript="I want to know everything about your inn",

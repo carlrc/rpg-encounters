@@ -17,6 +17,13 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
         return value && typeof value === 'object' && Object.keys(value).length > 0
       }
 
+      // Special handling for communication_style - only required if communication_style_type is 'Custom'
+      if (field === 'communication_style' && entityType === 'CHARACTER') {
+        if (formData.communication_style_type && formData.communication_style_type !== 'Custom') {
+          return true // Not required for presets
+        }
+      }
+
       return value && value.toString().trim() !== ''
     })
 

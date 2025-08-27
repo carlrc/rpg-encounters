@@ -121,7 +121,9 @@ class CommunicationStyleAgent(BaseAgent):
         try:
             run_result = await self.agent.run("Generate the communication style.")
 
-            get_client().update_current_trace(name="communication-style-agent")
+            get_client().update_current_trace(
+                name="communication-style-agent", metadata=self.metadata
+            )
 
             return run_result.output
         except UnexpectedModelBehavior as e:

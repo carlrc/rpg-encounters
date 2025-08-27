@@ -67,9 +67,20 @@
         <div class="shared-field shared-field-full-width">
           <div class="shared-field-label">Communication Style</div>
           <div class="shared-field-value">
-            <div class="shared-text-display">{{ character.communication_style }}</div>
-            <div class="character-limit-info">
-              {{ (character.communication_style || '').length }}/{{
+            <div class="communication-style-display">
+              <span class="communication-style-type">{{ character.communication_style_type }}</span>
+              <div
+                v-if="character.communication_style_type === 'Custom'"
+                class="shared-text-display"
+              >
+                {{ character.communication_style }}
+              </div>
+            </div>
+            <div
+              v-if="character.communication_style_type === 'Custom'"
+              class="character-limit-info"
+            >
+              {{ character.communication_style.length }}/{{
                 gameData.validation_limits.character_communication
               }}
               characters
@@ -171,11 +182,28 @@
       <!-- Communication Style Field (Full Width) -->
       <div class="communication-field">
         <label class="shared-field-label">Communication Style</label>
-        <BaseTextareaWithCharacterCounter
-          v-model="editForm.communication_style"
-          :placeholder="`Communication style (max ${gameData.validation_limits.character_communication} characters)`"
-          :max-characters="gameData.validation_limits.character_communication"
-        />
+        <select
+          v-model="editForm.communication_style_type"
+          class="shared-select"
+          @change="handleCommunicationStyleTypeChange"
+        >
+          <option value="">Select Communication Style</option>
+          <option v-for="style in gameData.communication_styles" :key="style" :value="style">
+            {{ style }}
+          </option>
+        </select>
+
+        <!-- Custom Communication Style Textarea -->
+        <div
+          v-if="editForm.communication_style_type === 'Custom'"
+          class="custom-communication-style"
+        >
+          <BaseTextareaWithCharacterCounter
+            v-model="editForm.communication_style"
+            :placeholder="`Describe custom communication style (max ${gameData.validation_limits.character_communication} characters)`"
+            :max-characters="gameData.validation_limits.character_communication"
+          />
+        </div>
       </div>
 
       <!-- Motivation Field (Full Width) -->
@@ -352,6 +380,7 @@
         profession: '',
         background: '',
         communication_style: '',
+        communication_style_type: 'Custom',
         motivation: '',
         biases: {
           race_preferences: [],
@@ -397,6 +426,13 @@
         editForm.profession = props.character.profession || ''
         editForm.background = props.character.background || ''
         editForm.communication_style = props.character.communication_style || ''
+        editForm.communication_style_type = props.character.communication_style_type || 'Custom'
+
+        // If no communication_style_type is set but there's communication_style content,
+        // it's likely an existing custom style
+        if (!props.character.communication_style_type && props.character.communication_style) {
+          editForm.communication_style_type = 'Custom'
+        }
         editForm.motivation = props.character.motivation || ''
 
         // Load existing influence profile
@@ -431,7 +467,8 @@
             gender: editForm.gender,
             profession: editForm.profession.trim(),
             background: editForm.background.trim(),
-            communication_style: editForm.communication_style.trim(),
+            communication_style: (editForm.communication_style || '').trim(),
+            communication_style_type: editForm.communication_style_type,
             motivation: editForm.motivation.trim(),
             // Include bias profile fields
             race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
@@ -493,6 +530,14 @@
 
       const handleSizeBiasRemove = (index) => {
         removeBiasPreference('size_preferences', index)
+      }
+
+      // Watch for communication style type changes
+      const handleCommunicationStyleTypeChange = () => {
+        // Clear communication_style when switching away from Custom
+        if (editForm.communication_style_type !== 'Custom') {
+          editForm.communication_style = ''
+        }
       }
 
       const deleteCharacter = () => {
@@ -575,6 +620,9 @@
         cleanupFunctions.forEach((cleanup) => cleanup())
       })
 
+      // Watch communication style type changes to clear custom input
+      watch(() => editForm.communication_style_type, handleCommunicationStyleTypeChange)
+
       return {
         gameData,
         isEditing,
@@ -605,6 +653,7 @@
         handleGenderBiasRemove,
         handleSizeBiasChange,
         handleSizeBiasRemove,
+        handleCommunicationStyleTypeChange,
       }
     },
   }
@@ -627,6 +676,36 @@
   .communication-field,
   .motivation-field {
     margin-bottom: 16px;
+  }
+
+  .custom-communication-style {
+    margin-top: 12px;
+  }
+
+  .communication-style-display {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .communication-style-type {
+    font-weight: 600;
+    color: #007bff;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    display: block;
+    width: fit-content;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .preset-communication-style {
+    font-style: italic;
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 4px;
   }
 
   /* Bias Section Styles */

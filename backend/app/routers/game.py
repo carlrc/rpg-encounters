@@ -12,6 +12,7 @@ from app.db.limits import (
     TITLE_LIMIT,
 )
 from app.models.alignment import VALID_ALIGNMENTS
+from app.models.character import CommunicationStyle
 from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
 from app.models.race import VALID_RACES, VALID_SIZES
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, DifficultyClass, RevealLayer
@@ -27,6 +28,7 @@ async def get_game_data():
         "classes": VALID_CLASSES,
         "alignments": VALID_ALIGNMENTS,
         "skills": VALID_SKILLS,
+        "communication_styles": [style.value for style in CommunicationStyle],
         "sizes": {
             "player": VALID_SIZES,
             "character": VALID_SIZES + ["Large"],
