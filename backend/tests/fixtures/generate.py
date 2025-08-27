@@ -26,6 +26,7 @@ def create_default_innkeeper_character(character_id: int) -> Character:
         profession="Inn Owner",
         background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
         communication_style="Chatty and welcoming, always ready with a story or bit of news.",
+        communication_style_type="Custom",
         motivation="To keep the tavern running smoothly and make more money and attract more customers",
         personality="Appreciates friendly conversation and local gossip sharing.",
         race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
