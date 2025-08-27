@@ -1,9 +1,8 @@
 {# Filtered reveals for challenge agents - expects: filtered_reveals (list of strings) #}
 {% if filtered_reveals %}
-<reveals>
-    The following information should be used in your response.
-    {% for reveal in filtered_reveals %}
-    - {{ reveal }}
-    {% endfor %}
-</reveals>
+### Reveals
+You MUST use the following information in your response if the player asks.
+{% for reveal in filtered_reveals %}
+- {{ reveal }}
+{% endfor %}
 {% endif %}

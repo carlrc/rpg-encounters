@@ -1,3 +1,4 @@
+import asyncio
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -90,11 +91,48 @@ async def update_character(
 ):
     """Update an existing character"""
     user_id, world_id = user_world
-    character = CharacterStore(user_id=user_id, world_id=world_id).update_character(
-        character_id, character_update
-    )
+
+    character_store = CharacterStore(user_id=user_id, world_id=world_id)
+    character = character_store.get_character_by_id(character_id=character_id)
     if not character:
         raise HTTPException(status_code=404, detail="Character not found")
+    # Merge existing character with updates for personality generation
+    merged_data = character.model_dump()
+    merged_data.update(character_update.model_dump(exclude_unset=True))
+    merged_character = CharacterUpdate(**merged_data)
+
+    personality_task = PersonalityAgent().generate(merged_character)
+    communication_task = None
+
+    # Add communication style generation if not custom
+    if merged_character.communication_style_type != CommunicationStyle.CUSTOM.value:
+        system_prompt = render_jinja_prompt(
+            "communication_style_agent",
+            {
+                "character": merged_character,
+                "style_profile": COMMUNICATION_STYLE_PROFILES[
+                    merged_character.communication_style_type
+                ],
+                "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+            },
+        )
+        communication_task = CommunicationStyleAgent(
+            system_prompt=system_prompt
+        ).generate(merged_character)
+
+    # Run tasks concurrently and set results
+    if communication_task:
+        personality, communication_style = await asyncio.gather(
+            personality_task, communication_task
+        )
+        character_update.communication_style = communication_style.style_summary
+        character_update.communication_style_examples = communication_style.examples
+    else:
+        personality = await personality_task
+
+    character_update.personality = personality
+    character = character_store.update_character(character_id, character_update)
+
     return character
 
 

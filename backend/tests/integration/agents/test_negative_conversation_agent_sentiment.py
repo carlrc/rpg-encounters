@@ -7,83 +7,26 @@ from app.agents.conversations.negative_conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_jinja_prompt
-from app.models.alignment import Alignment
-from app.models.character import Character
-from app.models.class_traits import Abilities, Class, Skills
-from app.models.encounter import Encounter
-from app.models.influence import BASE_INFLUENCE_MIN, Influence
-from app.models.memory import Memory
-from app.models.player import Player
-from app.models.race import Gender, Race, Size
-from app.models.reveal import DifficultyClass
+from app.models.influence import BASE_INFLUENCE_MIN
 from app.services.context import ConvoContext
-
-CHARACTER = Character(
-    id=100,
-    name="Bingo Bracegirdle",
-    race=Race.LIGHTFOOT_HALFLING.value,
-    size=Size.SMALL.value,
-    alignment=Alignment.NEUTRAL_GOOD.value,
-    gender=Gender.MALE.value,
-    profession="Inn Owner",
-    background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
-    communication_style="Chatty and welcoming, always ready with a story or bit of news.",
-    motivation="To keep the tavern running smoothly, keep customers happy and make money.",
-    personality="Appreciates friendly conversation and local gossip sharing.",
-    race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
-    class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
-    gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
-    size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
+from tests.fixtures.generate import (
+    default_character,
+    default_encounter,
+    default_influence,
+    default_memories,
+    default_player,
 )
 
-PLAYER = Player(
-    id=100,
-    rl_name="Test",
-    name="Wondering Bard",
-    appearance="A small women with long brown hair with strong cheek bones.",
-    race=Race.LIGHTFOOT_HALFLING.value,
-    class_name=Class.BARD.value,
-    size=Size.SMALL.value,
-    alignment=Alignment.NEUTRAL_GOOD.value,
-    gender=Gender.FEMALE.value,
-    abilities={Abilities.CHARISMA.value: 16},
-    skills={
-        Skills.PERSUASION.value: 5,
-        Skills.DECEPTION.value: 2,
-        Skills.INTIMIDATION.value: 3,
-        Skills.PERFORMANCE.value: 4,
-    },
-)
-
-
-ALL_MEMORIES = [
-    Memory(
-        id=1,
-        title="Oldest Inn",
-        character_ids=[CHARACTER.id],
-        content="This inn is the oldest in the city.",
-    )
-]
-
-INFLUENCE_STATE = Influence(
-    character_id=CHARACTER.id,
-    player_id=PLAYER.id,
-    base=BASE_INFLUENCE_MIN,
-    earned=0,
-)
-
+# Use default fixtures with modifications for negative test scenario
+CHARACTER = default_character()
+PLAYER = default_player()
+ALL_MEMORIES = default_memories()
+INFLUENCE_STATE = default_influence(base=BASE_INFLUENCE_MIN)
 
 CONTEXT = ConvoContext(
-    encounter=Encounter(
-        id=1,
-        name="test",
-        description="test",
-        position_x=0.1,
-        position_y=0.2,
-        character_ids=[CHARACTER.id],
-    ),
+    encounter=default_encounter(),
     influence=INFLUENCE_STATE,
-    reveals=[],
+    reveals=[],  # No reveals for this test
     memories=ALL_MEMORIES,
     messages=None,
 )

@@ -5,12 +5,9 @@ from fastapi import WebSocket
 from langfuse import get_client
 from sqlalchemy.orm import sessionmaker
 
-from app.agents.challenges.challenge_agent import ChallengeAgent, ChallengeAgentDeps
-from app.agents.challenges.critical_failure_agent import CriticalFailureAgent
-from app.agents.challenges.critical_success_agent import CriticalSuccessAgent
+from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.data.character_store import CharacterStore
-from app.data.conversation_store import ConversationStore
 from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
@@ -41,7 +38,6 @@ async def challenge_character(
     skill: str,
     d20_roll: int,
 ):
-    # TODO: Need to get chat history and incorporate it into responses
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
     # TODO: saving to WAV needs to be made async
@@ -65,9 +61,6 @@ async def challenge_character(
             reveal_store = RevealStore(
                 user_id=user_id, world_id=world_id, session=session
             )
-            conversation_store = ConversationStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
             memory_store = MemoryStore(
                 user_id=user_id, world_id=world_id, session=session
             )
@@ -84,13 +77,7 @@ async def challenge_character(
                 # Refresh encounter data after adding character
                 encounter = encounter_store.get_encounter_by_id(encounter_id)
 
-            # Get information tied to character using shared session
             all_reveals = reveal_store.get_by_character_id(character_id)
-            conversation = conversation_store.get(
-                player_id=player_id,
-                character_id=character_id,
-                encounter_id=encounter_id,
-            )
             all_memories = memory_store.get_by_character_id(character_id)
 
         # Calculate skill check and filter reveals outside of session
@@ -117,15 +104,14 @@ async def challenge_character(
             rendered_prompt = render_jinja_prompt(
                 "challenge_agent_critical_success", template_context
             )
-            agent = CriticalSuccessAgent(system_prompt=rendered_prompt)
-            challenge_agent_name = "crit-success-agent"
-        elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
-            template_context = {**base_template_context, "max_response_length": 40}
-            rendered_prompt = render_jinja_prompt(
-                "challenge_agent_critical_failure", template_context
+            rendered_instructions = render_jinja_prompt(
+                "challenge_agent_instructions", template_context
             )
-            agent = CriticalFailureAgent(system_prompt=rendered_prompt)
-            challenge_agent_name = "crit-failure-agent"
+        elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
+            rendered_prompt = render_jinja_prompt(
+                "challenge_agent_critical_failure",
+                {**base_template_context, "max_response_length": 40},
+            )
         else:
             # Add filtered reveals, d20_roll, and 40 word limit for standard challenge
             template_context = {
@@ -135,16 +121,22 @@ async def challenge_character(
                 "d20_roll": total_roll,
             }
             rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
-            agent = ChallengeAgent(system_prompt=rendered_prompt)
-            challenge_agent_name = "challenge-agent"
+            rendered_instructions = render_jinja_prompt(
+                "challenge_agent_instructions", template_context
+            )
 
+        agent = ChallengeAgent(
+            system_prompt=rendered_prompt,
+            instructions=rendered_instructions if rendered_instructions else None,
+        )
         # Create deps with encounter context
         deps = ChallengeAgentDeps(
             encounter=encounter,
-            messages=conversation.messages if conversation else None,
+            # TODO: Adding history seems to reduce the chance the LLM answers with reveals, which is the purpose of challenges
+            messages=None,
             telemetry=lambda: get_client().update_current_trace(
                 user_id=user_id,
-                name=challenge_agent_name,
+                name="challenge-agent",
                 tags=["challenge"],
                 metadata={
                     "service": "backend",

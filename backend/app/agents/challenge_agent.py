@@ -1,20 +1,29 @@
 import logging
+from typing import List
 
 from langfuse import observe as langfuse_observe
 from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.messages import ModelMessage
 
 from app.agents.agent_output import StandardAgentOutput
-from app.agents.base_agent import BaseAgent
-from app.agents.challenges.dependencies import ChallengeAgentDeps
+from app.agents.base_agent import AgentDeps, BaseAgent
+from app.models.encounter import Encounter
 
 logger = logging.getLogger(__name__)
 
 
-class CriticalSuccessAgent(BaseAgent):
-    def __init__(self, system_prompt: str):
+class ChallengeAgentDeps(AgentDeps):
+    encounter: Encounter
+    messages: List[ModelMessage] | None
+
+
+class ChallengeAgent(BaseAgent):
+    def __init__(self, system_prompt: str, instructions: str | None = None):
         super().__init__()
-        self.agent = self._generate_agent(system_prompt=system_prompt, model_temp=0.6)
+        self.agent = self._generate_agent(
+            system_prompt=system_prompt, instructions=instructions
+        )
         self.run_result: AgentRunResult[StandardAgentOutput] = None
 
     @langfuse_observe

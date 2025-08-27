@@ -1,9 +1,9 @@
 from pydantic import BaseModel, field_validator
 
-from .reveal import DifficultyClass
+from .reveal import REVEAL_DEFAULT_THRESHOLDS, DifficultyClass, RevealLayer
 
 BASE_INFLUENCE_MIN = -DifficultyClass.EASY.value + 2
-BASE_INFLUENCE_MAX = DifficultyClass.MEDIUM.value  # PRIVILEGED threshold
+BASE_INFLUENCE_MAX = REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED]
 INFLUENCE_CHANGE_MIN = -DifficultyClass.EASY.value
 INFLUENCE_CHANGE_MAX = DifficultyClass.EASY.value
 EARNED_INFLUENCE_MIN = -18
