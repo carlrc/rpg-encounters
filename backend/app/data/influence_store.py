@@ -50,7 +50,6 @@ class InfluenceStore(BaseStore):
             )
             session.add(new_influence)
             session.flush()
-            session.commit()
             session.refresh(new_influence)
             return Influence.model_validate(new_influence)
 
@@ -75,7 +74,7 @@ class InfluenceStore(BaseStore):
             influence_orm.base = influence.base
             influence_orm.earned = influence.earned
 
-            session.commit()
+            session.flush()
             session.refresh(influence_orm)
             return Influence.model_validate(influence_orm)
 
@@ -91,7 +90,7 @@ class InfluenceStore(BaseStore):
                 world_id=self.world_id,
             )
             session.add(influence_orm)
-            session.commit()
+            session.flush()
             session.refresh(influence_orm)
             return Influence.model_validate(influence_orm)
 
@@ -125,7 +124,6 @@ class InfluenceStore(BaseStore):
 
             if influence_orm:
                 influence_orm.earned = 0
-                session.commit()
                 return True
             return False
 
@@ -171,11 +169,9 @@ class InfluenceStore(BaseStore):
                 return False
 
             session.delete(influence_orm)
-            session.commit()
             return True
 
     def clear(self) -> None:
         """Clear all influence states - used for testing"""
         with self.get_session() as session:
             session.query(InfluenceORM).delete()
-            session.commit()

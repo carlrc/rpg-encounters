@@ -1,10 +1,9 @@
 from contextlib import contextmanager
-from typing import Optional
 
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.db.connection import get_db_engine
+from app.db.connection import get_db_engine, get_db_session
 
 
 class BaseStore:
@@ -13,7 +12,7 @@ class BaseStore:
         user_id: int,
         world_id: int | None = None,
         engine: Engine = get_db_engine(),
-        session: Optional[Session] = None,
+        session: Session | None = None,
     ):
         self.user_id = user_id
         self.world_id = world_id
@@ -22,11 +21,9 @@ class BaseStore:
 
     @contextmanager
     def get_session(self):
-        """Get a database session - either the shared one or create a new one"""
+        """Get a database session - either the shared one or create one"""
         if self.session:
-            # If we have a shared session, just yield it (no commit/rollback)
             yield self.session
         else:
-            # Create a new session with proper transaction handling
-            with self.Session() as session:
+            with get_db_session() as session:
                 yield session

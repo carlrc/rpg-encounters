@@ -165,7 +165,7 @@ class ApiService {
 
   // Encounter CRUD operations
   async getEncounters() {
-    return this.request('/encounters')
+    return this.request('/canvas')
   }
 
   async getEncounter(id) {
@@ -198,7 +198,7 @@ class ApiService {
 
   // Canvas save operation
   async saveCanvas(canvasData) {
-    return this.request('/canvas/save', {
+    return this.request('/canvas', {
       method: 'POST',
       body: JSON.stringify(canvasData),
     })

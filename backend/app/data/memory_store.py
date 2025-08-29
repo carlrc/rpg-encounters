@@ -90,7 +90,7 @@ class MemoryStore(BaseStore):
                 memory_orm.characters = characters
 
             session.add(memory_orm)
-            session.commit()
+            session.flush()
             session.refresh(memory_orm)
             return MemoryStore.orm_to_memory(memory_orm)
 
@@ -128,7 +128,7 @@ class MemoryStore(BaseStore):
                 )
                 memory_orm.characters = characters
 
-            session.commit()
+            session.flush()
             session.refresh(memory_orm)
             return MemoryStore.orm_to_memory(memory_orm)
 
@@ -148,7 +148,6 @@ class MemoryStore(BaseStore):
                 return False
 
             session.delete(memory_orm)  # Cascade handles associations
-            session.commit()
             return True
 
     def memory_exists(self, memory_id: int) -> bool:

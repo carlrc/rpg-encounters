@@ -17,6 +17,7 @@ from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
 from app.data.player_store import PlayerStore
+from app.db.connection import get_db_session
 from app.dependencies import (
     get_transcription_service,
     get_tts_service,
@@ -49,153 +50,159 @@ async def have_conversation(
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
-        # Get character and player information
-        character = CharacterStore(
-            world_id=world_id, user_id=user_id
-        ).get_character_by_id(character_id=character_id)
-        player = PlayerStore(world_id=world_id, user_id=user_id).get_player_by_id(
-            player_id=player_id
-        )
-        base_influence = calculate_base_influence(character=character, player=player)
-        context = get_conversation_context(
-            world_id=world_id,
-            user_id=user_id,
-            player_id=player.id,
-            character_id=character.id,
-            encounter_id=encounter_id,
-            base_influence=base_influence,
-        )
+        with get_db_session() as session:
+            # Get character and player information
+            character = CharacterStore(
+                world_id=world_id, user_id=user_id, session=session
+            ).get_character_by_id(character_id=character_id)
+            player = PlayerStore(
+                world_id=world_id, user_id=user_id, session=session
+            ).get_player_by_id(player_id=player_id)
 
-        # Common template context for both conversation agents
-        template_context = {
-            "max_response_length": 30,
-            "character": character,
-            "character_memories": context.memories,
-            "player": player,
-            "encounter": context.encounter,
-        }
-
-        influence_agent = InfluenceCalculatorAgent(
-            system_prompt=render_jinja_prompt(
-                "influence_scoring_agent",
-                {
-                    "character": character,
-                    "player": player,
-                },
-            ),
-        )
-
-        # If negative sentiment, make the conversation negative
-        negative_attitude = (
-            context.influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
-        )
-        if negative_attitude:
-            logger.info("Using negative conversation agent...")
-
-            # Render the Jinja template
-            rendered_negative_system_prompt = render_jinja_prompt(
-                "negative_conversation_agent", template_context
+            base_influence = calculate_base_influence(
+                character=character, player=player
+            )
+            context = get_conversation_context(
+                world_id=world_id,
+                user_id=user_id,
+                player_id=player.id,
+                character_id=character.id,
+                encounter_id=encounter_id,
+                base_influence=base_influence,
+                session=session,
             )
 
-            agent = NegativeConvoAgent(
-                system_prompt=rendered_negative_system_prompt,
-                conversation_store=ConversationStore(
-                    user_id=user_id, world_id=world_id
+            # Common template context for both conversation agents
+            template_context = {
+                "max_response_length": 30,
+                "character": character,
+                "character_memories": context.memories,
+                "player": player,
+                "encounter": context.encounter,
+            }
+
+            influence_agent = InfluenceCalculatorAgent(
+                system_prompt=render_jinja_prompt(
+                    "influence_scoring_agent",
+                    {
+                        "character": character,
+                        "player": player,
+                    },
                 ),
-                influence_calculator_agent=influence_agent,
             )
 
-            # Reveals thresholds cannot be negative, so don't pass any
-            response, influence = await agent.chat(
-                player_transcript=transcription,
-                deps=NegativeConvoAgentDeps(
-                    player=player,
-                    character=character,
-                    context=context,
-                    user_id=user_id,
-                    telemetry=lambda: get_client().update_current_trace(
-                        user_id=user_id,
-                        name="negative-convo-agent",
-                        tags=["conversation"],
-                        metadata=agent.metadata,
+            # If negative sentiment, make the conversation negative
+            negative_attitude = (
+                context.influence.score
+                < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
+            )
+            if negative_attitude:
+                logger.info("Using negative conversation agent...")
+
+                # Render the Jinja template
+                rendered_negative_system_prompt = render_jinja_prompt(
+                    "negative_conversation_agent", template_context
+                )
+
+                agent = NegativeConvoAgent(
+                    system_prompt=rendered_negative_system_prompt,
+                    conversation_store=ConversationStore(
+                        user_id=user_id, world_id=world_id, session=session
                     ),
-                ),
-            )
-        else:
-            logger.info("Using positive conversation agent...")
+                    influence_calculator_agent=influence_agent,
+                )
 
-            # Add reveals for positive conversation agent
-            template_context["character_reveals"] = context.reveals
-
-            # Render the Jinja template
-            rendered_system_prompt = render_jinja_prompt(
-                "conversation_agent", template_context
-            )
-            # LLM does not handle choosing reveals and memories well when combined in system prompt
-            rendered_instructions = render_jinja_prompt(
-                "conversation_agent_instructions", template_context
-            )
-
-            agent = ConversationAgent(
-                system_prompt=rendered_system_prompt,
-                instructions=rendered_instructions,
-                conversation_store=ConversationStore(
-                    user_id=user_id, world_id=world_id
-                ),
-                influence_calculator_agent=influence_agent,
-            )
-
-            response, _, influence = await agent.chat(
-                player_transcript=transcription,
-                deps=ConversationAgentDeps(
-                    player=player,
-                    character=character,
-                    context=context,
-                    user_id=user_id,
-                    telemetry=lambda: get_client().update_current_trace(
+                # Reveals thresholds cannot be negative, so don't pass any
+                response, influence = await agent.chat(
+                    player_transcript=transcription,
+                    deps=NegativeConvoAgentDeps(
+                        player=player,
+                        character=character,
+                        context=context,
                         user_id=user_id,
-                        name="positive-convo-agent",
-                        tags=["conversation"],
-                        metadata=agent.metadata,
+                        telemetry=lambda: get_client().update_current_trace(
+                            user_id=user_id,
+                            name="negative-convo-agent",
+                            tags=["conversation"],
+                            metadata=agent.metadata,
+                        ),
                     ),
-                ),
-            )
+                )
+            else:
+                logger.info("Using positive conversation agent...")
 
-        InfluenceStore(user_id=user_id, world_id=world_id).update_influence(
-            influence=influence
-        )
+                # Add reveals for positive conversation agent
+                template_context["character_reveals"] = context.reveals
 
-        # Send conversation data before audio streaming
-        conversation_data = {
-            "type": "conversation_data",
-            "influence": influence.score,
-            "reveals": [
-                calculate_reveal_progress(reveal, influence.score)
-                for reveal in context.reveals
-            ],
-        }
+                # Render the Jinja template
+                rendered_system_prompt = render_jinja_prompt(
+                    "conversation_agent", template_context
+                )
+                # LLM does not handle choosing reveals and memories well when combined in system prompt
+                rendered_instructions = render_jinja_prompt(
+                    "conversation_agent_instructions", template_context
+                )
 
-        try:
-            await websocket.send_json(conversation_data)
-        except Exception as e:
-            logger.error(f"Failed to send conversation data: {e}")
+                agent = ConversationAgent(
+                    system_prompt=rendered_system_prompt,
+                    instructions=rendered_instructions,
+                    conversation_store=ConversationStore(
+                        user_id=user_id, world_id=world_id, session=session
+                    ),
+                    influence_calculator_agent=influence_agent,
+                )
 
-        # Stream TTS audio chunks back to frontend
-        for audio_chunk in get_tts_service().text_to_speech_stream(
-            text=response, voice_id=character.voice
-        ):
+                response, _, influence = await agent.chat(
+                    player_transcript=transcription,
+                    deps=ConversationAgentDeps(
+                        player=player,
+                        character=character,
+                        context=context,
+                        user_id=user_id,
+                        telemetry=lambda: get_client().update_current_trace(
+                            user_id=user_id,
+                            name="positive-convo-agent",
+                            tags=["conversation"],
+                            metadata=agent.metadata,
+                        ),
+                    ),
+                )
+
+            InfluenceStore(
+                user_id=user_id, world_id=world_id, session=session
+            ).update_influence(influence=influence)
+
+            # Send conversation data before audio streaming
+            conversation_data = {
+                "type": "conversation_data",
+                "influence": influence.score,
+                "reveals": [
+                    calculate_reveal_progress(reveal, influence.score)
+                    for reveal in context.reveals
+                ],
+            }
+
             try:
-                await websocket.send_bytes(audio_chunk)
+                await websocket.send_json(conversation_data)
             except Exception as e:
-                logger.error(f"Failed to send audio chunk: {e}")
-                break
+                logger.error(f"Failed to send conversation data: {e}")
 
-        # Send completion signal
-        try:
-            await websocket.send_text("AUDIO_COMPLETE")
-        except Exception as e:
-            logger.error(f"Failed to send completion signal: {e}")
-            raise
+            # Stream TTS audio chunks back to frontend
+            for audio_chunk in get_tts_service().text_to_speech_stream(
+                text=response, voice_id=character.voice
+            ):
+                try:
+                    await websocket.send_bytes(audio_chunk)
+                except Exception as e:
+                    logger.error(f"Failed to send audio chunk: {e}")
+                    break
+
+            # Send completion signal
+            try:
+                await websocket.send_text("AUDIO_COMPLETE")
+            except Exception as e:
+                logger.error(f"Failed to send completion signal: {e}")
+                raise
 
     except Exception as e:
         logger.error(f"Processing conversation failed: {e}")

@@ -42,7 +42,7 @@ class WorldStore(BaseStore):
             # Create world with just user_id, other fields are auto-generated
             world_orm = WorldORM(user_id=self.user_id)
             session.add(world_orm)
-            session.commit()
+            session.flush()
             session.refresh(world_orm)
             return World.model_validate(world_orm)
 
@@ -58,7 +58,6 @@ class WorldStore(BaseStore):
                 return False
 
             session.delete(world_orm)
-            session.commit()
             return True
 
     def world_exists(self, world_id: int) -> bool:

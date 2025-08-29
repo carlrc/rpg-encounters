@@ -8,6 +8,10 @@ from tenacity import (
     wait_exponential,
 )
 
+# HTTP Error Messages
+ENTITY_NOT_FOUND = "Entity not found"
+INTERNAL_SERVER_ERROR = "Internal Server Error"
+
 
 # https://ai.pydantic.dev/retries/#usage-example
 def create_retrying_client() -> AsyncClient:
