@@ -6,6 +6,7 @@ from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_db_session
 from app.dependencies import get_current_user_world
+from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.canvas import CanvasResponse, CanvasSaveRequest
 from app.models.encounter import EncounterCreate, EncounterUpdate
 
@@ -35,7 +36,7 @@ async def get_canvas(user_world: tuple[int, int] = Depends(get_current_user_worl
         raise
     except Exception as e:
         logger.error(f"Failed to get canvas for user {user_id}, world {world_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.post("", response_model=CanvasResponse)
@@ -105,10 +106,7 @@ async def save_canvas(
                     ),
                 )
                 if not updated:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"Encounter {encounter_update.id} not found",
-                    )
+                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
                 all_encounters.append(updated)
                 # Add existing encounters to map (they keep their real IDs)
                 encounter_id_map[encounter_update.id] = updated.id
@@ -127,9 +125,7 @@ async def save_canvas(
                         logger.error(
                             f"Source encounter {connection_data.source_encounter_id} not found"
                         )
-                        raise HTTPException(
-                            status_code=404, detail="Source encounter not found"
-                        )
+                        raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
                     source_id = existing_encounter.id
                     encounter_id_map[source_id] = (
@@ -148,9 +144,7 @@ async def save_canvas(
                         logger.error(
                             f"Target encounter {connection_data.source_encounter_id} not found"
                         )
-                        raise HTTPException(
-                            status_code=404, detail="Target encounter not found"
-                        )
+                        raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
                     target_id = existing_encounter.id
                     encounter_id_map[target_id] = (
@@ -174,10 +168,7 @@ async def save_canvas(
                     connection_update.id, connection_update
                 )
                 if not updated:
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"Connection {connection_update.id} not found",
-                    )
+                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
                 all_connections.append(updated)
 
             return CanvasResponse(
@@ -187,4 +178,4 @@ async def save_canvas(
         raise
     except Exception as e:
         logger.error(f"Failed to save canvas for user {user_id}, world {world_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)

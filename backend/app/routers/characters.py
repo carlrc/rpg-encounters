@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -12,6 +13,7 @@ from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.data.character_store import CharacterStore
 from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.dependencies import get_current_user_world
+from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.character import (
     Character,
     CharacterCreate,
@@ -21,6 +23,8 @@ from app.models.character import (
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
+logger = logging.getLogger(__name__)
+
 
 @router.get("", response_model=List[Character])
 async def get_characters(
@@ -28,7 +32,15 @@ async def get_characters(
 ):
     """Get all characters"""
     user_id, world_id = user_world
-    return CharacterStore(user_id=user_id, world_id=world_id).get_all_characters()
+    try:
+        return CharacterStore(user_id=user_id, world_id=world_id).get_all_characters()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to get characters for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.get("/{character_id}", response_model=Character)
@@ -38,12 +50,20 @@ async def get_character(
 ):
     """Get a specific character by ID"""
     user_id, world_id = user_world
-    character = CharacterStore(user_id=user_id, world_id=world_id).get_character_by_id(
-        character_id
-    )
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
-    return character
+    try:
+        character = CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).get_character_by_id(character_id)
+        if not character:
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        return character
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to get character {character_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.post("", response_model=Character, status_code=201)
@@ -53,37 +73,48 @@ async def create_character(
 ):
     """Create a new character with AI-generated personality"""
     user_id, world_id = user_world
-
-    custom_style = (
-        character_data.communication_style_type == CommunicationStyle.CUSTOM.value
-    )
-    if not custom_style:
-        # Render the system prompt with character context
-        system_prompt = render_jinja_prompt(
-            "communication_style_agent",
-            {
-                "character": character_data,
-                "style_profile": COMMUNICATION_STYLE_PROFILES[
-                    character_data.communication_style_type
-                ],
-                "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
-            },
+    try:
+        custom_style = (
+            character_data.communication_style_type == CommunicationStyle.CUSTOM.value
         )
-        communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
+        if not custom_style:
+            # Render the system prompt with character context
+            system_prompt = render_jinja_prompt(
+                "communication_style_agent",
+                {
+                    "character": character_data,
+                    "style_profile": COMMUNICATION_STYLE_PROFILES[
+                        character_data.communication_style_type
+                    ],
+                    "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+                },
+            )
+            communication_style_agent = CommunicationStyleAgent(
+                system_prompt=system_prompt
+            )
 
-        communication_style = await communication_style_agent.generate(character_data)
-        character_data.communication_style = communication_style.style_summary
-        character_data.communication_style_examples = communication_style.examples
+            communication_style = await communication_style_agent.generate(
+                character_data
+            )
+            character_data.communication_style = communication_style.style_summary
+            character_data.communication_style_examples = communication_style.examples
 
-    # For CUSTOM communication style, only generate personality and leave custom communication style
-    character_data.personality = await PersonalityAgent().generate(character_data)
+        # For CUSTOM communication style, only generate personality and leave custom communication style
+        character_data.personality = await PersonalityAgent().generate(character_data)
 
-    # Create character with generated summaries
-    character = CharacterCreate(**character_data.model_dump())
+        # Create character with generated summaries
+        character = CharacterCreate(**character_data.model_dump())
 
-    return CharacterStore(user_id=user_id, world_id=world_id).create_character(
-        character
-    )
+        return CharacterStore(user_id=user_id, world_id=world_id).create_character(
+            character
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to create character for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.put("/{character_id}", response_model=Character)
@@ -94,49 +125,56 @@ async def update_character(
 ):
     """Update an existing character"""
     user_id, world_id = user_world
+    try:
+        character_store = CharacterStore(user_id=user_id, world_id=world_id)
+        character = character_store.get_character_by_id(character_id=character_id)
+        if not character:
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        # Merge existing character with updates for personality generation
+        merged_data = character.model_dump()
+        merged_data.update(character_update.model_dump(exclude_unset=True))
+        merged_character = CharacterUpdate(**merged_data)
 
-    character_store = CharacterStore(user_id=user_id, world_id=world_id)
-    character = character_store.get_character_by_id(character_id=character_id)
-    if not character:
-        raise HTTPException(status_code=404, detail="Character not found")
-    # Merge existing character with updates for personality generation
-    merged_data = character.model_dump()
-    merged_data.update(character_update.model_dump(exclude_unset=True))
-    merged_character = CharacterUpdate(**merged_data)
+        personality_task = PersonalityAgent().generate(merged_character)
+        communication_task = None
 
-    personality_task = PersonalityAgent().generate(merged_character)
-    communication_task = None
+        # Add communication style generation if not custom
+        if merged_character.communication_style_type != CommunicationStyle.CUSTOM.value:
+            system_prompt = render_jinja_prompt(
+                "communication_style_agent",
+                {
+                    "character": merged_character,
+                    "style_profile": COMMUNICATION_STYLE_PROFILES[
+                        merged_character.communication_style_type
+                    ],
+                    "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+                },
+            )
+            communication_task = CommunicationStyleAgent(
+                system_prompt=system_prompt
+            ).generate(merged_character)
 
-    # Add communication style generation if not custom
-    if merged_character.communication_style_type != CommunicationStyle.CUSTOM.value:
-        system_prompt = render_jinja_prompt(
-            "communication_style_agent",
-            {
-                "character": merged_character,
-                "style_profile": COMMUNICATION_STYLE_PROFILES[
-                    merged_character.communication_style_type
-                ],
-                "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
-            },
+        # Run tasks concurrently and set results
+        if communication_task:
+            personality, communication_style = await asyncio.gather(
+                personality_task, communication_task
+            )
+            character_update.communication_style = communication_style.style_summary
+            character_update.communication_style_examples = communication_style.examples
+        else:
+            personality = await personality_task
+
+        character_update.personality = personality
+        character = character_store.update_character(character_id, character_update)
+
+        return character
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to update character {character_id} for user {user_id}, world {world_id}: {e}"
         )
-        communication_task = CommunicationStyleAgent(
-            system_prompt=system_prompt
-        ).generate(merged_character)
-
-    # Run tasks concurrently and set results
-    if communication_task:
-        personality, communication_style = await asyncio.gather(
-            personality_task, communication_task
-        )
-        character_update.communication_style = communication_style.style_summary
-        character_update.communication_style_examples = communication_style.examples
-    else:
-        personality = await personality_task
-
-    character_update.personality = personality
-    character = character_store.update_character(character_id, character_update)
-
-    return character
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.delete("/{character_id}", status_code=204)
@@ -146,9 +184,17 @@ async def delete_character(
 ):
     """Delete a character"""
     user_id, world_id = user_world
-    success = CharacterStore(user_id=user_id, world_id=world_id).delete_character(
-        character_id
-    )
-    if not success:
-        raise HTTPException(status_code=404, detail="Character not found")
-    return None
+    try:
+        success = CharacterStore(user_id=user_id, world_id=world_id).delete_character(
+            character_id
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)

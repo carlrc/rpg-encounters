@@ -9,6 +9,7 @@ from app.data.encounter_store import EncounterStore
 from app.data.player_store import PlayerStore
 from app.db.connection import get_db_session
 from app.dependencies import get_current_user_world
+from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
 from app.models.encounter_connection import (
     Connection,
@@ -38,7 +39,7 @@ async def get_encounter(
             user_id=user_id, world_id=world_id
         ).get_encounter_by_id(encounter_id)
         if not encounter:
-            raise HTTPException(status_code=404, detail="Encounter not found")
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return encounter
     except HTTPException:
         raise
@@ -46,7 +47,7 @@ async def get_encounter(
         logger.error(
             f"Failed to get encounter {encounter_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.post("/", response_model=Encounter, status_code=201)
@@ -66,7 +67,7 @@ async def create_encounter(
         logger.error(
             f"Failed to create encounter for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.put("/{encounter_id}", response_model=Encounter)
@@ -84,7 +85,7 @@ async def update_encounter(
             encounter_id, encounter_update
         )
         if not encounter:
-            raise HTTPException(status_code=404, detail="Encounter not found")
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return encounter
     except HTTPException:
         raise
@@ -92,7 +93,7 @@ async def update_encounter(
         logger.error(
             f"Failed to update encounter {encounter_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.delete("/{encounter_id}", status_code=204)
@@ -107,7 +108,7 @@ async def delete_encounter(
             encounter_id
         )
         if not success:
-            raise HTTPException(status_code=404, detail="Encounter not found")
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
     except HTTPException:
         raise
@@ -115,7 +116,7 @@ async def delete_encounter(
         logger.error(
             f"Failed to delete encounter {encounter_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.post("/connections", response_model=Connection, status_code=201)
@@ -138,15 +139,11 @@ async def create_connection(
             if not encounter_store.get_encounter_by_id(
                 connection_data.source_encounter_id
             ):
-                raise HTTPException(
-                    status_code=404, detail="Source encounter not found"
-                )
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
             if not encounter_store.get_encounter_by_id(
                 connection_data.target_encounter_id
             ):
-                raise HTTPException(
-                    status_code=404, detail="Target encounter not found"
-                )
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
             return connection_store.create_connection(connection_data)
     except HTTPException:
@@ -155,7 +152,7 @@ async def create_connection(
         logger.error(
             f"Failed to create connection for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.put("/connections/{connection_id}", response_model=Connection)
@@ -183,22 +180,18 @@ async def update_connection(
                 if not encounter_store.get_encounter_by_id(
                     connection_update.source_encounter_id
                 ):
-                    raise HTTPException(
-                        status_code=404, detail="Source encounter not found"
-                    )
+                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
             if connection_update.target_encounter_id is not None:
                 if not encounter_store.get_encounter_by_id(
                     connection_update.target_encounter_id
                 ):
-                    raise HTTPException(
-                        status_code=404, detail="Target encounter not found"
-                    )
+                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
             connection = connection_store.update_connection(
                 connection_id, connection_update
             )
             if not connection:
-                raise HTTPException(status_code=404, detail="Connection not found")
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
             return connection
     except HTTPException:
         raise
@@ -206,7 +199,7 @@ async def update_connection(
         logger.error(
             f"Failed to update connection {connection_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.delete("/connections/{connection_id}", status_code=204)
@@ -221,7 +214,7 @@ async def delete_connection(
             connection_id
         )
         if not success:
-            raise HTTPException(status_code=404, detail="Connection not found")
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
     except HTTPException:
         raise
@@ -229,7 +222,7 @@ async def delete_connection(
         logger.error(
             f"Failed to delete connection {connection_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.get("/{encounter_id}/connections", response_model=List[Connection])
@@ -249,7 +242,7 @@ async def get_encounter_connections(
 
             # Validate encounter exists
             if not encounter_store.get_encounter_by_id(encounter_id):
-                raise HTTPException(status_code=404, detail="Not Found")
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
             return connection_store.get_connections_for_encounter(encounter_id)
     except HTTPException:
@@ -258,7 +251,7 @@ async def get_encounter_connections(
         logger.error(
             f"Failed to get connections for encounter {encounter_id}, user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
@@ -281,7 +274,7 @@ async def get_conversation_data(
             ).get_player_by_id(player_id=player_id)
 
             if not character or not player:
-                raise HTTPException(status_code=404, detail="Not found")
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
             base_influence = calculate_base_influence(
                 character=character, player=player
@@ -313,7 +306,7 @@ async def get_conversation_data(
         logger.error(
             f"Failed to get conversation data for player {player_id}, encounter {encounter_id} and character {character_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")
