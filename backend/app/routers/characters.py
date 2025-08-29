@@ -23,7 +23,9 @@ router = APIRouter(prefix="/api/characters", tags=["characters"])
 
 
 @router.get("", response_model=List[Character])
-async def get_characters(user_world: tuple[int, int] = Depends(get_current_user_world)):
+async def get_characters(
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+):
     """Get all characters"""
     user_id, world_id = user_world
     return CharacterStore(user_id=user_id, world_id=world_id).get_all_characters()
@@ -31,7 +33,8 @@ async def get_characters(user_world: tuple[int, int] = Depends(get_current_user_
 
 @router.get("/{character_id}", response_model=Character)
 async def get_character(
-    character_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    character_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Get a specific character by ID"""
     user_id, world_id = user_world
@@ -138,7 +141,8 @@ async def update_character(
 
 @router.delete("/{character_id}", status_code=204)
 async def delete_character(
-    character_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    character_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Delete a character"""
     user_id, world_id = user_world

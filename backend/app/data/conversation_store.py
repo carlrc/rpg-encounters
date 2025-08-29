@@ -43,7 +43,7 @@ class ConversationStore(BaseStore):
                 messages=messages_json,
             )
             session.add(conversation_orm)
-            session.commit()
+            session.flush()
             session.refresh(conversation_orm)
 
             return self._orm_to_conversation(conversation_orm)
@@ -109,7 +109,7 @@ class ConversationStore(BaseStore):
             conversation_orm.messages = ModelMessagesTypeAdapter.dump_json(
                 existing_messages + new_messages
             )
-            session.commit()
+            session.flush()
             session.refresh(conversation_orm)
 
             return self._orm_to_conversation(conversation_orm)
@@ -153,7 +153,6 @@ class ConversationStore(BaseStore):
                 return False
 
             session.delete(conversation_orm)
-            session.commit()
             return True
 
     def _orm_to_conversation(self, conversation_orm: ConversationORM) -> Conversation:

@@ -68,6 +68,7 @@ def seed_user_data(engine: Engine):
             # Create user (let autoincrement handle the ID)
             user = UserORM()
             session.add(user)
+            session.flush()
             session.commit()
             logger.info(f"Created user with ID: {user.id}")
     except SQLAlchemyError as e:
@@ -98,6 +99,7 @@ def seed_world_data(engine: Engine):
             # Create world (let autoincrement handle the ID)
             world = WorldORM(user_id=user.id)
             session.add(world)
+            session.flush()
             session.commit()
             logger.info(f"Created world with ID: {world.id} for user ID: {user.id}")
     except SQLAlchemyError as e:
@@ -129,8 +131,8 @@ def seed_player_data(engine: Engine):
                 
                 player_orm = PlayerORM(**player_data, user_id=user_id, world_id=world_id)
                 session.add(player_orm)
-                session.commit()
-    
+            
+            session.commit()
             logger.info(f"Successfully seeded {len(players_db)} players to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding player data: {e}")
@@ -178,8 +180,8 @@ async def seed_character_data(engine: Engine):
                 
                 character_orm = CharacterORM(**character_data, user_id=user_id, world_id=world_id)
                 session.add(character_orm)
-                session.commit()
             
+            session.commit()
             logger.info(f"Successfully seeded {len(characters_db)} characters to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding character data: {e}")

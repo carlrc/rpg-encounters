@@ -61,7 +61,7 @@ class CharacterStore(BaseStore):
                 world_id=self.world_id
             )
             session.add(character_orm)
-            session.commit()
+            session.flush()
             session.refresh(character_orm)
             return Character.model_validate(character_orm)
 
@@ -86,7 +86,7 @@ class CharacterStore(BaseStore):
             for key, value in update_data.items():
                 setattr(character_orm, key, value)
 
-            session.commit()
+            session.flush()
             session.refresh(character_orm)
             return Character.model_validate(character_orm)
 
@@ -106,7 +106,6 @@ class CharacterStore(BaseStore):
                 return False
 
             session.delete(character_orm)
-            session.commit()
             return True
 
     def character_exists(self, character_id: int) -> bool:

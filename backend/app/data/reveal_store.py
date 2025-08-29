@@ -89,7 +89,7 @@ class RevealStore(BaseStore):
                 reveal_orm.characters = characters
 
             session.add(reveal_orm)
-            session.commit()
+            session.flush()
             session.refresh(reveal_orm)
             return RevealStore.orm_to_reveal(reveal_orm)
 
@@ -127,7 +127,7 @@ class RevealStore(BaseStore):
                 )
                 reveal_orm.characters = characters
 
-            session.commit()
+            session.flush()
             session.refresh(reveal_orm)
             return RevealStore.orm_to_reveal(reveal_orm)
 
@@ -147,7 +147,6 @@ class RevealStore(BaseStore):
                 return False
 
             session.delete(reveal_orm)
-            session.commit()
             return True
 
     def reveal_exists(self, reveal_id: int) -> bool:

@@ -1,18 +1,14 @@
+import logging
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
 
+from app.data.character_store import CharacterStore
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
+from app.data.player_store import PlayerStore
+from app.db.connection import get_db_session
 from app.dependencies import get_current_user_world
-from app.models.batch_update import (
-    BatchCreateConnectionsRequest,
-    BatchCreateEncountersRequest,
-    BatchDeleteConnectionsRequest,
-    BatchDeleteEncountersRequest,
-    BatchUpdateConnectionsRequest,
-    BatchUpdateEncountersRequest,
-)
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
 from app.models.encounter_connection import (
     Connection,
@@ -22,35 +18,35 @@ from app.models.encounter_connection import (
 from app.services.challenge import challenge_character
 from app.services.context import get_conversation_context
 from app.services.conversation import have_conversation
+from app.services.influence_calculator import calculate_base_influence
 from app.services.reveal_progress import calculate_reveal_progress
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
-
-@router.get("/")
-async def get_encounters(user_world: tuple[int, int] = Depends(get_current_user_world)):
-    """Get all encounters with connections - returns the complete canvas state"""
-    user_id, world_id = user_world
-    encounters = EncounterStore(user_id=user_id, world_id=world_id).get_all_encounters()
-    connections = ConnectionStore(
-        user_id=user_id, world_id=world_id
-    ).get_all_connections()
-
-    return {"encounters": encounters, "connections": connections}
+logger = logging.getLogger(__name__)
 
 
 @router.get("/{encounter_id}", response_model=Encounter)
 async def get_encounter(
-    encounter_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    encounter_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Get a specific encounter by ID"""
     user_id, world_id = user_world
-    encounter = EncounterStore(user_id=user_id, world_id=world_id).get_encounter_by_id(
-        encounter_id
-    )
-    if not encounter:
-        raise HTTPException(status_code=404, detail="Encounter not found")
-    return encounter
+    try:
+        encounter = EncounterStore(
+            user_id=user_id, world_id=world_id
+        ).get_encounter_by_id(encounter_id)
+        if not encounter:
+            raise HTTPException(status_code=404, detail="Encounter not found")
+        return encounter
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to get encounter {encounter_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.post("/", response_model=Encounter, status_code=201)
@@ -60,9 +56,17 @@ async def create_encounter(
 ):
     """Create a new encounter"""
     user_id, world_id = user_world
-    return EncounterStore(user_id=user_id, world_id=world_id).create_encounter(
-        encounter_data
-    )
+    try:
+        return EncounterStore(user_id=user_id, world_id=world_id).create_encounter(
+            encounter_data
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to create encounter for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.put("/{encounter_id}", response_model=Encounter)
@@ -73,28 +77,45 @@ async def update_encounter(
 ):
     """Update an existing encounter"""
     user_id, world_id = user_world
-    # Override the ID from the URL path
-    encounter_update.id = encounter_id
-    encounter = EncounterStore(user_id=user_id, world_id=world_id).update_encounter(
-        encounter_id, encounter_update
-    )
-    if not encounter:
-        raise HTTPException(status_code=404, detail="Encounter not found")
-    return encounter
+    try:
+        # Override the ID from the URL path
+        encounter_update.id = encounter_id
+        encounter = EncounterStore(user_id=user_id, world_id=world_id).update_encounter(
+            encounter_id, encounter_update
+        )
+        if not encounter:
+            raise HTTPException(status_code=404, detail="Encounter not found")
+        return encounter
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to update encounter {encounter_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.delete("/{encounter_id}", status_code=204)
 async def delete_encounter(
-    encounter_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    encounter_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Delete an encounter"""
     user_id, world_id = user_world
-    success = EncounterStore(user_id=user_id, world_id=world_id).delete_encounter(
-        encounter_id
-    )
-    if not success:
-        raise HTTPException(status_code=404, detail="Encounter not found")
-    return None
+    try:
+        success = EncounterStore(user_id=user_id, world_id=world_id).delete_encounter(
+            encounter_id
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Encounter not found")
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to delete encounter {encounter_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.post("/connections", response_model=Connection, status_code=201)
@@ -104,16 +125,37 @@ async def create_connection(
 ):
     """Create a new connection between encounters"""
     user_id, world_id = user_world
-    # Validate that both encounters exist
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    if not encounter_store.get_encounter_by_id(connection_data.source_encounter_id):
-        raise HTTPException(status_code=404, detail="Source encounter not found")
-    if not encounter_store.get_encounter_by_id(connection_data.target_encounter_id):
-        raise HTTPException(status_code=404, detail="Target encounter not found")
+    try:
+        with get_db_session() as session:
+            encounter_store = EncounterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            connection_store = ConnectionStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
 
-    return ConnectionStore(user_id=user_id, world_id=world_id).create_connection(
-        connection_data
-    )
+            # Validate that both encounters exist
+            if not encounter_store.get_encounter_by_id(
+                connection_data.source_encounter_id
+            ):
+                raise HTTPException(
+                    status_code=404, detail="Source encounter not found"
+                )
+            if not encounter_store.get_encounter_by_id(
+                connection_data.target_encounter_id
+            ):
+                raise HTTPException(
+                    status_code=404, detail="Target encounter not found"
+                )
+
+            return connection_store.create_connection(connection_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to create connection for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.put("/connections/{connection_id}", response_model=Connection)
@@ -124,42 +166,70 @@ async def update_connection(
 ):
     """Update an existing connection"""
     user_id, world_id = user_world
-    # Override the ID from the URL path
-    connection_update.id = connection_id
+    try:
+        with get_db_session() as session:
+            encounter_store = EncounterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            connection_store = ConnectionStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
 
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    # If updating encounter IDs, validate they exist
-    if connection_update.source_encounter_id is not None:
-        if not encounter_store.get_encounter_by_id(
-            connection_update.source_encounter_id
-        ):
-            raise HTTPException(status_code=404, detail="Source encounter not found")
-    if connection_update.target_encounter_id is not None:
-        if not encounter_store.get_encounter_by_id(
-            connection_update.target_encounter_id
-        ):
-            raise HTTPException(status_code=404, detail="Target encounter not found")
+            # Override the ID from the URL path
+            connection_update.id = connection_id
 
-    connection = ConnectionStore(user_id=user_id, world_id=world_id).update_connection(
-        connection_id, connection_update
-    )
-    if not connection:
-        raise HTTPException(status_code=404, detail="Connection not found")
-    return connection
+            # If updating encounter IDs, validate they exist
+            if connection_update.source_encounter_id is not None:
+                if not encounter_store.get_encounter_by_id(
+                    connection_update.source_encounter_id
+                ):
+                    raise HTTPException(
+                        status_code=404, detail="Source encounter not found"
+                    )
+            if connection_update.target_encounter_id is not None:
+                if not encounter_store.get_encounter_by_id(
+                    connection_update.target_encounter_id
+                ):
+                    raise HTTPException(
+                        status_code=404, detail="Target encounter not found"
+                    )
+
+            connection = connection_store.update_connection(
+                connection_id, connection_update
+            )
+            if not connection:
+                raise HTTPException(status_code=404, detail="Connection not found")
+            return connection
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to update connection {connection_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.delete("/connections/{connection_id}", status_code=204)
 async def delete_connection(
-    connection_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    connection_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Delete a connection"""
     user_id, world_id = user_world
-    success = ConnectionStore(user_id=user_id, world_id=world_id).delete_connection(
-        connection_id
-    )
-    if not success:
-        raise HTTPException(status_code=404, detail="Connection not found")
-    return None
+    try:
+        success = ConnectionStore(user_id=user_id, world_id=world_id).delete_connection(
+            connection_id
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail="Connection not found")
+        return None
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to delete connection {connection_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/{encounter_id}/connections", response_model=List[Connection])
@@ -168,15 +238,27 @@ async def get_encounter_connections(
 ):
     """Get all connections for a specific encounter"""
     user_id, world_id = user_world
-    # Validate encounter exists
-    if not EncounterStore(user_id=user_id, world_id=world_id).get_encounter_by_id(
-        encounter_id
-    ):
-        raise HTTPException(status_code=404, detail="Encounter not found")
+    try:
+        with get_db_session() as session:
+            encounter_store = EncounterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            connection_store = ConnectionStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
 
-    return ConnectionStore(
-        user_id=user_id, world_id=world_id
-    ).get_connections_for_encounter(encounter_id)
+            # Validate encounter exists
+            if not encounter_store.get_encounter_by_id(encounter_id):
+                raise HTTPException(status_code=404, detail="Not Found")
+
+            return connection_store.get_connections_for_encounter(encounter_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to get connections for encounter {encounter_id}, user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
@@ -190,16 +272,31 @@ async def get_conversation_data(
     user_id, world_id = user_world
 
     try:
-        # TODO: Wasted db calls to influence, memories and messages
-        context = get_conversation_context(
-            world_id=world_id,
-            player_id=player_id,
-            user_id=user_id,
-            character_id=character_id,
-            encounter_id=encounter_id,
-            base_influence=0,
-        )
+        with get_db_session() as session:
+            character = CharacterStore(
+                user_id=user_id, world_id=world_id, session=session
+            ).get_character_by_id(character_id=character_id)
+            player = PlayerStore(
+                user_id=user_id, world_id=world_id, session=session
+            ).get_player_by_id(player_id=player_id)
 
+            if not character or not player:
+                raise HTTPException(status_code=404, detail="Not found")
+
+            base_influence = calculate_base_influence(
+                character=character, player=player
+            )
+            context = get_conversation_context(
+                world_id=world_id,
+                player_id=player_id,
+                user_id=user_id,
+                character_id=character_id,
+                encounter_id=encounter_id,
+                base_influence=base_influence,
+                session=session,
+            )
+
+        # TODO: Should be response class
         # Format response to match WebSocket conversation_data format
         return {
             "type": "conversation_data",
@@ -210,163 +307,13 @@ async def get_conversation_data(
             ],
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get conversation data: {str(e)}"
+        logger.error(
+            f"Failed to get conversation data for player {player_id}, encounter {encounter_id} and character {character_id}: {e}"
         )
-
-
-# Batch endpoints
-@router.post("/batch/create", response_model=List[Encounter], status_code=201)
-async def batch_create_encounters(
-    request: BatchCreateEncountersRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
-):
-    """Create multiple encounters in a single request"""
-    user_id, world_id = user_world
-    created_encounters = []
-
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    for encounter_data in request.encounters:
-        created_encounter = encounter_store.create_encounter(encounter_data)
-        created_encounters.append(created_encounter)
-
-    return created_encounters
-
-
-@router.put("/batch/update", response_model=List[Encounter])
-async def batch_update_encounters(
-    request: BatchUpdateEncountersRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
-):
-    """Update multiple encounters in a single request"""
-    user_id, world_id = user_world
-    updated_encounters = []
-
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    for encounter_update in request.encounters:
-        updated_encounter = encounter_store.update_encounter(
-            encounter_update.id, encounter_update
-        )
-        if not updated_encounter:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Encounter with id {encounter_update.id} not found",
-            )
-        updated_encounters.append(updated_encounter)
-
-    return updated_encounters
-
-
-@router.delete("/batch/delete", status_code=204)
-async def batch_delete_encounters(
-    request: BatchDeleteEncountersRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
-):
-    """Delete multiple encounters in a single request"""
-    user_id, world_id = user_world
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    for encounter_id in request.encounter_ids:
-        success = encounter_store.delete_encounter(encounter_id)
-        if not success:
-            raise HTTPException(
-                status_code=404, detail=f"Encounter with id {encounter_id} not found"
-            )
-
-    return None
-
-
-@router.post(
-    "/connections/batch/create", response_model=List[Connection], status_code=201
-)
-async def batch_create_connections(
-    request: BatchCreateConnectionsRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
-):
-    """Create multiple connections in a single request"""
-    user_id, world_id = user_world
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    connection_store = ConnectionStore(user_id=user_id, world_id=world_id)
-    created_connections = []
-
-    for connection_data in request.connections:
-        # Validate that both encounters exist
-        if not encounter_store.get_encounter_by_id(connection_data.source_encounter_id):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Source encounter {connection_data.source_encounter_id} not found",
-            )
-        if not encounter_store.get_encounter_by_id(connection_data.target_encounter_id):
-            raise HTTPException(
-                status_code=404,
-                detail=f"Target encounter {connection_data.target_encounter_id} not found",
-            )
-
-        created_connection = connection_store.create_connection(connection_data)
-        created_connections.append(created_connection)
-
-    return created_connections
-
-
-@router.put("/connections/batch/update", response_model=List[Connection])
-async def batch_update_connections(
-    request: BatchUpdateConnectionsRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
-):
-    """Update multiple connections in a single request"""
-    user_id, world_id = user_world
-    encounter_store = EncounterStore(user_id=user_id, world_id=world_id)
-    connection_store = ConnectionStore(user_id=user_id, world_id=world_id)
-    updated_connections = []
-
-    for connection_update in request.connections:
-        # Validate encounter references if they're being updated
-        if connection_update.source_encounter_id is not None:
-            if not encounter_store.get_encounter_by_id(
-                connection_update.source_encounter_id
-            ):
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Source encounter {connection_update.source_encounter_id} not found",
-                )
-        if connection_update.target_encounter_id is not None:
-            if not encounter_store.get_encounter_by_id(
-                connection_update.target_encounter_id
-            ):
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Target encounter {connection_update.target_encounter_id} not found",
-                )
-
-        updated_connection = connection_store.update_connection(
-            connection_update.id, connection_update
-        )
-        if not updated_connection:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Connection with id {connection_update.id} not found",
-            )
-        updated_connections.append(updated_connection)
-
-    return updated_connections
-
-
-@router.delete("/connections/batch/delete", status_code=204)
-async def batch_delete_connections(
-    request: BatchDeleteConnectionsRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
-):
-    """Delete multiple connections in a single request"""
-    user_id, world_id = user_world
-    connection_store = ConnectionStore(user_id=user_id, world_id=world_id)
-    for connection_id in request.connection_ids:
-        success = connection_store.delete_connection(connection_id)
-        if not success:
-            raise HTTPException(
-                status_code=404, detail=f"Connection with id {connection_id} not found"
-            )
-
-    return None
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
 @router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")

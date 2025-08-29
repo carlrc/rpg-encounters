@@ -35,7 +35,7 @@ class UserStore(BaseStore):
         with self.get_session() as session:
             user_orm = UserORM(**user_data.model_dump())
             session.add(user_orm)
-            session.commit()
+            session.flush()
             session.refresh(user_orm)
             return User.model_validate(user_orm)
 
@@ -50,7 +50,6 @@ class UserStore(BaseStore):
             for key, value in update_data.items():
                 setattr(user_orm, key, value)
 
-            session.commit()
             session.refresh(user_orm)
             return User.model_validate(user_orm)
 
@@ -62,7 +61,6 @@ class UserStore(BaseStore):
                 return False
 
             session.delete(user_orm)
-            session.commit()
             return True
 
     def user_exists(self, user_id: int) -> bool:

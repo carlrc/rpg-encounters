@@ -56,7 +56,7 @@ class PlayerStore(BaseStore):
                 **player_data.model_dump(), user_id=self.user_id, world_id=self.world_id
             )
             session.add(player_orm)
-            session.commit()
+            session.flush()
             session.refresh(player_orm)
             return Player.model_validate(player_orm)
 
@@ -81,7 +81,7 @@ class PlayerStore(BaseStore):
             for key, value in update_data.items():
                 setattr(player_orm, key, value)
 
-            session.commit()
+            session.flush()
             session.refresh(player_orm)
             return Player.model_validate(player_orm)
 
@@ -101,7 +101,6 @@ class PlayerStore(BaseStore):
                 return False
 
             session.delete(player_orm)
-            session.commit()
             return True
 
     def player_exists(self, player_id: int) -> bool:

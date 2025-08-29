@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from app.models.alignment import Alignment
-from app.models.character import Character
+from app.models.character import Character, CommunicationStyle
 from app.models.class_traits import Abilities, Class, Skills
 from app.models.influence import BASE_INFLUENCE_MIN
 from app.models.player import Player
@@ -29,6 +29,8 @@ def test_influence_calculation():
             Race.HUMAN.value: -DifficultyClass.VERY_EASY.value,
         },
         gender_preferences={Gender.MALE: -DifficultyClass.VERY_EASY.value},
+        voice="test",
+        communication_style_type=CommunicationStyle.CUSTOM.value,
     )
     player = Player(
         id=1,

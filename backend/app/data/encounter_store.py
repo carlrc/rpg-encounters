@@ -72,7 +72,7 @@ class EncounterStore(BaseStore):
                 encounter_orm.characters = characters
 
             session.add(encounter_orm)
-            session.commit()
+            session.flush()
             session.refresh(encounter_orm)
             return self._orm_to_encounter(encounter_orm)
 
@@ -110,7 +110,7 @@ class EncounterStore(BaseStore):
                 )
                 encounter_orm.characters = characters
 
-            session.commit()
+            session.flush()
             session.refresh(encounter_orm)
             return self._orm_to_encounter(encounter_orm)
 
@@ -130,7 +130,6 @@ class EncounterStore(BaseStore):
                 return False
 
             session.delete(encounter_orm)
-            session.commit()
             return True
 
     def add_character_to_encounter(self, encounter_id: int, character_id: int) -> bool:
@@ -169,8 +168,6 @@ class EncounterStore(BaseStore):
                 return False
 
             encounter_orm.characters.append(character_orm)
-            session.flush()
-            session.commit()
             return True
 
     def _orm_to_encounter(self, encounter_orm: EncounterORM) -> Encounter:

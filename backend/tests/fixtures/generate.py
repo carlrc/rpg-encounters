@@ -33,6 +33,7 @@ def create_default_innkeeper_character(character_id: int) -> Character:
         class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
         gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
         size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
+        voice="test"
     )
 
 
@@ -101,8 +102,8 @@ def create_default_influence(
     character_id: int,
     player_id: int,
     # Just below max base
-    base: int = BASE_INFLUENCE_MAX - 2,
-    earned: int = 0
+    base: int,
+    earned: int
 ) -> Influence:
     """Create default influence state for tests."""
     return Influence(
@@ -125,14 +126,14 @@ def create_test_encounter(encounter_id: int, character_id: int) -> Encounter:
     )
 
 # Lambda factories for creating default instances with custom IDs
-default_character = lambda character_id=100: create_default_innkeeper_character(character_id)
-default_player = lambda player_id=100: create_default_bard_player(player_id)
-default_reveals = lambda character_id=100: [create_inn_secrets_reveal(character_id)]
-default_memories = lambda character_id=100: [create_inn_memory(character_id)]
-default_influence = lambda character_id=100, player_id=100: create_default_influence(character_id, player_id)
-default_encounter = lambda encounter_id=1, character_id=100: create_test_encounter(encounter_id, character_id)
+default_character = lambda character_id=100: create_default_innkeeper_character(character_id=character_id)
+default_player = lambda player_id=100: create_default_bard_player(player_id=player_id)
+default_reveals = lambda character_id=100: [create_inn_secrets_reveal(character_id=character_id)]
+default_memories = lambda character_id=100: [create_inn_memory(character_id=character_id)]
+default_influence = lambda character_id=100, player_id=100, base=BASE_INFLUENCE_MAX - 2, earned=0: create_default_influence(character_id=character_id, player_id=player_id, base=base, earned=earned)
+default_encounter = lambda encounter_id=1, character_id=100: create_test_encounter(encounter_id=encounter_id, character_id=character_id)
 
-# Pre-created default instances for backwards compatibility
+# Pre-created default instances
 DEFAULT_CHARACTER = default_character()
 DEFAULT_PLAYER = default_player()
 DEFAULT_REVEALS = default_reveals()

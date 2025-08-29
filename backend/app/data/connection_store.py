@@ -64,7 +64,7 @@ class ConnectionStore(BaseStore):
                 **connection_dict, user_id=self.user_id, world_id=self.world_id
             )
             session.add(connection_orm)
-            session.commit()
+            session.flush()
             session.refresh(connection_orm)
             return Connection.model_validate(connection_orm)
 
@@ -92,7 +92,7 @@ class ConnectionStore(BaseStore):
             for key, value in update_data.items():
                 setattr(connection_orm, key, value)
 
-            session.commit()
+            session.flush()
             session.refresh(connection_orm)
             return Connection.model_validate(connection_orm)
 
@@ -112,7 +112,6 @@ class ConnectionStore(BaseStore):
                 return False
 
             session.delete(connection_orm)
-            session.commit()
             return True
 
     def get_connections_for_encounter(self, encounter_id: int) -> List[Connection]:

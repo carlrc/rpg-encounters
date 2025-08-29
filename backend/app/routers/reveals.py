@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.data.character_store import CharacterStore
 from app.data.reveal_store import RevealStore
+from app.db.connection import get_db_session
 from app.dependencies import get_current_user_world
 from app.models.reveal import Reveal, RevealCreate, RevealUpdate
 
@@ -25,15 +26,20 @@ def create_reveal(
     """Create a reveal for multiple characters"""
     user_id, world_id = user_world
 
-    # Verify all characters exist
-    character_store = CharacterStore(user_id=user_id, world_id=world_id)
-    for character_id in reveal_data.character_ids:
-        if not character_store.character_exists(character_id):
-            raise HTTPException(
-                status_code=404, detail=f"Character {character_id} not found"
-            )
+    with get_db_session() as session:
+        # Verify all characters exist
+        character_store = CharacterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        for character_id in reveal_data.character_ids:
+            if not character_store.character_exists(character_id):
+                raise HTTPException(
+                    status_code=404, detail=f"Character {character_id} not found"
+                )
 
-    return RevealStore(user_id=user_id, world_id=world_id).create_reveal(reveal_data)
+        return RevealStore(
+            user_id=user_id, world_id=world_id, session=session
+        ).create_reveal(reveal_data)
 
 
 @router.get("/{reveal_id}", response_model=Reveal)
@@ -55,14 +61,17 @@ def get_character_reveals(
     """Get all reveals for a character"""
     user_id, world_id = user_world
 
-    # Verify character exists
-    character_store = CharacterStore(user_id=user_id, world_id=world_id)
-    if not character_store.character_exists(character_id):
-        raise HTTPException(status_code=404, detail="Character not found")
+    with get_db_session() as session:
+        # Verify character exists
+        character_store = CharacterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        if not character_store.character_exists(character_id):
+            raise HTTPException(status_code=404, detail="Character not found")
 
-    return RevealStore(user_id=user_id, world_id=world_id).get_by_character_id(
-        character_id
-    )
+        return RevealStore(
+            user_id=user_id, world_id=world_id, session=session
+        ).get_by_character_id(character_id)
 
 
 @router.put("/{reveal_id}", response_model=Reveal)
@@ -74,21 +83,24 @@ def update_reveal(
     """Update a reveal"""
     user_id, world_id = user_world
 
-    # Verify all characters exist if character_ids are being updated
-    if reveal_update.character_ids:
-        character_store = CharacterStore(user_id=user_id, world_id=world_id)
-        for character_id in reveal_update.character_ids:
-            if not character_store.character_exists(character_id):
-                raise HTTPException(
-                    status_code=404, detail=f"Character {character_id} not found"
-                )
+    with get_db_session() as session:
+        # Verify all characters exist if character_ids are being updated
+        if reveal_update.character_ids:
+            character_store = CharacterStore(
+                user_id=user_id, world_id=world_id, session=session
+            )
+            for character_id in reveal_update.character_ids:
+                if not character_store.character_exists(character_id):
+                    raise HTTPException(
+                        status_code=404, detail=f"Character {character_id} not found"
+                    )
 
-    reveal = RevealStore(user_id=user_id, world_id=world_id).update_reveal(
-        reveal_id, reveal_update
-    )
-    if not reveal:
-        raise HTTPException(status_code=404, detail="Reveal not found")
-    return reveal
+        reveal = RevealStore(
+            user_id=user_id, world_id=world_id, session=session
+        ).update_reveal(reveal_id, reveal_update)
+        if not reveal:
+            raise HTTPException(status_code=404, detail="Reveal not found")
+        return reveal
 
 
 @router.delete("/{reveal_id}")
