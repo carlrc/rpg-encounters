@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Dict, List
 
-from app.models.class_traits import VALID_SKILLS
+from app.models.class_traits import VALID_SKILLS, Abilities
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
 
@@ -31,14 +31,15 @@ def get_skill_bonus(skill: str, player_skills: Dict[str, int]) -> int:
 
 def calculate_skill_check(skill: str, player: Player, d20_roll: int) -> int:
     """
-    Calculate a skill check: d20 + skill bonus.
+    Calculate a skill check: d20 + charisma modifier + skill modifier.
     """
-    skill_bonus = get_skill_bonus(skill, player.skills)
-    total = d20_roll + skill_bonus
+    skill_modifier = get_skill_bonus(skill, player.skills)
+    charisma_modifier = player.abilities.get(Abilities.CHARISMA.value)
+    if charisma_modifier is None:
+        raise ValueError(f"Player {player.id} missing charisma modifier")
 
-    logger.info(
-        f"Skill check for {player.name}: {skill} - d20: {d20_roll}, skill bonus: {skill_bonus}, total: {total}"
-    )
+    total = d20_roll + charisma_modifier + skill_modifier
+
     return total
 
 

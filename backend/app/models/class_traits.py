@@ -31,7 +31,7 @@ class Skills(Enum):
 VALID_CLASSES = [class_name.value for class_name in Class]
 VALID_ABILITIES = [ability.value for ability in Abilities]
 VALID_SKILLS = [skill.value for skill in Skills]
-ABILITY_SCORE_MIN = 0
-ABILITY_SCORE_MAX = 30
-SKILL_SCORE_MIN = -5
-SKILL_SCORE_MAX = 25
+ABILITY_MODIFIER_MIN = -5
+ABILITY_MODIFIER_MAX = 10
+SKILL_MODIFIER_MIN = -5
+SKILL_MODIFIER_MAX = 25

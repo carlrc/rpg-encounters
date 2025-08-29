@@ -117,25 +117,25 @@
             </div>
           </div>
 
-          <!-- Abilities Section -->
+          <!-- Ability Modifiers Section -->
           <div class="abilities-skills-section">
-            <h4 class="section-title">Abilities</h4>
+            <h4 class="section-title">Ability Modifiers</h4>
             <div class="threshold-slider">
               <label class="threshold-label">Charisma: {{ createForm.abilities.Charisma }}</label>
               <input
                 type="range"
                 v-model.number="createForm.abilities.Charisma"
-                min="0"
-                max="30"
+                min="-5"
+                max="10"
                 step="1"
                 class="slider"
               />
             </div>
           </div>
 
-          <!-- Skills Section -->
+          <!-- Skill Modifiers Section -->
           <div class="abilities-skills-section">
-            <h4 class="section-title">Skills</h4>
+            <h4 class="section-title">Skill Modifiers</h4>
             <div class="threshold-slider">
               <label class="threshold-label">Deception: {{ createForm.skills.Deception }}</label>
               <input

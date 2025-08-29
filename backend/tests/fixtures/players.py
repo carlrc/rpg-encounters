@@ -16,7 +16,7 @@ players_db = [
         alignment=Alignment.CHAOTIC_GOOD.value,
         gender=Gender.FEMALE.value,
         abilities={
-            Abilities.CHARISMA.value: 16
+            Abilities.CHARISMA.value: 3
         },
         skills={
             Skills.DECEPTION.value: 5,
@@ -37,7 +37,7 @@ players_db = [
         alignment=Alignment.LAWFUL_GOOD.value,
         gender=Gender.MALE.value,
         abilities={
-            Abilities.CHARISMA.value: 14
+            Abilities.CHARISMA.value: 2
         },
         skills={
             Skills.DECEPTION.value: 2,
@@ -58,7 +58,7 @@ players_db = [
         alignment=Alignment.NEUTRAL_GOOD.value,
         gender=Gender.MALE.value,
         abilities={
-            Abilities.CHARISMA.value: 8
+            Abilities.CHARISMA.value: -1
         },
         skills={
             Skills.DECEPTION.value: -1,
@@ -79,7 +79,7 @@ players_db = [
         alignment=Alignment.LAWFUL_GOOD.value,
         gender=Gender.FEMALE.value,
         abilities={
-            Abilities.CHARISMA.value: 12
+            Abilities.CHARISMA.value: 0
         },
         skills={
             Skills.DECEPTION.value: 1,
@@ -100,7 +100,7 @@ players_db = [
         alignment=Alignment.NEUTRAL_GOOD.value,
         gender=Gender.MALE.value,
         abilities={
-            Abilities.CHARISMA.value: 8
+            Abilities.CHARISMA.value: 1
         },
         skills={
             Skills.DECEPTION.value: -1,

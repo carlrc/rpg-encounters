@@ -44,7 +44,7 @@ def test_influence_calculation():
         size=Size.MEDIUM.value,
         alignment=Alignment.LAWFUL_GOOD.value,
         gender=Gender.MALE.value,
-        abilities={Abilities.CHARISMA.value: 14},
+        abilities={Abilities.CHARISMA.value: 3},
         skills={
             Skills.DECEPTION.value: 2,
             Skills.INTIMIDATION.value: 4,

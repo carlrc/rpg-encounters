@@ -6,10 +6,10 @@ from app.db.limits import NAME_LIMIT, PLAYER_APPEARANCE_MAX_LIMIT
 
 from .alignment import VALID_ALIGNMENTS
 from .class_traits import (
-    ABILITY_SCORE_MAX,
-    ABILITY_SCORE_MIN,
-    SKILL_SCORE_MAX,
-    SKILL_SCORE_MIN,
+    ABILITY_MODIFIER_MAX,
+    ABILITY_MODIFIER_MIN,
+    SKILL_MODIFIER_MAX,
+    SKILL_MODIFIER_MIN,
     VALID_ABILITIES,
     VALID_CLASSES,
     VALID_SKILLS,
@@ -77,9 +77,9 @@ class PlayerBase(BaseModel):
             return v
         for key, value in v.items():
             validate_choice(key, VALID_ABILITIES, "Ability")
-            if not (ABILITY_SCORE_MIN <= value <= ABILITY_SCORE_MAX):
+            if not (ABILITY_MODIFIER_MIN <= value <= ABILITY_MODIFIER_MAX):
                 raise ValueError(
-                    f"Abilities must be between {ABILITY_SCORE_MIN} and {ABILITY_SCORE_MAX}. Got {value} for {key}"
+                    f"Abilities must be between {ABILITY_MODIFIER_MIN} and {ABILITY_MODIFIER_MAX}. Got {value} for {key}"
                 )
         return v
 
@@ -91,9 +91,9 @@ class PlayerBase(BaseModel):
             return v
         for key, value in v.items():
             validate_choice(key, VALID_SKILLS, "Skill")
-            if not (SKILL_SCORE_MIN <= value <= SKILL_SCORE_MAX):
+            if not (SKILL_MODIFIER_MIN <= value <= SKILL_MODIFIER_MAX):
                 raise ValueError(
-                    f"Skills must be between {SKILL_SCORE_MIN} and {SKILL_SCORE_MAX}. Got {value} for {key}"
+                    f"Skills must be between {SKILL_MODIFIER_MIN} and {SKILL_MODIFIER_MAX}. Got {value} for {key}"
                 )
         return v
 

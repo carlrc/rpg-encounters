@@ -49,7 +49,7 @@ def create_default_bard_player(player_id: int) -> Player:
         size=Size.SMALL.value,
         alignment=Alignment.NEUTRAL_GOOD.value,
         gender=Gender.FEMALE.value,
-        abilities={Abilities.CHARISMA.value: 16},
+        abilities={Abilities.CHARISMA.value: 3},
         skills={
             Skills.PERSUASION.value: 5,
             Skills.DECEPTION.value: 2,
@@ -71,7 +71,7 @@ def create_opposing_barbarian_player(player_id: int) -> Player:
         size=Size.MEDIUM.value,
         alignment=Alignment.NEUTRAL_EVIL.value,
         gender=Gender.MALE.value,
-        abilities={Abilities.CHARISMA.value: 16},
+        abilities={Abilities.CHARISMA.value: 3},
         skills={Skills.PERSUASION.value: 5},
     )
 

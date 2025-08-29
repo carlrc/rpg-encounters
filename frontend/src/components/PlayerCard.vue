@@ -71,7 +71,7 @@
           v-if="displayAbilitiesSkills && Object.keys(displayAbilitiesSkills).length > 0"
           class="shared-field shared-field-full-width"
         >
-          <div class="shared-field-label">Abilities & Skills</div>
+          <div class="shared-field-label">Ability & Skill Modifiers</div>
           <div class="shared-field-value">
             <TraitsDisplay
               :traits="displayAbilitiesSkills"
@@ -155,25 +155,25 @@
         />
       </div>
 
-      <!-- Abilities Section -->
+      <!-- Ability Modifiers Section -->
       <div class="abilities-skills-section">
-        <h4 class="section-title">Abilities</h4>
+        <h4 class="section-title">Ability Modifiers</h4>
         <div class="threshold-slider">
           <label class="threshold-label">Charisma: {{ editForm.abilities.Charisma || 0 }}</label>
           <input
             type="range"
             v-model.number="editForm.abilities.Charisma"
-            min="0"
-            max="30"
+            min="-5"
+            max="10"
             step="1"
             class="slider"
           />
         </div>
       </div>
 
-      <!-- Skills Section -->
+      <!-- Skill Modifiers Section -->
       <div class="abilities-skills-section">
-        <h4 class="section-title">Skills</h4>
+        <h4 class="section-title">Skill Modifiers</h4>
         <div class="threshold-slider">
           <label class="threshold-label">Deception: {{ editForm.skills.Deception || 0 }}</label>
           <input
@@ -363,8 +363,8 @@
       }
 
       const abilitiesSkillsCategoryNames = {
-        abilities: 'Abilities',
-        skills: 'Skills',
+        abilities: 'Ability Modifiers',
+        skills: 'Skill Modifiers',
       }
 
       const getValueClass = (value, category) => {
