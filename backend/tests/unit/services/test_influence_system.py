@@ -29,7 +29,8 @@ def test_influence_calculation():
             Race.HUMAN.value: -DifficultyClass.VERY_EASY.value,
         },
         gender_preferences={Gender.MALE: -DifficultyClass.VERY_EASY.value},
-        voice="test",
+        voice_id="test",
+        voice_name="Test Voice",
         communication_style_type=CommunicationStyle.CUSTOM.value,
     )
     player = Player(

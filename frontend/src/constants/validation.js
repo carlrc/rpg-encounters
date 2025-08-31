@@ -29,6 +29,8 @@ export const FORM_FIELDS = {
       'background',
       'communication_style',
       'motivation',
+      'voice_id',
+      'voice_name',
     ],
     OPTIONAL: ['avatar'],
   },

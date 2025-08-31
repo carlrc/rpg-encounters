@@ -122,6 +122,7 @@
   import { useRouter } from 'vue-router'
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import apiService from '../services/api.js'
 
   // Constants to replace magic numbers
@@ -151,6 +152,14 @@
       const { gameData, loadGameData } = useGameData()
       const router = useRouter()
 
+      // Use the standardized audio player composable
+      const {
+        playWebSocketAudio,
+        stopAudio,
+        isLoading: audioLoading,
+        error: audioError,
+      } = useAudioPlayer()
+
       // Use existing data from API (same as EncountersPage.vue)
       const players = ref([])
       const loading = ref(true)
@@ -162,7 +171,6 @@
       const isProcessing = ref(false)
       const websocket = ref(null)
       const mediaRecorder = ref(null)
-      const audioContext = ref(null)
       const audioChunks = ref([])
 
       // NEW: Conversation data state
@@ -224,6 +232,9 @@
         }
         closeWebSocket()
 
+        // Stop any playing audio
+        stopAudio()
+
         // Reset state
         selectedPlayerId.value = ''
         isChallengeMode.value = false
@@ -259,7 +270,9 @@
 
       const CONTROL = {
         AUDIO_COMPLETE: () => {
-          playAccumulatedAudio()
+          // Use the standardized audio player for WebSocket chunks
+          playWebSocketAudio(audioChunks.value, `encounter-${props.encounterId}`)
+          audioChunks.value = [] // Clear chunks after playing
           isProcessing.value = false
           closeWebSocket()
         },
@@ -332,36 +345,6 @@
         audioChunks.value.push(audioBlob)
       }
 
-      const playAccumulatedAudio = () => {
-        if (audioChunks.value.length === 0) {
-          return
-        }
-
-        try {
-          const audioBlob = new Blob(audioChunks.value, { type: 'audio/mpeg' })
-          const audioUrl = URL.createObjectURL(audioBlob)
-          const audio = new Audio(audioUrl)
-
-          audio.onended = () => {
-            URL.revokeObjectURL(audioUrl)
-          }
-
-          audio.onerror = () => {
-            console.error('Audio playback error')
-            URL.revokeObjectURL(audioUrl)
-          }
-
-          audio.play().catch(() => {
-            console.error('Audio play failed')
-            URL.revokeObjectURL(audioUrl)
-          })
-        } catch (error) {
-          console.error('Audio processing error')
-        }
-
-        audioChunks.value = []
-      }
-
       const startRecording = async () => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -395,10 +378,6 @@
         if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
           mediaRecorder.value.stop()
           mediaRecorder.value.stream.getTracks().forEach((track) => track.stop())
-        }
-
-        if (audioContext.value) {
-          audioContext.value.close()
         }
 
         isRecording.value = false
@@ -506,9 +485,8 @@
           mediaRecorder.value.stop()
         }
 
-        if (audioContext.value) {
-          audioContext.value.close()
-        }
+        // Stop any playing audio when component unmounts
+        stopAudio()
 
         audioChunks.value = []
       })

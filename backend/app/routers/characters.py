@@ -26,6 +26,25 @@ router = APIRouter(prefix="/api/characters", tags=["characters"])
 logger = logging.getLogger(__name__)
 
 
+def _generate_communication_style_task(character):
+    """Generate communication style task if not custom style type."""
+
+    if character.communication_style_type == CommunicationStyle.CUSTOM.value:
+        return None
+
+    system_prompt = render_jinja_prompt(
+        "communication_style_agent",
+        {
+            "character": character,
+            "style_profile": COMMUNICATION_STYLE_PROFILES[
+                character.communication_style_type
+            ],
+            "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+        },
+    )
+    return CommunicationStyleAgent(system_prompt=system_prompt).generate(character)
+
+
 @router.get("", response_model=List[Character])
 async def get_characters(
     user_world: tuple[int, int] = Depends(get_current_user_world),
@@ -74,28 +93,9 @@ async def create_character(
     """Create a new character with AI-generated personality"""
     user_id, world_id = user_world
     try:
-        custom_style = (
-            character_data.communication_style_type == CommunicationStyle.CUSTOM.value
-        )
-        if not custom_style:
-            # Render the system prompt with character context
-            system_prompt = render_jinja_prompt(
-                "communication_style_agent",
-                {
-                    "character": character_data,
-                    "style_profile": COMMUNICATION_STYLE_PROFILES[
-                        character_data.communication_style_type
-                    ],
-                    "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
-                },
-            )
-            communication_style_agent = CommunicationStyleAgent(
-                system_prompt=system_prompt
-            )
-
-            communication_style = await communication_style_agent.generate(
-                character_data
-            )
+        communication_task = _generate_communication_style_task(character_data)
+        if communication_task:
+            communication_style = await communication_task
             character_data.communication_style = communication_style.style_summary
             character_data.communication_style_examples = communication_style.examples
 
@@ -127,46 +127,46 @@ async def update_character(
     user_id, world_id = user_world
     try:
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
+        # Because generating content with LLMs is expensive, ensure the character exists first
         character = character_store.get_character_by_id(character_id=character_id)
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-        # Merge existing character with updates for personality generation
-        merged_data = character.model_dump()
-        merged_data.update(character_update.model_dump(exclude_unset=True))
-        merged_character = CharacterUpdate(**merged_data)
 
-        personality_task = PersonalityAgent().generate(merged_character)
+        # Only regenerate personality if background or motivation changed
+        personality_task = None
+        if character_update.background or character_update.motivation:
+            # Merge existing character with updates for AI generation
+            merged_data = character.model_dump()
+            merged_data.update(character_update.model_dump(exclude_unset=True))
+            merged_character = CharacterUpdate(**merged_data)
+            personality_task = PersonalityAgent().generate(merged_character)
+
         communication_task = None
+        if (
+            character_update.communication_style_type
+            or character_update.communication_style
+        ):
+            communication_task = _generate_communication_style_task(merged_character)
 
-        # Add communication style generation if not custom
-        if merged_character.communication_style_type != CommunicationStyle.CUSTOM.value:
-            system_prompt = render_jinja_prompt(
-                "communication_style_agent",
-                {
-                    "character": merged_character,
-                    "style_profile": COMMUNICATION_STYLE_PROFILES[
-                        merged_character.communication_style_type
-                    ],
-                    "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
-                },
-            )
-            communication_task = CommunicationStyleAgent(
-                system_prompt=system_prompt
-            ).generate(merged_character)
+        # Run tasks concurrently with defaults for consistent unpacking
+        async def null_task():
+            return None
 
-        # Run tasks concurrently and set results
-        if communication_task:
-            personality, communication_style = await asyncio.gather(
-                personality_task, communication_task
-            )
+        personality_task = personality_task or null_task()
+        communication_task = communication_task or null_task()
+
+        personality, communication_style = await asyncio.gather(
+            personality_task, communication_task
+        )
+
+        if personality is not None:
+            character_update.personality = personality
+
+        if communication_style is not None:
             character_update.communication_style = communication_style.style_summary
             character_update.communication_style_examples = communication_style.examples
-        else:
-            personality = await personality_task
 
-        character_update.personality = personality
         character = character_store.update_character(character_id, character_update)
-
         return character
     except HTTPException:
         raise
@@ -192,6 +192,13 @@ async def delete_character(
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
     except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+
         raise
     except Exception as e:
         logger.error(

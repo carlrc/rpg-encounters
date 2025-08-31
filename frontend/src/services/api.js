@@ -226,6 +226,30 @@ class ApiService {
     })
   }
 
+  // Voice operations
+  async searchVoices(searchTerm, pageToken = null) {
+    const params = new URLSearchParams({ search_term: searchTerm })
+    if (pageToken) params.append('next_page_token', pageToken)
+
+    return this.request(`/voices/search?${params}`)
+  }
+
+  async getVoiceSample(voiceId) {
+    // Return the raw response for streaming audio
+    const url = `${API_BASE_URL}/voices/${voiceId}/sample`
+    const response = await fetch(url, {
+      headers: {
+        'X-World-Id': this._getWorldIdHeader(),
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    return response // Return response object for streaming
+  }
+
   // Note: Influence profiles are now integrated into character model
   // Influence profile data is managed through character endpoints
 }

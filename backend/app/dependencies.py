@@ -4,7 +4,6 @@ from typing import Optional, Tuple
 from fastapi import Header
 
 from app.services.transcription import WhisperTranscriptionService
-from app.services.tts import ElevenLabsTTS
 
 
 def get_current_user_world(x_world_id: Optional[int] = Header(None)) -> Tuple[int, int]:
@@ -18,9 +17,3 @@ def get_current_user_world(x_world_id: Optional[int] = Header(None)) -> Tuple[in
 def get_transcription_service() -> WhisperTranscriptionService:
     """Factory function for transcription service"""
     return WhisperTranscriptionService(model_size="base")
-
-
-@lru_cache(maxsize=1)
-def get_tts_service() -> ElevenLabsTTS:
-    """Factory function for TTS service"""
-    return ElevenLabsTTS()

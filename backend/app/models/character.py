@@ -63,10 +63,8 @@ class CharacterBase(BaseModel):
     personality: str = Field(
         "", description="AI-generated personality profile for influence decisions"
     )
-    # TODO: This can't be here ultimately
-    voice: str = Field(
-        "JBFqnCBsd6RMkjVDRZzb", description="ElevenLabs voice ID for TTS", exclude=True
-    )
+    voice_id: str = Field(..., description="ElevenLabs voice ID for TTS")
+    voice_name: str = Field("Default Voice", description="Voice name")
 
     # Bias
     race_preferences: Dict[str, int] | None = Field(
@@ -149,7 +147,8 @@ class CharacterUpdate(CharacterBase):
     communication_style_type: str | None = None
     motivation: str | None = None
     personality: str | None = None
-    voice: str | None = None
+    voice_id: str | None = None
+    voice_name: str | None = None
     race_preferences: Dict[str, int] | None = None
     class_preferences: Dict[str, int] | None = None
     gender_preferences: Dict[str, int] | None = None

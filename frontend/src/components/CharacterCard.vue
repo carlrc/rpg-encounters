@@ -102,6 +102,29 @@
           </div>
         </div>
 
+        <!-- Voice Section (Full Width) -->
+        <div v-if="character.voice_id" class="shared-field shared-field-full-width">
+          <div class="shared-field-label">Voice</div>
+          <div class="shared-field-value">
+            <div class="communication-style-display">
+              <div class="voice-centered-container">
+                <span class="communication-style-type">
+                  {{ character.voice_name }}
+                  <button
+                    @click="playCharacterVoiceSample"
+                    class="voice-preview-btn"
+                    :disabled="previewLoading"
+                    title="Play voice sample"
+                  >
+                    {{ previewLoading ? '⏳' : '▶️' }}
+                  </button>
+                </span>
+              </div>
+              <div class="preset-communication-style">ID: {{ character.voice_id }}</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Character Biases Section -->
         <div
           v-if="displayBiases && Object.keys(displayBiases).length > 0"
@@ -170,7 +193,7 @@
       <input v-model="editForm.profession" placeholder="Profession" class="shared-input" />
 
       <!-- Background Field (Full Width) -->
-      <div class="background-field">
+      <div class="shared-field shared-field-full-width">
         <label class="shared-field-label">Background</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.background"
@@ -180,7 +203,7 @@
       </div>
 
       <!-- Communication Style Field (Full Width) -->
-      <div class="communication-field">
+      <div class="shared-field shared-field-full-width">
         <label class="shared-field-label">Communication Style</label>
         <select
           v-model="editForm.communication_style_type"
@@ -207,7 +230,7 @@
       </div>
 
       <!-- Motivation Field (Full Width) -->
-      <div class="motivation-field">
+      <div class="shared-field shared-field-full-width">
         <label class="shared-field-label">Motivation</label>
         <BaseTextareaWithCharacterCounter
           v-model="editForm.motivation"
@@ -216,108 +239,117 @@
         />
       </div>
 
+      <!-- Voice Selection Field (Full Width) -->
+      <VoiceSelector
+        :current-voice-id="editForm.voice_id"
+        :current-voice-name="editForm.voice_name"
+        @select-voice="handleVoiceSelection"
+      />
+
       <!-- Character Biases Section -->
-      <div class="bias-section">
-        <h4 class="bias-section-title">Character Biases</h4>
-        <p class="bias-section-description">
-          Configure how this character feels about different player characteristics (±5 DC influence
-          modifier each)
-        </p>
+      <div class="shared-field shared-field-full-width">
+        <div class="shared-field-label">Character Biases</div>
+        <div class="shared-field-value">
+          <p class="bias-section-description">
+            Configure how this character feels about different player characteristics (±5 DC
+            influence modifier each)
+          </p>
 
-        <!-- Race Preferences -->
-        <div class="bias-category">
-          <label class="bias-category-label">Race Preferences</label>
-          <BiasPreferenceRow
-            v-for="(bias, index) in editForm.biases.race_preferences"
-            :key="`race-${index}`"
-            :options="gameData.races"
-            :used-options="editForm.biases.race_preferences.map((b) => b.option)"
-            :initial-option="bias.option"
-            :initial-value="bias.value"
-            placeholder="Select Race"
-            @change="(option, val) => handleRaceBiasChange(index, option, val)"
-            @remove="() => handleRaceBiasRemove(index)"
-          />
-          <button
-            @click="addBiasPreference('race_preferences')"
-            class="shared-add-btn"
-            type="button"
-            v-if="editForm.biases.race_preferences.length < gameData.races.length"
-          >
-            + Add Race Preference
-          </button>
-        </div>
+          <!-- Race Preferences -->
+          <div class="bias-category">
+            <label class="bias-category-label">Race Preferences</label>
+            <BiasPreferenceRow
+              v-for="(bias, index) in editForm.biases.race_preferences"
+              :key="`race-${index}`"
+              :options="gameData.races"
+              :used-options="editForm.biases.race_preferences.map((b) => b.option)"
+              :initial-option="bias.option"
+              :initial-value="bias.value"
+              placeholder="Select Race"
+              @change="(option, val) => handleRaceBiasChange(index, option, val)"
+              @remove="() => handleRaceBiasRemove(index)"
+            />
+            <button
+              @click="addBiasPreference('race_preferences')"
+              class="shared-add-btn"
+              type="button"
+              v-if="editForm.biases.race_preferences.length < gameData.races.length"
+            >
+              + Add Race Preference
+            </button>
+          </div>
 
-        <!-- Class Preferences -->
-        <div class="bias-category">
-          <label class="bias-category-label">Class Preferences</label>
-          <BiasPreferenceRow
-            v-for="(bias, index) in editForm.biases.class_preferences"
-            :key="`class-${index}`"
-            :options="gameData.classes"
-            :used-options="editForm.biases.class_preferences.map((b) => b.option)"
-            :initial-option="bias.option"
-            :initial-value="bias.value"
-            placeholder="Select Class"
-            @change="(option, val) => handleClassBiasChange(index, option, val)"
-            @remove="() => handleClassBiasRemove(index)"
-          />
-          <button
-            @click="addBiasPreference('class_preferences')"
-            class="shared-add-btn"
-            type="button"
-            v-if="editForm.biases.class_preferences.length < gameData.classes.length"
-          >
-            + Add Class Preference
-          </button>
-        </div>
+          <!-- Class Preferences -->
+          <div class="bias-category">
+            <label class="bias-category-label">Class Preferences</label>
+            <BiasPreferenceRow
+              v-for="(bias, index) in editForm.biases.class_preferences"
+              :key="`class-${index}`"
+              :options="gameData.classes"
+              :used-options="editForm.biases.class_preferences.map((b) => b.option)"
+              :initial-option="bias.option"
+              :initial-value="bias.value"
+              placeholder="Select Class"
+              @change="(option, val) => handleClassBiasChange(index, option, val)"
+              @remove="() => handleClassBiasRemove(index)"
+            />
+            <button
+              @click="addBiasPreference('class_preferences')"
+              class="shared-add-btn"
+              type="button"
+              v-if="editForm.biases.class_preferences.length < gameData.classes.length"
+            >
+              + Add Class Preference
+            </button>
+          </div>
 
-        <!-- Gender Preferences -->
-        <div class="bias-category">
-          <label class="bias-category-label">Gender Preferences</label>
-          <BiasPreferenceRow
-            v-for="(bias, index) in editForm.biases.gender_preferences"
-            :key="`gender-${index}`"
-            :options="genders"
-            :used-options="editForm.biases.gender_preferences.map((b) => b.option)"
-            :initial-option="bias.option"
-            :initial-value="bias.value"
-            placeholder="Select Gender"
-            @change="(option, val) => handleGenderBiasChange(index, option, val)"
-            @remove="() => handleGenderBiasRemove(index)"
-          />
-          <button
-            @click="addBiasPreference('gender_preferences')"
-            class="shared-add-btn"
-            type="button"
-            v-if="editForm.biases.gender_preferences.length < genders.length"
-          >
-            + Add Gender Preference
-          </button>
-        </div>
+          <!-- Gender Preferences -->
+          <div class="bias-category">
+            <label class="bias-category-label">Gender Preferences</label>
+            <BiasPreferenceRow
+              v-for="(bias, index) in editForm.biases.gender_preferences"
+              :key="`gender-${index}`"
+              :options="genders"
+              :used-options="editForm.biases.gender_preferences.map((b) => b.option)"
+              :initial-option="bias.option"
+              :initial-value="bias.value"
+              placeholder="Select Gender"
+              @change="(option, val) => handleGenderBiasChange(index, option, val)"
+              @remove="() => handleGenderBiasRemove(index)"
+            />
+            <button
+              @click="addBiasPreference('gender_preferences')"
+              class="shared-add-btn"
+              type="button"
+              v-if="editForm.biases.gender_preferences.length < genders.length"
+            >
+              + Add Gender Preference
+            </button>
+          </div>
 
-        <!-- Size Preferences -->
-        <div class="bias-category">
-          <label class="bias-category-label">Size Preferences</label>
-          <BiasPreferenceRow
-            v-for="(bias, index) in editForm.biases.size_preferences"
-            :key="`size-${index}`"
-            :options="gameData.sizes.character"
-            :used-options="editForm.biases.size_preferences.map((b) => b.option)"
-            :initial-option="bias.option"
-            :initial-value="bias.value"
-            placeholder="Select Size"
-            @change="(option, val) => handleSizeBiasChange(index, option, val)"
-            @remove="() => handleSizeBiasRemove(index)"
-          />
-          <button
-            @click="addBiasPreference('size_preferences')"
-            class="shared-add-btn"
-            type="button"
-            v-if="editForm.biases.size_preferences.length < gameData.sizes.character.length"
-          >
-            + Add Size Preference
-          </button>
+          <!-- Size Preferences -->
+          <div class="bias-category">
+            <label class="bias-category-label">Size Preferences</label>
+            <BiasPreferenceRow
+              v-for="(bias, index) in editForm.biases.size_preferences"
+              :key="`size-${index}`"
+              :options="gameData.sizes.character"
+              :used-options="editForm.biases.size_preferences.map((b) => b.option)"
+              :initial-option="bias.option"
+              :initial-value="bias.value"
+              placeholder="Select Size"
+              @change="(option, val) => handleSizeBiasChange(index, option, val)"
+              @remove="() => handleSizeBiasRemove(index)"
+            />
+            <button
+              @click="addBiasPreference('size_preferences')"
+              class="shared-add-btn"
+              type="button"
+              v-if="editForm.biases.size_preferences.length < gameData.sizes.character.length"
+            >
+              + Add Size Preference
+            </button>
+          </div>
         </div>
       </div>
 
@@ -336,11 +368,13 @@
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameData } from '../composables/useGameData.js'
+  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
+  import VoiceSelector from './VoiceSelector.vue'
   import apiService from '../services/api.js'
 
   export default {
@@ -350,6 +384,7 @@
       BaseTextareaWithCharacterCounter,
       BiasPreferenceRow,
       TraitsDisplay,
+      VoiceSelector,
     },
     props: {
       character: {
@@ -368,6 +403,7 @@
     emits: ['update', 'delete'],
     setup(props, { emit }) {
       const { gameData } = useGameData()
+      const { playStreamingResponse, isLoading: previewLoading } = useAudioPlayer()
       const isEditing = ref(false)
 
       const editForm = reactive({
@@ -382,6 +418,8 @@
         communication_style: '',
         communication_style_type: 'Custom',
         motivation: '',
+        voice_id: '',
+        voice_name: '',
         biases: {
           race_preferences: [],
           class_preferences: [],
@@ -396,6 +434,14 @@
 
       // Store cleanup functions for proper memory management
       const cleanupFunctions = []
+
+      // Store original AI-triggering field values to detect changes
+      const originalAIFields = ref({
+        background: '',
+        motivation: '',
+        communication_style: '',
+        communication_style_type: '',
+      })
 
       const loadInfluenceProfile = () => {
         // Influence profiles are now part of the character model
@@ -434,6 +480,16 @@
           editForm.communication_style_type = 'Custom'
         }
         editForm.motivation = props.character.motivation || ''
+        editForm.voice_id = props.character.voice_id || ''
+        editForm.voice_name = props.character.voice_name || ''
+
+        // Store original AI-triggering field values for change detection
+        originalAIFields.value = {
+          background: props.character.background || '',
+          motivation: props.character.motivation || '',
+          communication_style: props.character.communication_style || '',
+          communication_style_type: props.character.communication_style_type || 'Custom',
+        }
 
         // Load existing influence profile
         await loadInfluenceProfile()
@@ -458,7 +514,8 @@
 
       const saveEdit = async () => {
         if (isFormValid.value) {
-          emit('update', props.character.id, {
+          // Always send non-AI-triggering fields
+          const updateData = {
             name: editForm.name.trim(),
             avatar: editForm.avatar,
             race: editForm.race,
@@ -466,10 +523,8 @@
             alignment: editForm.alignment,
             gender: editForm.gender,
             profession: editForm.profession.trim(),
-            background: editForm.background.trim(),
-            communication_style: (editForm.communication_style || '').trim(),
-            communication_style_type: editForm.communication_style_type,
-            motivation: editForm.motivation.trim(),
+            voice_id: editForm.voice_id || '',
+            voice_name: editForm.voice_name || '',
             // Include bias profile fields
             race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
             class_preferences: convertBiasesToObject(editForm.biases.class_preferences),
@@ -477,7 +532,31 @@
             size_preferences: convertBiasesToObject(editForm.biases.size_preferences),
             appearance_keywords: [],
             storytelling_keywords: [],
-          })
+          }
+
+          // Only include AI-triggering fields if they've changed
+          const currentBackground = editForm.background.trim()
+          const currentMotivation = editForm.motivation.trim()
+          const currentCommStyle = (editForm.communication_style || '').trim()
+          const currentCommStyleType = editForm.communication_style_type
+
+          if (currentBackground !== originalAIFields.value.background) {
+            updateData.background = currentBackground
+          }
+
+          if (currentMotivation !== originalAIFields.value.motivation) {
+            updateData.motivation = currentMotivation
+          }
+
+          if (currentCommStyle !== originalAIFields.value.communication_style) {
+            updateData.communication_style = currentCommStyle
+          }
+
+          if (currentCommStyleType !== originalAIFields.value.communication_style_type) {
+            updateData.communication_style_type = currentCommStyleType
+          }
+
+          emit('update', props.character.id, updateData)
 
           isEditing.value = false
         }
@@ -537,6 +616,24 @@
         // Clear communication_style when switching away from Custom
         if (editForm.communication_style_type !== 'Custom') {
           editForm.communication_style = ''
+        }
+      }
+
+      // Handle voice selection
+      const handleVoiceSelection = (voice) => {
+        editForm.voice_id = voice.voice_id
+        editForm.voice_name = voice.name
+      }
+
+      // Voice preview method
+      const playCharacterVoiceSample = async () => {
+        if (!props.character.voice_id || previewLoading.value) return
+
+        try {
+          const response = await apiService.getVoiceSample(props.character.voice_id)
+          await playStreamingResponse(response, `character-${props.character.id}`)
+        } catch (err) {
+          console.error('Failed to play character voice sample:', err)
         }
       }
 
@@ -654,6 +751,9 @@
         handleSizeBiasChange,
         handleSizeBiasRemove,
         handleCommunicationStyleTypeChange,
+        handleVoiceSelection,
+        previewLoading,
+        playCharacterVoiceSample,
       }
     },
   }
@@ -670,12 +770,6 @@
     color: #6c757d;
     text-align: right;
     margin-top: 4px;
-  }
-
-  .background-field,
-  .communication-field,
-  .motivation-field {
-    margin-bottom: 16px;
   }
 
   .custom-communication-style {
@@ -709,17 +803,6 @@
   }
 
   /* Bias Section Styles */
-  .bias-section {
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .bias-section-title {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #495057;
-  }
 
   .bias-section-description {
     margin: 0 0 1.5rem 0;
@@ -742,6 +825,32 @@
     color: #495057;
     margin-bottom: 0.75rem;
     font-size: 0.9rem;
+  }
+
+  /* Voice display - minimal custom styles, reuse shared styles */
+  .voice-centered-container {
+    display: flex;
+    justify-content: center;
+  }
+
+  .voice-preview-btn {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    margin-left: 8px;
+    padding: 2px 4px;
+  }
+
+  .voice-preview-btn:hover:not(:disabled) {
+    transform: scale(1.1);
+  }
+
+  .voice-preview-btn:disabled {
+    cursor: not-allowed;
+    transform: none;
+    opacity: 0.6;
   }
 
   /* TraitsDisplay component handles the display styling */
