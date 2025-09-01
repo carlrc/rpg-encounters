@@ -156,64 +156,6 @@
 </script>
 
 <style scoped>
-  /* No custom styles needed - everything comes from shared-styles.css */
-
-  .abilities-skills-section {
-    margin-bottom: var(--spacing-lg);
-    padding-top: var(--spacing-lg);
-    border-top: 2px solid var(--border-default);
-  }
-
-  .section-title {
-    margin: 0 0 var(--spacing-lg) 0;
-    color: var(--text-primary);
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-semibold);
-    text-align: center;
-  }
-
-  .threshold-slider {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .threshold-slider:last-child {
-    margin-bottom: 0;
-  }
-
-  .threshold-label {
-    display: block;
-    margin-bottom: var(--spacing-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--text-secondary);
-    font-size: var(--font-size-base);
-    text-align: center;
-  }
-
-  .slider {
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--border-default);
-    outline: none;
-    -webkit-appearance: none;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-    border: none;
-  }
+  /* Page-specific styles only - shared styles handled globally */
+  /* No additional styles needed - all components use shared styles */
 </style>

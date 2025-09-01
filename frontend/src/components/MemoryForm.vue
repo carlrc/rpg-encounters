@@ -102,13 +102,14 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .content-field {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xxl);
   }
 
   .required {
-    color: #dc3545;
-    font-weight: bold;
+    color: var(--danger-color);
+    font-weight: var(--font-weight-bold);
   }
 
   /* Ensure text areas take full width */

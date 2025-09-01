@@ -1,0 +1,166 @@
+/* ===== CONSOLIDATED DESIGN TOKENS ===== */
+/* Single source of truth for all design variables */
+
+:root {
+  /* ===== COLOR PALETTE ===== */
+
+  /* Primary Colors */
+  --color-primary: #007bff;
+  --primary-color: #007bff;
+  /* Legacy support */
+  --primary-dark: #0056b3;
+  --primary-darker: #004085;
+
+  /* Status Colors */
+  --color-success: #28a745;
+  --success-color: #28a745;
+  /* Legacy support */
+  --success-dark: #218838;
+  --success-darker: #1e7e34;
+
+  --color-danger: #dc3545;
+  --danger-color: #dc3545;
+  /* Legacy support */
+  --danger-dark: #c82333;
+  --danger-darker: #a71e2a;
+
+  --color-warning: #ffc107;
+  --warning-color: #ffc107;
+  /* Legacy support */
+  --warning-dark: #e0a800;
+
+  --color-info: #007bff;
+  --info-color: #007bff;
+  /* Legacy support */
+
+  /* Neutral Colors */
+  --color-secondary: #6c757d;
+  --secondary-color: #6c757d;
+  /* Legacy support */
+  --secondary-dark: #5a6268;
+  --secondary-darker: #495057;
+
+  /* Text Colors */
+  --text-primary: #1a1a1a;
+  --text-secondary: #34495e;
+  --text-muted: #6c757d;
+  --text-label: #2c3e50;
+
+  /* Background Colors */
+  --bg-white: #ffffff;
+  --bg-light: #f8f9fa;
+  --bg-input: #f8f9fa;
+  --bg-tag-display: #f8f9fa;
+
+  /* Border Colors */
+  --border-light: #e8e9ea;
+  --border-default: #e9ecef;
+  --border-input: #e9ecef;
+  --border-focus: var(--primary-color);
+  --border-dashed: #dee2e6;
+
+  /* ===== SHADOWS ===== */
+
+  /* Card Shadows */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 8px 25px rgba(0, 0, 0, 0.12);
+
+  /* Button Shadows */
+  --shadow-button: 0 2px 4px rgba(0, 123, 255, 0.3);
+  --shadow-button-hover: 0 4px 8px rgba(0, 123, 255, 0.4);
+  --shadow-success: 0 2px 4px rgba(40, 167, 69, 0.3);
+  --shadow-success-hover: 0 4px 8px rgba(40, 167, 69, 0.4);
+  --shadow-danger: 0 2px 4px rgba(220, 53, 69, 0.3);
+  --shadow-danger-hover: 0 4px 8px rgba(220, 53, 69, 0.4);
+  --shadow-secondary: 0 2px 4px rgba(108, 117, 125, 0.3);
+  --shadow-secondary-hover: 0 4px 8px rgba(108, 117, 125, 0.4);
+
+  /* ===== SPACING SCALE ===== */
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-xxl: 24px;
+
+  /* Legacy spacing support */
+  --space-1: 0.25rem;
+  /* 4px */
+  --space-2: 0.5rem;
+  /* 8px */
+  --space-3: 0.75rem;
+  /* 12px */
+  --space-4: 1rem;
+  /* 16px */
+
+  /* ===== BORDER RADIUS SCALE ===== */
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-round: 50%;
+  --radius-pill: 16px;
+
+  /* Legacy radius support */
+  --radius-2: 0.375rem;
+  /* 6px */
+  --radius-3: 0.5rem;
+  /* 8px */
+
+  /* ===== TYPOGRAPHY SCALE ===== */
+
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;
+  /* 12px */
+  --font-size-sm: 0.875rem;
+  /* 14px */
+  --font-size-base: 0.9rem;
+  /* 14.4px */
+  --font-size-md: 0.95rem;
+  /* 15.2px */
+  --font-size-lg: 1rem;
+  /* 16px */
+  --font-size-xl: 1.2rem;
+  /* 19.2px */
+  --font-size-xxl: 1.5rem;
+  /* 24px */
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Font Families */
+  --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /* ===== ANIMATION & TRANSITIONS ===== */
+
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+
+  /* ===== LAYOUT VARIABLES ===== */
+
+  /* Container & Layout */
+  --max-content-width: 1400px;
+  --sidebar-width: 200px;
+  --world-tabs-width: 60px;
+  --header-height: 70px;
+
+  /* Z-Index Scale */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 500;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1010;
+  --z-tooltip: 1020;
+}
+
+/* ===== DARK MODE SUPPORT (Future) ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode tokens can be added here in the future */
+  }
+}

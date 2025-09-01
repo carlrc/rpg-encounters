@@ -247,17 +247,21 @@
 <style scoped>
   .split-view {
     display: flex;
-    height: 100%;
+    height: calc(100vh - var(--header-height));
+    max-height: calc(100vh - var(--header-height));
     gap: 0;
+    overflow: hidden;
   }
 
   .list-pane {
     width: 30%;
     min-width: 280px;
+    max-width: 400px;
     display: flex;
     flex-direction: column;
     background: var(--bg-light);
     border-right: 2px solid var(--border-default);
+    overflow: hidden;
   }
 
   .list-header {

@@ -1,0 +1,264 @@
+/* ===== CONSOLIDATED STYLESHEET ===== */
+/* Master file that imports all style systems */
+
+/* Import design tokens first - these define all CSS variables */
+@import './tokens.css';
+
+/* Import shared component styles that use the tokens */
+@import './components.css';
+
+/* ===== APPLICATION ROOT STYLES ===== */
+/* Base styles that apply to the entire application */
+
+:root {
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  font-weight: var(--font-weight-normal);
+
+  color-scheme: light dark;
+  color: var(--text-primary);
+  background-color: var(--bg-light);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Ensure consistent box-sizing across all elements */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Reset default margins and ensure full viewport coverage */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Application container setup */
+#app {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== COMPONENT-SPECIFIC OVERRIDES ===== */
+/* Styles for specific functionality that extends shared components */
+
+/* World Tabs Component */
+.world-tabs-positioned {
+  position: fixed;
+  left: var(--spacing-sm);
+  top: 90px;
+  z-index: var(--z-fixed);
+}
+
+.world-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: 0;
+  background: transparent;
+  width: var(--world-tabs-width);
+}
+
+.world-tab {
+  padding: 10px 8px;
+  background: var(--bg-white);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  position: relative;
+  width: var(--world-tabs-width);
+  height: var(--world-tabs-width);
+  text-align: center;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.world-tab.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark)) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+  font-weight: var(--font-weight-bold);
+  box-shadow: var(--shadow-button-hover);
+  transform: translateX(2px);
+}
+
+.world-tab:hover:not(.active) {
+  background: #e3f2fd;
+  border-color: #bbdefb;
+  color: #1976d2;
+  transform: translateX(1px);
+}
+
+.add-world-tab {
+  padding: 10px 8px;
+  background: var(--bg-white);
+  border: 2px dashed var(--secondary-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  color: var(--secondary-color);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xxl);
+  transition: all var(--transition-fast);
+  width: var(--world-tabs-width);
+  height: var(--world-tabs-width);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-card);
+}
+
+.add-world-tab:hover {
+  background: var(--bg-light);
+  border-color: var(--secondary-darker);
+  color: var(--secondary-darker);
+  transform: translateX(1px);
+}
+
+.delete-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  color: var(--danger-color);
+  background: var(--bg-white);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--radius-round);
+  transition: all var(--transition-fast);
+  border: 1px solid var(--danger-color);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background: var(--danger-color);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* Success Toast */
+.success-toast {
+  position: fixed;
+  top: var(--spacing-xl);
+  right: var(--spacing-xl);
+  background: linear-gradient(135deg, var(--success-color), var(--success-dark));
+  color: white;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-success-hover);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  z-index: var(--z-modal);
+  animation: slideInRight var(--transition-normal);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ===== RESPONSIVE OVERRIDES ===== */
+
+@media (max-width: 768px) {
+  .world-tabs-positioned {
+    position: static;
+    margin: var(--spacing-sm) 0;
+    left: auto;
+    top: auto;
+  }
+
+  .world-tabs {
+    flex-direction: row;
+    width: 100%;
+    overflow-x: auto;
+    padding: 0 var(--spacing-sm);
+  }
+
+  .world-tab,
+  .add-world-tab {
+    flex-shrink: 0;
+  }
+}
+
+/* ===== UTILITY CLASSES FOR LEGACY SUPPORT ===== */
+/* These maintain compatibility during the transition */
+
+.player-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-xl);
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+}
+
+.player-card {
+  background-color: var(--bg-white);
+  color: var(--text-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xxl);
+  text-align: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-normal);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* ===== PRINT STYLES ===== */
+
+@media print {
+  .world-tabs-positioned,
+  .sidebar,
+  .shared-actions {
+    display: none !important;
+  }
+
+  .main-layout {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .shared-card {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+}

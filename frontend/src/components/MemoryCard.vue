@@ -165,18 +165,12 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .memory-content {
     flex: 1;
   }
 
-  .character-limit-info {
-    font-size: 0.8em;
-    color: #6c757d;
-    text-align: right;
-    margin-top: 4px;
-  }
-
   .content-field {
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing-lg);
   }
 </style>

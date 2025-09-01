@@ -41,22 +41,23 @@
       </div>
     </div>
 
-    <!-- Level 2 Toggle -->
-    <div class="level-toggle">
-      <label class="level-toggle-option">
-        <input type="checkbox" v-model="form.enable_level_2" @change="handleLevel2Toggle" />
-        <span>Add Level 2: Privileged Content</span>
-      </label>
-    </div>
-
     <!-- Level 2 Content -->
-    <div v-if="form.enable_level_2" class="shared-field shared-field-full-width">
-      <label class="shared-field-label">Level 2: Privileged Content</label>
-      <BaseTextareaWithCharacterCounter
-        v-model="form.level_2_content"
-        placeholder="Enter privileged content (high influence required)..."
-        :max-characters="500"
-      />
+    <div class="shared-field shared-field-full-width">
+      <div class="level-toggle level-toggle-in-divider">
+        <label class="level-toggle-option">
+          <input type="checkbox" v-model="form.enable_level_2" @change="handleLevel2Toggle" />
+          <span>Add Level 2: Privileged Content</span>
+        </label>
+      </div>
+
+      <div v-if="form.enable_level_2">
+        <label class="shared-field-label">Level 2: Privileged Content</label>
+        <BaseTextareaWithCharacterCounter
+          v-model="form.level_2_content"
+          placeholder="Enter privileged content (high influence required)..."
+          :max-characters="500"
+        />
+      </div>
     </div>
 
     <!-- Level 2 Threshold -->
@@ -231,33 +232,34 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .required {
-    color: #dc3545;
-    font-weight: bold;
+    color: var(--danger-color);
+    font-weight: var(--font-weight-bold);
   }
 
   /* Level toggle styles */
   .level-toggle {
-    margin-bottom: 1rem;
+    margin-bottom: var(--spacing-lg);
   }
 
   .level-toggle-option {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
     cursor: pointer;
-    padding: 0.75rem;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    background: #f8f9fa;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #495057;
+    padding: var(--spacing-md);
+    border: 2px solid var(--border-dashed);
+    border-radius: var(--radius-lg);
+    background: var(--bg-light);
+    transition: all var(--transition-fast);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
   }
 
   .level-toggle-option:hover {
-    border-color: #007bff;
+    border-color: var(--primary-color);
     background: #e3f2fd;
   }
 
@@ -266,56 +268,7 @@
     transform: scale(1.1);
   }
 
-  /* Threshold section styles using shared design tokens */
-  .threshold-section {
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .threshold-slider {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .threshold-slider:last-child {
-    margin-bottom: 0;
-  }
-
-  .threshold-label {
-    display: block;
-    margin-bottom: var(--spacing-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--text-secondary);
-    font-size: var(--font-size-base);
-  }
-
-  .slider {
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--border-default);
-    outline: none;
-    -webkit-appearance: none;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-    border: none;
-  }
-
-  /* Level 3 divider toggle styles */
+  /* Level divider toggle styles */
   .level-toggle-in-divider {
     position: relative;
     margin: var(--spacing-xl) 0 var(--spacing-lg) 0;
