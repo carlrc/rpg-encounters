@@ -1,9 +1,12 @@
 <template>
   <div class="app-container">
     <!-- Page Header -->
-    <header class="page-header">
-      <div class="header-content">
-        <h1 class="page-title">{{ pageTitle }}</h1>
+    <header class="page-header custom-header">
+      <div class="header-content custom-header-content">
+        <div class="brand-section">
+          <img :src="logoUrl" alt="RPG Encounters Logo" class="logo" />
+          <h1 class="brand-title">RPG Encounters</h1>
+        </div>
       </div>
     </header>
 
@@ -43,6 +46,7 @@
   import { useRoute, useRouter } from 'vue-router'
   import WorldTabs from '../WorldTabs.vue'
   import { useWorldStore } from '@/stores/world'
+  import logoUrl from '@/assets/images/logo.png'
 
   const route = useRoute()
   const router = useRouter()
@@ -60,10 +64,6 @@
       }))
   })
 
-  const pageTitle = computed(() => {
-    return route.name || 'DnD AI'
-  })
-
   const showSuccessMessage = (message) => {
     successMessage.value = message
     setTimeout(() => {
@@ -78,5 +78,44 @@
 </script>
 
 <style scoped>
-  /* All layout styles now use shared classes - minimal component-specific overrides only */
+  .custom-header {
+    padding: 0 !important;
+  }
+
+  .custom-header-content {
+    justify-content: flex-start !important;
+    margin: 0 !important;
+    max-width: none !important;
+    padding-left: var(--spacing-sm) !important;
+  }
+
+  .brand-section {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+  }
+
+  .logo {
+    height: 60px !important;
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .brand-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 768px) {
+    .brand-title {
+      font-size: 1.25rem;
+    }
+
+    .logo {
+      height: 50px !important;
+    }
+  }
 </style>
