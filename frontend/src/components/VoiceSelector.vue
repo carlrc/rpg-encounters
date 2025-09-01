@@ -340,9 +340,9 @@
   .voice-manual-input {
     margin: 16px 0;
     padding: 16px;
-    border: 2px dashed #dee2e6;
+    border: 2px dashed var(--gray-200);
     border-radius: 8px;
-    background: #f8f9fa;
+    background: var(--gray-50);
   }
 
   .manual-input-header {
@@ -352,7 +352,7 @@
   .manual-input-label {
     font-weight: 600;
     font-size: 0.9rem;
-    color: #495057;
+    color: var(--gray-600);
   }
 
   .manual-input-controls {
@@ -379,7 +379,7 @@
 
   .voice-error {
     margin-top: 8px;
-    color: #dc3545;
+    color: var(--danger-color);
     font-size: 0.8rem;
     font-style: italic;
   }
@@ -399,7 +399,7 @@
   .browser-label {
     font-weight: 600;
     font-size: 0.9rem;
-    color: #495057;
+    color: var(--gray-600);
   }
 
   /* Voice Search */
@@ -425,7 +425,7 @@
   .voice-results-container {
     max-height: 400px;
     overflow-y: auto;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--gray-200);
     border-radius: 6px;
     background: white;
   }
@@ -433,14 +433,14 @@
   /* Results header */
   .voice-results-header {
     padding: 8px 12px;
-    border-bottom: 1px solid #dee2e6;
-    background: #f8f9fa;
+    border-bottom: 1px solid var(--gray-200);
+    background: var(--gray-50);
   }
 
   .results-count {
     font-size: 0.9rem;
     font-weight: 500;
-    color: #495057;
+    color: var(--gray-600);
   }
 
   /* Status messages */
@@ -449,7 +449,7 @@
     font-style: italic;
     padding: 40px 20px;
     font-size: 0.9rem;
-    color: #6c757d;
+    color: var(--gray-500);
   }
 
   /* Voice list */
@@ -464,20 +464,20 @@
     padding: 12px;
     margin-bottom: 8px;
     background: white;
-    border: 1px solid #dee2e6;
+    border: 1px solid var(--gray-200);
     border-radius: 6px;
     transition: all 0.2s ease;
   }
 
   .voice-item.selected {
-    background: #e3f2fd;
-    border-color: #007bff;
+    background: var(--color-voice-selected-bg);
+    border-color: var(--color-voice-selected);
   }
 
   .voice-item:hover {
-    border-color: #adb5bd;
+    border-color: var(--gray-400);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-voice-hover);
   }
 
   /* Voice selection button */
@@ -487,7 +487,7 @@
     height: 32px;
     border: none;
     border-radius: 50%;
-    background: #007bff;
+    background: var(--color-voice-add-btn);
     color: white;
     font-weight: bold;
     cursor: pointer;
@@ -498,20 +498,20 @@
   }
 
   .voice-add-btn:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--color-voice-add-btn-hover);
     transform: scale(1.1);
   }
 
   .voice-add-btn.selected {
-    background: #28a745;
+    background: var(--success-color);
   }
 
   .voice-add-btn.selected:hover {
-    background: #218838;
+    background: var(--success-dark);
   }
 
   .voice-add-btn:disabled {
-    background: #6c757d;
+    background: var(--gray-500);
     cursor: not-allowed;
     transform: none;
   }
@@ -527,7 +527,7 @@
   .voice-name {
     font-weight: 600;
     font-size: 1rem;
-    color: #2c3e50;
+    color: var(--gray-800);
   }
 
   .voice-details {
@@ -538,7 +538,7 @@
 
   .voice-description {
     font-size: 0.85rem;
-    color: #495057;
+    color: var(--gray-600);
   }
 
   .voice-labels {
@@ -551,18 +551,18 @@
   .voice-category,
   .voice-label {
     font-size: 0.75rem;
-    color: #6c757d;
+    color: var(--gray-500);
     text-transform: capitalize;
     font-weight: 500;
     padding: 2px 6px;
-    background: #f8f9fa;
+    background: var(--gray-50);
     border-radius: 3px;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--gray-100);
   }
 
   .voice-id {
     font-size: 0.7rem;
-    color: #868e96;
+    color: var(--gray-400);
     font-family: monospace;
   }
 
@@ -579,7 +579,7 @@
   }
 
   .voice-preview-btn:hover:not(:disabled) {
-    background: #f8f9fa;
+    background: var(--gray-50);
     transform: scale(1.1);
   }
 
@@ -598,10 +598,10 @@
 
   .communication-style-type {
     font-weight: 600;
-    color: #007bff;
+    color: var(--primary-color);
     font-size: 0.9rem;
     padding: 4px 8px;
-    background-color: #f8f9fa;
+    background-color: var(--gray-50);
     border-radius: 4px;
     display: block;
     width: fit-content;
@@ -611,7 +611,7 @@
 
   .preset-communication-style {
     font-style: italic;
-    color: #6c757d;
+    color: var(--gray-500);
     font-size: 0.8rem;
     text-align: center;
   }

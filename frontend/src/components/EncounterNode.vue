@@ -464,7 +464,7 @@
 
   .encounter-name-input:focus {
     border-color: var(--primary-dark);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    box-shadow: var(--shadow-encounter-focus);
   }
 
   .encounter-actions {
@@ -626,7 +626,7 @@
 
   .encounter-description-input :deep(.shared-textarea:focus) {
     border-color: var(--primary-dark);
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    box-shadow: var(--shadow-encounter-focus);
   }
 
   .encounter-description-input :deep(.shared-word-counter) {
@@ -680,7 +680,7 @@
   }
 
   .character-option:hover {
-    background: #e3f2fd;
+    background: var(--color-encounter-hover);
   }
 
   .character-option:last-child {
@@ -929,7 +929,7 @@
   .connection-handle {
     width: 12px;
     height: 12px;
-    border: 2px solid var(--primary-color);
+    border: 2px solid var(--border-default);
     border-radius: var(--radius-round);
     background: var(--bg-white);
     position: absolute;
@@ -942,8 +942,8 @@
     width: 16px;
     height: 16px;
     border-width: 3px;
-    background: var(--primary-color);
-    box-shadow: 0 0 8px rgba(0, 123, 255, 0.4);
+    background: var(--text-primary);
+    box-shadow: var(--shadow-voice-hover);
   }
 
   /* Ensure encounter node has relative positioning for absolute handles */

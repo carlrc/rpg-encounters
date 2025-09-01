@@ -402,7 +402,7 @@
   .bias-section-description {
     margin: 0 0 1.5rem 0;
     font-size: 0.875rem;
-    color: #6c757d;
+    color: var(--gray-500);
     line-height: 1.4;
   }
 
@@ -417,7 +417,7 @@
   .bias-category-label {
     display: block;
     font-weight: 600;
-    color: #495057;
+    color: var(--gray-600);
     margin-bottom: 0.75rem;
     font-size: 0.9rem;
   }

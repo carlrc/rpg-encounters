@@ -133,7 +133,7 @@ body {
   outline: none;
   border-color: var(--border-focus);
   background: var(--bg-white);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 .shared-textarea {
@@ -308,8 +308,8 @@ body {
   padding: var(--spacing-xl);
   color: var(--danger-color);
   font-size: var(--font-size-base);
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background-color: var(--color-bias-negative-bg);
+  border: 1px solid var(--color-bias-negative-border);
   border-radius: var(--radius-lg);
   margin: var(--spacing-xl);
   white-space: pre-line;
@@ -361,7 +361,7 @@ body {
 
 .shared-word-counter.over-limit {
   color: var(--danger-color);
-  background: rgba(220, 53, 69, 0.1);
+  background: var(--color-bias-negative-bg);
   border-color: var(--danger-color);
 }
 
@@ -450,9 +450,9 @@ body {
 }
 
 .nav-button:hover {
-  background: #e3f2fd;
-  color: #1976d2;
-  border-left-color: #bbdefb;
+  background: var(--primary-alpha-05);
+  color: var(--primary-color);
+  border-left-color: var(--primary-alpha-30);
 }
 
 .nav-button.active {
@@ -491,13 +491,13 @@ body {
 .field-has-errors .shared-textarea,
 .field-has-errors .shared-select {
   border-color: var(--danger-color);
-  background-color: rgba(220, 53, 69, 0.05);
+  background-color: var(--color-bias-negative-bg);
 }
 
 .field-has-errors .shared-input:focus,
 .field-has-errors .shared-textarea:focus,
 .field-has-errors .shared-select:focus {
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+  box-shadow: 0 0 0 3px var(--color-bias-negative-bg);
 }
 
 .field-error {
@@ -694,7 +694,7 @@ body {
 
 .level-toggle-option:hover {
   border-color: var(--primary-color);
-  background: #e3f2fd;
+  background: var(--primary-alpha-05);
 }
 
 .level-toggle-option input[type='checkbox'] {
@@ -844,6 +844,191 @@ body {
 .slider::-moz-range-thumb:hover {
   background: var(--primary-dark);
   transform: scale(1.1);
+}
+
+/* ===== COMPREHENSIVE FORM CONTROL STYLING ===== */
+/* Override browser defaults for all form controls */
+
+/* Range sliders - BiasPreferenceRow component */
+input[type='range'] {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-default);
+  outline: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: var(--primary-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: none;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  background: var(--primary-dark);
+  transform: scale(1.1);
+}
+
+input[type='range']::-webkit-slider-thumb:focus {
+  background: var(--primary-dark);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  background: var(--primary-color);
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+input[type='range']::-moz-range-thumb:hover {
+  background: var(--primary-dark);
+  transform: scale(1.1);
+}
+
+input[type='range']::-moz-range-thumb:focus {
+  background: var(--primary-dark);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+input[type='range']::-moz-range-track {
+  background: var(--border-default);
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* Radio buttons */
+input[type='radio'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-input);
+  border-radius: var(--radius-round);
+  background: var(--bg-white);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  margin: 0;
+}
+
+input[type='radio']:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-alpha-05);
+}
+
+input[type='radio']:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+input[type='radio']:checked {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+input[type='radio']:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-round);
+  background: white;
+}
+
+/* Checkboxes */
+input[type='checkbox'] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-input);
+  border-radius: var(--radius-sm);
+  background: var(--bg-white);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  margin: 0;
+}
+
+input[type='checkbox']:hover {
+  border-color: var(--primary-color);
+  background: var(--primary-alpha-05);
+}
+
+input[type='checkbox']:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+input[type='checkbox']:checked {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+input[type='checkbox']:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+/* Select dropdowns - ensure consistency */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='5'><path fill='%23666' d='m0,1 1,0 -0.5,1 z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 40px;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+/* Focus styles for all interactive elements */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+/* Remove blue outline on all browsers */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
 }
 
 /* ===== BIAS SECTION STYLES ===== */

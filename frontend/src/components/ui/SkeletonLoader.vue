@@ -75,7 +75,7 @@
   }
 
   .skeleton-line {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--gray-50) 25%, var(--gray-100) 50%, var(--gray-50) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     border-radius: var(--radius-sm);
@@ -109,7 +109,7 @@
     width: 100px;
     height: 80px;
     border-radius: var(--radius-lg);
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background: linear-gradient(90deg, var(--gray-50) 25%, var(--gray-100) 50%, var(--gray-50) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
     margin-bottom: var(--spacing-lg);
@@ -177,7 +177,12 @@
 
   .skeleton-header {
     height: 20px;
-    background: linear-gradient(90deg, #e0e0e0 25%, #d0d0d0 50%, #e0e0e0 75%);
+    background: linear-gradient(
+      90deg,
+      var(--gray-100) 25%,
+      var(--gray-200) 50%,
+      var(--gray-100) 75%
+    );
   }
 
   /* Form skeleton */
@@ -254,7 +259,7 @@
 
     .skeleton-line,
     .skeleton-avatar {
-      background: #f0f0f0;
+      background: var(--gray-50);
     }
   }
 </style>

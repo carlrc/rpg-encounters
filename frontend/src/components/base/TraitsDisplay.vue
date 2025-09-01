@@ -124,23 +124,23 @@
 
   .trait-value-item.trait-positive,
   .trait-value-item.bias-positive {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
+    background-color: var(--color-bias-positive-bg);
+    border-color: var(--color-bias-positive-border);
+    color: var(--color-bias-positive-text);
   }
 
   .trait-value-item.trait-negative,
   .trait-value-item.bias-negative {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
+    background-color: var(--color-bias-negative-bg);
+    border-color: var(--color-bias-negative-border);
+    color: var(--color-bias-negative-text);
   }
 
   .trait-value-item.trait-neutral,
   .trait-value-item.bias-neutral {
-    background-color: #e2e3e5;
-    border-color: #d6d8db;
-    color: #383d41;
+    background-color: var(--color-bias-neutral-bg);
+    border-color: var(--color-bias-neutral-border);
+    color: var(--color-bias-neutral-text);
   }
 
   @media (max-width: 768px) {

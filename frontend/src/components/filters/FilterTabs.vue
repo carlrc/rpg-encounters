@@ -70,7 +70,7 @@
 
 <style scoped>
   .filter-tabs {
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 2px solid var(--border-default);
     margin-bottom: 1rem;
   }
 
@@ -88,7 +88,7 @@
     border: none;
     border-bottom: 3px solid transparent;
     background: transparent;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -98,23 +98,23 @@
   }
 
   .tab-button:hover {
-    color: #374151;
-    background: #f9fafb;
+    color: var(--text-primary);
+    background: var(--bg-light);
   }
 
   .tab-button.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
-    background: #eff6ff;
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: var(--primary-alpha-05);
   }
 
   .tab-button.has-filters {
-    color: #1e40af;
+    color: var(--primary-dark);
     font-weight: 600;
   }
 
   .tab-button.has-filters:not(.active) {
-    background: #e0f2fe;
+    background: var(--primary-alpha-10);
   }
 
   .tab-label {
@@ -128,7 +128,7 @@
     min-width: 1.5rem;
     height: 1.5rem;
     padding: 0 0.375rem;
-    background: #3b82f6;
+    background: var(--primary-color);
     color: white;
     font-size: 0.75rem;
     font-weight: 600;
@@ -136,7 +136,7 @@
   }
 
   .tab-button.active .filter-badge {
-    background: #1e40af;
+    background: var(--primary-dark);
   }
 
   /* Scrollbar styling for tabs */
@@ -145,15 +145,15 @@
   }
 
   .tab-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--bg-light);
   }
 
   .tab-list::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--border-default);
     border-radius: 1.5px;
   }
 
   .tab-list::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: var(--text-muted);
   }
 </style>

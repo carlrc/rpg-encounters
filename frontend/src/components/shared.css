@@ -105,7 +105,7 @@
   outline: none;
   border-color: var(--border-focus);
   background: var(--bg-white);
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
 }
 
 .shared-textarea {
@@ -260,7 +260,7 @@
   font-style: italic;
   font-size: var(--font-size-base);
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: #f1f3f4;
+  background: var(--bg-light);
   border-radius: var(--radius-xl);
 }
 
@@ -307,7 +307,7 @@
 
 .shared-word-counter.over-limit {
   color: var(--danger-color);
-  background: rgba(220, 53, 69, 0.1);
+  background: var(--color-bias-negative-bg);
   border-color: var(--danger-color);
 }
 
@@ -383,10 +383,10 @@
 }
 
 .shared-text-display {
-  background: #f8f9fa;
+  background: var(--bg-light);
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-default);
   white-space: pre-wrap;
   line-height: 1.5;
   min-height: 60px;
@@ -506,7 +506,7 @@
 
 .shared-toggle-option:hover {
   border-color: var(--primary-color);
-  background: #e3f2fd;
+  background: var(--primary-alpha-05);
 }
 
 .shared-toggle-option input[type='checkbox'] {
@@ -518,7 +518,7 @@
 .shared-loading {
   text-align: center;
   padding: 40px;
-  color: #666;
+  color: var(--text-muted);
   font-size: 1.1em;
 }
 
@@ -527,8 +527,8 @@
   padding: 20px;
   color: var(--danger-color);
   font-size: 0.95em;
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  background-color: var(--color-bias-negative-bg);
+  border: 1px solid var(--color-bias-negative-border);
   border-radius: var(--radius-lg);
   margin: 20px;
   white-space: pre-line;
@@ -559,13 +559,13 @@
 .field-has-errors .shared-textarea,
 .field-has-errors .shared-select {
   border-color: var(--danger-color);
-  background-color: rgba(220, 53, 69, 0.05);
+  background-color: var(--color-bias-negative-bg);
 }
 
 .field-has-errors .shared-input:focus,
 .field-has-errors .shared-textarea:focus,
 .field-has-errors .shared-select:focus {
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+  box-shadow: 0 0 0 3px var(--color-bias-negative-bg);
 }
 
 /* Field error messages */

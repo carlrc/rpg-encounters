@@ -366,9 +366,9 @@
   }
 
   .list-item:hover {
-    background: #e3f2fd;
-    color: #1976d2;
-    border-color: #bbdefb;
+    background: var(--color-encounter-hover);
+    color: var(--primary-color);
+    border-color: var(--primary-alpha-30);
   }
 
   .list-item.active {

@@ -99,9 +99,9 @@ body {
 }
 
 .world-tab:hover:not(.active) {
-  background: #e3f2fd;
-  border-color: #bbdefb;
-  color: #1976d2;
+  background: var(--primary-alpha-05);
+  border-color: var(--primary-alpha-30);
+  color: var(--primary-color);
   transform: translateX(1px);
 }
 
@@ -258,7 +258,7 @@ body {
 
   .shared-card {
     box-shadow: none !important;
-    border: 1px solid #ccc !important;
+    border: 1px solid var(--border-default) !important;
     break-inside: avoid;
   }
 }

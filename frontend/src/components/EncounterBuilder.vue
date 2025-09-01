@@ -45,7 +45,7 @@
         @move-end="onViewportChange"
         @zoom-end="onViewportChange"
         @pane-ready="onPaneReady"
-        :connection-line-style="{ stroke: '#007bff', strokeWidth: 2 }"
+        :connection-line-style="{ stroke: '#A0A0A0', strokeWidth: 2 }"
         :is-valid-connection="isValidConnection"
         :connect-on-click="false"
         :edges-deletable="true"
@@ -177,7 +177,7 @@
       targetHandle: connection.target_handle,
       type: connection.edge_type === 'bezier' ? 'default' : connection.edge_type || 'straight',
       style: {
-        stroke: connection.stroke_color || '#007bff',
+        stroke: connection.stroke_color || '#A0A0A0',
         strokeWidth: connection.stroke_width || 3,
       },
       data: {
@@ -363,7 +363,7 @@
       targetHandle: connection.targetHandle,
       type: 'straight',
       style: {
-        stroke: '#007bff',
+        stroke: '#A0A0A0',
         strokeWidth: 3,
       },
       data: {
@@ -589,7 +589,7 @@
           source_handle: item.sourceHandle,
           target_handle: item.targetHandle,
           edge_type: item.type || 'straight',
-          stroke_color: item.style?.stroke || '#007bff',
+          stroke_color: item.style?.stroke || '#A0A0A0',
           stroke_width: item.style?.strokeWidth || 3,
         }
       } else {
@@ -772,7 +772,7 @@
   .encounter-canvas {
     height: 100%;
     width: 100%;
-    background: #f8f9fa;
+    background: var(--gray-50);
   }
 
   /* Add Encounter Button Container */
@@ -791,7 +791,7 @@
     height: 40px;
     border: none;
     border-radius: 50%;
-    background: #28a745;
+    background: var(--primary-color);
     color: white;
     font-size: 20px;
     font-weight: bold;
@@ -800,14 +800,14 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+    box-shadow: var(--shadow-button);
     margin-bottom: 4px;
   }
 
   .add-encounter-btn:hover {
-    background: #218838;
+    background: var(--primary-dark);
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    box-shadow: var(--shadow-button-hover);
   }
 
   .add-encounter-btn:active {
@@ -816,7 +816,7 @@
 
   .add-encounter-label {
     font-size: 10px;
-    color: #6c757d;
+    color: var(--gray-500);
     text-align: center;
     line-height: 1.2;
     font-weight: 500;
@@ -829,7 +829,7 @@
     height: 40px;
     border: none;
     border-radius: 50%;
-    background: #007bff;
+    background: var(--secondary-color);
     color: white;
     font-size: 16px;
     cursor: pointer;
@@ -837,15 +837,15 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+    box-shadow: var(--shadow-secondary);
     margin-bottom: 4px;
     margin-top: 8px;
   }
 
   .save-canvas-btn:hover:not(:disabled) {
-    background: #0056b3;
+    background: var(--secondary-dark);
     transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+    box-shadow: var(--shadow-secondary-hover);
   }
 
   .save-canvas-btn:active:not(:disabled) {
@@ -853,33 +853,59 @@
   }
 
   .save-canvas-btn:disabled {
-    background: #6c757d;
+    background: var(--secondary-color);
     cursor: not-allowed;
     opacity: 0.6;
   }
 
   .save-canvas-label {
     font-size: 10px;
-    color: #6c757d;
+    color: var(--gray-500);
     text-align: center;
     line-height: 1.2;
     font-weight: 500;
     white-space: nowrap;
   }
 
-  /* Edge styling for better interaction */
+  /* Edge styling for better interaction - Override Vue Flow defaults */
   :deep(.vue-flow__edge) {
     cursor: pointer;
+    stroke: var(--border-default) !important;
+    stroke-width: 3px !important;
+  }
+
+  :deep(.vue-flow__edge path) {
+    stroke: var(--border-default) !important;
+    stroke-width: 3px !important;
   }
 
   :deep(.vue-flow__edge:hover) {
-    stroke: #0056b3 !important;
+    stroke: var(--text-primary) !important;
+    stroke-width: 4px !important;
+  }
+
+  :deep(.vue-flow__edge:hover path) {
+    stroke: var(--text-primary) !important;
     stroke-width: 4px !important;
   }
 
   :deep(.vue-flow__edge.selected) {
-    stroke: #dc3545 !important;
+    stroke: var(--danger-color) !important;
     stroke-width: 4px !important;
+  }
+
+  :deep(.vue-flow__edge.selected path) {
+    stroke: var(--danger-color) !important;
+    stroke-width: 4px !important;
+  }
+
+  /* Override any Vue Flow default colors */
+  :deep(.vue-flow__edge-default) {
+    stroke: var(--border-default) !important;
+  }
+
+  :deep(.vue-flow__edge-straight) {
+    stroke: var(--border-default) !important;
   }
 
   /* Loading and error states */
@@ -889,7 +915,7 @@
     justify-content: center;
     height: 100vh;
     font-size: 1.2em;
-    color: #6c757d;
+    color: var(--gray-500);
   }
 
   .shared-error {
