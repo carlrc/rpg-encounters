@@ -119,7 +119,6 @@
   const vueFlowRef = ref(null)
   const isSaving = ref(false)
 
-  // Vue Flow elements (just 2 rooms, no connections)
   const elements = ref([])
 
   // Deletion tracking
@@ -460,6 +459,15 @@
   const onEdgeClick = (event) => {
     const edge = event.edge
     if (edge && confirm(`Delete connection between encounters?`)) {
+      // Track deletion immediately before removal (not relying on watch)
+      if (edge && !edge.data.isNew) {
+        // Extract numeric ID from edge ID (edge-123 -> 123)
+        const numericId = edge.id.replace('edge-', '')
+        if (!isNaN(parseInt(numericId))) {
+          deletedConnectionIds.value.push(parseInt(numericId))
+        }
+      }
+
       const edgeIndex = elements.value.findIndex((el) => el.id === edge.id)
       if (edgeIndex !== -1) {
         elements.value.splice(edgeIndex, 1)
@@ -514,24 +522,6 @@
         if (!isTemporaryId(encounter.id) && !encounter.data.isNew) {
           // Only track deletion of existing encounters (not new ones that were never saved)
           deletedEncounterIds.value.push(parseInt(encounter.id))
-        }
-      })
-
-      // Find deleted connections
-      const oldConnections = oldElements.filter((el) => el.source && el.target)
-      const newConnections = newElements.filter((el) => el.source && el.target)
-
-      const newConnectionIds = new Set(newConnections.map((el) => el.id))
-
-      // Identify manually deleted connections (not due to encounter deletion)
-      const deletedConnections = oldConnections.filter((el) => !newConnectionIds.has(el.id))
-
-      deletedConnections.forEach((connection) => {
-        // Extract numeric ID from edge ID (edge-123 -> 123)
-        const numericId = connection.id.replace('edge-', '')
-        if (!isNaN(parseInt(numericId)) && !connection.data.isNew) {
-          // Only track deletion of existing connections (not new ones that were never saved)
-          deletedConnectionIds.value.push(parseInt(numericId))
         }
       })
 
@@ -684,12 +674,12 @@
         deleted_connection_ids: deletedConnections,
       })
 
-      // Use the extracted transformation logic to update elements with fresh data
-      elements.value = transformEncounterDataToElements(response)
-
-      // Clear deletion tracking after successful save
+      // Clear deletion tracking before updating elements
       deletedEncounterIds.value = []
       deletedConnectionIds.value = []
+
+      // Use the extracted transformation logic to update elements with fresh data
+      elements.value = transformEncounterDataToElements(response)
 
       // Show success notification
       showSuccess('Canvas saved successfully!')
