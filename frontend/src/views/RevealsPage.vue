@@ -51,8 +51,8 @@
   </SplitViewLayout>
 </template>
 
-<script>
-  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+<script setup>
+  import { ref, computed, onMounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
@@ -62,167 +62,138 @@
   import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useRevealStore } from '../stores/reveals.js'
   import { useGameDataStore } from '../stores/gameData.js'
+  import { useWorldStore } from '@/stores/world'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
   import { getCharacters } from '../services/api.js'
 
-  export default {
-    name: 'RevealsPage',
-    components: {
-      SplitViewLayout,
-      EmptyState,
-      RevealCard,
-      RevealForm,
-      FilterPanel,
-    },
-    setup() {
-      const route = useRoute()
+  const route = useRoute()
 
-      // Initialize stores
-      const revealStore = useRevealStore()
-      const gameDataStore = useGameDataStore()
+  // Initialize stores
+  const revealStore = useRevealStore()
+  const gameDataStore = useGameDataStore()
+  const worldStore = useWorldStore()
 
-      // Reactive refs from stores
-      const {
-        entities,
-        loading,
-        error,
-        selectedEntityId,
-        selectedEntity: selectedReveal,
-        showCreateForm,
-      } = storeToRefs(revealStore)
+  // Reactive refs from stores
+  const {
+    entities,
+    loading,
+    error,
+    selectedEntityId,
+    selectedEntity: selectedReveal,
+    showCreateForm,
+  } = storeToRefs(revealStore)
 
-      const { data: gameData } = storeToRefs(gameDataStore)
+  const { data: gameData } = storeToRefs(gameDataStore)
 
-      // Actions
-      const {
-        loadEntities,
-        createEntity,
-        updateEntity,
-        deleteEntity,
-        selectEntity,
-        startCreate,
-        cancelCreate,
-        clearEntities,
-      } = revealStore
+  // Actions
+  const {
+    loadEntities,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+    selectEntity,
+    startCreate,
+    cancelCreate,
+  } = revealStore
 
-      const characters = ref([])
+  const characters = ref([])
 
-      // Reveal filter tabs configuration
-      const revealFilterTabs = [
-        { id: 'characters', label: 'Characters' },
-        { id: 'race', label: 'Race' },
-        { id: 'alignment', label: 'Alignment' },
-      ]
+  // Reveal filter tabs configuration
+  const revealFilterTabs = [
+    { id: 'characters', label: 'Characters' },
+    { id: 'race', label: 'Race' },
+    { id: 'alignment', label: 'Alignment' },
+  ]
 
-      // Character filtering state
-      const activeFilters = ref({
-        characters: [], // Use 'characters' to match the tab id
-        characterIds: [], // Keep for compatibility with applyCharacterFilters
-        showUnassigned: false,
-        race: [],
-        alignment: [],
-      })
+  // Character filtering state
+  const activeFilters = ref({
+    characters: [], // Use 'characters' to match the tab id
+    characterIds: [], // Keep for compatibility with applyCharacterFilters
+    showUnassigned: false,
+    race: [],
+    alignment: [],
+  })
 
-      const loadCharacters = async () => {
-        try {
-          characters.value = await getCharacters()
-        } catch (err) {
-          console.error('Error loading characters:', err)
-        }
+  const loadCharacters = async () => {
+    try {
+      characters.value = await getCharacters()
+    } catch (err) {
+      console.error('Error loading characters:', err)
+    }
+  }
+
+  const handleCreateSave = async (formData) => {
+    try {
+      await createEntity(formData)
+    } catch (err) {
+      // Error handling is done in reveal store
+    }
+  }
+
+  const handleCancelCreate = () => {
+    cancelCreate()
+  }
+
+  // Watch for world changes to reload characters
+  watch(
+    () => worldStore.currentWorldId,
+    () => {
+      characters.value = []
+      loadCharacters()
+    }
+  )
+
+  onMounted(async () => {
+    await gameDataStore.load()
+    await loadEntities()
+    await loadCharacters()
+
+    // Auto-select reveal if ID is provided in query params
+    const revealId = route.query.id
+    if (revealId) {
+      const id = parseInt(revealId)
+      if (!isNaN(id) && entities.value.length > 0) {
+        selectEntity(id)
       }
+    }
+  })
 
-      const handleCreateSave = async (formData) => {
-        try {
-          await createEntity(formData)
-        } catch (err) {
-          // Error handling is done in reveal store
-        }
+  // Watch for changes in entities to handle auto-selection after data loads
+  watch(entities, (newEntities) => {
+    const revealId = route.query.id
+    if (revealId && newEntities.length > 0 && !selectedEntityId.value) {
+      const id = parseInt(revealId)
+      if (!isNaN(id) && newEntities.some((reveal) => reveal.id === id)) {
+        selectEntity(id)
       }
+    }
+  })
 
-      const handleCancelCreate = () => {
-        cancelCreate()
-      }
+  // Filtered entities based on character filters and character attributes
+  const filteredEntities = computed(() => {
+    // First apply character ID filters (existing functionality)
+    let filtered = applyCharacterFilters(entities.value, activeFilters.value)
 
-      // Handle world changes
-      const handleWorldChange = (event) => {
-        clearEntities()
-        characters.value = []
-        loadEntities()
-        loadCharacters()
-      }
+    // Then apply character attribute filters (new functionality)
+    filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
 
-      onMounted(async () => {
-        await gameDataStore.load()
-        await loadEntities()
-        await loadCharacters()
+    return filtered
+  })
 
-        // Listen for world changes
-        window.addEventListener('world-changed', handleWorldChange)
+  const hasActiveCharacterFilters = computed(() => {
+    return (
+      activeFilters.value.characterIds.length > 0 ||
+      activeFilters.value.showUnassigned ||
+      activeFilters.value.race.length > 0 ||
+      activeFilters.value.alignment.length > 0
+    )
+  })
 
-        // Auto-select reveal if ID is provided in query params
-        const revealId = route.query.id
-        if (revealId) {
-          const id = parseInt(revealId)
-          if (!isNaN(id) && entities.value.length > 0) {
-            selectEntity(id)
-          }
-        }
-      })
-
-      // Clean up event listener on unmount
-      onUnmounted(() => {
-        window.removeEventListener('world-changed', handleWorldChange)
-      })
-
-      // Filtered entities based on character filters and character attributes
-      const filteredEntities = computed(() => {
-        // First apply character ID filters (existing functionality)
-        let filtered = applyCharacterFilters(entities.value, activeFilters.value)
-
-        // Then apply character attribute filters (new functionality)
-        filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
-
-        return filtered
-      })
-
-      const hasActiveCharacterFilters = computed(() => {
-        return (
-          activeFilters.value.characterIds.length > 0 ||
-          activeFilters.value.showUnassigned ||
-          activeFilters.value.race.length > 0 ||
-          activeFilters.value.alignment.length > 0
-        )
-      })
-
-      const clearCharacterFilters = () => {
-        activeFilters.value.characterIds = []
-        activeFilters.value.showUnassigned = false
-        activeFilters.value.race = []
-        activeFilters.value.alignment = []
-      }
-
-      return {
-        gameData,
-        entities,
-        filteredEntities,
-        activeFilters,
-        revealFilterTabs,
-        loading,
-        error,
-        selectedEntityId,
-        showCreateForm,
-        selectedReveal,
-        characters,
-        hasActiveCharacterFilters,
-        selectEntity,
-        startCreate,
-        updateEntity,
-        deleteEntity,
-        handleCreateSave,
-        handleCancelCreate,
-        clearCharacterFilters,
-      }
-    },
+  const clearCharacterFilters = () => {
+    activeFilters.value.characterIds = []
+    activeFilters.value.showUnassigned = false
+    activeFilters.value.race = []
+    activeFilters.value.alignment = []
   }
 </script>
 

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { useNotification } from './useNotification'
+import { ref, computed, watch } from 'vue'
+import { useNotificationStore } from '@/stores/notifications'
+import { useWorldStore } from '@/stores/world'
 
 export const createEntityStore = (entityName, apiMethods) => {
   return defineStore(`${entityName.toLowerCase()}s`, () => {
@@ -10,7 +11,10 @@ export const createEntityStore = (entityName, apiMethods) => {
     const selectedEntityId = ref(null)
     const showCreateForm = ref(false)
 
-    const { showError, showSuccess } = useNotification()
+    const notificationStore = useNotificationStore()
+    const worldStore = useWorldStore()
+
+    const { showError, showSuccess } = notificationStore
 
     // Getters
     const selectedEntity = computed(
@@ -111,8 +115,14 @@ export const createEntityStore = (entityName, apiMethods) => {
       error.value = ''
     }
 
-    // World changes are handled by individual components that use these stores
-    // The HTTP client automatically uses the current world ID from worldState.js
+    // Watch for world changes and automatically reload data
+    watch(
+      () => worldStore.currentWorldId,
+      () => {
+        clearEntities()
+        loadEntities()
+      }
+    )
 
     return {
       entities,

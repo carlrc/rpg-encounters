@@ -42,10 +42,12 @@
   import { computed, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import WorldTabs from '../WorldTabs.vue'
+  import { useWorldStore } from '@/stores/world'
 
   const route = useRoute()
   const router = useRouter()
   const successMessage = ref('')
+  const worldStore = useWorldStore()
 
   // Get navigation routes from router configuration
   const navigationRoutes = computed(() => {
@@ -70,8 +72,8 @@
   }
 
   const handleWorldChange = (worldId) => {
-    // Emit event to trigger data refresh in current page
-    window.dispatchEvent(new CustomEvent('world-changed', { detail: { worldId } }))
+    // Update the store directly - stores will handle their own reactive updates
+    worldStore.setCurrentWorldId(worldId)
   }
 </script>
 

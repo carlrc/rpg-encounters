@@ -1,12 +1,15 @@
-import { getCurrentWorldId } from './worldState.js'
+import { useWorldStore } from '@/stores/world'
 
 const request = async (method, url, body, { signal } = {}) => {
-  const res = await fetch(import.meta.env.VITE_API_URL || 'http://localhost:8000/api' + url, {
+  // Get current world ID from store
+  const worldStore = useWorldStore()
+
+  const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}${url}`, {
     method,
     signal,
     headers: {
       'content-type': 'application/json',
-      'X-World-Id': getCurrentWorldId(),
+      'X-World-Id': worldStore.currentWorldId,
     },
     body: body ? JSON.stringify(body) : undefined,
   })

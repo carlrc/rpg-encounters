@@ -1,5 +1,4 @@
 import { http } from './http.js'
-import { useWorldStore } from '@/stores/world'
 
 // Player CRUD operations
 export const getPlayers = () => http.get('/players')
@@ -53,12 +52,12 @@ export const searchVoices = (searchTerm, pageToken = null) => {
 }
 
 export const getVoiceSample = async (voiceId) => {
-  const worldStore = useWorldStore()
+  // Use the http client which already includes world ID headers
   const response = await fetch(
     `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/voices/${voiceId}/sample`,
     {
       headers: {
-        'X-World-Id': worldStore.currentWorldId,
+        'X-World-Id': await getCurrentWorldIdFromStore(),
       },
     }
   )
@@ -68,6 +67,13 @@ export const getVoiceSample = async (voiceId) => {
   }
 
   return response
+}
+
+// Helper function to get world ID without circular dependency
+const getCurrentWorldIdFromStore = async () => {
+  const { useWorldStore } = await import('@/stores/world')
+  const worldStore = useWorldStore()
+  return worldStore.currentWorldId
 }
 
 // Utility function for backward compatibility

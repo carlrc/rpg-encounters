@@ -38,8 +38,8 @@
   </SplitViewLayout>
 </template>
 
-<script>
-  import { computed, onMounted, onUnmounted } from 'vue'
+<script setup>
+  import { onMounted } from 'vue'
   import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
@@ -50,109 +50,65 @@
   import { useGameDataStore } from '../stores/gameData.js'
   import { useFileImport } from '../utils/useFileImport.js'
 
-  export default {
-    name: 'PlayersPage',
-    components: {
-      SplitViewLayout,
-      EmptyState,
-      PlayerCard,
-      PlayerForm,
-      ImportButton,
-    },
-    setup() {
-      // Initialize stores
-      const playerStore = usePlayerStore()
-      const gameDataStore = useGameDataStore()
+  // Initialize stores
+  const playerStore = usePlayerStore()
+  const gameDataStore = useGameDataStore()
 
-      // Reactive refs from stores
-      const {
-        entities,
-        loading,
-        error,
-        selectedEntityId,
-        selectedEntity: selectedPlayer,
-        showCreateForm,
-      } = storeToRefs(playerStore)
+  // Reactive refs from stores
+  const {
+    entities,
+    loading,
+    error,
+    selectedEntityId,
+    selectedEntity: selectedPlayer,
+    showCreateForm,
+  } = storeToRefs(playerStore)
 
-      const { data: gameData } = storeToRefs(gameDataStore)
+  const { data: gameData } = storeToRefs(gameDataStore)
 
-      // Actions
-      const {
-        loadEntities,
-        createEntity,
-        updateEntity,
-        deleteEntity,
-        selectEntity,
-        startCreate,
-        cancelCreate,
-      } = playerStore
+  // Actions
+  const {
+    loadEntities,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+    selectEntity,
+    startCreate,
+    cancelCreate,
+  } = playerStore
 
-      const { importing, handleImportFile: handleFileImport } = useFileImport('Player')
+  const { importing, handleImportFile: handleFileImport } = useFileImport('Player')
 
-      const handleCreateSave = async (formData) => {
-        try {
-          await createEntity(formData)
-        } catch (err) {
-          // Error handling is done in player store
-        }
-      }
-
-      const handleCancelCreate = () => {
-        cancelCreate()
-      }
-
-      const handleImportFile = (event) => {
-        handleFileImport(
-          event,
-          createEntity,
-          (message) => {
-            // Success message - could emit to parent or use toast
-            console.log('Import success:', message)
-          },
-          (errorMessage) => {
-            error.value = errorMessage
-          }
-        )
-      }
-
-      // Handle world changes
-      const handleWorldChange = (event) => {
-        clearEntities()
-        loadEntities()
-      }
-
-      onMounted(async () => {
-        await gameDataStore.load()
-        await loadEntities()
-
-        // Listen for world changes
-        window.addEventListener('world-changed', handleWorldChange)
-      })
-
-      // Clean up event listener on unmount
-      onUnmounted(() => {
-        window.removeEventListener('world-changed', handleWorldChange)
-      })
-
-      return {
-        gameData,
-        entities,
-        loading,
-        error,
-        selectedEntityId,
-        showCreateForm,
-        selectedPlayer,
-        importing,
-        selectEntity,
-        startCreate,
-        updateEntity,
-        deleteEntity,
-        handleCreateSave,
-        handleCancelCreate,
-        handleImportFile,
-      }
-    },
+  const handleCreateSave = async (formData) => {
+    try {
+      await createEntity(formData)
+    } catch (err) {
+      // Error handling is done in player store
+    }
   }
+
+  const handleCancelCreate = () => {
+    cancelCreate()
+  }
+
+  const handleImportFile = (event) => {
+    handleFileImport(
+      event,
+      createEntity,
+      (message) => {
+        // Success message - could emit to parent or use toast
+        console.log('Import success:', message)
+      },
+      (errorMessage) => {
+        error.value = errorMessage
+      }
+    )
+  }
+
+  onMounted(async () => {
+    await gameDataStore.load()
+    await loadEntities()
+  })
 </script>
 
 <style scoped>

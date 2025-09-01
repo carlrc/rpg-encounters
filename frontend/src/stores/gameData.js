@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { getGameData } from '../services/gameDataService'
+import { getGameData } from '../services/api'
 
 export const useGameDataStore = defineStore('gameData', () => {
   const data = ref(null)
@@ -24,5 +24,22 @@ export const useGameDataStore = defineStore('gameData', () => {
     }
   }
 
-  return { data, isLoading, error, load }
+  const clearCache = () => {
+    data.value = null
+    error.value = null
+  }
+
+  const reload = async () => {
+    clearCache()
+    return await load()
+  }
+
+  return {
+    data,
+    isLoading,
+    error,
+    load,
+    clearCache,
+    reload,
+  }
 })

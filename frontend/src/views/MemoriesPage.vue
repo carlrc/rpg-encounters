@@ -50,8 +50,8 @@
   </SplitViewLayout>
 </template>
 
-<script>
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
+<script setup>
+  import { ref, computed, onMounted, watch } from 'vue'
   import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
@@ -59,149 +59,111 @@
   import MemoryForm from '../components/MemoryForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useMemoryStore } from '../stores/memories.js'
+  import { useWorldStore } from '@/stores/world'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
   import { getCharacters } from '../services/api.js'
 
-  export default {
-    name: 'MemoriesPage',
-    components: {
-      SplitViewLayout,
-      EmptyState,
-      MemoryCard,
-      MemoryForm,
-      FilterPanel,
-    },
-    setup() {
-      // Initialize stores
-      const memoryStore = useMemoryStore()
+  // Initialize stores
+  const memoryStore = useMemoryStore()
+  const worldStore = useWorldStore()
 
-      // Reactive refs from stores
-      const {
-        entities,
-        loading,
-        error,
-        selectedEntityId,
-        selectedEntity: selectedMemory,
-        showCreateForm,
-      } = storeToRefs(memoryStore)
+  // Reactive refs from stores
+  const {
+    entities,
+    loading,
+    error,
+    selectedEntityId,
+    selectedEntity: selectedMemory,
+    showCreateForm,
+  } = storeToRefs(memoryStore)
 
-      // Actions
-      const {
-        loadEntities,
-        createEntity,
-        updateEntity,
-        deleteEntity,
-        selectEntity,
-        startCreate,
-        cancelCreate,
-      } = memoryStore
+  // Actions
+  const {
+    loadEntities,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+    selectEntity,
+    startCreate,
+    cancelCreate,
+  } = memoryStore
 
-      const characters = ref([])
+  const characters = ref([])
 
-      // Memory filter tabs configuration
-      const memoryFilterTabs = [
-        { id: 'characters', label: 'Characters' },
-        { id: 'race', label: 'Race' },
-        { id: 'alignment', label: 'Alignment' },
-      ]
+  // Memory filter tabs configuration
+  const memoryFilterTabs = [
+    { id: 'characters', label: 'Characters' },
+    { id: 'race', label: 'Race' },
+    { id: 'alignment', label: 'Alignment' },
+  ]
 
-      // Character filtering state
-      const activeFilters = ref({
-        characterIds: [],
-        showUnassigned: false,
-        race: [],
-        alignment: [],
-      })
+  // Character filtering state
+  const activeFilters = ref({
+    characterIds: [],
+    showUnassigned: false,
+    race: [],
+    alignment: [],
+  })
 
-      const loadCharacters = async () => {
-        try {
-          characters.value = await getCharacters()
-        } catch (err) {
-          console.error('Error loading characters:', err)
-        }
-      }
+  const loadCharacters = async () => {
+    try {
+      characters.value = await getCharacters()
+    } catch (err) {
+      console.error('Error loading characters:', err)
+    }
+  }
 
-      const handleCreateSave = async (formData) => {
-        try {
-          await createEntity(formData)
-        } catch (err) {
-          // Error handling is done in memory store
-        }
-      }
+  const handleCreateSave = async (formData) => {
+    try {
+      await createEntity(formData)
+    } catch (err) {
+      // Error handling is done in memory store
+    }
+  }
 
-      const handleCancelCreate = () => {
-        cancelCreate()
-      }
+  const handleCancelCreate = () => {
+    cancelCreate()
+  }
 
-      // Handle world changes
-      const handleWorldChange = (event) => {
-        clearEntities()
-        characters.value = []
-        loadEntities()
-        loadCharacters()
-      }
+  // Watch for world changes to reload characters
+  watch(
+    () => worldStore.currentWorldId,
+    () => {
+      characters.value = []
+      loadCharacters()
+    }
+  )
 
-      onMounted(async () => {
-        await loadEntities()
-        await loadCharacters()
+  onMounted(async () => {
+    await loadEntities()
+    await loadCharacters()
+  })
 
-        // Listen for world changes
-        window.addEventListener('world-changed', handleWorldChange)
-      })
+  // Filtered entities based on character filters and character attributes
+  const filteredEntities = computed(() => {
+    // First apply character ID filters (existing functionality)
+    let filtered = applyCharacterFilters(entities.value, activeFilters.value)
 
-      // Clean up event listener on unmount
-      onUnmounted(() => {
-        window.removeEventListener('world-changed', handleWorldChange)
-      })
+    // Then apply character attribute filters (new functionality)
+    filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
 
-      // Filtered entities based on character filters and character attributes
-      const filteredEntities = computed(() => {
-        // First apply character ID filters (existing functionality)
-        let filtered = applyCharacterFilters(entities.value, activeFilters.value)
+    return filtered
+  })
 
-        // Then apply character attribute filters (new functionality)
-        filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
+  const hasActiveCharacterFilters = computed(() => {
+    return (
+      activeFilters.value.characterIds.length > 0 ||
+      activeFilters.value.showUnassigned ||
+      activeFilters.value.race.length > 0 ||
+      activeFilters.value.alignment.length > 0
+    )
+  })
 
-        return filtered
-      })
-
-      const hasActiveCharacterFilters = computed(() => {
-        return (
-          activeFilters.value.characterIds.length > 0 ||
-          activeFilters.value.showUnassigned ||
-          activeFilters.value.race.length > 0 ||
-          activeFilters.value.alignment.length > 0
-        )
-      })
-
-      const clearCharacterFilters = () => {
-        activeFilters.value.characterIds = []
-        activeFilters.value.showUnassigned = false
-        activeFilters.value.race = []
-        activeFilters.value.alignment = []
-      }
-
-      return {
-        entities,
-        filteredEntities,
-        activeFilters,
-        memoryFilterTabs,
-        loading,
-        error,
-        selectedEntityId,
-        showCreateForm,
-        selectedMemory,
-        characters,
-        hasActiveCharacterFilters,
-        selectEntity,
-        startCreate,
-        updateEntity,
-        deleteEntity,
-        handleCreateSave,
-        handleCancelCreate,
-        clearCharacterFilters,
-      }
-    },
+  const clearCharacterFilters = () => {
+    activeFilters.value.characterIds = []
+    activeFilters.value.showUnassigned = false
+    activeFilters.value.race = []
+    activeFilters.value.alignment = []
   }
 </script>
 

@@ -48,7 +48,7 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+  import { ref, computed, onMounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
@@ -89,7 +89,6 @@
     selectEntity,
     startCreate,
     cancelCreate,
-    clearEntities,
   } = characterStore
 
   const { importing, handleImportFile: handleFileImport } = useFileImport('Character')
@@ -143,18 +142,9 @@
     )
   }
 
-  // Handle world changes
-  const handleWorldChange = (event) => {
-    clearEntities()
-    loadEntities()
-  }
-
   onMounted(async () => {
     await gameDataStore.load()
     await loadEntities()
-
-    // Listen for world changes
-    window.addEventListener('world-changed', handleWorldChange)
 
     // Auto-select character if ID is provided in query params
     const characterId = route.query.id
@@ -164,11 +154,6 @@
         selectEntity(id)
       }
     }
-  })
-
-  // Clean up event listener on unmount
-  onUnmounted(() => {
-    window.removeEventListener('world-changed', handleWorldChange)
   })
 
   // Watch for changes in entities to handle auto-selection after data loads
