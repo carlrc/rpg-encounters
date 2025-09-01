@@ -13,6 +13,7 @@ from app.agents.conversations.negative_conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.clients.elevan_labs import ElevenLabs
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
@@ -20,7 +21,6 @@ from app.data.player_store import PlayerStore
 from app.db.connection import get_db_session
 from app.dependencies import (
     get_transcription_service,
-    get_tts_service,
 )
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
@@ -188,8 +188,8 @@ async def have_conversation(
                 logger.error(f"Failed to send conversation data: {e}")
 
             # Stream TTS audio chunks back to frontend
-            for audio_chunk in get_tts_service().text_to_speech_stream(
-                text=response, voice_id=character.voice
+            async for audio_chunk in ElevenLabs().text_to_speech_stream(
+                text=response, voice_id=character.voice_id
             ):
                 try:
                     await websocket.send_bytes(audio_chunk)

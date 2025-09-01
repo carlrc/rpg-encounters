@@ -6,16 +6,14 @@ from sqlalchemy.orm import sessionmaker
 
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.clients.elevan_labs import ElevenLabs
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
 from app.db.connection import get_db_engine
-from app.dependencies import (
-    get_transcription_service,
-    get_tts_service,
-)
+from app.dependencies import get_transcription_service
 from app.services.ability_challenge import (
     D20Outcomes,
     calculate_skill_check,
@@ -145,8 +143,8 @@ async def challenge_character(
             f"Generated character response for D20 roll {d20_roll}: {response}"
         )
         # Stream TTS audio chunks back to frontend
-        for audio_chunk in get_tts_service().text_to_speech_stream(
-            response, character.voice
+        async for audio_chunk in ElevenLabs().text_to_speech_stream(
+            response, character.voice_id
         ):
             try:
                 await websocket.send_bytes(audio_chunk)

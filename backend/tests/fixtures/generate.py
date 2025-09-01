@@ -33,7 +33,8 @@ def create_default_innkeeper_character(character_id: int) -> Character:
         class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
         gender_preferences={Gender.FEMALE.value: DifficultyClass.VERY_EASY.value},
         size_preferences={Size.SMALL.value: DifficultyClass.VERY_EASY.value},
-        voice="test"
+        voice_name="Default",
+        voice_id="JBFqnCBsd6RMkjVDRZzb"
     )
 
 

@@ -42,9 +42,8 @@ class CharacterORM(UnifiedBase):
     )
     motivation: Mapped[str] = mapped_column(String(CHARACTER_MOTIVATION_LIMIT))
     personality: Mapped[str] = mapped_column(Text, default="")
-    voice: Mapped[str | None] = mapped_column(
-        String(100), nullable=True, default="JBFqnCBsd6RMkjVDRZzb"
-    )
+    voice_id: Mapped[str] = mapped_column(String(100))
+    voice_name: Mapped[str] = mapped_column(String(200))
 
     # Bias preferences stored as JSON
     race_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)
