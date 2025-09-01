@@ -17,6 +17,16 @@ class VoiceType(Enum):
     NON_DEFAULT = "non-default"
 
 
+class VoiceLabels(BaseModel):
+    """Voice labels for additional metadata"""
+
+    gender: str | None = Field(None, description="Voice gender")
+    accent: str | None = Field(None, description="Voice accent")
+    descriptive: str | None = Field(None, description="Descriptive label")
+    age: str | None = Field(None, description="Voice age")
+    language: str | None = Field(None, description="Voice language")
+
+
 class Voice(BaseModel):
     """Simplified voice model for frontend display"""
 
@@ -24,6 +34,7 @@ class Voice(BaseModel):
     name: str = Field(..., description="Voice name")
     description: str | None = Field(..., description="Voice description")
     category: str = Field(..., description="Voice category")
+    labels: VoiceLabels | None = Field(None, description="Voice labels")
 
 
 class VoicesResponse(BaseModel):
