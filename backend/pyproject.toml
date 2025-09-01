@@ -1,7 +1,7 @@
 [project]
-name = "dnd-ai"
+name = "rpg-encounters"
 version = "0.1.0"
-description = "Dungeon Master AI Scenario Helper"
+description = "AI Scenario Helper"
 readme = "README.md"
 requires-python = "==3.11.13"
 dependencies = [
