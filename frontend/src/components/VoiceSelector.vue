@@ -20,25 +20,63 @@
       </div>
     </div>
 
-    <!-- Voice Search -->
-    <div class="voice-search">
-      <input
-        v-model="searchTerm"
-        @keyup.enter="handleEnterSearch"
-        placeholder="Search voices (press Enter to search)..."
-        class="shared-input voice-search-input"
-        :disabled="loading"
-      />
+    <!-- Manual Voice Input Section -->
+    <div class="voice-manual-input">
+      <div class="manual-input-header">
+        <label class="manual-input-label">Manual Voice ID Entry</label>
+      </div>
+      <div class="manual-input-controls">
+        <input
+          v-model="manualVoiceId"
+          placeholder="Enter ElevenLabs Voice ID (e.g., JBFqnCBsd6RMkjVDRZzb)"
+          class="shared-input manual-voice-input"
+          :disabled="disabled"
+        />
+        <button
+          @click="previewManualVoice"
+          class="voice-preview-btn manual-preview-btn"
+          :disabled="
+            !manualVoiceId.trim() || (audioLoading && playingVoiceId === manualVoiceId.trim())
+          "
+          title="Preview this voice"
+        >
+          {{ audioLoading && playingVoiceId === manualVoiceId.trim() ? '⏳' : '▶️' }}
+        </button>
+        <button
+          @click="setManualVoice"
+          class="shared-btn shared-btn-primary manual-set-btn"
+          :disabled="!manualVoiceId.trim() || disabled"
+        >
+          Set Voice
+        </button>
+      </div>
+      <div v-if="manualVoiceError" class="voice-error">
+        {{ manualVoiceError }}
+      </div>
     </div>
 
-    <!-- Search Results Container -->
-    <div v-if="searchTerm" class="voice-results-container">
-      <div v-if="loading && voices.length === 0" class="shared-loading">Searching voices...</div>
+    <!-- Voice Browser Section -->
+    <div class="voice-browser">
+      <div class="browser-header">
+        <label class="browser-label">Browse Available Voices</label>
+      </div>
 
-      <div v-else-if="error" class="shared-error">
-        {{ error }}
+      <!-- Voice Search -->
+      <div v-if="!initialLoading" class="voice-search">
+        <input
+          v-model="searchTerm"
+          placeholder="🔍 Search voices by name or description..."
+          class="shared-input voice-search-input"
+        />
+      </div>
+
+      <!-- Voice List -->
+      <div v-if="initialLoading" class="shared-loading">Loading voices...</div>
+
+      <div v-else-if="loadError" class="shared-error">
+        {{ loadError }}
         <button
-          @click="retrySearch"
+          @click="loadAllVoices"
           class="shared-btn shared-btn-secondary"
           style="margin-left: 8px; padding: 4px 8px; font-size: 0.8rem"
         >
@@ -46,20 +84,22 @@
         </button>
       </div>
 
-      <div v-else-if="voices.length === 0" class="voice-empty">
-        No voices found for "{{ searchTerm }}"
+      <div v-else-if="filteredVoices.length === 0" class="voice-empty">
+        <div v-if="searchTerm.trim()">No voices found for "{{ searchTerm }}"</div>
+        <div v-else>No voices available.</div>
       </div>
 
-      <div v-else class="voice-results">
+      <div v-else class="voice-results-container">
         <div class="voice-results-header">
-          <span class="results-count"
-            >{{ voices.length }} voice{{ voices.length !== 1 ? 's' : '' }}</span
-          >
+          <span class="results-count">
+            {{ filteredVoices.length }} voice{{ filteredVoices.length !== 1 ? 's' : '' }}
+            <span v-if="searchTerm.trim()">for "{{ searchTerm }}"</span>
+          </span>
         </div>
 
         <div class="voice-list">
           <div
-            v-for="voice in voices"
+            v-for="voice in filteredVoices"
             :key="voice.voice_id"
             class="voice-item"
             :class="{ selected: voice.voice_id === currentVoiceId }"
@@ -71,15 +111,35 @@
               :title="
                 voice.voice_id === currentVoiceId ? 'Currently selected' : 'Select this voice'
               "
+              :disabled="disabled"
             >
               {{ voice.voice_id === currentVoiceId ? '✓' : '+' }}
             </button>
 
             <div class="voice-info">
               <span class="voice-name">{{ voice.name }}</span>
-              <span v-if="voice.description" class="voice-description">{{
-                voice.description
-              }}</span>
+              <div class="voice-details">
+                <span v-if="voice.description" class="voice-description">{{
+                  voice.description
+                }}</span>
+                <div class="voice-labels">
+                  <span class="voice-category">{{ voice.category }}</span>
+                  <span v-if="voice.labels?.gender" class="voice-label">{{
+                    voice.labels.gender
+                  }}</span>
+                  <span v-if="voice.labels?.accent" class="voice-label">{{
+                    voice.labels.accent
+                  }}</span>
+                  <span v-if="voice.labels?.age" class="voice-label">{{ voice.labels.age }}</span>
+                  <span v-if="voice.labels?.language" class="voice-label">{{
+                    voice.labels.language
+                  }}</span>
+                  <span v-if="voice.labels?.descriptive" class="voice-label">{{
+                    voice.labels.descriptive
+                  }}</span>
+                </div>
+                <span class="voice-id">ID: {{ voice.voice_id }}</span>
+              </div>
             </div>
 
             <button
@@ -94,26 +154,13 @@
             </button>
           </div>
         </div>
-
-        <div v-if="hasMore" class="voice-pagination">
-          <button
-            @click="loadMore"
-            class="shared-btn shared-btn-primary"
-            :disabled="loading"
-            style="padding: 6px 12px; font-size: 0.9rem"
-          >
-            {{ loading ? 'Loading...' : 'Load More' }}
-          </button>
-        </div>
       </div>
     </div>
-
-    <div v-else class="voice-prompt">Type to search for voices...</div>
   </div>
 </template>
 
 <script>
-  import { ref, onMounted, onUnmounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import apiService from '../services/api.js'
 
@@ -143,132 +190,144 @@
         error: audioError,
       } = useAudioPlayer()
 
-      // Voice search state
-      const voices = ref([])
-      const searchTerm = ref('')
-      const loading = ref(false)
-      const error = ref(null)
-      const hasMore = ref(false)
-      const nextPageToken = ref(null)
-      const searchTimeout = ref(null)
-
-      // Computed for audio state
+      // State management
+      const allVoices = ref([])
+      const initialLoading = ref(true)
+      const loadError = ref(null)
       const playingVoiceId = ref(null)
 
-      // Handle Enter key search
-      const handleEnterSearch = () => {
-        if (searchTerm.value.trim()) {
-          searchVoices(true) // true = reset results
-        } else {
-          resetSearch()
+      // Manual input state
+      const manualVoiceId = ref('')
+      const manualVoiceError = ref(null)
+
+      // Search state
+      const searchTerm = ref('')
+
+      // Computed properties
+      const filteredVoices = computed(() => {
+        if (!searchTerm.value.trim()) {
+          return allVoices.value
         }
-      }
 
-      // Search for voices
-      const searchVoices = async (reset = false) => {
-        if (!searchTerm.value.trim()) return
+        const search = searchTerm.value.trim().toLowerCase()
+        return allVoices.value.filter((voice) => {
+          // Search in name and description
+          const nameMatch = voice.name.toLowerCase().includes(search)
+          const descriptionMatch =
+            voice.description && voice.description.toLowerCase().includes(search)
 
+          // Search in category
+          const categoryMatch = voice.category && voice.category.toLowerCase().includes(search)
+
+          // Search in labels
+          let labelsMatch = false
+          if (voice.labels) {
+            const labels = voice.labels
+            labelsMatch =
+              (labels.gender && labels.gender.toLowerCase().includes(search)) ||
+              (labels.accent && labels.accent.toLowerCase().includes(search)) ||
+              (labels.descriptive && labels.descriptive.toLowerCase().includes(search)) ||
+              (labels.age && labels.age.toLowerCase().includes(search)) ||
+              (labels.language && labels.language.toLowerCase().includes(search))
+          }
+
+          return nameMatch || descriptionMatch || categoryMatch || labelsMatch
+        })
+      })
+
+      // Methods
+      const loadAllVoices = async () => {
         try {
-          loading.value = true
-          error.value = null
+          initialLoading.value = true
+          loadError.value = null
 
-          const pageToken = reset ? null : nextPageToken.value
-          if (reset) {
-            voices.value = []
-          }
-
-          const response = await apiService.searchVoices(searchTerm.value.trim(), pageToken)
-
-          if (reset) {
-            voices.value = response.voices || []
-          } else {
-            voices.value.push(...(response.voices || []))
-          }
-
-          hasMore.value = response.has_more || false
-          nextPageToken.value = response.next_page_token || null
+          const voices = await apiService.getAllVoices()
+          allVoices.value = voices || []
         } catch (err) {
-          error.value = 'Failed to search voices. Please try again.'
-          console.error('Voice search failed:', err)
+          loadError.value = 'Failed to load voices. Please try again.'
+          console.error('Failed to load voices:', err)
         } finally {
-          loading.value = false
+          initialLoading.value = false
         }
       }
 
-      // Load more voices (pagination)
-      const loadMore = () => {
-        if (hasMore.value && !loading.value) {
-          searchVoices(false) // false = append results
-        }
-      }
-
-      // Reset search results
-      const resetSearch = () => {
-        voices.value = []
-        hasMore.value = false
-        nextPageToken.value = null
-        error.value = null
-      }
-
-      // Retry search after error
-      const retrySearch = () => {
-        if (searchTerm.value.trim()) {
-          searchVoices(true)
-        }
-      }
-
-      // Select a voice
+      // Voice selection and preview methods
       const selectVoice = (voice) => {
         if (props.disabled) return
         emit('select-voice', voice)
       }
 
-      // Play current voice sample
+      const setManualVoice = () => {
+        if (!manualVoiceId.value.trim() || props.disabled) return
+
+        const voiceId = manualVoiceId.value.trim()
+        manualVoiceError.value = null
+
+        // Create a voice object for manual input
+        const manualVoice = {
+          voice_id: voiceId,
+          name: `Manual Voice (${voiceId})`,
+          description: 'Manually entered voice ID',
+          category: 'manual',
+        }
+
+        emit('select-voice', manualVoice)
+        manualVoiceId.value = '' // Clear the input after selection
+      }
+
+      const previewManualVoice = async () => {
+        if (!manualVoiceId.value.trim()) return
+        await playSample(manualVoiceId.value.trim())
+      }
+
       const playCurrentVoiceSample = async () => {
         if (!props.currentVoiceId || audioLoading.value) return
         await playSample(props.currentVoiceId)
       }
 
-      // Play voice sample
       const playSample = async (voiceId) => {
         if (audioLoading.value) return
 
         try {
           playingVoiceId.value = voiceId
+          manualVoiceError.value = null
 
-          // Get voice sample from API service
           const response = await apiService.getVoiceSample(voiceId)
           await playStreamingResponse(response, voiceId)
         } catch (err) {
-          error.value = 'Failed to play voice sample'
+          if (voiceId === manualVoiceId.value.trim()) {
+            manualVoiceError.value = 'Invalid voice ID or failed to play sample'
+          }
           console.error('Voice sample playback failed:', err)
         } finally {
           playingVoiceId.value = null
         }
       }
 
-      // Cleanup timeout on unmount
-      onUnmounted(() => {
-        if (searchTimeout.value) {
-          clearTimeout(searchTimeout.value)
-        }
+      // Lifecycle
+      onMounted(() => {
+        loadAllVoices()
       })
 
       return {
         // State
-        voices,
-        searchTerm,
-        loading,
-        error,
-        hasMore,
+        allVoices,
+        initialLoading,
+        loadError,
         audioLoading,
         playingVoiceId,
+        manualVoiceId,
+        manualVoiceError,
+        searchTerm,
+
+        // Computed
+        filteredVoices,
 
         // Methods
-        handleEnterSearch,
-        loadMore,
-        retrySearch,
+        loadAllVoices,
         selectVoice,
+        setManualVoice,
+        previewManualVoice,
         playSample,
         playCurrentVoiceSample,
       }
@@ -277,7 +336,73 @@
 </script>
 
 <style scoped>
-  /* Voice search field - centered */
+  /* Manual Input Section */
+  .voice-manual-input {
+    margin: 16px 0;
+    padding: 16px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+  }
+
+  .manual-input-header {
+    margin-bottom: 12px;
+  }
+
+  .manual-input-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+  }
+
+  .manual-input-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .manual-voice-input {
+    flex: 1;
+    font-family: monospace;
+    font-size: 0.85rem;
+  }
+
+  .manual-preview-btn,
+  .manual-set-btn {
+    flex-shrink: 0;
+  }
+
+  .manual-set-btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .voice-error {
+    margin-top: 8px;
+    color: #dc3545;
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  /* Voice Browser Section */
+  .voice-browser {
+    margin-top: 16px;
+  }
+
+  .browser-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .browser-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+  }
+
+  /* Voice Search */
   .voice-search {
     margin-bottom: 16px;
     display: flex;
@@ -285,7 +410,7 @@
   }
 
   .voice-search-input {
-    max-width: 300px;
+    max-width: 400px;
   }
 
   /* Current voice display - reuse CharacterCard shared styles */
@@ -298,21 +423,11 @@
 
   /* Scrollable results container */
   .voice-results-container {
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
     border: 1px solid #dee2e6;
     border-radius: 6px;
     background: white;
-  }
-
-  /* Status messages */
-  .voice-empty,
-  .voice-prompt {
-    text-align: center;
-    font-style: italic;
-    padding: 20px;
-    font-size: 0.9rem;
-    color: #6c757d;
   }
 
   /* Results header */
@@ -325,6 +440,16 @@
   .results-count {
     font-size: 0.9rem;
     font-weight: 500;
+    color: #495057;
+  }
+
+  /* Status messages */
+  .voice-empty {
+    text-align: center;
+    font-style: italic;
+    padding: 40px 20px;
+    font-size: 0.9rem;
+    color: #6c757d;
   }
 
   /* Voice list */
@@ -336,7 +461,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 12px;
+    padding: 12px;
     margin-bottom: 8px;
     background: white;
     border: 1px solid #dee2e6;
@@ -358,8 +483,8 @@
   /* Voice selection button */
   .voice-add-btn {
     flex-shrink: 0;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
     background: #007bff;
@@ -372,7 +497,7 @@
     justify-content: center;
   }
 
-  .voice-add-btn:hover {
+  .voice-add-btn:hover:not(:disabled) {
     background: #0056b3;
     transform: scale(1.1);
   }
@@ -385,37 +510,76 @@
     background: #218838;
   }
 
+  .voice-add-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+  }
+
   /* Voice info */
   .voice-info {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
   }
 
   .voice-name {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 1rem;
     color: #2c3e50;
   }
 
-  .voice-description {
-    font-size: 0.8rem;
-    font-style: italic;
-    color: #6c757d;
+  .voice-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 
-  /* Shared voice preview button - matches CharacterCard */
+  .voice-description {
+    font-size: 0.85rem;
+    color: #495057;
+  }
+
+  .voice-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 2px 0;
+  }
+
+  .voice-category,
+  .voice-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: capitalize;
+    font-weight: 500;
+    padding: 2px 6px;
+    background: #f8f9fa;
+    border-radius: 3px;
+    border: 1px solid #e9ecef;
+  }
+
+  .voice-id {
+    font-size: 0.7rem;
+    color: #868e96;
+    font-family: monospace;
+  }
+
+  /* Voice preview button */
   .voice-preview-btn {
     background: none;
     border: none;
-    font-size: 1rem;
+    font-size: 1.2rem;
     cursor: pointer;
     transition: transform 0.2s ease;
-    padding: 4px;
+    padding: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
 
   .voice-preview-btn:hover:not(:disabled) {
+    background: #f8f9fa;
     transform: scale(1.1);
   }
 
@@ -425,12 +589,50 @@
     opacity: 0.6;
   }
 
-  /* Pagination */
-  .voice-pagination {
+  /* Communication style display styles */
+  .communication-style-display {
     display: flex;
-    justify-content: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-top: 1px solid #dee2e6;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .communication-style-type {
+    font-weight: 600;
+    color: #007bff;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    display: block;
+    width: fit-content;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .preset-communication-style {
+    font-style: italic;
+    color: #6c757d;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .manual-input-controls {
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .manual-voice-input {
+      width: 100%;
+    }
+
+    .voice-search-input {
+      max-width: 100%;
+    }
+
+    .voice-results-container {
+      max-height: 300px;
+    }
   }
 </style>

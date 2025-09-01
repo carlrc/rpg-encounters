@@ -234,6 +234,13 @@ class ApiService {
     return this.request(`/voices/search?${params}`)
   }
 
+  async getAllVoices() {
+    // Use broad search terms to get all available voices
+    // We'll search for common vowels which should match most voice names
+    const response = await this.searchVoices('a')
+    return response.voices || []
+  }
+
   async getVoiceSample(voiceId) {
     // Return the raw response for streaming audio
     const url = `${API_BASE_URL}/voices/${voiceId}/sample`
