@@ -76,7 +76,8 @@
 <script>
   import { ref, computed, watchEffect } from 'vue'
   import FilterMultiSelect from '../filters/FilterMultiSelect.vue'
-  import { useGameData } from '../../composables/useGameData.js'
+  import { storeToRefs } from 'pinia'
+  import { useGameDataStore } from '../../stores/gameData.js'
   import { applyFilters } from '../../utils/filterUtils.js'
 
   export default {
@@ -113,7 +114,8 @@
     emits: ['update:modelValue'],
     setup(props, { emit }) {
       const allCheckbox = ref(null)
-      const { gameData, loadGameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
 
       // Filter state
       const filters = ref({
@@ -123,7 +125,7 @@
 
       // Load game data asynchronously if filtering is enabled
       if (props.enableFiltering) {
-        loadGameData()
+        gameDataStore.load()
       }
 
       // Filtered characters based on active filters

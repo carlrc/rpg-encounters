@@ -31,153 +31,12 @@
       />
 
       <div v-else-if="showCreateForm" class="shared-card">
-        <div class="shared-form">
-          <!-- Title -->
-          <input
-            v-model="createForm.title"
-            placeholder="Reveal title"
-            class="shared-input shared-input-name"
-          />
-
-          <!-- Character Selection -->
-          <CharacterSelector
-            v-model="createForm.character_ids"
-            :characters="characters"
-            :enable-filtering="true"
-            label="Characters"
-          />
-
-          <!-- Level 1 Content (Always Required) -->
-          <div class="shared-field shared-field-full-width">
-            <label class="shared-field-label"
-              >Level 1: Standard Content <span class="required">*</span></label
-            >
-            <BaseTextareaWithCharacterCounter
-              v-model="createForm.level_1_content"
-              placeholder="Enter standard content..."
-              :max-characters="500"
-            />
-          </div>
-
-          <!-- Level 1 Threshold -->
-          <div class="threshold-section">
-            <div class="threshold-slider">
-              <label class="threshold-label">
-                Standard Content:
-                {{
-                  getDCLabel(createForm.standard_threshold) || `DC ${createForm.standard_threshold}`
-                }}
-              </label>
-              <input
-                type="range"
-                v-model.number="createForm.standard_threshold"
-                :min="gameData.threshold_limits.min"
-                :max="gameData.threshold_limits.max"
-                :step="gameData.threshold_limits.step"
-                class="slider"
-              />
-            </div>
-          </div>
-
-          <!-- Level 2 Toggle -->
-          <div class="level-toggle">
-            <label class="level-toggle-option">
-              <input
-                type="checkbox"
-                v-model="createForm.enable_level_2"
-                @change="handleLevel2Toggle"
-              />
-              <span>Add Level 2: Privileged Content</span>
-            </label>
-          </div>
-
-          <!-- Level 2 Content -->
-          <div v-if="createForm.enable_level_2" class="shared-field shared-field-full-width">
-            <label class="shared-field-label">Level 2: Privileged Content</label>
-            <BaseTextareaWithCharacterCounter
-              v-model="createForm.level_2_content"
-              placeholder="Enter privileged content (high influence required)..."
-              :max-characters="500"
-            />
-          </div>
-
-          <!-- Level 2 Threshold -->
-          <div v-if="createForm.enable_level_2" class="threshold-section">
-            <div class="threshold-slider">
-              <label class="threshold-label">
-                Privileged Content:
-                {{
-                  getDCLabel(createForm.privileged_threshold) ||
-                  `DC ${createForm.privileged_threshold}`
-                }}
-              </label>
-              <input
-                type="range"
-                v-model.number="createForm.privileged_threshold"
-                :min="gameData.threshold_limits.min"
-                :max="gameData.threshold_limits.max"
-                :step="gameData.threshold_limits.step"
-                class="slider"
-              />
-            </div>
-          </div>
-
-          <!-- Level 3 Content -->
-          <div class="shared-field shared-field-full-width">
-            <div class="level-toggle level-toggle-in-divider">
-              <label class="level-toggle-option">
-                <input
-                  type="checkbox"
-                  v-model="createForm.enable_level_3"
-                  @change="handleLevel3Toggle"
-                />
-                <span>Add Level 3: Exclusive Content</span>
-              </label>
-            </div>
-
-            <div v-if="createForm.enable_level_3">
-              <label class="shared-field-label">Level 3: Exclusive Content</label>
-              <BaseTextareaWithCharacterCounter
-                v-model="createForm.level_3_content"
-                placeholder="Enter exclusive content (maximum influence required)..."
-                :max-characters="500"
-              />
-            </div>
-          </div>
-
-          <!-- Level 3 Threshold -->
-          <div v-if="createForm.enable_level_3" class="threshold-section">
-            <div class="threshold-slider">
-              <label class="threshold-label">
-                Exclusive Content:
-                {{
-                  getDCLabel(createForm.exclusive_threshold) ||
-                  `DC ${createForm.exclusive_threshold}`
-                }}
-              </label>
-              <input
-                type="range"
-                v-model.number="createForm.exclusive_threshold"
-                :min="gameData.threshold_limits.min"
-                :max="gameData.threshold_limits.max"
-                :step="gameData.threshold_limits.step"
-                class="slider"
-              />
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="shared-actions">
-            <button
-              @click="saveCreate"
-              class="shared-btn shared-btn-success"
-              :disabled="!isCreateFormValid"
-            >
-              Save
-            </button>
-            <button @click="cancelCreate" class="shared-btn shared-btn-secondary">Cancel</button>
-          </div>
-        </div>
+        <RevealForm
+          :characters="characters"
+          :is-editing="false"
+          @save="handleCreateSave"
+          @cancel="handleCancelCreate"
+        />
       </div>
 
       <RevealCard
@@ -193,20 +52,18 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import RevealCard from '../components/RevealCard.vue'
-  import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
-  import CharacterSelector from '../components/entity/CharacterSelector.vue'
+  import RevealForm from '../components/RevealForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useEntityCRUD } from '../utils/useEntityCRUD.js'
-  import { useRevealValidation } from '../composables/useRevealValidation.js'
+  import { useRevealStore } from '../stores/reveals.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import apiService from '../services/api.js'
-  import { useGameData } from '../composables/useGameData.js'
-  import { getDCLabel } from '../utils/dcUtils.js'
+  import { getCharacters } from '../services/api.js'
 
   export default {
     name: 'RevealsPage',
@@ -214,18 +71,30 @@
       SplitViewLayout,
       EmptyState,
       RevealCard,
-      BaseTextareaWithCharacterCounter,
-      CharacterSelector,
+      RevealForm,
       FilterPanel,
     },
     setup() {
       const route = useRoute()
+
+      // Initialize stores
+      const revealStore = useRevealStore()
+      const gameDataStore = useGameDataStore()
+
+      // Reactive refs from stores
       const {
         entities,
         loading,
         error,
         selectedEntityId,
+        selectedEntity: selectedReveal,
         showCreateForm,
+      } = storeToRefs(revealStore)
+
+      const { data: gameData } = storeToRefs(gameDataStore)
+
+      // Actions
+      const {
         loadEntities,
         createEntity,
         updateEntity,
@@ -233,9 +102,9 @@
         selectEntity,
         startCreate,
         cancelCreate,
-      } = useEntityCRUD('Reveal')
+        clearEntities,
+      } = revealStore
 
-      const { gameData, loadGameData } = useGameData()
       const characters = ref([])
 
       // Reveal filter tabs configuration
@@ -254,101 +123,41 @@
         alignment: [],
       })
 
-      const createForm = reactive({
-        title: '',
-        character_ids: [],
-        level_1_content: '',
-        level_2_content: '',
-        level_3_content: '',
-        enable_level_2: false,
-        enable_level_3: false,
-        standard_threshold: 0, // Will be set from gameData
-        privileged_threshold: 0, // Will be set from gameData
-        exclusive_threshold: 0, // Will be set from gameData
-      })
-
-      const { isFormValid: isCreateFormValid } = useRevealValidation(createForm)
-
-      const selectedReveal = computed(() => {
-        return entities.value.find((n) => n.id === selectedEntityId.value) || null
-      })
-
       const loadCharacters = async () => {
         try {
-          characters.value = await apiService.getCharacters()
+          characters.value = await getCharacters()
         } catch (err) {
           console.error('Error loading characters:', err)
         }
       }
 
-      const resetCreateForm = () => {
-        Object.assign(createForm, {
-          title: '',
-          character_ids: [],
-          level_1_content: '',
-          level_2_content: '',
-          level_3_content: '',
-          enable_level_2: false,
-          enable_level_3: false,
-          standard_threshold: gameData.value.default_thresholds.standard,
-          privileged_threshold: gameData.value.default_thresholds.privileged,
-          exclusive_threshold: gameData.value.default_thresholds.exclusive,
-        })
-      }
-
-      const saveCreate = async () => {
-        if (isCreateFormValid.value) {
-          try {
-            const revealData = {
-              title: createForm.title.trim(),
-              character_ids: createForm.character_ids.map((id) => parseInt(id)),
-              level_1_content: createForm.level_1_content.trim(),
-              level_2_content: createForm.enable_level_2 ? createForm.level_2_content.trim() : null,
-              level_3_content: createForm.enable_level_3 ? createForm.level_3_content.trim() : null,
-            }
-
-            // Always include all thresholds since we always show sliders
-            revealData.standard_threshold = createForm.standard_threshold
-            revealData.privileged_threshold = createForm.enable_level_2
-              ? createForm.privileged_threshold
-              : null
-            revealData.exclusive_threshold = createForm.enable_level_3
-              ? createForm.exclusive_threshold
-              : null
-
-            await createEntity(revealData)
-            resetCreateForm()
-          } catch (err) {
-            // Error handling is done in useEntityCRUD
-          }
-        }
-      }
-
-      const handleLevel2Toggle = () => {
-        if (!createForm.enable_level_2) {
-          createForm.level_2_content = ''
-        }
-      }
-
-      const handleLevel3Toggle = () => {
-        if (!createForm.enable_level_3) {
-          createForm.level_3_content = ''
+      const handleCreateSave = async (formData) => {
+        try {
+          await createEntity(formData)
+        } catch (err) {
+          // Error handling is done in reveal store
         }
       }
 
       const handleCancelCreate = () => {
         cancelCreate()
-        resetCreateForm()
+      }
+
+      // Handle world changes
+      const handleWorldChange = (event) => {
+        clearEntities()
+        characters.value = []
+        loadEntities()
+        loadCharacters()
       }
 
       onMounted(async () => {
-        await loadGameData()
-        // Update form defaults after game data is loaded
-        createForm.standard_threshold = gameData.value.default_thresholds.standard
-        createForm.privileged_threshold = gameData.value.default_thresholds.privileged
-        createForm.exclusive_threshold = gameData.value.default_thresholds.exclusive
+        await gameDataStore.load()
         await loadEntities()
         await loadCharacters()
+
+        // Listen for world changes
+        window.addEventListener('world-changed', handleWorldChange)
 
         // Auto-select reveal if ID is provided in query params
         const revealId = route.query.id
@@ -358,6 +167,11 @@
             selectEntity(id)
           }
         }
+      })
+
+      // Clean up event listener on unmount
+      onUnmounted(() => {
+        window.removeEventListener('world-changed', handleWorldChange)
       })
 
       // Filtered entities based on character filters and character attributes
@@ -399,19 +213,14 @@
         showCreateForm,
         selectedReveal,
         characters,
-        createForm,
-        isCreateFormValid,
         hasActiveCharacterFilters,
         selectEntity,
         startCreate,
         updateEntity,
         deleteEntity,
-        saveCreate,
-        cancelCreate: handleCancelCreate,
-        handleLevel2Toggle,
-        handleLevel3Toggle,
+        handleCreateSave,
+        handleCancelCreate,
         clearCharacterFilters,
-        getDCLabel: (value) => getDCLabel(value, gameData.value?.difficulty_classes),
       }
     },
   }

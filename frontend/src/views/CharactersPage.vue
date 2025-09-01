@@ -34,86 +34,7 @@
       />
 
       <div v-else-if="showCreateForm" class="shared-card">
-        <div class="shared-form">
-          <!-- Avatar Upload -->
-          <EntityAvatarSection v-model="createForm.avatar" :name="createForm.name" />
-
-          <!-- Name -->
-          <input
-            v-model="createForm.name"
-            placeholder="Character name"
-            class="shared-input shared-input-name"
-          />
-
-          <!-- Two Column Layout for Create -->
-          <div class="shared-field-columns">
-            <!-- Left Column -->
-            <div class="shared-field-column">
-              <select v-model="createForm.race" class="shared-select">
-                <option value="">Select Race</option>
-                <option v-for="race in races" :key="race" :value="race">{{ race }}</option>
-              </select>
-
-              <select v-model="createForm.alignment" class="shared-select">
-                <option value="">Select Alignment</option>
-                <option v-for="alignment in alignments" :key="alignment" :value="alignment">
-                  {{ alignment }}
-                </option>
-              </select>
-
-              <BaseTextareaWithCharacterCounter
-                v-model="createForm.background"
-                :placeholder="`Character background (max ${gameData.validation_limits.character_background} characters)`"
-                :max-characters="gameData.validation_limits.character_background"
-              />
-            </div>
-
-            <!-- Right Column -->
-            <div class="shared-field-column">
-              <select v-model="createForm.size" class="shared-select">
-                <option value="">Select Size</option>
-                <option v-for="size in characterSizes" :key="size" :value="size">{{ size }}</option>
-              </select>
-
-              <input
-                v-model="createForm.profession"
-                placeholder="Profession"
-                class="shared-input"
-              />
-            </div>
-          </div>
-
-          <!-- Gender Field (Full Width) -->
-          <select v-model="createForm.gender" class="shared-select">
-            <option value="">Select Gender</option>
-            <option v-for="gender in genders" :key="gender" :value="gender">{{ gender }}</option>
-          </select>
-
-          <!-- Communication Style Field (Full Width) -->
-          <BaseTextareaWithCharacterCounter
-            v-model="createForm.communication_style"
-            :placeholder="`Communication style (max ${gameData.validation_limits.character_communication} characters)`"
-            :max-characters="gameData.validation_limits.character_communication"
-          />
-
-          <!-- Motivation Field (Full Width) -->
-          <BaseTextareaWithCharacterCounter
-            v-model="createForm.motivation"
-            :placeholder="`Character motivation (max ${gameData.validation_limits.character_motivation} characters)`"
-            :max-characters="gameData.validation_limits.character_motivation"
-          />
-
-          <div class="shared-actions">
-            <button
-              @click="saveCreate"
-              class="shared-btn shared-btn-success"
-              :disabled="!isCreateFormValid"
-            >
-              Save
-            </button>
-            <button @click="cancelCreate" class="shared-btn shared-btn-secondary">Cancel</button>
-          </div>
-        </div>
+        <CharacterForm :is-editing="false" @save="handleCreateSave" @cancel="handleCancelCreate" />
       </div>
 
       <CharacterCard
@@ -127,21 +48,19 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
+  import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import CharacterCard from '../components/CharacterCard.vue'
-  import EntityAvatarSection from '../components/entity/EntityAvatarSection.vue'
+  import CharacterForm from '../components/CharacterForm.vue'
   import ImportButton from '../components/ui/ImportButton.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useEntityCRUD } from '../utils/useEntityCRUD.js'
+  import { useCharacterStore } from '../stores/characters.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { useFileImport } from '../utils/useFileImport.js'
-  import { useFormValidation } from '../utils/useFormValidation.js'
-  import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { useGameData } from '../composables/useGameData.js'
-  import { applyFilters, createEmptyFilters } from '../utils/filterUtils.js'
-  import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
+  import { applyFilters } from '../utils/filterUtils.js'
 
   export default {
     name: 'CharactersPage',
@@ -149,20 +68,31 @@
       SplitViewLayout,
       EmptyState,
       CharacterCard,
-      EntityAvatarSection,
+      CharacterForm,
       ImportButton,
       FilterPanel,
-      BaseTextareaWithCharacterCounter,
     },
     setup() {
       const route = useRoute()
 
+      // Initialize stores
+      const characterStore = useCharacterStore()
+      const gameDataStore = useGameDataStore()
+
+      // Reactive refs from stores
       const {
         entities,
         loading,
         error,
         selectedEntityId,
+        selectedEntity: selectedCharacter,
         showCreateForm,
+      } = storeToRefs(characterStore)
+
+      const { data: gameData } = storeToRefs(gameDataStore)
+
+      // Actions
+      const {
         loadEntities,
         createEntity,
         updateEntity,
@@ -170,28 +100,10 @@
         selectEntity,
         startCreate,
         cancelCreate,
-      } = useEntityCRUD('Character')
+        clearEntities,
+      } = characterStore
 
       const { importing, handleImportFile: handleFileImport } = useFileImport('Character')
-
-      const { gameData, loadGameData } = useGameData()
-
-      const createForm = reactive({
-        name: '',
-        avatar: null,
-        race: '',
-        size: '',
-        alignment: '',
-        gender: '',
-        profession: '',
-        background: '',
-        communication_style: '',
-        motivation: '',
-      })
-
-      const { isFormValid: isCreateFormValid } = useFormValidation(createForm, 'CHARACTER')
-
-      const { genders } = useDropdownOptions()
 
       // Character filter tabs configuration
       const characterFilterTabs = [
@@ -216,53 +128,16 @@
         return applyFilters(entities.value, activeFilters.value)
       })
 
-      const selectedCharacter = computed(() => {
-        return entities.value.find((c) => c.id === selectedEntityId.value) || null
-      })
-
-      const resetCreateForm = () => {
-        createForm.name = ''
-        createForm.avatar = null
-        createForm.race = ''
-        createForm.size = ''
-        createForm.alignment = ''
-        createForm.gender = ''
-        createForm.profession = ''
-        createForm.background = ''
-        createForm.communication_style = ''
-        createForm.motivation = ''
-      }
-
-      const saveCreate = async () => {
-        if (isCreateFormValid.value) {
-          try {
-            await createEntity({
-              name: createForm.name.trim(),
-              avatar: createForm.avatar,
-              race: createForm.race,
-              size: createForm.size,
-              alignment: createForm.alignment,
-              gender: createForm.gender,
-              profession: createForm.profession.trim(),
-              background: createForm.background.trim(),
-              communication_style: createForm.communication_style.trim(),
-              motivation: createForm.motivation.trim(),
-              // Initialize empty influence profile fields
-              race_preferences: {},
-              class_preferences: {},
-              gender_preferences: {},
-              size_preferences: {},
-            })
-            resetCreateForm()
-          } catch (err) {
-            // Error handling is done in useEntityCRUD
-          }
+      const handleCreateSave = async (formData) => {
+        try {
+          await createEntity(formData)
+        } catch (err) {
+          // Error handling is done in character store
         }
       }
 
       const handleCancelCreate = () => {
         cancelCreate()
-        resetCreateForm()
       }
 
       const handleImportFile = (event) => {
@@ -279,9 +154,18 @@
         )
       }
 
+      // Handle world changes
+      const handleWorldChange = (event) => {
+        clearEntities()
+        loadEntities()
+      }
+
       onMounted(async () => {
-        await loadGameData()
+        await gameDataStore.load()
         await loadEntities()
+
+        // Listen for world changes
+        window.addEventListener('world-changed', handleWorldChange)
 
         // Auto-select character if ID is provided in query params
         const characterId = route.query.id
@@ -291,6 +175,11 @@
             selectEntity(id)
           }
         }
+      })
+
+      // Clean up event listener on unmount
+      onUnmounted(() => {
+        window.removeEventListener('world-changed', handleWorldChange)
       })
 
       // Watch for changes in entities to handle auto-selection after data loads
@@ -315,19 +204,13 @@
         selectedEntityId,
         showCreateForm,
         selectedCharacter,
-        createForm,
         importing,
-        races: computed(() => gameData.value.races),
-        characterSizes: computed(() => gameData.value.sizes.character),
-        alignments: computed(() => gameData.value.alignments),
-        genders,
-        isCreateFormValid,
         selectEntity,
         startCreate,
         updateEntity,
         deleteEntity,
-        saveCreate,
-        cancelCreate: handleCancelCreate,
+        handleCreateSave,
+        handleCancelCreate,
         handleImportFile,
       }
     },

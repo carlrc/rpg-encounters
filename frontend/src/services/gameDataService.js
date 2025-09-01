@@ -1,8 +1,8 @@
-import apiService from './api.js'
+import { getGameData as fetchGameData } from './api.js'
 
 let gameDataCache = null
 
-export async function getGameData() {
+export const getGameData = async () => {
   // Return cached data if available
   if (gameDataCache) {
     return gameDataCache
@@ -10,7 +10,7 @@ export async function getGameData() {
 
   try {
     // Fetch from API and cache
-    gameDataCache = await apiService.request('/game')
+    gameDataCache = await fetchGameData()
     return gameDataCache
   } catch (error) {
     console.error('Failed to load game data:', error)
@@ -18,6 +18,6 @@ export async function getGameData() {
   }
 }
 
-export function clearGameDataCache() {
+export const clearGameDataCache = () => {
   gameDataCache = null
 }

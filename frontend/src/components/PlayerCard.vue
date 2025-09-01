@@ -234,9 +234,10 @@
 
 <script>
   import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
@@ -265,7 +266,8 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const isEditing = ref(false)
 
       // Abilities & Skills display functionality

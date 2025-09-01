@@ -365,9 +365,10 @@
 
 <script>
   import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
@@ -375,7 +376,7 @@
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
   import VoiceSelector from './VoiceSelector.vue'
-  import apiService from '../services/api.js'
+  import { getVoiceSample } from '../services/api.js'
 
   export default {
     name: 'CharacterCard',
@@ -402,7 +403,8 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const { playStreamingResponse, isLoading: previewLoading } = useAudioPlayer()
       const isEditing = ref(false)
 
@@ -630,7 +632,7 @@
         if (!props.character.voice_id || previewLoading.value) return
 
         try {
-          const response = await apiService.getVoiceSample(props.character.voice_id)
+          const response = await getVoiceSample(props.character.voice_id)
           await playStreamingResponse(response, `character-${props.character.id}`)
         } catch (err) {
           console.error('Failed to play character voice sample:', err)

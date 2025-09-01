@@ -120,10 +120,11 @@
 <script>
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRouter } from 'vue-router'
+  import { storeToRefs } from 'pinia'
   import { getInitials } from '../utils/avatarUtils.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
-  import apiService from '../services/api.js'
+  import { getPlayers, getConversationData } from '../services/api.js'
 
   // Constants to replace magic numbers
   const WEBSOCKET_BASE_URL = 'ws://localhost:8000'
@@ -149,7 +150,8 @@
     },
     emits: ['close'],
     setup(props, { emit }) {
-      const { gameData, loadGameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const router = useRouter()
 
       // Use the standardized audio player composable
@@ -204,7 +206,7 @@
       // Load data functions (same as EncountersPage.vue)
       const loadPlayers = async () => {
         try {
-          players.value = await apiService.getPlayers()
+          players.value = await getPlayers()
         } catch (err) {
           error.value = 'Failed to load players'
           console.error('Player loading failed')
@@ -444,7 +446,7 @@
           return
         }
 
-        const data = await apiService.getConversationData(
+        const data = await getConversationData(
           props.encounterId,
           selectedPlayerId.value,
           props.character.id
@@ -474,7 +476,7 @@
       )
 
       onMounted(async () => {
-        await loadGameData()
+        await gameDataStore.load()
         loadData()
       })
 

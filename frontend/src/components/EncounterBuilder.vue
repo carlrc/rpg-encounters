@@ -74,7 +74,7 @@
       <!-- Character encounter popup -->
       <CharacterEncounterPopup
         :character="selectedCharacter"
-        :encounter-id="selectedEncounterId || 0"
+        :encounter-id="parseInt(selectedEncounterId) || 0"
         :is-open="showEncounterPopup"
         @close="closeEncounterPopup"
       />
@@ -85,12 +85,13 @@
 <script>
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
+  import { storeToRefs } from 'pinia'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
-  import apiService from '../services/api.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { getCharacters, getEncounters, createEncounter, saveCanvas } from '../services/api.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { useNotification } from '../composables/useNotification.js'
   import { isTemporaryId } from '../utils/idUtils.js'
   import { saveViewport, getViewport } from '../utils/viewportState.js'
@@ -103,7 +104,8 @@
       CharacterEncounterPopup,
     },
     setup() {
-      const { gameData, loadGameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const { showSuccess, showError } = useNotification()
       const router = useRouter()
       const route = useRoute()
@@ -136,7 +138,7 @@
       // Load characters from API
       const loadCharacters = async () => {
         try {
-          const loadedCharacters = await apiService.getCharacters()
+          const loadedCharacters = await getCharacters()
           if (!Array.isArray(loadedCharacters)) {
             throw new Error('Invalid characters data received from API')
           }
@@ -192,7 +194,7 @@
       // Load encounters and connections from API
       const loadEncounters = async () => {
         try {
-          const encounterData = await apiService.getEncounters()
+          const encounterData = await getEncounters()
           if (!encounterData || !Array.isArray(encounterData.encounters)) {
             throw new Error('Invalid encounter data received from API')
           }
@@ -220,7 +222,7 @@
 
         try {
           // Load characters first, then encounters (encounters need characters for associations)
-          await loadGameData()
+          await gameDataStore.load()
           await loadCharacters()
           await loadEncounters()
         } catch (err) {
@@ -410,7 +412,7 @@
             character_ids: [],
           }
 
-          const createdEncounter = await apiService.createEncounter(encounterData)
+          const createdEncounter = await createEncounter(encounterData)
 
           // Create new encounter object
           const newEncounter = {
@@ -672,7 +674,7 @@
       }
 
       // Save canvas function
-      const saveCanvas = async () => {
+      const handleSaveCanvas = async () => {
         try {
           isSaving.value = true
           const {
@@ -684,7 +686,7 @@
             deletedConnections,
           } = serializeCanvasState()
 
-          const response = await apiService.saveCanvas({
+          const response = await saveCanvas({
             new_encounters: transformToBackendFormat(newEncounters),
             existing_encounters: transformToBackendFormat(existingEncounters),
             new_connections: transformToBackendFormat(newConnections, true),
@@ -790,7 +792,7 @@
         updateEncounterDescription,
         clearAutoOpenDescription,
         onEdgeClick,
-        saveCanvas,
+        saveCanvas: handleSaveCanvas,
         onViewportChange,
         onPaneReady,
       }

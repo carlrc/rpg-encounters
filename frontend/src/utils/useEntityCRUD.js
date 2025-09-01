@@ -1,5 +1,5 @@
 import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
-import apiService from '../services/api.js'
+import * as apiService from '../services/api.js'
 import { useNotification } from '../composables/useNotification.js'
 import { getCurrentWorldIdRef } from '../services/worldState.js'
 

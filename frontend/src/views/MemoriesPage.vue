@@ -31,43 +31,12 @@
       />
 
       <div v-else-if="showCreateForm" class="shared-card">
-        <div class="shared-form">
-          <!-- Title -->
-          <input
-            v-model="createForm.title"
-            placeholder="Memory title"
-            class="shared-input shared-input-name"
-          />
-
-          <!-- Content -->
-          <div class="content-field">
-            <label class="shared-field-label">Content <span class="required">*</span></label>
-            <BaseTextareaWithCharacterCounter
-              v-model="createForm.content"
-              :placeholder="`Memory content`"
-              :max-characters="1000"
-            />
-          </div>
-
-          <!-- Character Selection -->
-          <CharacterSelector
-            v-model="createForm.character_ids"
-            :characters="characters"
-            :enable-filtering="true"
-            label="Characters"
-          />
-
-          <div class="shared-actions">
-            <button
-              @click="saveCreate"
-              class="shared-btn shared-btn-success"
-              :disabled="!isCreateFormValid"
-            >
-              Save
-            </button>
-            <button @click="cancelCreate" class="shared-btn shared-btn-secondary">Cancel</button>
-          </div>
-        </div>
+        <MemoryForm
+          :characters="characters"
+          :is-editing="false"
+          @save="handleCreateSave"
+          @cancel="handleCancelCreate"
+        />
       </div>
 
       <MemoryCard
@@ -82,18 +51,16 @@
 </template>
 
 <script>
-  import { ref, reactive, computed, onMounted } from 'vue'
+  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import MemoryCard from '../components/MemoryCard.vue'
-  import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
-  import CharacterSelector from '../components/entity/CharacterSelector.vue'
+  import MemoryForm from '../components/MemoryForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useEntityCRUD } from '../utils/useEntityCRUD.js'
+  import { useMemoryStore } from '../stores/memories.js'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import apiService from '../services/api.js'
-
-  const CONTENT_WORD_LIMIT = 200
+  import { getCharacters } from '../services/api.js'
 
   export default {
     name: 'MemoriesPage',
@@ -101,17 +68,25 @@
       SplitViewLayout,
       EmptyState,
       MemoryCard,
-      BaseTextareaWithCharacterCounter,
-      CharacterSelector,
+      MemoryForm,
       FilterPanel,
     },
     setup() {
+      // Initialize stores
+      const memoryStore = useMemoryStore()
+
+      // Reactive refs from stores
       const {
         entities,
         loading,
         error,
         selectedEntityId,
+        selectedEntity: selectedMemory,
         showCreateForm,
+      } = storeToRefs(memoryStore)
+
+      // Actions
+      const {
         loadEntities,
         createEntity,
         updateEntity,
@@ -119,7 +94,7 @@
         selectEntity,
         startCreate,
         cancelCreate,
-      } = useEntityCRUD('Memory')
+      } = memoryStore
 
       const characters = ref([])
 
@@ -138,66 +113,45 @@
         alignment: [],
       })
 
-      const createForm = reactive({
-        title: '',
-        content: '',
-        character_ids: [],
-      })
-
-      const isCreateFormValid = computed(() => {
-        return (
-          createForm.title.trim().length > 0 &&
-          createForm.content.trim().length > 0 &&
-          createForm.character_ids.length > 0 &&
-          createForm.content.trim().split(' ').length <= CONTENT_WORD_LIMIT
-        )
-      })
-
-      const selectedMemory = computed(() => {
-        return entities.value.find((m) => m.id === selectedEntityId.value) || null
-      })
-
       const loadCharacters = async () => {
         try {
-          characters.value = await apiService.getCharacters()
+          characters.value = await getCharacters()
         } catch (err) {
           console.error('Error loading characters:', err)
         }
       }
 
-      const resetCreateForm = () => {
-        Object.assign(createForm, {
-          title: '',
-          content: '',
-          character_ids: [],
-        })
-      }
-
-      const saveCreate = async () => {
-        if (isCreateFormValid.value) {
-          try {
-            const memoryData = {
-              title: createForm.title.trim(),
-              content: createForm.content.trim(),
-              character_ids: createForm.character_ids,
-            }
-
-            await createEntity(memoryData)
-            resetCreateForm()
-          } catch (err) {
-            // Error handling is done in useEntityCRUD
-          }
+      const handleCreateSave = async (formData) => {
+        try {
+          await createEntity(formData)
+        } catch (err) {
+          // Error handling is done in memory store
         }
       }
 
       const handleCancelCreate = () => {
         cancelCreate()
-        resetCreateForm()
+      }
+
+      // Handle world changes
+      const handleWorldChange = (event) => {
+        clearEntities()
+        characters.value = []
+        loadEntities()
+        loadCharacters()
       }
 
       onMounted(async () => {
         await loadEntities()
         await loadCharacters()
+
+        // Listen for world changes
+        window.addEventListener('world-changed', handleWorldChange)
+      })
+
+      // Clean up event listener on unmount
+      onUnmounted(() => {
+        window.removeEventListener('world-changed', handleWorldChange)
       })
 
       // Filtered entities based on character filters and character attributes
@@ -238,16 +192,13 @@
         showCreateForm,
         selectedMemory,
         characters,
-        createForm,
-        isCreateFormValid,
-        CONTENT_WORD_LIMIT,
         hasActiveCharacterFilters,
         selectEntity,
         startCreate,
         updateEntity,
         deleteEntity,
-        saveCreate,
-        cancelCreate: handleCancelCreate,
+        handleCreateSave,
+        handleCancelCreate,
         clearCharacterFilters,
       }
     },

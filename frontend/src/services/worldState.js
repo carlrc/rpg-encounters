@@ -3,15 +3,15 @@ import { ref } from 'vue'
 // Reactive global variable for current world ID
 const currentWorldId = ref(1)
 
-export function setCurrentWorldId(id) {
+export const setCurrentWorldId = (id) => {
   currentWorldId.value = id
 }
 
-export function getCurrentWorldIdRef() {
+export const getCurrentWorldIdRef = () => {
   return currentWorldId
 }
 
 // For backward compatibility and non-reactive access
-export function getCurrentWorldId() {
+export const getCurrentWorldId = () => {
   return currentWorldId.value
 }

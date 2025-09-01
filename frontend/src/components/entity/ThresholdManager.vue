@@ -57,7 +57,8 @@
 </template>
 
 <script>
-  import { useGameData } from '../../composables/useGameData.js'
+  import { storeToRefs } from 'pinia'
+  import { useGameDataStore } from '../../stores/gameData.js'
   import { getDCLabel } from '../../utils/dcUtils.js'
 
   export default {
@@ -81,7 +82,8 @@
     },
     emits: ['update:standardThreshold', 'update:privilegedThreshold', 'update:exclusiveThreshold'],
     setup() {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
 
       return {
         gameData,

@@ -207,7 +207,8 @@
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
+  import { storeToRefs } from 'pinia'
   import { getDCLabel } from '../utils/dcUtils.js'
   import { getCharacterName } from '../utils/characterUtils.js'
 
@@ -233,7 +234,8 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const isEditing = ref(false)
       const editForm = reactive({
         title: '',

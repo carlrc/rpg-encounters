@@ -1,264 +1,79 @@
-import { getCurrentWorldId } from './worldState.js'
+import { http } from './http.js'
+import { useWorldStore } from '@/stores/world'
 
-// TODO: Env vars for base urls
-const API_BASE_URL = 'http://localhost:8000/api'
+// Player CRUD operations
+export const getPlayers = () => http.get('/players')
+export const getPlayer = (id) => http.get(`/players/${id}`)
+export const createPlayer = (playerData) => http.post('/players', playerData)
+export const updatePlayer = (id, playerData) => http.put(`/players/${id}`, playerData)
+export const deletePlayer = (id) => http.delete(`/players/${id}`)
 
-class ApiService {
-  constructor() {
-    this._cachedWorldId = null
-  }
+// Character CRUD operations
+export const getCharacters = () => http.get('/characters')
+export const getCharacter = (id) => http.get(`/characters/${id}`)
+export const createCharacter = (characterData) => http.post('/characters', characterData)
+export const updateCharacter = (id, characterData) => http.put(`/characters/${id}`, characterData)
+export const deleteCharacter = (id) => http.delete(`/characters/${id}`)
 
-  _getWorldIdHeader() {
-    // Cache world ID to avoid repeated function calls
-    const currentWorldId = getCurrentWorldId()
-    if (this._cachedWorldId !== currentWorldId) {
-      this._cachedWorldId = currentWorldId
-    }
-    return this._cachedWorldId
-  }
+// Reveal CRUD operations
+export const getReveals = () => http.get('/reveals')
+export const getReveal = (id) => http.get(`/reveals/${id}`)
+export const createReveal = (revealData) => http.post('/reveals', revealData)
+export const updateReveal = (id, revealData) => http.put(`/reveals/${id}`, revealData)
+export const deleteReveal = (id) => http.delete(`/reveals/${id}`)
 
-  async request(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`
-    const config = {
-      headers: {
-        'Content-Type': 'application/json',
-        'X-World-Id': this._getWorldIdHeader(),
-        ...options.headers,
-      },
-      ...options,
-    }
+// Memory CRUD operations
+export const getMemories = () => http.get('/memories')
+export const getMemory = (id) => http.get(`/memories/${id}`)
+export const createMemory = (memoryData) => http.post('/memories', memoryData)
+export const updateMemory = (id, memoryData) => http.put(`/memories/${id}`, memoryData)
+export const deleteMemory = (id) => http.delete(`/memories/${id}`)
 
-    try {
-      const response = await fetch(url, config)
+// Encounter CRUD operations
+export const getEncounters = () => http.get('/canvas')
+export const getEncounter = (id) => http.get(`/encounters/${id}`)
+export const createEncounter = (encounterData) => http.post('/encounters', encounterData)
+export const updateEncounter = (id, encounterData) => http.put(`/encounters/${id}`, encounterData)
+export const deleteEncounter = (id) => http.delete(`/encounters/${id}`)
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
+// Other operations
+export const getConversationData = (encounterId, playerId, characterId) =>
+  http.get(`/encounters/${encounterId}/conversation/${playerId}/${characterId}`)
+export const saveCanvas = (canvasData) => http.post('/canvas', canvasData)
+export const getGameData = () => http.get('/game')
+export const getWorlds = () => http.get('/worlds')
+export const createWorld = () => http.post('/worlds')
+export const deleteWorld = (worldId) => http.delete(`/worlds/${worldId}`)
 
-      // Handle 204 No Content responses
-      if (response.status === 204) {
-        return null
-      }
-
-      return await response.json()
-    } catch (error) {
-      console.error('API request failed:', error)
-      throw error
-    }
-  }
-
-  // Player CRUD operations
-  async getPlayers() {
-    return this.request('/players')
-  }
-
-  async getPlayer(id) {
-    return this.request(`/players/${id}`)
-  }
-
-  async createPlayer(playerData) {
-    return this.request('/players', {
-      method: 'POST',
-      body: JSON.stringify(playerData),
-    })
-  }
-
-  async updatePlayer(id, playerData) {
-    return this.request(`/players/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(playerData),
-    })
-  }
-
-  async deletePlayer(id) {
-    return this.request(`/players/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Character CRUD operations
-  async getCharacters() {
-    return this.request('/characters')
-  }
-
-  async getCharacter(id) {
-    return this.request(`/characters/${id}`)
-  }
-
-  async createCharacter(characterData) {
-    return this.request('/characters', {
-      method: 'POST',
-      body: JSON.stringify(characterData),
-    })
-  }
-
-  async updateCharacter(id, characterData) {
-    return this.request(`/characters/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(characterData),
-    })
-  }
-
-  async deleteCharacter(id) {
-    return this.request(`/characters/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Reveal CRUD operations
-  async getReveals() {
-    return this.request('/reveals')
-  }
-
-  async getReveal(id) {
-    return this.request(`/reveals/${id}`)
-  }
-
-  async createReveal(revealData) {
-    return this.request('/reveals', {
-      method: 'POST',
-      body: JSON.stringify(revealData),
-    })
-  }
-
-  async updateReveal(id, revealData) {
-    return this.request(`/reveals/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(revealData),
-    })
-  }
-
-  async deleteReveal(id) {
-    return this.request(`/reveals/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Memory CRUD operations
-  async getMemories() {
-    return this.request('/memories')
-  }
-
-  async getMemory(id) {
-    return this.request(`/memories/${id}`)
-  }
-
-  async createMemory(memoryData) {
-    return this.request('/memories', {
-      method: 'POST',
-      body: JSON.stringify(memoryData),
-    })
-  }
-
-  async updateMemory(id, memoryData) {
-    return this.request(`/memories/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(memoryData),
-    })
-  }
-
-  async deleteMemory(id) {
-    return this.request(`/memories/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Encounter CRUD operations
-  async getEncounters() {
-    return this.request('/canvas')
-  }
-
-  async getEncounter(id) {
-    return this.request(`/encounters/${id}`)
-  }
-
-  async createEncounter(encounterData) {
-    return this.request('/encounters', {
-      method: 'POST',
-      body: JSON.stringify(encounterData),
-    })
-  }
-
-  async updateEncounter(id, encounterData) {
-    return this.request(`/encounters/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(encounterData),
-    })
-  }
-
-  async deleteEncounter(id) {
-    return this.request(`/encounters/${id}`, {
-      method: 'DELETE',
-    })
-  }
-
-  async getConversationData(encounterId, playerId, characterId) {
-    return this.request(`/encounters/${encounterId}/conversation/${playerId}/${characterId}`)
-  }
-
-  // Canvas save operation
-  async saveCanvas(canvasData) {
-    return this.request('/canvas', {
-      method: 'POST',
-      body: JSON.stringify(canvasData),
-    })
-  }
-
-  // Game data operations
-  async getGameData() {
-    return this.request('/game')
-  }
-
-  // World management operations
-  async getWorlds() {
-    return this.request('/worlds')
-  }
-
-  async createWorld() {
-    return this.request('/worlds', {
-      method: 'POST',
-    })
-  }
-
-  async deleteWorld(worldId) {
-    return this.request(`/worlds/${worldId}`, {
-      method: 'DELETE',
-    })
-  }
-
-  // Voice operations
-  async searchVoices(searchTerm, pageToken = null) {
-    const params = new URLSearchParams({ search_term: searchTerm })
-    if (pageToken) params.append('next_page_token', pageToken)
-
-    return this.request(`/voices/search?${params}`)
-  }
-
-  async getAllVoices() {
-    // Use broad search terms to get all available voices
-    // We'll search for common vowels which should match most voice names
-    const response = await this.searchVoices('a')
-    return response.voices || []
-  }
-
-  async getVoiceSample(voiceId) {
-    // Return the raw response for streaming audio
-    const url = `${API_BASE_URL}/voices/${voiceId}/sample`
-    const response = await fetch(url, {
-      headers: {
-        'X-World-Id': this._getWorldIdHeader(),
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    return response // Return response object for streaming
-  }
-
-  // Note: Influence profiles are now integrated into character model
-  // Influence profile data is managed through character endpoints
+// Voice operations
+export const searchVoices = (searchTerm, pageToken = null) => {
+  const params = new URLSearchParams({ search_term: searchTerm })
+  if (pageToken) params.append('next_page_token', pageToken)
+  return http.get(`/voices/search?${params}`)
 }
 
-export default new ApiService()
+export const getVoiceSample = async (voiceId) => {
+  const worldStore = useWorldStore()
+  const response = await fetch(
+    `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/voices/${voiceId}/sample`,
+    {
+      headers: {
+        'X-World-Id': worldStore.currentWorldId,
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return response
+}
+
+// Utility function for backward compatibility
+export const getAllVoices = async () => {
+  // Use broad search terms to get all available voices
+  // We'll search for common vowels which should match most voice names
+  const response = await searchVoices('a')
+  return response.voices || []
+}

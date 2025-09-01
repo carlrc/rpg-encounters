@@ -153,10 +153,11 @@
 
 <script>
   import { ref, computed, watch } from 'vue'
+  import { storeToRefs } from 'pinia'
   import FilterTabs from './FilterTabs.vue'
   import FilterMultiSelect from './FilterMultiSelect.vue'
   import CharacterSelector from '../entity/CharacterSelector.vue'
-  import { useGameData } from '../../composables/useGameData.js'
+  import { useGameDataStore } from '../../stores/gameData.js'
   import { useDropdownOptions } from '../../composables/useDropdownOptions.js'
 
   export default {
@@ -186,7 +187,8 @@
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const { genders } = useDropdownOptions()
 
       const activeTab = ref(props.availableTabs[0]?.id || 'race')

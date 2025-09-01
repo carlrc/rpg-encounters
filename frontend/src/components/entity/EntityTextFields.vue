@@ -113,8 +113,9 @@
 
 <script>
   import { reactive, computed, watch } from 'vue'
+  import { storeToRefs } from 'pinia'
   import BaseFormField from '../base/BaseFormField.vue'
-  import { useGameData } from '../../composables/useGameData.js'
+  import { useGameDataStore } from '../../stores/gameData.js'
 
   export default {
     name: 'EntityTextFields',
@@ -138,7 +139,8 @@
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
 
       // Local reactive copy of the data
       const localData = reactive({
