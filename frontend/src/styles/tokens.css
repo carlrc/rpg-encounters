@@ -20,11 +20,11 @@
   --primary-alpha-40: rgba(13, 13, 13, 0.4);
 
   /* Status Colors - Clean and modern semantic colors */
-  --color-success: #008080;
-  --success-color: #008080;
+  --color-success: #0d0d0d;
+  --success-color: #0d0d0d;
   /* Legacy support */
-  --success-dark: #006666;
-  --success-darker: #004c4c;
+  --success-dark: #080808;
+  --success-darker: #000000;
 
   --color-danger: #dc143c;
   --danger-color: #dc143c;
@@ -132,8 +132,8 @@
   /* Button Shadows - Updated for deep black color palette */
   --shadow-button: 0 2px 4px var(--primary-alpha-30);
   --shadow-button-hover: 0 4px 8px var(--primary-alpha-40);
-  --shadow-success: 0 2px 4px rgba(0, 128, 128, 0.3);
-  --shadow-success-hover: 0 4px 8px rgba(0, 128, 128, 0.4);
+  --shadow-success: 0 2px 4px rgba(13, 13, 13, 0.3);
+  --shadow-success-hover: 0 4px 8px rgba(13, 13, 13, 0.4);
   --shadow-danger: 0 2px 4px rgba(220, 20, 60, 0.3);
   --shadow-danger-hover: 0 4px 8px rgba(220, 20, 60, 0.4);
   --shadow-secondary: 0 2px 4px rgba(47, 47, 47, 0.3);
