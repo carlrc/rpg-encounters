@@ -37,8 +37,7 @@ async def challenge_character(
 ):
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
-    # TODO: saving to WAV needs to be made async
-    wav_path = save_chunks_to_wav(audio_chunks)
+    wav_path = await save_chunks_to_wav(audio_chunks)
     transcription = await get_transcription_service().transcribe_audio(wav_path)
     logger.info(f"Transcribed audio text: {transcription}")
 

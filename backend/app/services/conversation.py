@@ -42,8 +42,7 @@ async def have_conversation(
 ) -> None:
     # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
-    # TODO: saving to WAV needs to be made async
-    wav_path = save_chunks_to_wav(chunks=audio_chunks)
+    wav_path = await save_chunks_to_wav(chunks=audio_chunks)
     transcription = await get_transcription_service().transcribe_audio(
         wav_file_path=wav_path
     )
@@ -99,7 +98,6 @@ async def have_conversation(
             if negative_attitude:
                 logger.info("Using negative conversation agent...")
 
-                # Render the Jinja template
                 rendered_negative_system_prompt = render_jinja_prompt(
                     "negative_conversation_agent", template_context
                 )
@@ -133,8 +131,6 @@ async def have_conversation(
 
                 # Add reveals for positive conversation agent
                 template_context["character_reveals"] = context.reveals
-
-                # Render the Jinja template
                 rendered_system_prompt = render_jinja_prompt(
                     "conversation_agent", template_context
                 )

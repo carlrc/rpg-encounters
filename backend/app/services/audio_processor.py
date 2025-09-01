@@ -1,3 +1,5 @@
+import asyncio
+import functools
 import logging
 import os
 import subprocess
@@ -7,7 +9,7 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 
-def save_chunks_to_wav(chunks: List[bytes]) -> str:
+async def save_chunks_to_wav(chunks: List[bytes]) -> str:
     """Save audio chunks directly to WAV file using ffmpeg"""
     # Useful to use tempfile even though we are manually cleaning up after due to auto naming
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -33,8 +35,14 @@ def save_chunks_to_wav(chunks: List[bytes]) -> str:
         # Combine all chunks into a single bytes object
         audio_data = b"".join(chunks)
 
-        # Run ffmpeg with audio data piped to stdin
-        subprocess.run(cmd, input=audio_data, check=True, capture_output=True)
+        # Run ffmpeg in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None,
+            functools.partial(
+                subprocess.run, cmd, input=audio_data, check=True, capture_output=True
+            ),
+        )
         return wav_path
     except Exception as e:
         logger.error(f"FFmpeg WAV conversion failed: {e}")
