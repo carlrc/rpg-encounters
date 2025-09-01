@@ -187,7 +187,40 @@ body {
 
 /* ===== RESPONSIVE OVERRIDES ===== */
 
-@media (max-width: 768px) {
+/* Tablet-specific world tabs - maintain vertical positioning but enhance touch targets */
+@media (min-width: 481px) and (max-width: 1023px) {
+  .world-tabs-positioned {
+    position: fixed;
+    left: var(--spacing-xs);
+    /* Closer to edge for more space */
+    top: 100px;
+    /* Slightly lower to accommodate header */
+    z-index: var(--z-fixed);
+  }
+
+  .world-tab,
+  .add-world-tab {
+    width: 54px;
+    /* Larger touch targets */
+    height: 54px;
+    font-size: var(--font-size-base);
+    padding: 10px 8px;
+  }
+
+  /* Enhance touch targets for delete buttons */
+  .delete-btn {
+    width: 22px;
+    height: 22px;
+    top: -6px;
+    right: -6px;
+    font-size: var(--font-size-xs);
+    min-width: 22px;
+    min-height: 22px;
+  }
+}
+
+/* Only collapse world tabs to horizontal layout on very small screens */
+@media (max-width: 480px) {
   .world-tabs-positioned {
     position: static;
     margin: var(--spacing-sm) 0;
@@ -200,6 +233,8 @@ body {
     width: 100%;
     overflow-x: auto;
     padding: 0 var(--spacing-sm);
+    min-width: 320px;
+    /* Minimum scrollable width */
   }
 
   .world-tab,

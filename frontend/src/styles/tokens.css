@@ -49,15 +49,24 @@
   --secondary-darker: #1a1a1a;
 
   /* Standardized Gray Scale - Replaces hardcoded grays across components */
-  --gray-50: #f8f9fa; /* Very light backgrounds, input backgrounds */
-  --gray-100: #e9ecef; /* Light borders, disabled states */
-  --gray-200: #dee2e6; /* Default borders */
-  --gray-300: #adb5bd; /* Hover borders */
-  --gray-400: #868e96; /* Muted text, placeholders */
-  --gray-500: #6c757d; /* Secondary text */
-  --gray-600: #495057; /* Primary text alternatives */
-  --gray-700: #383d41; /* Dark text */
-  --gray-800: #2c3e50; /* Very dark text */
+  --gray-50: #f8f9fa;
+  /* Very light backgrounds, input backgrounds */
+  --gray-100: #e9ecef;
+  /* Light borders, disabled states */
+  --gray-200: #dee2e6;
+  /* Default borders */
+  --gray-300: #adb5bd;
+  /* Hover borders */
+  --gray-400: #868e96;
+  /* Muted text, placeholders */
+  --gray-500: #6c757d;
+  /* Secondary text */
+  --gray-600: #495057;
+  /* Primary text alternatives */
+  --gray-700: #383d41;
+  /* Dark text */
+  --gray-800: #2c3e50;
+  /* Very dark text */
 
   /* Semantic State Colors - Centralized component states */
   --color-bias-positive: var(--success-color);
@@ -216,6 +225,32 @@
   --z-modal-backdrop: 1000;
   --z-modal: 1010;
   --z-tooltip: 1020;
+
+  /* ===== BREAKPOINT VARIABLES ===== */
+  /* Enhanced breakpoint system for better responsive design */
+  --breakpoint-mobile: 480px;
+  --breakpoint-tablet-portrait: 768px;
+  --breakpoint-tablet-landscape: 1024px;
+  --breakpoint-desktop: 1280px;
+}
+
+/* ===== TABLET-SPECIFIC ENHANCEMENTS ===== */
+
+/* iPad portrait optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --spacing-touch-target: 44px;
+    --spacing-tablet: calc(var(--spacing-xl) * 1.2);
+    --tablet-content-padding: calc(var(--spacing-xxl) * 1.2);
+  }
+}
+
+/* iPad landscape + desktop */
+@media (min-width: 1024px) {
+  :root {
+    --spacing-content: calc(var(--spacing-xxl) * 1.5);
+    --desktop-content-spacing: calc(var(--spacing-xxl) * 1.8);
+  }
 }
 
 /* ===== DARK MODE SUPPORT (Future) ===== */

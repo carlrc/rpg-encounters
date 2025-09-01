@@ -451,9 +451,50 @@
     background: var(--text-muted);
   }
 
-  @media (max-width: 768px) {
+  /* Set minimum width to prevent layout collapse */
+  .split-view {
+    min-width: 800px; /* Ensure split view never collapses */
+  }
+
+  /* iPad portrait and landscape - maintain split view with enhanced touch targets */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .split-view {
+      flex-direction: row; /* Always maintain horizontal split */
+      min-width: 800px; /* Prevent collapse, allow horizontal scroll instead */
+    }
+
+    .list-pane {
+      width: 35%;
+      min-width: 280px;
+      max-width: 400px;
+      max-height: none; /* Remove height restriction */
+    }
+
+    .detail-pane {
+      flex: 1;
+      padding: var(--spacing-xl);
+      min-width: 400px; /* Ensure detail pane doesn't get too narrow */
+    }
+
+    /* Larger touch targets for filter controls */
+    .filter-toggle-btn {
+      min-width: 44px;
+      min-height: 44px;
+      padding: var(--spacing-md);
+    }
+
+    /* Better spacing for list items */
+    .list-item {
+      padding: var(--spacing-lg) var(--spacing-xl);
+      margin: var(--spacing-xs) var(--spacing-sm);
+    }
+  }
+
+  /* Only collapse to mobile layout for very small screens (small phones) */
+  @media (max-width: 480px) {
     .split-view {
       flex-direction: column;
+      min-width: unset; /* Allow full collapse only on very small screens */
     }
 
     .list-pane {
@@ -464,7 +505,8 @@
 
     .detail-pane {
       flex: 1;
-      padding: 16px;
+      padding: var(--spacing-lg);
+      min-width: unset;
     }
   }
 </style>

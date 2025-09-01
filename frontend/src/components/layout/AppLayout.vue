@@ -109,13 +109,50 @@
     white-space: nowrap;
   }
 
-  @media (max-width: 768px) {
+  /* Tablet-specific navigation optimizations - maintain desktop layout */
+  @media (min-width: 481px) and (max-width: 1023px) {
+    .brand-section {
+      gap: var(--spacing-lg);
+    }
+
+    .brand-title {
+      font-size: 1.35rem; /* Responsive but not mobile-collapsed */
+    }
+
+    .logo {
+      height: 55px !important;
+    }
+
+    .main-layout {
+      margin-left: 70px; /* Maintain sidebar space */
+      min-width: 800px; /* Prevent layout collapse */
+    }
+
+    .custom-header-content {
+      padding-left: var(--spacing-lg) !important;
+    }
+  }
+
+  /* Tablet landscape and desktop adjustments */
+  @media (min-width: 1024px) and (max-width: 1366px) {
+    .main-layout {
+      max-width: calc(100vw - 90px);
+    }
+  }
+
+  /* Only collapse to mobile layout for very small screens */
+  @media (max-width: 480px) {
     .brand-title {
       font-size: 1.25rem;
     }
 
     .logo {
       height: 50px !important;
+    }
+
+    .main-layout {
+      margin-left: 0;
+      min-width: unset; /* Allow collapse only on very small screens */
     }
   }
 </style>
