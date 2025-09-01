@@ -162,7 +162,7 @@
 <script>
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
-  import apiService from '../services/api.js'
+  import { getAllVoices, getVoiceSample } from '../services/api.js'
 
   export default {
     name: 'VoiceSelector',
@@ -241,7 +241,7 @@
           initialLoading.value = true
           loadError.value = null
 
-          const voices = await apiService.getAllVoices()
+          const voices = await getAllVoices()
           allVoices.value = voices || []
         } catch (err) {
           loadError.value = 'Failed to load voices. Please try again.'
@@ -292,7 +292,7 @@
           playingVoiceId.value = voiceId
           manualVoiceError.value = null
 
-          const response = await apiService.getVoiceSample(voiceId)
+          const response = await getVoiceSample(voiceId)
           await playStreamingResponse(response, voiceId)
         } catch (err) {
           if (voiceId === manualVoiceId.value.trim()) {

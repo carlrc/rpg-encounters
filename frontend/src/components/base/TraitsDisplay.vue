@@ -64,11 +64,12 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .traits-display-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-top: 1rem;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-lg);
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -79,7 +80,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 0.75rem;
+    padding: var(--spacing-md);
     background: var(--bg-light);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-default);
@@ -91,7 +92,7 @@
   .trait-category-title {
     font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--spacing-sm);
     font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -101,7 +102,7 @@
   .trait-values-list {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    gap: var(--spacing-xs);
     justify-content: center;
     width: 100%;
     max-width: 100%;
@@ -109,7 +110,7 @@
 
   .trait-value-item {
     display: inline-block;
-    padding: 0.2rem 0.4rem;
+    padding: var(--spacing-xs);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
@@ -145,17 +146,17 @@
   @media (max-width: 768px) {
     .traits-display-grid {
       grid-template-columns: 1fr;
-      gap: 0.75rem;
+      gap: var(--spacing-md);
     }
 
     .trait-category-display {
-      padding: 0.5rem;
+      padding: var(--spacing-sm);
       min-height: 60px;
     }
 
     .trait-value-item {
       font-size: var(--font-size-xs);
-      padding: 0.15rem 0.3rem;
+      padding: var(--spacing-xs);
     }
   }
 </style>

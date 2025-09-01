@@ -4,7 +4,7 @@
  * @param {Object} difficultyClasses - The difficulty classes object from game data
  * @returns {string} - Formatted DC label
  */
-export function getDCLabel(value, difficultyClasses) {
+export const getDCLabel = (value, difficultyClasses) => {
   if (!difficultyClasses) return `DC ${value}`
 
   const dcEntries = Object.entries(difficultyClasses)

@@ -23,30 +23,19 @@
   </div>
 </template>
 
-<script>
+<script setup>
   import { useNotification } from '../../composables/useNotification'
 
-  export default {
-    name: 'NotificationContainer',
-    setup() {
-      const { notifications, removeNotification } = useNotification()
+  const { notifications, removeNotification } = useNotification()
 
-      const getIcon = (type) => {
-        const icons = {
-          success: '✓',
-          error: '⚠',
-          warning: '⚠',
-          info: 'ℹ',
-        }
-        return icons[type] || 'ℹ'
-      }
-
-      return {
-        notifications,
-        removeNotification,
-        getIcon,
-      }
-    },
+  const getIcon = (type) => {
+    const icons = {
+      success: '✓',
+      error: '⚠',
+      warning: '⚠',
+      info: 'ℹ',
+    }
+    return icons[type] || 'ℹ'
   }
 </script>
 

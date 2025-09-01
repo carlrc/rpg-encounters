@@ -13,7 +13,7 @@
           :min="gameData.threshold_limits.min"
           :max="gameData.threshold_limits.max"
           :step="gameData.threshold_limits.step"
-          class="slider"
+          class="shared-slider"
         />
       </div>
     </div>
@@ -31,7 +31,7 @@
           :min="gameData.threshold_limits.min"
           :max="gameData.threshold_limits.max"
           :step="gameData.threshold_limits.step"
-          class="slider"
+          class="shared-slider"
         />
       </div>
     </div>
@@ -49,7 +49,7 @@
           :min="gameData.threshold_limits.min"
           :max="gameData.threshold_limits.max"
           :step="gameData.threshold_limits.step"
-          class="slider"
+          class="shared-slider"
         />
       </div>
     </div>
@@ -57,7 +57,8 @@
 </template>
 
 <script>
-  import { useGameData } from '../../composables/useGameData.js'
+  import { storeToRefs } from 'pinia'
+  import { useGameDataStore } from '../../stores/gameData.js'
   import { getDCLabel } from '../../utils/dcUtils.js'
 
   export default {
@@ -81,7 +82,8 @@
     },
     emits: ['update:standardThreshold', 'update:privilegedThreshold', 'update:exclusiveThreshold'],
     setup() {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
 
       return {
         gameData,
@@ -92,55 +94,5 @@
 </script>
 
 <style scoped>
-  .threshold-manager {
-    margin: var(--spacing-lg) 0;
-  }
-
-  .threshold-section {
-    margin-bottom: var(--spacing-xl);
-  }
-
-  .threshold-slider {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .threshold-slider:last-child {
-    margin-bottom: 0;
-  }
-
-  .threshold-label {
-    display: block;
-    margin-bottom: var(--spacing-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--text-secondary);
-    font-size: var(--font-size-base);
-  }
-
-  .slider {
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--border-default);
-    outline: none;
-    -webkit-appearance: none;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-    border: none;
-  }
+  /* All ThresholdManager styles now use shared classes from components.css */
 </style>

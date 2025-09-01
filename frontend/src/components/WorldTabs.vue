@@ -15,8 +15,9 @@
 
 <script>
   import { ref, onMounted } from 'vue'
-  import apiService from '../services/api.js'
-  import { getCurrentWorldIdRef, setCurrentWorldId } from '../services/worldState.js'
+  import { getWorlds, createWorld, deleteWorld } from '../services/api.js'
+  import { useWorldStore } from '../stores/world.js'
+  import { storeToRefs } from 'pinia'
   import { useNotification } from '../composables/useNotification.js'
   import { getWorldNumber, getWorldDisplayName } from '../utils/worldUtils.js'
 
@@ -28,12 +29,14 @@
       const loading = ref(false)
       const { showError, showSuccess } = useNotification()
 
-      const currentWorldId = getCurrentWorldIdRef()
+      const worldStore = useWorldStore()
+      const { currentWorldId } = storeToRefs(worldStore)
+      const { setCurrentWorldId } = worldStore
 
       const loadWorlds = async () => {
         try {
           loading.value = true
-          worlds.value = await apiService.getWorlds()
+          worlds.value = await getWorlds()
 
           // If we have worlds and current world doesn't exist, switch to first available
           if (worlds.value.length > 0) {
@@ -60,9 +63,9 @@
         }
       }
 
-      const createWorld = async () => {
+      const handleCreateWorld = async () => {
         try {
-          const newWorld = await apiService.createWorld()
+          const newWorld = await createWorld()
           worlds.value.push(newWorld)
           setCurrentWorldId(newWorld.id)
           emit('world-created', newWorld)
@@ -74,7 +77,7 @@
         }
       }
 
-      const deleteWorld = async (worldId) => {
+      const handleDeleteWorld = async (worldId) => {
         if (worlds.value.length <= 1) {
           showError('Cannot delete the last world')
           return
@@ -92,7 +95,7 @@
         }
 
         try {
-          await apiService.deleteWorld(worldId)
+          await deleteWorld(worldId)
           worlds.value = worlds.value.filter((w) => w.id !== worldId)
 
           // If we deleted the active world, switch to the first available
@@ -118,121 +121,13 @@
         loading,
         currentWorldId,
         selectWorld,
-        createWorld,
-        deleteWorld,
+        createWorld: handleCreateWorld,
+        deleteWorld: handleDeleteWorld,
       }
     },
   }
 </script>
 
 <style scoped>
-  .world-tabs {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0;
-    background: transparent;
-    width: 60px;
-  }
-
-  .world-tab {
-    padding: 10px 8px;
-    background: white;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    cursor: pointer;
-    position: relative;
-    width: 60px;
-    height: 60px;
-    text-align: center;
-    font-weight: 600;
-    color: #495057;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    font-size: 16px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    flex-direction: column;
-  }
-
-  .world-tab.active {
-    background: linear-gradient(135deg, #007bff, #0056b3) !important;
-    color: white !important;
-    border-color: #007bff !important;
-    font-weight: 700;
-    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
-    transform: translateX(2px);
-  }
-
-  .world-tab:hover:not(.active) {
-    background: #e3f2fd;
-    border-color: #bbdefb;
-    color: #1976d2;
-    transform: translateX(1px);
-  }
-
-  .add-world-tab {
-    padding: 10px 8px;
-    background: white;
-    border: 2px dashed #6c757d;
-    border-radius: 8px;
-    cursor: pointer;
-    color: #6c757d;
-    font-weight: bold;
-    font-size: 24px;
-    transition: all 0.2s ease;
-    width: 60px;
-    height: 60px;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .add-world-tab:hover {
-    background: #f8f9fa;
-    border-color: #495057;
-    color: #495057;
-    transform: translateX(1px);
-  }
-
-  .delete-btn {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    color: #dc3545;
-    background: white;
-    font-weight: bold;
-    font-size: 12px;
-    line-height: 1;
-    padding: 2px 4px;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-    border: 1px solid #dc3545;
-    width: 18px;
-    height: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .delete-btn:hover {
-    background: #dc3545;
-    color: white;
-    transform: scale(1.1);
-  }
-
-  .world-tab.active .delete-btn {
-    border-color: rgba(255, 255, 255, 0.8);
-    color: #dc3545;
-    background: rgba(255, 255, 255, 0.9);
-  }
-
-  .world-tab.active .delete-btn:hover {
-    background: #dc3545;
-    color: white;
-  }
+  /* All WorldTabs styles now use shared classes from index.css - no component-specific styles needed */
 </style>

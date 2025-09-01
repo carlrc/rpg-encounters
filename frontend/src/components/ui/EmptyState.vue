@@ -27,32 +27,33 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .empty-detail-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #6c757d;
+    color: var(--text-muted);
     text-align: center;
     padding: 40px;
   }
 
   .empty-icon {
     font-size: 4em;
-    margin-bottom: 20px;
+    margin-bottom: var(--spacing-xl);
     opacity: 0.5;
   }
 
   .empty-detail-state h3 {
-    margin: 0 0 12px 0;
-    font-size: 1.5em;
-    color: #495057;
+    margin: 0 0 var(--spacing-md) 0;
+    font-size: var(--font-size-xl);
+    color: var(--text-secondary);
   }
 
   .empty-detail-state p {
     margin: 0;
-    font-size: 1em;
+    font-size: var(--font-size-base);
     line-height: 1.5;
   }
 </style>

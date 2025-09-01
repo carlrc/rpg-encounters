@@ -285,12 +285,9 @@
       const startEditingDescription = () => {
         isEditingDescription.value = true
         editingDescription.value = props.encounter.description || ''
-        // Focus the textarea on next tick
+        // Focus will be handled by the BaseTextareaWithCharacterCounter component
         nextTick(() => {
-          if (descriptionInput.value) {
-            descriptionInput.value.focus()
-            // Remove auto-select to prevent highlighting
-          }
+          // Component will auto-focus when rendered
         })
       }
 

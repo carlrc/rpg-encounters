@@ -31,43 +31,12 @@
       />
 
       <div v-else-if="showCreateForm" class="shared-card">
-        <div class="shared-form">
-          <!-- Title -->
-          <input
-            v-model="createForm.title"
-            placeholder="Memory title"
-            class="shared-input shared-input-name"
-          />
-
-          <!-- Content -->
-          <div class="content-field">
-            <label class="shared-field-label">Content <span class="required">*</span></label>
-            <BaseTextareaWithCharacterCounter
-              v-model="createForm.content"
-              :placeholder="`Memory content`"
-              :max-characters="1000"
-            />
-          </div>
-
-          <!-- Character Selection -->
-          <CharacterSelector
-            v-model="createForm.character_ids"
-            :characters="characters"
-            :enable-filtering="true"
-            label="Characters"
-          />
-
-          <div class="shared-actions">
-            <button
-              @click="saveCreate"
-              class="shared-btn shared-btn-success"
-              :disabled="!isCreateFormValid"
-            >
-              Save
-            </button>
-            <button @click="cancelCreate" class="shared-btn shared-btn-secondary">Cancel</button>
-          </div>
-        </div>
+        <MemoryForm
+          :characters="characters"
+          :is-editing="false"
+          @save="handleCreateSave"
+          @cancel="handleCancelCreate"
+        />
       </div>
 
       <MemoryCard
@@ -81,187 +50,132 @@
   </SplitViewLayout>
 </template>
 
-<script>
-  import { ref, reactive, computed, onMounted } from 'vue'
+<script setup>
+  import { ref, computed, onMounted, watch } from 'vue'
+  import { storeToRefs } from 'pinia'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import MemoryCard from '../components/MemoryCard.vue'
-  import BaseTextareaWithCharacterCounter from '../components/base/BaseTextareaWithCharacterCounter.vue'
-  import CharacterSelector from '../components/entity/CharacterSelector.vue'
+  import MemoryForm from '../components/MemoryForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useEntityCRUD } from '../utils/useEntityCRUD.js'
+  import { useMemoryStore } from '../stores/memories.js'
+  import { useWorldStore } from '@/stores/world'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import apiService from '../services/api.js'
+  import { getCharacters } from '../services/api.js'
 
-  const CONTENT_WORD_LIMIT = 200
+  // Initialize stores
+  const memoryStore = useMemoryStore()
+  const worldStore = useWorldStore()
 
-  export default {
-    name: 'MemoriesPage',
-    components: {
-      SplitViewLayout,
-      EmptyState,
-      MemoryCard,
-      BaseTextareaWithCharacterCounter,
-      CharacterSelector,
-      FilterPanel,
-    },
-    setup() {
-      const {
-        entities,
-        loading,
-        error,
-        selectedEntityId,
-        showCreateForm,
-        loadEntities,
-        createEntity,
-        updateEntity,
-        deleteEntity,
-        selectEntity,
-        startCreate,
-        cancelCreate,
-      } = useEntityCRUD('Memory')
+  // Reactive refs from stores
+  const {
+    entities,
+    loading,
+    error,
+    selectedEntityId,
+    selectedEntity: selectedMemory,
+    showCreateForm,
+  } = storeToRefs(memoryStore)
 
-      const characters = ref([])
+  // Actions
+  const {
+    loadEntities,
+    createEntity,
+    updateEntity,
+    deleteEntity,
+    selectEntity,
+    startCreate,
+    cancelCreate,
+  } = memoryStore
 
-      // Memory filter tabs configuration
-      const memoryFilterTabs = [
-        { id: 'characters', label: 'Characters' },
-        { id: 'race', label: 'Race' },
-        { id: 'alignment', label: 'Alignment' },
-      ]
+  const characters = ref([])
 
-      // Character filtering state
-      const activeFilters = ref({
-        characterIds: [],
-        showUnassigned: false,
-        race: [],
-        alignment: [],
-      })
+  // Memory filter tabs configuration
+  const memoryFilterTabs = [
+    { id: 'characters', label: 'Characters' },
+    { id: 'race', label: 'Race' },
+    { id: 'alignment', label: 'Alignment' },
+  ]
 
-      const createForm = reactive({
-        title: '',
-        content: '',
-        character_ids: [],
-      })
+  // Character filtering state
+  const activeFilters = ref({
+    characterIds: [],
+    showUnassigned: false,
+    race: [],
+    alignment: [],
+  })
 
-      const isCreateFormValid = computed(() => {
-        return (
-          createForm.title.trim().length > 0 &&
-          createForm.content.trim().length > 0 &&
-          createForm.character_ids.length > 0 &&
-          createForm.content.trim().split(' ').length <= CONTENT_WORD_LIMIT
-        )
-      })
+  const loadCharacters = async () => {
+    try {
+      characters.value = await getCharacters()
+    } catch (err) {
+      console.error('Error loading characters:', err)
+    }
+  }
 
-      const selectedMemory = computed(() => {
-        return entities.value.find((m) => m.id === selectedEntityId.value) || null
-      })
+  const handleCreateSave = async (formData) => {
+    try {
+      await createEntity(formData)
+    } catch (err) {
+      // Error handling is done in memory store
+    }
+  }
 
-      const loadCharacters = async () => {
-        try {
-          characters.value = await apiService.getCharacters()
-        } catch (err) {
-          console.error('Error loading characters:', err)
-        }
-      }
+  const handleCancelCreate = () => {
+    cancelCreate()
+  }
 
-      const resetCreateForm = () => {
-        Object.assign(createForm, {
-          title: '',
-          content: '',
-          character_ids: [],
-        })
-      }
+  // Watch for world changes to reload characters
+  watch(
+    () => worldStore.currentWorldId,
+    () => {
+      characters.value = []
+      loadCharacters()
+    }
+  )
 
-      const saveCreate = async () => {
-        if (isCreateFormValid.value) {
-          try {
-            const memoryData = {
-              title: createForm.title.trim(),
-              content: createForm.content.trim(),
-              character_ids: createForm.character_ids,
-            }
+  onMounted(async () => {
+    await loadEntities()
+    await loadCharacters()
+  })
 
-            await createEntity(memoryData)
-            resetCreateForm()
-          } catch (err) {
-            // Error handling is done in useEntityCRUD
-          }
-        }
-      }
+  // Filtered entities based on character filters and character attributes
+  const filteredEntities = computed(() => {
+    // First apply character ID filters (existing functionality)
+    let filtered = applyCharacterFilters(entities.value, activeFilters.value)
 
-      const handleCancelCreate = () => {
-        cancelCreate()
-        resetCreateForm()
-      }
+    // Then apply character attribute filters (new functionality)
+    filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
 
-      onMounted(async () => {
-        await loadEntities()
-        await loadCharacters()
-      })
+    return filtered
+  })
 
-      // Filtered entities based on character filters and character attributes
-      const filteredEntities = computed(() => {
-        // First apply character ID filters (existing functionality)
-        let filtered = applyCharacterFilters(entities.value, activeFilters.value)
+  const hasActiveCharacterFilters = computed(() => {
+    return (
+      activeFilters.value.characterIds.length > 0 ||
+      activeFilters.value.showUnassigned ||
+      activeFilters.value.race.length > 0 ||
+      activeFilters.value.alignment.length > 0
+    )
+  })
 
-        // Then apply character attribute filters (new functionality)
-        filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
-
-        return filtered
-      })
-
-      const hasActiveCharacterFilters = computed(() => {
-        return (
-          activeFilters.value.characterIds.length > 0 ||
-          activeFilters.value.showUnassigned ||
-          activeFilters.value.race.length > 0 ||
-          activeFilters.value.alignment.length > 0
-        )
-      })
-
-      const clearCharacterFilters = () => {
-        activeFilters.value.characterIds = []
-        activeFilters.value.showUnassigned = false
-        activeFilters.value.race = []
-        activeFilters.value.alignment = []
-      }
-
-      return {
-        entities,
-        filteredEntities,
-        activeFilters,
-        memoryFilterTabs,
-        loading,
-        error,
-        selectedEntityId,
-        showCreateForm,
-        selectedMemory,
-        characters,
-        createForm,
-        isCreateFormValid,
-        CONTENT_WORD_LIMIT,
-        hasActiveCharacterFilters,
-        selectEntity,
-        startCreate,
-        updateEntity,
-        deleteEntity,
-        saveCreate,
-        cancelCreate: handleCancelCreate,
-        clearCharacterFilters,
-      }
-    },
+  const clearCharacterFilters = () => {
+    activeFilters.value.characterIds = []
+    activeFilters.value.showUnassigned = false
+    activeFilters.value.race = []
+    activeFilters.value.alignment = []
   }
 </script>
 
 <style scoped>
+  /* Page-specific styles only - shared styles handled globally */
   .content-field {
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--spacing-xxl);
   }
 
   .required {
-    color: #dc3545;
-    font-weight: bold;
+    color: var(--danger-color);
+    font-weight: var(--font-weight-bold);
   }
 
   /* Ensure text areas take full width */

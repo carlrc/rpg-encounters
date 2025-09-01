@@ -75,9 +75,10 @@
 
 <script>
   import { ref, reactive, computed } from 'vue'
+  import { storeToRefs } from 'pinia'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { getCharacterName } from '../utils/characterUtils.js'
 
   const CONTENT_WORD_LIMIT = 200
@@ -100,7 +101,8 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const isEditing = ref(false)
 
       const editForm = reactive({
@@ -163,18 +165,12 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .memory-content {
     flex: 1;
   }
 
-  .character-limit-info {
-    font-size: 0.8em;
-    color: #6c757d;
-    text-align: right;
-    margin-top: 4px;
-  }
-
   .content-field {
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing-lg);
   }
 </style>

@@ -153,10 +153,11 @@
 
 <script>
   import { ref, computed, watch } from 'vue'
+  import { storeToRefs } from 'pinia'
   import FilterTabs from './FilterTabs.vue'
   import FilterMultiSelect from './FilterMultiSelect.vue'
   import CharacterSelector from '../entity/CharacterSelector.vue'
-  import { useGameData } from '../../composables/useGameData.js'
+  import { useGameDataStore } from '../../stores/gameData.js'
   import { useDropdownOptions } from '../../composables/useDropdownOptions.js'
 
   export default {
@@ -186,7 +187,8 @@
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const { genders } = useDropdownOptions()
 
       const activeTab = ref(props.availableTabs[0]?.id || 'race')
@@ -305,30 +307,31 @@
 </script>
 
 <style scoped>
+  /* Component-specific styles only - shared styles handled globally */
   .filter-panel {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
     overflow: hidden;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-card);
     max-height: 400px;
     display: flex;
     flex-direction: column;
   }
 
   .filter-panel-content {
-    padding: 1rem;
+    padding: var(--spacing-lg);
     flex: 1;
     overflow-y: auto;
     min-height: 0;
   }
 
   .filter-panel-content.simple {
-    padding: 0.75rem;
+    padding: var(--spacing-md);
   }
 
   .filter-section {
-    animation: fadeIn 0.2s ease;
+    animation: fadeIn var(--transition-fast);
     flex-shrink: 0;
   }
 
@@ -336,31 +339,31 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--spacing-md);
   }
 
   .filter-section-header h4 {
     margin: 0;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
   }
 
   .clear-filter-btn {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    background: white;
-    color: #6b7280;
-    font-size: 0.75rem;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    background: var(--bg-white);
+    color: var(--text-muted);
+    font-size: var(--font-size-xs);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-fast);
   }
 
   .clear-filter-btn:hover {
-    background: #f9fafb;
-    border-color: #9ca3af;
-    color: #374151;
+    background: var(--bg-light);
+    border-color: var(--text-muted);
+    color: var(--text-primary);
   }
 
   /* Character filter section */
@@ -385,17 +388,17 @@
   }
 
   .filter-panel-content::-webkit-scrollbar-track {
-    background: #f1f5f9;
+    background: var(--bg-light);
     border-radius: 3px;
   }
 
   .filter-panel-content::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: var(--border-default);
     border-radius: 3px;
   }
 
   .filter-panel-content::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: var(--text-muted);
   }
 
   /* Responsive adjustments */
@@ -405,7 +408,7 @@
     }
 
     .filter-panel-content {
-      padding: 0.75rem;
+      padding: var(--spacing-md);
     }
   }
 </style>

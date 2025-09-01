@@ -234,9 +234,10 @@
 
 <script>
   import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
@@ -265,7 +266,8 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
-      const { gameData } = useGameData()
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       const isEditing = ref(false)
 
       // Abilities & Skills display functionality
@@ -429,20 +431,13 @@
 </script>
 
 <style scoped>
-  /* PlayerCard now uses shared styles - minimal custom styles needed */
+  /* Component-specific styles only - shared styles handled globally */
   .player-fields {
     flex: 1;
   }
 
-  .character-limit-info {
-    font-size: 0.8em;
-    color: #6c757d;
-    text-align: right;
-    margin-top: 4px;
-  }
-
   .appearance-field {
-    margin-bottom: 16px;
+    margin-bottom: var(--spacing-lg);
   }
 
   .abilities-skills-section {
@@ -459,54 +454,7 @@
     text-align: center;
   }
 
-  /* TraitsDisplay component handles the display styling */
-
-  .threshold-slider {
-    margin-bottom: var(--spacing-lg);
-  }
-
-  .threshold-slider:last-child {
-    margin-bottom: 0;
-  }
-
-  .threshold-label {
-    display: block;
-    margin-bottom: var(--spacing-sm);
-    font-weight: var(--font-weight-medium);
-    color: var(--text-secondary);
-    font-size: var(--font-size-base);
-    text-align: center;
-  }
-
-  .slider {
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--border-default);
-    outline: none;
-    -webkit-appearance: none;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-  }
-
-  .slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: var(--radius-round);
-    background: var(--primary-color);
-    cursor: pointer;
-    border: none;
-  }
-
-  /* Player title section - replaces shared-title for proper layout */
+  /* Player title section - custom layout for dual names */
   .player-title-section {
     margin: 0 0 var(--spacing-xxl) 0;
     text-align: center;
@@ -523,11 +471,9 @@
 
   .character-name {
     margin: 0;
-    color: #6c757d;
-    font-size: 1.2em;
-    font-weight: 500;
+    color: var(--text-muted);
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-medium);
     font-style: italic;
   }
-
-  /* Responsive styles handled by TraitsDisplay component */
 </style>

@@ -363,11 +363,12 @@
   </div>
 </template>
 
-<script>
+<script setup>
   import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
+  import { storeToRefs } from 'pinia'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { useGameData } from '../composables/useGameData.js'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import AvatarUpload from './base/AvatarUpload.vue'
@@ -375,420 +376,374 @@
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
   import VoiceSelector from './VoiceSelector.vue'
-  import apiService from '../services/api.js'
+  import { getVoiceSample } from '../services/api.js'
 
-  export default {
-    name: 'CharacterCard',
-    components: {
-      AvatarUpload,
-      BaseTextareaWithCharacterCounter,
-      BiasPreferenceRow,
-      TraitsDisplay,
-      VoiceSelector,
-    },
-    props: {
-      character: {
-        type: Object,
-        required: true,
-        validator: (value) => {
-          return (
-            value &&
-            typeof value.id !== 'undefined' &&
-            typeof value.name === 'string' &&
-            value.name.length > 0
-          )
-        },
+  const props = defineProps({
+    character: {
+      type: Object,
+      required: true,
+      validator: (value) => {
+        return (
+          value &&
+          typeof value.id !== 'undefined' &&
+          typeof value.name === 'string' &&
+          value.name.length > 0
+        )
       },
     },
-    emits: ['update', 'delete'],
-    setup(props, { emit }) {
-      const { gameData } = useGameData()
-      const { playStreamingResponse, isLoading: previewLoading } = useAudioPlayer()
-      const isEditing = ref(false)
+  })
 
-      const editForm = reactive({
-        name: '',
-        avatar: null,
-        race: '',
-        size: '',
-        alignment: '',
-        gender: '',
-        profession: '',
-        background: '',
-        communication_style: '',
-        communication_style_type: 'Custom',
-        motivation: '',
-        voice_id: '',
-        voice_name: '',
-        biases: {
-          race_preferences: [],
-          class_preferences: [],
-          gender_preferences: [],
-          size_preferences: [],
-        },
-      })
+  const emit = defineEmits(['update', 'delete'])
 
-      const { isFormValid } = useFormValidation(editForm, 'CHARACTER')
+  const gameDataStore = useGameDataStore()
+  const { data: gameData } = storeToRefs(gameDataStore)
+  const { playStreamingResponse, isLoading: previewLoading } = useAudioPlayer()
+  const isEditing = ref(false)
 
-      const { genders, getGenderEmoji } = useDropdownOptions()
-
-      // Store cleanup functions for proper memory management
-      const cleanupFunctions = []
-
-      // Store original AI-triggering field values to detect changes
-      const originalAIFields = ref({
-        background: '',
-        motivation: '',
-        communication_style: '',
-        communication_style_type: '',
-      })
-
-      const loadInfluenceProfile = () => {
-        // Influence profiles are now part of the character model
-        const character = props.character
-        editForm.biases = {
-          race_preferences: Object.entries(character.race_preferences || {}).map(
-            ([option, value]) => ({ option, value })
-          ),
-          class_preferences: Object.entries(character.class_preferences || {}).map(
-            ([option, value]) => ({ option, value })
-          ),
-          gender_preferences: Object.entries(character.gender_preferences || {}).map(
-            ([option, value]) => ({ option, value })
-          ),
-          size_preferences: Object.entries(character.size_preferences || {}).map(
-            ([option, value]) => ({ option, value })
-          ),
-        }
-      }
-
-      const startEdit = async () => {
-        editForm.name = props.character.name || ''
-        editForm.avatar = props.character.avatar || null
-        editForm.race = props.character.race || ''
-        editForm.size = props.character.size || ''
-        editForm.alignment = props.character.alignment || ''
-        editForm.gender = props.character.gender || ''
-        editForm.profession = props.character.profession || ''
-        editForm.background = props.character.background || ''
-        editForm.communication_style = props.character.communication_style || ''
-        editForm.communication_style_type = props.character.communication_style_type || 'Custom'
-
-        // If no communication_style_type is set but there's communication_style content,
-        // it's likely an existing custom style
-        if (!props.character.communication_style_type && props.character.communication_style) {
-          editForm.communication_style_type = 'Custom'
-        }
-        editForm.motivation = props.character.motivation || ''
-        editForm.voice_id = props.character.voice_id || ''
-        editForm.voice_name = props.character.voice_name || ''
-
-        // Store original AI-triggering field values for change detection
-        originalAIFields.value = {
-          background: props.character.background || '',
-          motivation: props.character.motivation || '',
-          communication_style: props.character.communication_style || '',
-          communication_style_type: props.character.communication_style_type || 'Custom',
-        }
-
-        // Load existing influence profile
-        await loadInfluenceProfile()
-
-        isEditing.value = true
-      }
-
-      const cancelEdit = () => {
-        isEditing.value = false
-      }
-
-      const convertBiasesToObject = (arr) => {
-        const obj = {}
-        arr.forEach(({ option, value }) => {
-          if (option) {
-            // Only include items with valid options
-            obj[option] = value
-          }
-        })
-        return obj
-      }
-
-      const saveEdit = async () => {
-        if (isFormValid.value) {
-          // Always send non-AI-triggering fields
-          const updateData = {
-            name: editForm.name.trim(),
-            avatar: editForm.avatar,
-            race: editForm.race,
-            size: editForm.size,
-            alignment: editForm.alignment,
-            gender: editForm.gender,
-            profession: editForm.profession.trim(),
-            voice_id: editForm.voice_id || '',
-            voice_name: editForm.voice_name || '',
-            // Include bias profile fields
-            race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
-            class_preferences: convertBiasesToObject(editForm.biases.class_preferences),
-            gender_preferences: convertBiasesToObject(editForm.biases.gender_preferences),
-            size_preferences: convertBiasesToObject(editForm.biases.size_preferences),
-            appearance_keywords: [],
-            storytelling_keywords: [],
-          }
-
-          // Only include AI-triggering fields if they've changed
-          const currentBackground = editForm.background.trim()
-          const currentMotivation = editForm.motivation.trim()
-          const currentCommStyle = (editForm.communication_style || '').trim()
-          const currentCommStyleType = editForm.communication_style_type
-
-          if (currentBackground !== originalAIFields.value.background) {
-            updateData.background = currentBackground
-          }
-
-          if (currentMotivation !== originalAIFields.value.motivation) {
-            updateData.motivation = currentMotivation
-          }
-
-          if (currentCommStyle !== originalAIFields.value.communication_style) {
-            updateData.communication_style = currentCommStyle
-          }
-
-          if (currentCommStyleType !== originalAIFields.value.communication_style_type) {
-            updateData.communication_style_type = currentCommStyleType
-          }
-
-          emit('update', props.character.id, updateData)
-
-          isEditing.value = false
-        }
-      }
-
-      const addBiasPreference = (category) => {
-        // Add a new empty preference object to the array
-        editForm.biases[category].push({ option: '', value: 0 })
-      }
-
-      const updateBiasPreference = (category, index, option, value) => {
-        if (editForm.biases[category][index]) {
-          editForm.biases[category][index].option = option
-          editForm.biases[category][index].value = value
-        }
-      }
-
-      const removeBiasPreference = (category, index) => {
-        editForm.biases[category].splice(index, 1)
-      }
-
-      // Specific handler methods to avoid inline arrow functions
-      const handleRaceBiasChange = (index, option, value) => {
-        updateBiasPreference('race_preferences', index, option, value)
-      }
-
-      const handleRaceBiasRemove = (index) => {
-        removeBiasPreference('race_preferences', index)
-      }
-
-      const handleClassBiasChange = (index, option, value) => {
-        updateBiasPreference('class_preferences', index, option, value)
-      }
-
-      const handleClassBiasRemove = (index) => {
-        removeBiasPreference('class_preferences', index)
-      }
-
-      const handleGenderBiasChange = (index, option, value) => {
-        updateBiasPreference('gender_preferences', index, option, value)
-      }
-
-      const handleGenderBiasRemove = (index) => {
-        removeBiasPreference('gender_preferences', index)
-      }
-
-      const handleSizeBiasChange = (index, option, value) => {
-        updateBiasPreference('size_preferences', index, option, value)
-      }
-
-      const handleSizeBiasRemove = (index) => {
-        removeBiasPreference('size_preferences', index)
-      }
-
-      // Watch for communication style type changes
-      const handleCommunicationStyleTypeChange = () => {
-        // Clear communication_style when switching away from Custom
-        if (editForm.communication_style_type !== 'Custom') {
-          editForm.communication_style = ''
-        }
-      }
-
-      // Handle voice selection
-      const handleVoiceSelection = (voice) => {
-        editForm.voice_id = voice.voice_id
-        editForm.voice_name = voice.name
-      }
-
-      // Voice preview method
-      const playCharacterVoiceSample = async () => {
-        if (!props.character.voice_id || previewLoading.value) return
-
-        try {
-          const response = await apiService.getVoiceSample(props.character.voice_id)
-          await playStreamingResponse(response, `character-${props.character.id}`)
-        } catch (err) {
-          console.error('Failed to play character voice sample:', err)
-        }
-      }
-
-      const deleteCharacter = () => {
-        if (confirm(`Are you sure you want to delete ${props.character.name}?`)) {
-          emit('delete', props.character.id)
-        }
-      }
-
-      // Bias display functionality
-      const displayBiases = ref({})
-
-      const loadDisplayBiases = () => {
-        const character = props.character
-        const biases = {}
-
-        // Only include categories that have preferences
-        if (character.race_preferences && Object.keys(character.race_preferences).length > 0) {
-          biases.race_preferences = character.race_preferences
-        }
-        if (character.class_preferences && Object.keys(character.class_preferences).length > 0) {
-          biases.class_preferences = character.class_preferences
-        }
-        if (character.gender_preferences && Object.keys(character.gender_preferences).length > 0) {
-          biases.gender_preferences = character.gender_preferences
-        }
-        if (character.size_preferences && Object.keys(character.size_preferences).length > 0) {
-          biases.size_preferences = character.size_preferences
-        }
-
-        displayBiases.value = biases
-      }
-
-      const biasesCategoryNames = {
-        race_preferences: 'Race',
-        class_preferences: 'Class',
-        gender_preferences: 'Gender',
-        alignment_preferences: 'Alignment',
-        size_preferences: 'Size',
-      }
-
-      const getBiasClass = (value) => {
-        if (value > 0) return 'bias-positive'
-        if (value < 0) return 'bias-negative'
-        return 'bias-neutral'
-      }
-
-      // Computed properties removed - layout handled by TraitsDisplay component
-
-      // Load display biases when component mounts and when character changes
-      onMounted(() => {
-        loadDisplayBiases()
-      })
-
-      // Use watchEffect for automatic cleanup and better performance
-      const stopCharacterIdWatcher = watchEffect(() => {
-        if (props.character.id) {
-          loadDisplayBiases()
-        }
-      })
-
-      // Watch for changes in character bias properties with cleanup
-      const stopBiasWatcher = watch(
-        () => [
-          props.character.race_preferences,
-          props.character.class_preferences,
-          props.character.gender_preferences,
-          props.character.size_preferences,
-        ],
-        () => {
-          loadDisplayBiases()
-        },
-        { deep: true }
-      )
-
-      // Add watchers to cleanup functions
-      cleanupFunctions.push(stopCharacterIdWatcher, stopBiasWatcher)
-
-      // Clean up on unmount to prevent memory leaks
-      onUnmounted(() => {
-        cleanupFunctions.forEach((cleanup) => cleanup())
-      })
-
-      // Watch communication style type changes to clear custom input
-      watch(() => editForm.communication_style_type, handleCommunicationStyleTypeChange)
-
-      return {
-        gameData,
-        isEditing,
-        editForm,
-        races: computed(() => gameData.value.races),
-        classes: computed(() => gameData.value.classes),
-        genders,
-        sizes: computed(() => gameData.value.sizes.character),
-        alignments: computed(() => gameData.value.alignments),
-        isFormValid,
-        getInitials,
-        getGenderEmoji,
-        startEdit,
-        cancelEdit,
-        saveEdit,
-        addBiasPreference,
-        updateBiasPreference,
-        removeBiasPreference,
-        deleteCharacter,
-        displayBiases,
-        biasesCategoryNames,
-        getBiasClass,
-        handleRaceBiasChange,
-        handleRaceBiasRemove,
-        handleClassBiasChange,
-        handleClassBiasRemove,
-        handleGenderBiasChange,
-        handleGenderBiasRemove,
-        handleSizeBiasChange,
-        handleSizeBiasRemove,
-        handleCommunicationStyleTypeChange,
-        handleVoiceSelection,
-        previewLoading,
-        playCharacterVoiceSample,
-      }
+  const editForm = reactive({
+    name: '',
+    avatar: null,
+    race: '',
+    size: '',
+    alignment: '',
+    gender: '',
+    profession: '',
+    background: '',
+    communication_style: '',
+    communication_style_type: 'Custom',
+    motivation: '',
+    voice_id: '',
+    voice_name: '',
+    biases: {
+      race_preferences: [],
+      class_preferences: [],
+      gender_preferences: [],
+      size_preferences: [],
     },
+  })
+
+  const { isFormValid } = useFormValidation(editForm, 'CHARACTER')
+
+  const { genders, getGenderEmoji } = useDropdownOptions()
+
+  // Store cleanup functions for proper memory management
+  const cleanupFunctions = []
+
+  // Store original AI-triggering field values to detect changes
+  const originalAIFields = ref({
+    background: '',
+    motivation: '',
+    communication_style: '',
+    communication_style_type: '',
+  })
+
+  // Computed properties
+  const races = computed(() => gameData.value.races)
+  const classes = computed(() => gameData.value.classes)
+  const sizes = computed(() => gameData.value.sizes.character)
+  const alignments = computed(() => gameData.value.alignments)
+
+  const loadInfluenceProfile = () => {
+    // Influence profiles are now part of the character model
+    const character = props.character
+    editForm.biases = {
+      race_preferences: Object.entries(character.race_preferences || {}).map(([option, value]) => ({
+        option,
+        value,
+      })),
+      class_preferences: Object.entries(character.class_preferences || {}).map(
+        ([option, value]) => ({ option, value })
+      ),
+      gender_preferences: Object.entries(character.gender_preferences || {}).map(
+        ([option, value]) => ({ option, value })
+      ),
+      size_preferences: Object.entries(character.size_preferences || {}).map(([option, value]) => ({
+        option,
+        value,
+      })),
+    }
   }
+
+  const startEdit = async () => {
+    editForm.name = props.character.name || ''
+    editForm.avatar = props.character.avatar || null
+    editForm.race = props.character.race || ''
+    editForm.size = props.character.size || ''
+    editForm.alignment = props.character.alignment || ''
+    editForm.gender = props.character.gender || ''
+    editForm.profession = props.character.profession || ''
+    editForm.background = props.character.background || ''
+    editForm.communication_style = props.character.communication_style || ''
+    editForm.communication_style_type = props.character.communication_style_type || 'Custom'
+
+    // If no communication_style_type is set but there's communication_style content,
+    // it's likely an existing custom style
+    if (!props.character.communication_style_type && props.character.communication_style) {
+      editForm.communication_style_type = 'Custom'
+    }
+    editForm.motivation = props.character.motivation || ''
+    editForm.voice_id = props.character.voice_id || ''
+    editForm.voice_name = props.character.voice_name || ''
+
+    // Store original AI-triggering field values for change detection
+    originalAIFields.value = {
+      background: props.character.background || '',
+      motivation: props.character.motivation || '',
+      communication_style: props.character.communication_style || '',
+      communication_style_type: props.character.communication_style_type || 'Custom',
+    }
+
+    // Load existing influence profile
+    await loadInfluenceProfile()
+
+    isEditing.value = true
+  }
+
+  const cancelEdit = () => {
+    isEditing.value = false
+  }
+
+  const convertBiasesToObject = (arr) => {
+    const obj = {}
+    arr.forEach(({ option, value }) => {
+      if (option) {
+        // Only include items with valid options
+        obj[option] = value
+      }
+    })
+    return obj
+  }
+
+  const saveEdit = async () => {
+    if (isFormValid.value) {
+      // Always send non-AI-triggering fields
+      const updateData = {
+        name: editForm.name.trim(),
+        avatar: editForm.avatar,
+        race: editForm.race,
+        size: editForm.size,
+        alignment: editForm.alignment,
+        gender: editForm.gender,
+        profession: editForm.profession.trim(),
+        voice_id: editForm.voice_id || '',
+        voice_name: editForm.voice_name || '',
+        // Include bias profile fields
+        race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
+        class_preferences: convertBiasesToObject(editForm.biases.class_preferences),
+        gender_preferences: convertBiasesToObject(editForm.biases.gender_preferences),
+        size_preferences: convertBiasesToObject(editForm.biases.size_preferences),
+        appearance_keywords: [],
+        storytelling_keywords: [],
+      }
+
+      // Only include AI-triggering fields if they've changed
+      const currentBackground = editForm.background.trim()
+      const currentMotivation = editForm.motivation.trim()
+      const currentCommStyle = (editForm.communication_style || '').trim()
+      const currentCommStyleType = editForm.communication_style_type
+
+      if (currentBackground !== originalAIFields.value.background) {
+        updateData.background = currentBackground
+      }
+
+      if (currentMotivation !== originalAIFields.value.motivation) {
+        updateData.motivation = currentMotivation
+      }
+
+      if (currentCommStyle !== originalAIFields.value.communication_style) {
+        updateData.communication_style = currentCommStyle
+      }
+
+      if (currentCommStyleType !== originalAIFields.value.communication_style_type) {
+        updateData.communication_style_type = currentCommStyleType
+      }
+
+      emit('update', props.character.id, updateData)
+
+      isEditing.value = false
+    }
+  }
+
+  const addBiasPreference = (category) => {
+    // Add a new empty preference object to the array
+    editForm.biases[category].push({ option: '', value: 0 })
+  }
+
+  const updateBiasPreference = (category, index, option, value) => {
+    if (editForm.biases[category][index]) {
+      editForm.biases[category][index].option = option
+      editForm.biases[category][index].value = value
+    }
+  }
+
+  const removeBiasPreference = (category, index) => {
+    editForm.biases[category].splice(index, 1)
+  }
+
+  // Specific handler methods to avoid inline arrow functions
+  const handleRaceBiasChange = (index, option, value) => {
+    updateBiasPreference('race_preferences', index, option, value)
+  }
+
+  const handleRaceBiasRemove = (index) => {
+    removeBiasPreference('race_preferences', index)
+  }
+
+  const handleClassBiasChange = (index, option, value) => {
+    updateBiasPreference('class_preferences', index, option, value)
+  }
+
+  const handleClassBiasRemove = (index) => {
+    removeBiasPreference('class_preferences', index)
+  }
+
+  const handleGenderBiasChange = (index, option, value) => {
+    updateBiasPreference('gender_preferences', index, option, value)
+  }
+
+  const handleGenderBiasRemove = (index) => {
+    removeBiasPreference('gender_preferences', index)
+  }
+
+  const handleSizeBiasChange = (index, option, value) => {
+    updateBiasPreference('size_preferences', index, option, value)
+  }
+
+  const handleSizeBiasRemove = (index) => {
+    removeBiasPreference('size_preferences', index)
+  }
+
+  // Watch for communication style type changes
+  const handleCommunicationStyleTypeChange = () => {
+    // Clear communication_style when switching away from Custom
+    if (editForm.communication_style_type !== 'Custom') {
+      editForm.communication_style = ''
+    }
+  }
+
+  // Handle voice selection
+  const handleVoiceSelection = (voice) => {
+    editForm.voice_id = voice.voice_id
+    editForm.voice_name = voice.name
+  }
+
+  // Voice preview method
+  const playCharacterVoiceSample = async () => {
+    if (!props.character.voice_id || previewLoading.value) return
+
+    try {
+      const response = await getVoiceSample(props.character.voice_id)
+      await playStreamingResponse(response, `character-${props.character.id}`)
+    } catch (err) {
+      console.error('Failed to play character voice sample:', err)
+    }
+  }
+
+  const deleteCharacter = () => {
+    if (confirm(`Are you sure you want to delete ${props.character.name}?`)) {
+      emit('delete', props.character.id)
+    }
+  }
+
+  // Bias display functionality
+  const displayBiases = ref({})
+
+  const loadDisplayBiases = () => {
+    const character = props.character
+    const biases = {}
+
+    // Only include categories that have preferences
+    if (character.race_preferences && Object.keys(character.race_preferences).length > 0) {
+      biases.race_preferences = character.race_preferences
+    }
+    if (character.class_preferences && Object.keys(character.class_preferences).length > 0) {
+      biases.class_preferences = character.class_preferences
+    }
+    if (character.gender_preferences && Object.keys(character.gender_preferences).length > 0) {
+      biases.gender_preferences = character.gender_preferences
+    }
+    if (character.size_preferences && Object.keys(character.size_preferences).length > 0) {
+      biases.size_preferences = character.size_preferences
+    }
+
+    displayBiases.value = biases
+  }
+
+  const biasesCategoryNames = {
+    race_preferences: 'Race',
+    class_preferences: 'Class',
+    gender_preferences: 'Gender',
+    alignment_preferences: 'Alignment',
+    size_preferences: 'Size',
+  }
+
+  const getBiasClass = (value) => {
+    if (value > 0) return 'bias-positive'
+    if (value < 0) return 'bias-negative'
+    return 'bias-neutral'
+  }
+
+  // Load display biases when component mounts and when character changes
+  onMounted(() => {
+    loadDisplayBiases()
+  })
+
+  // Use watchEffect for automatic cleanup and better performance
+  const stopCharacterIdWatcher = watchEffect(() => {
+    if (props.character.id) {
+      loadDisplayBiases()
+    }
+  })
+
+  // Watch for changes in character bias properties with cleanup
+  const stopBiasWatcher = watch(
+    () => [
+      props.character.race_preferences,
+      props.character.class_preferences,
+      props.character.gender_preferences,
+      props.character.size_preferences,
+    ],
+    () => {
+      loadDisplayBiases()
+    },
+    { deep: true }
+  )
+
+  // Add watchers to cleanup functions
+  cleanupFunctions.push(stopCharacterIdWatcher, stopBiasWatcher)
+
+  // Clean up on unmount to prevent memory leaks
+  onUnmounted(() => {
+    cleanupFunctions.forEach((cleanup) => cleanup())
+  })
+
+  // Watch communication style type changes to clear custom input
+  watch(() => editForm.communication_style_type, handleCommunicationStyleTypeChange)
 </script>
 
 <style scoped>
-  /* CharacterCard now uses shared styles - minimal custom styles needed */
+  /* Component-specific styles only - shared styles handled globally */
   .character-fields {
     flex: 1;
   }
 
-  .character-limit-info {
-    font-size: 0.8em;
-    color: #6c757d;
-    text-align: right;
-    margin-top: 4px;
-  }
-
   .custom-communication-style {
-    margin-top: 12px;
+    margin-top: var(--spacing-md);
   }
 
   .communication-style-display {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 
   .communication-style-type {
-    font-weight: 600;
-    color: #007bff;
-    font-size: 0.9rem;
-    padding: 4px 8px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--primary-color);
+    font-size: var(--font-size-base);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background-color: var(--bg-light);
+    border-radius: var(--radius-sm);
     display: block;
     width: fit-content;
     margin: 0 auto;
@@ -797,37 +752,12 @@
 
   .preset-communication-style {
     font-style: italic;
-    color: #6c757d;
-    font-size: 0.9rem;
-    margin-top: 4px;
+    color: var(--text-muted);
+    font-size: var(--font-size-base);
+    margin-top: var(--spacing-xs);
   }
 
-  /* Bias Section Styles */
-
-  .bias-section-description {
-    margin: 0 0 1.5rem 0;
-    font-size: 0.875rem;
-    color: #6c757d;
-    line-height: 1.4;
-  }
-
-  .bias-category {
-    margin-bottom: 1.5rem;
-  }
-
-  .bias-category:last-child {
-    margin-bottom: 0;
-  }
-
-  .bias-category-label {
-    display: block;
-    font-weight: 600;
-    color: #495057;
-    margin-bottom: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  /* Voice display - minimal custom styles, reuse shared styles */
+  /* Voice display - component-specific functionality only */
   .voice-centered-container {
     display: flex;
     justify-content: center;
@@ -838,9 +768,9 @@
     border: none;
     font-size: 1rem;
     cursor: pointer;
-    transition: transform 0.2s ease;
-    margin-left: 8px;
-    padding: 2px 4px;
+    transition: transform var(--transition-fast);
+    margin-left: var(--spacing-sm);
+    padding: var(--spacing-xs);
   }
 
   .voice-preview-btn:hover:not(:disabled) {
@@ -852,6 +782,4 @@
     transform: none;
     opacity: 0.6;
   }
-
-  /* TraitsDisplay component handles the display styling */
 </style>
