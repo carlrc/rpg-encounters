@@ -1,8 +1,5 @@
 <template>
   <div class="shared-form">
-    <!-- Avatar Upload -->
-    <AvatarUpload v-model="form.avatar" :name="form.name" />
-
     <!-- Real Name -->
     <input
       v-model="form.rl_name"
@@ -146,13 +143,11 @@
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
   export default {
     name: 'PlayerForm',
     components: {
-      AvatarUpload,
       BaseTextareaWithCharacterCounter,
     },
     props: {
@@ -175,7 +170,6 @@
       const form = reactive({
         name: props.initialData.name || '',
         rl_name: props.initialData.rl_name || '',
-        avatar: props.initialData.avatar || null,
         appearance: props.initialData.appearance || '',
         race: props.initialData.race || '',
         class_name: props.initialData.class_name || '',
@@ -201,7 +195,6 @@
           const formData = {
             name: form.name.trim(),
             rl_name: form.rl_name.trim(),
-            avatar: form.avatar,
             appearance: form.appearance.trim(),
             race: form.race,
             class_name: form.class_name,

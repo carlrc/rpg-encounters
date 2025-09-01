@@ -18,9 +18,6 @@
         :available-tabs="characterFilterTabs"
       />
     </template>
-    <template #footer-actions>
-      <ImportButton entity-type="Character" :importing="importing" @import="handleImportFile" />
-    </template>
 
     <template #detail-content>
       <div v-if="loading" class="shared-loading">Loading characters...</div>
@@ -55,11 +52,9 @@
   import EmptyState from '../components/ui/EmptyState.vue'
   import CharacterCard from '../components/CharacterCard.vue'
   import CharacterForm from '../components/CharacterForm.vue'
-  import ImportButton from '../components/ui/ImportButton.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useCharacterStore } from '../stores/characters.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import { useFileImport } from '../utils/useFileImport.js'
   import { applyFilters } from '../utils/filterUtils.js'
 
   const route = useRoute()
@@ -90,8 +85,6 @@
     startCreate,
     cancelCreate,
   } = characterStore
-
-  const { importing, handleImportFile: handleFileImport } = useFileImport('Character')
 
   // Character filter tabs configuration
   const characterFilterTabs = [
@@ -126,20 +119,6 @@
 
   const handleCancelCreate = () => {
     cancelCreate()
-  }
-
-  const handleImportFile = (event) => {
-    handleFileImport(
-      event,
-      createEntity,
-      (message) => {
-        // Success message - could emit to parent or use toast
-        console.log('Import success:', message)
-      },
-      (errorMessage) => {
-        error.value = errorMessage
-      }
-    )
   }
 
   onMounted(async () => {

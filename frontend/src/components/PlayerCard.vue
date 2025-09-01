@@ -89,8 +89,20 @@
     </div>
 
     <div v-else class="shared-form">
-      <!-- Avatar Upload -->
-      <AvatarUpload v-model="editForm.avatar" :name="editForm.name" />
+      <!-- Avatar Display (Read-only) -->
+      <div class="shared-avatar-section">
+        <div class="shared-avatar-container">
+          <img
+            v-if="player.avatar"
+            :src="player.avatar"
+            :alt="player.name"
+            class="shared-avatar-image"
+          />
+          <div v-else class="shared-avatar-placeholder">
+            <span class="shared-avatar-initials">{{ getInitials(player.name) }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- Real Name -->
       <input
@@ -239,14 +251,12 @@
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import { getInitials } from '../utils/avatarUtils.js'
-  import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
 
   export default {
     name: 'PlayerCard',
     components: {
-      AvatarUpload,
       BaseTextareaWithCharacterCounter,
       TraitsDisplay,
     },
@@ -276,7 +286,6 @@
       const editForm = reactive({
         name: '',
         rl_name: '',
-        avatar: null,
         appearance: '',
         race: '',
         class_name: '',
@@ -297,7 +306,6 @@
       const startEdit = () => {
         editForm.name = props.player.name || ''
         editForm.rl_name = props.player.rl_name || ''
-        editForm.avatar = props.player.avatar || null
         editForm.appearance = props.player.appearance || ''
         editForm.race = props.player.race || ''
         editForm.class_name = props.player.class_name || ''
@@ -327,7 +335,6 @@
           emit('update', props.player.id, {
             name: editForm.name.trim(),
             rl_name: editForm.rl_name.trim(),
-            avatar: editForm.avatar,
             appearance: editForm.appearance.trim(),
             race: editForm.race,
             class_name: editForm.class_name,

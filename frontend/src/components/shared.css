@@ -372,24 +372,6 @@
   transition: all var(--transition-fast);
 }
 
-.shared-avatar-upload-btn {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  color: white;
-}
-
-.shared-avatar-upload-btn:hover {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
-}
-
-.shared-avatar-remove-btn {
-  background: linear-gradient(135deg, var(--danger-color), var(--danger-dark));
-  color: white;
-}
-
-.shared-avatar-remove-btn:hover {
-  background: linear-gradient(135deg, var(--danger-dark), var(--danger-darker));
-}
-
 /* ===== SHARED TEXT STYLES ===== */
 .shared-text-italic {
   text-align: left;

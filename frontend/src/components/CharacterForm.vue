@@ -1,9 +1,5 @@
-t
 <template>
   <div class="shared-form">
-    <!-- Avatar Upload -->
-    <AvatarUpload v-model="form.avatar" :name="form.name" />
-
     <!-- Name -->
     <input
       v-model="form.name"
@@ -218,7 +214,6 @@ t
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
   import VoiceSelector from './VoiceSelector.vue'
@@ -226,7 +221,6 @@ t
   export default {
     name: 'CharacterForm',
     components: {
-      AvatarUpload,
       BaseTextareaWithCharacterCounter,
       BiasPreferenceRow,
       VoiceSelector,
@@ -250,7 +244,6 @@ t
       // Initialize form with either initial data or empty values
       const form = reactive({
         name: props.initialData.name || '',
-        avatar: props.initialData.avatar || null,
         race: props.initialData.race || '',
         size: props.initialData.size || '',
         alignment: props.initialData.alignment || '',

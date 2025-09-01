@@ -1,8 +1,14 @@
 <template>
   <div class="shared-card">
     <div class="shared-form">
-      <!-- Avatar Section -->
-      <EntityAvatarSection v-model="formData.avatar" :name="formData.name" />
+      <!-- Avatar Display (Read-only with initials) -->
+      <div class="shared-avatar-section">
+        <div class="shared-avatar-container">
+          <div class="shared-avatar-placeholder">
+            <span class="shared-avatar-initials">{{ getInitials(formData.name) }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- Basic Fields -->
       <EntityBasicFields v-model="formData" :entity-type="entityType" :field-config="fieldConfig" />
@@ -89,17 +95,16 @@
 
 <script>
   import { ref, reactive, computed } from 'vue'
-  import EntityAvatarSection from './EntityAvatarSection.vue'
   import EntityBasicFields from './EntityBasicFields.vue'
   import EntityTextFields from './EntityTextFields.vue'
   import BaseFormField from '../base/BaseFormField.vue'
   import CharacterSelector from './CharacterSelector.vue'
   import { useEntityValidation } from '../../composables/useEntityValidation.js'
+  import { getInitials } from '../../utils/avatarUtils.js'
 
   export default {
     name: 'EntityCreateForm',
     components: {
-      EntityAvatarSection,
       EntityBasicFields,
       EntityTextFields,
       BaseFormField,
@@ -138,7 +143,6 @@
       const getInitialFormData = () => {
         const baseData = {
           name: '',
-          avatar: null,
           ...props.initialData,
         }
 
@@ -252,6 +256,7 @@
         handleLevel3Toggle,
         handleSave,
         handleCancel,
+        getInitials,
       }
     },
   }

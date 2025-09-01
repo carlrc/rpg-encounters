@@ -148,8 +148,20 @@
     </div>
 
     <div v-else class="shared-form">
-      <!-- Avatar Upload -->
-      <AvatarUpload v-model="editForm.avatar" :name="editForm.name" />
+      <!-- Avatar Display (Read-only) -->
+      <div class="shared-avatar-section">
+        <div class="shared-avatar-container">
+          <img
+            v-if="character.avatar"
+            :src="character.avatar"
+            :alt="character.name"
+            class="shared-avatar-image"
+          />
+          <div v-else class="shared-avatar-placeholder">
+            <span class="shared-avatar-initials">{{ getInitials(character.name) }}</span>
+          </div>
+        </div>
+      </div>
 
       <!-- Name -->
       <input
@@ -371,7 +383,6 @@
   import { useGameDataStore } from '../stores/gameData.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import { getInitials } from '../utils/avatarUtils.js'
-  import AvatarUpload from './base/AvatarUpload.vue'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
@@ -402,7 +413,6 @@
 
   const editForm = reactive({
     name: '',
-    avatar: null,
     race: '',
     size: '',
     alignment: '',
@@ -466,7 +476,6 @@
 
   const startEdit = async () => {
     editForm.name = props.character.name || ''
-    editForm.avatar = props.character.avatar || null
     editForm.race = props.character.race || ''
     editForm.size = props.character.size || ''
     editForm.alignment = props.character.alignment || ''
@@ -519,7 +528,6 @@
       // Always send non-AI-triggering fields
       const updateData = {
         name: editForm.name.trim(),
-        avatar: editForm.avatar,
         race: editForm.race,
         size: editForm.size,
         alignment: editForm.alignment,

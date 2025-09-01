@@ -9,10 +9,6 @@
     @select-item="selectEntity"
     @create-item="startCreate"
   >
-    <template #footer-actions>
-      <ImportButton entity-type="Player" :importing="importing" @import="handleImportFile" />
-    </template>
-
     <template #detail-content>
       <div v-if="loading" class="shared-loading">Loading players...</div>
       <div v-else-if="error" class="shared-error">{{ error }}</div>
@@ -45,10 +41,8 @@
   import EmptyState from '../components/ui/EmptyState.vue'
   import PlayerCard from '../components/PlayerCard.vue'
   import PlayerForm from '../components/PlayerForm.vue'
-  import ImportButton from '../components/ui/ImportButton.vue'
   import { usePlayerStore } from '../stores/players.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import { useFileImport } from '../utils/useFileImport.js'
 
   // Initialize stores
   const playerStore = usePlayerStore()
@@ -77,8 +71,6 @@
     cancelCreate,
   } = playerStore
 
-  const { importing, handleImportFile: handleFileImport } = useFileImport('Player')
-
   const handleCreateSave = async (formData) => {
     try {
       await createEntity(formData)
@@ -89,20 +81,6 @@
 
   const handleCancelCreate = () => {
     cancelCreate()
-  }
-
-  const handleImportFile = (event) => {
-    handleFileImport(
-      event,
-      createEntity,
-      (message) => {
-        // Success message - could emit to parent or use toast
-        console.log('Import success:', message)
-      },
-      (errorMessage) => {
-        error.value = errorMessage
-      }
-    )
   }
 
   onMounted(async () => {
