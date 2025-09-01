@@ -4,7 +4,7 @@ const request = async (method, url, body, { signal } = {}) => {
   // Get current world ID from store
   const worldStore = useWorldStore()
 
-  const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}${url}`, {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}${url}`, {
     method,
     signal,
     headers: {

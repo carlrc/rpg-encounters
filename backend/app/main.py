@@ -1,8 +1,11 @@
 import logging
+import os
 
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 
 from app.routers import (
     canvas,
@@ -17,18 +20,18 @@ from app.routers import (
 )
 from app.telemetry import setup_telemetry
 
+load_dotenv()
+
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="D&D AI Character Backend")
+app = FastAPI(title="RPG Encounters")
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],  # Vite dev server ports
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,7 +52,7 @@ setup_telemetry()
 
 @app.get("/")
 async def root():
-    return {"message": "D&D AI Character Backend is running"}
+    return RedirectResponse(url=f"{FRONTEND_URL}/players", status_code=302)
 
 
 if __name__ == "__main__":
