@@ -29,7 +29,7 @@ def render_jinja_prompt(template_name: str, context: Dict[str, Any]) -> str:
         env = Environment(
             loader=FileSystemLoader(current_dir), undefined=StrictUndefined
         )
-        template = env.get_template(f"{template_name}.jinja")
+        template = env.get_template(f"{template_name}.jinja.md")
 
         # Render template with context
         rendered_prompt = template.render(**context)

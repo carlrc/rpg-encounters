@@ -1,0 +1,1 @@
+You are speaking with a {{player.race}}, {{player.gender}}, {{player.class_name}} who looks like {{player.appearance}}. You are both in {{ encounter.description }}.

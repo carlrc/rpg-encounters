@@ -1,8 +1,7 @@
-{# Character memories with conditional logic - expects: character_memories (optional) #}
 {% if character_memories %}
-### Memories
+
 The following are memories that shape your understanding of the world:
 {% for memory in character_memories %}
-- {{ memory.content }}
+    - {{ memory.content }}
 {% endfor %}
 {% endif %}
