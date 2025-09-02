@@ -1,5 +1,4 @@
 import asyncio
-import functools
 import logging
 import os
 import subprocess
@@ -38,14 +37,20 @@ async def save_chunks_to_wav(chunks: List[bytes]) -> str:
         # Combine all chunks into a single bytes object
         audio_data = b"".join(chunks)
 
-        # Run ffmpeg in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
-            functools.partial(
-                subprocess.run, cmd, input=audio_data, check=True, capture_output=True
-            ),
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
+
+        stdout, stderr = await process.communicate(input=audio_data)
+
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(
+                process.returncode, cmd, output=stdout, stderr=stderr
+            )
+
         return wav_path
     except Exception as e:
         logger.error(f"FFmpeg WAV conversion failed: {e}")
