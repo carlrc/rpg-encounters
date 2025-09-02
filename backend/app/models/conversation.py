@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Literal
 
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import ModelMessage
@@ -33,3 +33,15 @@ class Conversation(ConversationBase):
     id: int
 
     model_config = {"from_attributes": True}
+
+
+class ConversationData(BaseModel):
+    type: Literal["conversation_data"] = Field(
+        "conversation_data", description="Data type for websocket listener"
+    )
+    influence: int = Field(
+        ..., description="Influence score. Can be earned or from D20 roll"
+    )
+    reveals: List[Dict] = Field(
+        [], description="Available manipulated reveals with level information"
+    )

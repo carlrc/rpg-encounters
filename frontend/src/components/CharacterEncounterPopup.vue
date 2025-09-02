@@ -29,18 +29,18 @@
           </div>
         </div>
 
-        <!-- Conversation stats display -->
-        <div class="conversation-stats" v-if="influenceScore !== null || revealsData.length > 0">
-          <div class="influence-display" v-if="influenceScore !== null">
-            <span class="stat-label">Influence:</span>
-            <span class="stat-value">{{ influenceScore }}</span>
+        <!-- Challenge/Conversation preview display -->
+        <div class="conversation-stats" v-if="shouldShowScore || displayRevealsData.length > 0">
+          <div class="influence-display" v-if="shouldShowScore">
+            <span class="stat-label">{{ scoreLabel }}</span>
+            <span class="stat-value">{{ displayScore }}</span>
           </div>
 
-          <div class="reveals-section" v-if="revealsData.length > 0">
-            <h4 class="reveals-title">Reveals</h4>
+          <div class="reveals-section" v-if="displayRevealsData.length > 0">
+            <h4 class="reveals-title">Reveals {{ isPreviewMode ? '(Preview)' : '' }}</h4>
             <div class="reveals-list">
               <div
-                v-for="reveal in revealsData"
+                v-for="reveal in displayRevealsData"
                 :key="reveal.id"
                 class="reveal-item reveal-clickable"
                 @click="navigateToReveal(reveal)"
@@ -55,19 +55,34 @@
         </div>
 
         <div class="encounter-controls">
-          <div class="player-selection">
-            <label for="player-select">Speaking Player:</label>
-            <select
-              id="player-select"
-              v-model="selectedPlayerId"
-              class="shared-select"
-              :disabled="isRecording || isProcessing"
-            >
-              <option value="">Select a player</option>
-              <option v-for="player in players" :key="player.id" :value="player.id">
-                {{ player.rl_name }}
-              </option>
-            </select>
+          <div class="selection-row">
+            <div class="player-selection">
+              <select
+                id="player-select"
+                v-model="selectedPlayerId"
+                class="shared-select"
+                :disabled="isRecording || isProcessing"
+              >
+                <option value="">Select a player</option>
+                <option v-for="player in players" :key="player.id" :value="player.id">
+                  {{ player.rl_name }}
+                </option>
+              </select>
+            </div>
+
+            <div v-if="isChallengeMode" class="skill-selection">
+              <select
+                id="skill-select"
+                v-model="selectedSkill"
+                class="shared-select"
+                :disabled="isRecording || isProcessing"
+              >
+                <option value="">Select a skill</option>
+                <option v-for="skill in skills" :key="skill" :value="skill">
+                  {{ skill }}
+                </option>
+              </select>
+            </div>
           </div>
 
           <div class="control-buttons">
@@ -88,26 +103,6 @@
             </button>
           </div>
 
-          <div v-if="isChallengeMode" class="skill-selection">
-            <label for="skill-select">Skill:</label>
-            <select
-              id="skill-select"
-              v-model="selectedSkill"
-              class="shared-select"
-              :disabled="isRecording || isProcessing"
-            >
-              <option value="">Select a skill</option>
-              <option v-for="skill in skills" :key="skill" :value="skill">
-                {{ skill }}
-              </option>
-            </select>
-          </div>
-
-          <div v-if="showDiceRoll && diceRoll !== null" class="dice-result">
-            <div class="dice-number">{{ diceRoll }}</div>
-            <div class="dice-label">D20 Roll</div>
-          </div>
-
           <div :class="['status', { recording: isRecording, processing: isProcessing }]">
             {{ statusText }}
           </div>
@@ -123,8 +118,9 @@
   import { storeToRefs } from 'pinia'
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
+  import { useConversationDataStore } from '../stores/conversationData.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
-  import { getPlayers, getConversationData } from '../services/api.js'
+  import { getPlayers } from '../services/api.js'
 
   // Constants to replace magic numbers
   const WEBSOCKET_BASE_URL = 'ws://localhost:8000'
@@ -151,6 +147,7 @@
     emits: ['close'],
     setup(props, { emit }) {
       const gameDataStore = useGameDataStore()
+      const conversationDataStore = useConversationDataStore()
       const { data: gameData } = storeToRefs(gameDataStore)
       const router = useRouter()
 
@@ -183,7 +180,9 @@
       const isChallengeMode = ref(false)
       const selectedSkill = ref('')
       const diceRoll = ref(null)
-      const showDiceRoll = ref(false)
+
+      // Raw reveal data from backend (for challenge mode calculations)
+      const rawRevealsData = ref([])
 
       // Computed properties (copied from EncountersPage.vue)
       const buttonText = computed(() => {
@@ -196,12 +195,93 @@
         if (isRecording.value) return 'Listening... Click Stop when done'
         if (!selectedPlayerId.value) return 'Select a player to begin'
         if (isChallengeMode.value && !selectedSkill.value)
-          return 'Select a skill for challenge mode'
+          return 'Select a Charisma skill for an ability check'
         if (isChallengeMode.value) return 'Click Speak to start challenge'
         return 'Click Speak to start conversation'
       })
 
       const skills = computed(() => gameData.value?.skills || [])
+
+      // Unified score display computed properties
+      const scoreLabel = computed(() => {
+        return isChallengeMode.value ? 'D20 Roll:' : 'Influence:'
+      })
+
+      const displayScore = computed(() => {
+        if (isChallengeMode.value) {
+          // Show WebSocket result if available, otherwise show 0 as preview for challenge
+          return influenceScore.value !== null ? influenceScore.value : 0
+        }
+        return influenceScore.value
+      })
+
+      const shouldShowScore = computed(() => {
+        return influenceScore.value !== null || isChallengeMode.value
+      })
+
+      // Challenge mode preview functionality
+      const calculateRevealProgress = (reveal, influenceScore) => {
+        let unlockedLayers = 0
+
+        // Check each threshold (mimic backend logic)
+        if (influenceScore >= reveal.standard_threshold) {
+          unlockedLayers += 1
+        }
+        if (influenceScore >= reveal.privileged_threshold) {
+          unlockedLayers += 1
+        }
+        if (influenceScore >= reveal.exclusive_threshold) {
+          unlockedLayers += 1
+        }
+
+        // Count total layers (only count non-null/non-empty content)
+        let totalLayers = 0
+        if (reveal.level_1_content) totalLayers += 1
+        if (reveal.level_2_content) totalLayers += 1
+        if (reveal.level_3_content) totalLayers += 1
+
+        return {
+          id: reveal.id,
+          title: reveal.title,
+          progress: `${unlockedLayers}/${totalLayers}`,
+          unlocked_layers: unlockedLayers,
+          total_layers: totalLayers,
+        }
+      }
+
+      const challengePreviewScore = computed(() => {
+        return isChallengeMode.value && !isRecording.value && !isProcessing.value ? 0 : null
+      })
+
+      const challengePreviewReveals = computed(() => {
+        if (
+          !isChallengeMode.value ||
+          isRecording.value ||
+          isProcessing.value ||
+          rawRevealsData.value.length === 0
+        ) {
+          return []
+        }
+
+        // Calculate preview with d20 roll of 0 (no influence)
+        return rawRevealsData.value.map((reveal) => calculateRevealProgress(reveal, 0))
+      })
+
+      const displayRevealsData = computed(() => {
+        if (isChallengeMode.value) {
+          // Show WebSocket results if available, otherwise show challenge preview
+          return revealsData.value.length > 0 ? revealsData.value : challengePreviewReveals.value
+        }
+        return revealsData.value
+      })
+
+      const isPreviewMode = computed(() => {
+        return (
+          isChallengeMode.value &&
+          revealsData.value.length === 0 &&
+          challengePreviewReveals.value.length > 0
+        )
+      })
 
       // Load data functions (same as EncountersPage.vue)
       const loadPlayers = async () => {
@@ -242,7 +322,6 @@
         isChallengeMode.value = false
         selectedSkill.value = ''
         diceRoll.value = null
-        showDiceRoll.value = false
 
         emit('close')
       }
@@ -250,7 +329,6 @@
       const resetChallengeState = () => {
         selectedSkill.value = ''
         diceRoll.value = null
-        showDiceRoll.value = false
       }
 
       const toggleChallengeMode = () => {
@@ -300,6 +378,17 @@
           if (isConversationData(json)) {
             influenceScore.value = json.influence ?? null
             revealsData.value = Array.isArray(json.reveals) ? json.reveals : []
+
+            // Only update cache with conversation data when NOT in challenge mode
+            // Challenge results should not overwrite conversation influence data
+            if (selectedPlayerId.value && props.character?.id && !isChallengeMode.value) {
+              const cacheKey = `${props.encounterId}-${selectedPlayerId.value}-${props.character.id}`
+              conversationDataStore.cache[cacheKey] = {
+                influence: json.influence ?? null,
+                reveals: json.reveals || [],
+                rawReveals: json.raw_reveals || json.reveals || [],
+              }
+            }
             return
           }
         }
@@ -385,10 +474,6 @@
         isRecording.value = false
         isProcessing.value = true
 
-        if (isChallengeMode.value) {
-          showDiceRoll.value = true
-        }
-
         if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
           websocket.value.send('END')
         }
@@ -396,7 +481,6 @@
 
       const prepareChallengeMode = () => {
         diceRoll.value = Math.floor(Math.random() * 20) + 1
-        showDiceRoll.value = false
         closeWebSocket()
       }
 
@@ -446,7 +530,7 @@
           return
         }
 
-        const data = await getConversationData(
+        const data = await conversationDataStore.getData(
           props.encounterId,
           selectedPlayerId.value,
           props.character.id
@@ -454,23 +538,70 @@
 
         influenceScore.value = data.influence
         revealsData.value = data.reveals
+
+        // Store raw reveals for challenge mode calculations
+        rawRevealsData.value = data.rawReveals
       }
+
+      // Reset state when switching modes
+      const resetModeState = () => {
+        if (isChallengeMode.value) {
+          // Switching to challenge mode - clear WebSocket results but keep raw data
+          influenceScore.value = null
+          revealsData.value = []
+        } else {
+          // Switching back to conversation mode - use cached data for smooth transition
+          if (selectedPlayerId.value) {
+            const cached = conversationDataStore.getCached(
+              props.encounterId,
+              selectedPlayerId.value,
+              props.character.id
+            )
+            if (cached) {
+              // Restore from cache immediately for smooth transition
+              influenceScore.value = cached.influence
+              revealsData.value = cached.reveals
+              rawRevealsData.value = cached.rawReveals
+            } else {
+              // Fetch if not cached yet
+              fetchConversationData()
+            }
+          }
+        }
+      }
+
+      // Watch for challenge mode changes
+      watch(
+        () => isChallengeMode.value,
+        () => {
+          resetModeState()
+        }
+      )
 
       // Automatically reset conversation data when character changes
       watch(
         () => props.character?.id,
-        () => {
+        (newCharacterId, oldCharacterId) => {
           influenceScore.value = null
           revealsData.value = []
+          rawRevealsData.value = []
+          // Clear cache for old character when character changes
+          if (oldCharacterId) {
+            conversationDataStore.clearCharacterCache(oldCharacterId)
+          }
         }
       )
 
-      // Fetch conversation data when player selection changes
+      // Fetch conversation data when player selection changes (only in conversation mode)
       watch(
         () => selectedPlayerId.value,
         () => {
-          if (selectedPlayerId.value) {
+          if (selectedPlayerId.value && !isChallengeMode.value) {
             fetchConversationData()
+          } else if (selectedPlayerId.value && isChallengeMode.value) {
+            // In challenge mode, clear any existing data to show default state
+            influenceScore.value = null
+            revealsData.value = []
           }
         }
       )
@@ -506,7 +637,11 @@
         isChallengeMode,
         selectedSkill,
         diceRoll,
-        showDiceRoll,
+        scoreLabel,
+        displayScore,
+        shouldShowScore,
+        displayRevealsData,
+        isPreviewMode,
         closePopup,
         toggleRecording,
         toggleChallengeMode,
@@ -514,6 +649,7 @@
         getInitials,
         influenceScore,
         revealsData,
+        rawRevealsData,
         getProgressClass,
         navigateToReveal,
         fetchConversationData,
@@ -684,16 +820,20 @@
     justify-content: space-between;
   }
 
-  .player-selection {
+  .selection-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
     margin-bottom: 20px;
   }
 
-  .player-selection label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: var(--gray-600);
-    font-size: 1.1em;
+  .player-selection {
+    width: 150px;
+  }
+
+  .skill-selection {
+    width: 120px;
   }
 
   .control-buttons {
@@ -713,6 +853,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     min-width: 140px;
+    text-align: center;
     box-shadow: var(--shadow-voice-hover);
   }
 
@@ -724,7 +865,7 @@
     border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 120px;
+    width: 120px;
     background: white;
     color: var(--gray-500);
     box-shadow: var(--shadow-voice-hover);
@@ -786,52 +927,6 @@
     opacity: 0.6;
     transform: none;
     box-shadow: none;
-  }
-
-  .skill-selection {
-    margin-bottom: 15px;
-  }
-
-  .skill-selection label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: var(--gray-600);
-    font-size: 1.1em;
-  }
-
-  .dice-result {
-    margin: 15px auto;
-    text-align: center;
-    /* Enhanced container styling for better visibility */
-    min-width: 150px;
-    min-height: 100px;
-    padding: 15px 20px;
-    background: var(--gray-50);
-    border-radius: 12px;
-    border: 2px solid var(--gray-100);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--shadow-voice-hover);
-  }
-
-  .dice-number {
-    font-size: 3.5em;
-    font-weight: bold;
-    color: var(--primary-color);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 10px;
-    line-height: 1;
-  }
-
-  .dice-label {
-    font-size: 1.1em;
-    color: var(--gray-500);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
   }
 
   .status {

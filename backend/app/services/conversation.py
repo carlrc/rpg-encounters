@@ -21,6 +21,7 @@ from app.db.connection import get_async_db_session
 from app.dependencies import (
     get_transcription_service,
 )
+from app.models.conversation import ConversationData
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.context import get_conversation_context
@@ -39,7 +40,6 @@ async def have_conversation(
     character_id: int,
     encounter_id: int,
 ) -> None:
-    # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(chunks=audio_chunks)
     transcription = await get_transcription_service().transcribe_audio(
@@ -140,18 +140,17 @@ async def have_conversation(
                 user_id=user_id, world_id=world_id, session=session
             ).update_influence(influence=influence)
 
-            # Send conversation data before audio streaming
-            conversation_data = {
-                "type": "conversation_data",
-                "influence": influence.score,
-                "reveals": [
-                    calculate_reveal_progress(reveal, influence.score)
-                    for reveal in ctx.reveals
-                ],
-            }
-
             try:
-                await websocket.send_json(conversation_data)
+                await websocket.send_json(
+                    ConversationData(
+                        type="conversation_data",
+                        influence=influence.score,
+                        reveals=[
+                            calculate_reveal_progress(reveal, influence.score)
+                            for reveal in ctx.reveals
+                        ],
+                    ).model_dump()
+                )
             except Exception as e:
                 logger.error(f"Failed to send conversation data: {e}")
 

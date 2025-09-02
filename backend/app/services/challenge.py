@@ -9,6 +9,7 @@ from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.clients.elevan_labs import ElevenLabs
 from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
+from app.models.conversation import ConversationData
 from app.services.ability_challenge import (
     D20Outcomes,
     calculate_skill_check,
@@ -16,6 +17,7 @@ from app.services.ability_challenge import (
 )
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.context import get_conversation_context
+from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
@@ -80,7 +82,6 @@ async def challenge_character(
     skill: str,
     d20_roll: int,
 ):
-    # TODO: We should be able to cancel on the frontend if the player made a mistake for instance before closing the connection
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(audio_chunks)
     transcription = await get_transcription_service().transcribe_audio(wav_path)
@@ -102,12 +103,24 @@ async def challenge_character(
         total_roll = calculate_skill_check(
             skill=skill, player=ctx.player, d20_roll=d20_roll
         )
-        filtered_reveals = filter_reveals_by_roll(ctx.reveals, total_roll)
 
+        try:
+            await websocket.send_json(
+                ConversationData(
+                    influence=d20_roll,
+                    reveals=[
+                        calculate_reveal_progress(reveal, total_roll)
+                        for reveal in ctx.reveals
+                    ],
+                ).model_dump()
+            )
+        except Exception as e:
+            logger.error(f"Failed to send conversation data: {e}")
+
+        # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals)
         rendered_prompt, rendered_instructions = _render_challenge_prompts(
-            ctx, d20_roll, filtered_reveals, total_roll
+            ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll), total_roll
         )
-
         agent = ChallengeAgent(
             system_prompt=rendered_prompt,
             # In the case of critical failure there are no instructions
