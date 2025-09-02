@@ -60,6 +60,7 @@ class ConnectionUpdate(ConnectionBase):
     """Connection update model - all fields optional"""
 
     id: int | None = None
+    # This be a mix of temp IDs, DB IDs or None (no connection encounter)
     source_encounter_id: int | str | None = None
     target_encounter_id: int | str | None = None
     source_handle: str | None = None

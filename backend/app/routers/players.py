@@ -18,7 +18,7 @@ async def get_players(user_world: tuple[int, int] = Depends(get_current_user_wor
     """Get all players"""
     user_id, world_id = user_world
     try:
-        return PlayerStore(user_id=user_id, world_id=world_id).get_all_players()
+        return await PlayerStore(user_id=user_id, world_id=world_id).get_all_players()
     except HTTPException:
         raise
     except Exception as e:
@@ -33,7 +33,7 @@ async def get_player(
     """Get a specific player by ID"""
     user_id, world_id = user_world
     try:
-        player = PlayerStore(user_id=user_id, world_id=world_id).get_player_by_id(
+        player = await PlayerStore(user_id=user_id, world_id=world_id).get_player_by_id(
             player_id
         )
         if player is None:
@@ -55,7 +55,9 @@ async def create_player(
     """Create a new player"""
     user_id, world_id = user_world
     try:
-        return PlayerStore(user_id=user_id, world_id=world_id).create_player(player)
+        return await PlayerStore(user_id=user_id, world_id=world_id).create_player(
+            player
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -74,9 +76,9 @@ async def update_player(
     """Update an existing player"""
     user_id, world_id = user_world
     try:
-        updated_player = PlayerStore(user_id=user_id, world_id=world_id).update_player(
-            player_id, player_update
-        )
+        updated_player = await PlayerStore(
+            user_id=user_id, world_id=world_id
+        ).update_player(player_id, player_update)
         if updated_player is None:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return updated_player
@@ -96,7 +98,9 @@ async def delete_player(
     """Delete a player"""
     user_id, world_id = user_world
     try:
-        if not PlayerStore(user_id=user_id, world_id=world_id).delete_player(player_id):
+        if not await PlayerStore(user_id=user_id, world_id=world_id).delete_player(
+            player_id
+        ):
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
     except HTTPException:

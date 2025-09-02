@@ -3,8 +3,9 @@ import sys
 import asyncio
 import logging
 from dotenv import load_dotenv
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from app.db.models.player import PlayerORM
 from app.db.models.character import CharacterORM
@@ -29,6 +30,7 @@ from tests.fixtures.encounters import encounters_db
 from tests.fixtures.memories import memories_db
 from tests.fixtures.reveals import reveal_db
 from tests.fixtures.connections import connections_db
+from sqlalchemy.ext.asyncio import create_async_engine
 
 # Load environment variables from .env file
 load_dotenv()
@@ -37,10 +39,12 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def get_user_and_world_ids(session):
+async def get_user_and_world_ids(session):
     """Helper method to get user and world IDs from database"""
-    user = session.query(UserORM).first()
-    world = session.query(WorldORM).first()
+    result = await session.execute(select(UserORM))
+    user = result.scalars().first()
+    result = await session.execute(select(WorldORM))
+    world = result.scalars().first()
     
     if not user:
         logger.error("No user found in database. Cannot create entities.")
@@ -53,14 +57,15 @@ def get_user_and_world_ids(session):
     logger.info(f"Using user_id={user.id} and world_id={world.id} for entity creation")
     return user.id, world.id
 
-def seed_user_data(engine: Engine):
+async def seed_user_data(engine: AsyncEngine):
     """Create user for testing"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if any user already exists
-            existing_user = session.query(UserORM).first()
+            result = await session.execute(select(UserORM))
+            existing_user = result.scalars().first()
             if existing_user:
                 logger.info("User already exists. Skipping user creation.")
                 return
@@ -68,8 +73,8 @@ def seed_user_data(engine: Engine):
             # Create user (let autoincrement handle the ID)
             user = UserORM()
             session.add(user)
-            session.flush()
-            session.commit()
+            await session.flush()
+            await session.commit()
             logger.info(f"Created user with ID: {user.id}")
     except SQLAlchemyError as e:
         logger.error(f"Error creating user data: {e}")
@@ -78,20 +83,22 @@ def seed_user_data(engine: Engine):
         logger.error(f"Unexpected error creating user data: {e}")
         raise
 
-def seed_world_data(engine: Engine):
+async def seed_world_data(engine: AsyncEngine):
     """Create world for testing"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if any world already exists
-            existing_world = session.query(WorldORM).first()
+            result = await session.execute(select(WorldORM))
+            existing_world = result.scalars().first()
             if existing_world:
                 logger.info("World already exists. Skipping world creation.")
                 return
             
             # Get the first user to associate with the world
-            user = session.query(UserORM).first()
+            result = await session.execute(select(UserORM))
+            user = result.scalars().first()
             if not user:
                 logger.error("No user found. Cannot create world.")
                 raise Exception("No user found for world creation")
@@ -99,8 +106,8 @@ def seed_world_data(engine: Engine):
             # Create world (let autoincrement handle the ID)
             world = WorldORM(user_id=user.id)
             session.add(world)
-            session.flush()
-            session.commit()
+            await session.flush()
+            await session.commit()
             logger.info(f"Created world with ID: {world.id} for user ID: {user.id}")
     except SQLAlchemyError as e:
         logger.error(f"Error creating world data: {e}")
@@ -109,20 +116,20 @@ def seed_world_data(engine: Engine):
         logger.error(f"Unexpected error creating world data: {e}")
         raise
 
-
-def seed_player_data(engine: Engine):
+async def seed_player_data(engine: AsyncEngine):
     """Seed player data from fixtures to database"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
-            existing_count = session.query(PlayerORM).count()
+        async with AsyncSession() as session:
+            result = await session.execute(select(PlayerORM))
+            existing_count = len(result.scalars().all())
             if existing_count > 0:
                 logger.info(f"Database already contains {existing_count} players. Skipping migration.")
                 return
             
             # Get the actual user and world IDs from the database
-            user_id, world_id = get_user_and_world_ids(session)
+            user_id, world_id = await get_user_and_world_ids(session)
             
             # Migrate fixture data with actual user_id and world_id
             for player in players_db:
@@ -132,7 +139,7 @@ def seed_player_data(engine: Engine):
                 player_orm = PlayerORM(**player_data, user_id=user_id, world_id=world_id)
                 session.add(player_orm)
             
-            session.commit()
+            await session.commit()
             logger.info(f"Successfully seeded {len(players_db)} players to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding player data: {e}")
@@ -141,21 +148,21 @@ def seed_player_data(engine: Engine):
         logger.error(f"Unexpected error seeding player data: {e}")
         raise
 
-
-async def seed_character_data(engine: Engine):
+async def seed_character_data(engine: AsyncEngine):
     """Seed character data from fixtures to database"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if data already exists
-            existing_count = session.query(CharacterORM).count()
+            result = await session.execute(select(CharacterORM))
+            existing_count = len(result.scalars().all())
             if existing_count > 0:
                 logger.info(f"Database already contains {existing_count} characters. Skipping migration.")
                 return
             
             # Get the actual user and world IDs from the database
-            user_id, world_id = get_user_and_world_ids(session)
+            user_id, world_id = await get_user_and_world_ids(session)
             
             # Seed fixture data
             for character in characters_db:
@@ -181,7 +188,7 @@ async def seed_character_data(engine: Engine):
                 character_orm = CharacterORM(**character_data, user_id=user_id, world_id=world_id)
                 session.add(character_orm)
             
-            session.commit()
+            await session.commit()
             logger.info(f"Successfully seeded {len(characters_db)} characters to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding character data: {e}")
@@ -190,24 +197,25 @@ async def seed_character_data(engine: Engine):
         logger.error(f"Unexpected error seeding character data: {e}")
         raise
 
-
-def seed_encounter_data(engine: Engine):
+async def seed_encounter_data(engine: AsyncEngine):
     """Seed encounter data from fixtures to database"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if data already exists
-            existing_count = session.query(EncounterORM).count()
+            result = await session.execute(select(EncounterORM))
+            existing_count = len(result.scalars().all())
             if existing_count > 0:
                 logger.info(f"Database already contains {existing_count} encounters. Skipping migration.")
                 return
             
             # Get all characters in order (they were created in array order)
-            characters = session.query(CharacterORM).order_by(CharacterORM.id).all()
+            result = await session.execute(select(CharacterORM).order_by(CharacterORM.id))
+            characters = result.scalars().all()
 
             # Get the actual user and world IDs from the database
-            user_id, world_id = get_user_and_world_ids(session)
+            user_id, world_id = await get_user_and_world_ids(session)
             
             # Seed fixture data
             for encounter in encounters_db:
@@ -217,14 +225,16 @@ def seed_encounter_data(engine: Engine):
                 
                 encounter_orm = EncounterORM(**encounter_data, user_id=user_id, world_id=world_id)
                 session.add(encounter_orm)
-                session.flush()
+                await session.flush()
                 
                 # Map array indices to actual characters
                 if character_indices:
                     selected_characters = [characters[i] for i in character_indices if i < len(characters)]
-                    encounter_orm.characters.extend(selected_characters)
+                    await session.run_sync(lambda sync_session: setattr(encounter_orm, 'characters', selected_characters))
+                else:
+                    await session.run_sync(lambda sync_session: setattr(encounter_orm, 'characters', []))
             
-            session.commit()
+            await session.commit()
             logger.info(f"Successfully seeded {len(encounters_db)} encounters to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding encounter data: {e}")
@@ -233,24 +243,25 @@ def seed_encounter_data(engine: Engine):
         logger.error(f"Unexpected error seeding encounter data: {e}")
         raise
 
-
-def seed_memory_data(engine: Engine):
+async def seed_memory_data(engine: AsyncEngine):
     """Seed memory data from fixtures to database"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if data already exists
-            existing_count = session.query(MemoryORM).count()
+            result = await session.execute(select(MemoryORM))
+            existing_count = len(result.scalars().all())
             if existing_count > 0:
                 logger.info(f"Database already contains {existing_count} memories. Skipping migration.")
                 return
             
             # Get all characters in order
-            characters = session.query(CharacterORM).order_by(CharacterORM.id).all()
+            result = await session.execute(select(CharacterORM).order_by(CharacterORM.id))
+            characters = result.scalars().all()
 
             # Get the actual user and world IDs from the database
-            user_id, world_id = get_user_and_world_ids(session)
+            user_id, world_id = await get_user_and_world_ids(session)
             
             # Seed fixture data
             for memory in memories_db:
@@ -260,14 +271,16 @@ def seed_memory_data(engine: Engine):
                 
                 memory_orm = MemoryORM(**memory_data, user_id=user_id, world_id=world_id)
                 session.add(memory_orm)
-                session.flush()  # Get the ID for the memory
+                await session.flush()  # Get the ID for the memory
                 
                 # Map array indices to actual characters
                 if character_indices:
                     selected_characters = [characters[i] for i in character_indices if i < len(characters)]
-                    memory_orm.characters.extend(selected_characters)
+                    await session.run_sync(lambda sync_session: setattr(memory_orm, 'characters', selected_characters))
+                else:
+                    await session.run_sync(lambda sync_session: setattr(memory_orm, 'characters', []))
             
-            session.commit()
+            await session.commit()
             logger.info(f"Successfully seeded {len(memories_db)} memories to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding memory data: {e}")
@@ -276,24 +289,25 @@ def seed_memory_data(engine: Engine):
         logger.error(f"Unexpected error seeding memory data: {e}")
         raise
 
-
-def seed_reveal_data(engine: Engine):
+async def seed_reveal_data(engine: AsyncEngine):
     """Seed reveal data from fixtures to database"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if data already exists
-            existing_count = session.query(RevealORM).count()
+            result = await session.execute(select(RevealORM))
+            existing_count = len(result.scalars().all())
             if existing_count > 0:
                 logger.info(f"Database already contains {existing_count} reveals. Skipping migration.")
                 return
             
             # Get all characters in order
-            characters = session.query(CharacterORM).order_by(CharacterORM.id).all()
+            result = await session.execute(select(CharacterORM).order_by(CharacterORM.id))
+            characters = result.scalars().all()
 
             # Get the actual user and world IDs from the database
-            user_id, world_id = get_user_and_world_ids(session)
+            user_id, world_id = await get_user_and_world_ids(session)
             
             # Seed fixture data
             for reveal in reveal_db:
@@ -303,14 +317,16 @@ def seed_reveal_data(engine: Engine):
                 
                 reveal_orm = RevealORM(**reveal_data, user_id=user_id, world_id=world_id)
                 session.add(reveal_orm)
-                session.flush()  # Get the ID for the reveal
+                await session.flush()  # Get the ID for the reveal
                 
                 # Map array indices to actual characters
                 if character_indices:
                     selected_characters = [characters[i] for i in character_indices if i < len(characters)]
-                    reveal_orm.characters.extend(selected_characters)
+                    await session.run_sync(lambda sync_session: setattr(reveal_orm, 'characters', selected_characters))
+                else:
+                    await session.run_sync(lambda sync_session: setattr(reveal_orm, 'characters', []))
             
-            session.commit()
+            await session.commit()
             logger.info(f"Successfully seeded {len(reveal_db)} reveals to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding reveal data: {e}")
@@ -319,24 +335,25 @@ def seed_reveal_data(engine: Engine):
         logger.error(f"Unexpected error seeding reveal data: {e}")
         raise
 
-
-def seed_connection_data(engine: Engine):
+async def seed_connection_data(engine: AsyncEngine):
     """Seed connection data from fixtures to database"""
-    Session = sessionmaker(bind=engine)
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
     
     try:
-        with Session() as session:
+        async with AsyncSession() as session:
             # Check if data already exists
-            existing_count = session.query(ConnectionORM).count()
+            result = await session.execute(select(ConnectionORM))
+            existing_count = len(result.scalars().all())
             if existing_count > 0:
                 logger.info(f"Database already contains {existing_count} connections. Skipping migration.")
                 return
             
             # Get all encounters in order
-            encounters = session.query(EncounterORM).order_by(EncounterORM.id).all()
+            result = await session.execute(select(EncounterORM).order_by(EncounterORM.id))
+            encounters = result.scalars().all()
 
             # Get the actual user and world IDs from the database
-            user_id, world_id = get_user_and_world_ids(session)
+            user_id, world_id = await get_user_and_world_ids(session)
             
             # Migrate fixture data (now an array)
             for connection in connections_db:
@@ -355,7 +372,7 @@ def seed_connection_data(engine: Engine):
                 else:
                     logger.warning(f"Encounter indices out of range: source={source_idx}, target={target_idx}")
             
-            session.commit()
+            await session.commit()
             logger.info(f"Successfully seeded {len(connections_db)} connections to database!")
     except SQLAlchemyError as e:
         logger.error(f"Error seeding connection data: {e}")
@@ -364,30 +381,28 @@ def seed_connection_data(engine: Engine):
         logger.error(f"Unexpected error seeding connection data: {e}")
         raise
 
-
-async def seed_all_data(engine: Engine):
+async def seed_all_data(engine: AsyncEngine):
     """Seed all fixture data to database in the correct order"""
     try:
         # Seed required user and world data first
-        seed_user_data(engine=engine)
-        seed_world_data(engine=engine)
+        await seed_user_data(engine=engine)
+        await seed_world_data(engine=engine)
         
         # Seed in dependency order
-        seed_player_data(engine=engine)
+        await seed_player_data(engine=engine)
         await seed_character_data(engine=engine)
-        seed_encounter_data(engine=engine)
-        seed_memory_data(engine=engine)
-        seed_reveal_data(engine=engine)
-        seed_connection_data(engine=engine)
+        await seed_encounter_data(engine=engine)
+        await seed_memory_data(engine=engine)
+        await seed_reveal_data(engine=engine)
+        await seed_connection_data(engine=engine)
 
         logger.info(f"✅ All data seeded!")
     except Exception as e:
         logger.error(f"Migration failed: {e}")
-        drop_tables(engine=engine)
+        await drop_tables(engine=engine)
         raise
 
-
-if __name__ == "__main__":
+async def main():
     # Check for --prod flag to use live database
     use_dev = "--dev" not in sys.argv
     
@@ -398,8 +413,11 @@ if __name__ == "__main__":
         print("🟢 Seeding to TEST database (default)")
         url = os.getenv("TEST_DATABASE_URL")
 
-    engine = create_engine(url)
-    drop_tables(engine=engine)
-    create_tables(engine=engine)
+    engine = create_async_engine(url)
+    await drop_tables(engine=engine)
+    await create_tables(engine=engine)
     setup_telemetry()
-    asyncio.run(seed_all_data(engine=engine))
+    await seed_all_data(engine=engine)
+
+if __name__ == "__main__":
+    asyncio.run(main())

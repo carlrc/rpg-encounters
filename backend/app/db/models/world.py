@@ -15,5 +15,5 @@ class WorldORM(SimpleBase):
         Integer, ForeignKey(f"{USERS_TABLE}.id"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

@@ -52,7 +52,9 @@ async def get_characters(
     """Get all characters"""
     user_id, world_id = user_world
     try:
-        return CharacterStore(user_id=user_id, world_id=world_id).get_all_characters()
+        return await CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).get_all_characters()
     except HTTPException:
         raise
     except Exception as e:
@@ -70,7 +72,7 @@ async def get_character(
     """Get a specific character by ID"""
     user_id, world_id = user_world
     try:
-        character = CharacterStore(
+        character = await CharacterStore(
             user_id=user_id, world_id=world_id
         ).get_character_by_id(character_id)
         if not character:
@@ -105,9 +107,9 @@ async def create_character(
         # Create character with generated summaries
         character = CharacterCreate(**character_data.model_dump())
 
-        return CharacterStore(user_id=user_id, world_id=world_id).create_character(
-            character
-        )
+        return await CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).create_character(character)
     except HTTPException:
         raise
     except Exception as e:
@@ -128,7 +130,7 @@ async def update_character(
     try:
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
         # Because generating content with LLMs is expensive, ensure the character exists first
-        character = character_store.get_character_by_id(character_id=character_id)
+        character = await character_store.get_character_by_id(character_id=character_id)
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
@@ -166,8 +168,7 @@ async def update_character(
             character_update.communication_style = communication_style.style_summary
             character_update.communication_style_examples = communication_style.examples
 
-        character = character_store.update_character(character_id, character_update)
-        return character
+        return await character_store.update_character(character_id, character_update)
     except HTTPException:
         raise
     except Exception as e:
@@ -185,20 +186,13 @@ async def delete_character(
     """Delete a character"""
     user_id, world_id = user_world
     try:
-        success = CharacterStore(user_id=user_id, world_id=world_id).delete_character(
-            character_id
-        )
+        success = await CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).delete_character(character_id)
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
     except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(
-            f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"
-        )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
-
         raise
     except Exception as e:
         logger.error(

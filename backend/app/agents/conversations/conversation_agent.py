@@ -12,9 +12,7 @@ from app.agents.agent_output import ConversationAgentOutput
 from app.agents.base_agent import AgentDeps, BaseAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.data.conversation_store import ConversationStore
-from app.models.character import Character
 from app.models.influence import Influence
-from app.models.player import Player
 from app.models.reveal import RevealLayer
 from app.services.context import ConvoContext
 from app.services.conversation_manager import select_response
@@ -23,8 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 class ConversationAgentDeps(AgentDeps):
-    player: Player
-    character: Character
     context: ConvoContext
 
 
@@ -83,9 +79,9 @@ class ConversationAgent(BaseAgent):
             model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=selected_response)])
-            self.conversation_store.add_messages(
-                player_id=deps.player.id,
-                character_id=deps.character.id,
+            await self.conversation_store.add_messages(
+                player_id=deps.context.player.id,
+                character_id=deps.context.character.id,
                 encounter_id=deps.context.encounter.id,
                 new_messages=[model_request, model_response],
             )

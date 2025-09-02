@@ -1,8 +1,9 @@
+import asyncio
 import sys
 
-from sqlalchemy import Engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.db.connection import get_db_engine
+from app.db.connection import get_async_db_engine
 
 # Import association tables to ensure they are registered with SQLAlchemy
 from app.db.models.associations import (  # noqa: F401
@@ -26,24 +27,30 @@ from app.db.models.user import UserORM  # noqa: F401
 from app.db.models.world import WorldORM  # noqa: F401
 
 
-def create_tables(engine: Engine):
-    """Create all database tables"""
-    SimpleBase.metadata.create_all(bind=engine)
-    UnifiedBase.metadata.create_all(bind=engine)
+async def create_tables(engine: AsyncEngine):
+    """Create all database tables asynchronously"""
+    async with engine.begin() as conn:
+        await conn.run_sync(SimpleBase.metadata.create_all)
+        await conn.run_sync(UnifiedBase.metadata.create_all)
 
 
-def drop_tables(engine: Engine):
-    """Drop all database tables"""
-    UnifiedBase.metadata.drop_all(bind=engine)
-    SimpleBase.metadata.drop_all(bind=engine)
+async def drop_tables(engine: AsyncEngine):
+    """Drop all database tables asynchronously"""
+    async with engine.begin() as conn:
+        await conn.run_sync(UnifiedBase.metadata.drop_all)
+        await conn.run_sync(SimpleBase.metadata.drop_all)
 
 
-if __name__ == "__main__":
-    engine = get_db_engine()
+async def main():
+    engine = get_async_db_engine()
 
     if "--drop" in sys.argv:
         print("🔴 Dropping tables...")
-        drop_tables(engine)
+        await drop_tables(engine)
     else:
         print("🟢 Creating tables...")
-        create_tables(engine)
+        await create_tables(engine)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

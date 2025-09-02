@@ -2,10 +2,10 @@ import logging
 from typing import List
 
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
-from sqlalchemy import Engine
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.base_store import BaseStore
-from app.db.connection import get_db_engine
 from app.db.models.conversation import ConversationORM
 from app.models.conversation import Conversation, ConversationCreate
 
@@ -17,16 +17,13 @@ class ConversationStore(BaseStore):
         self,
         user_id: int,
         world_id: int,
-        engine: Engine = get_db_engine(),
-        session=None,
+        session: AsyncSession = None,
     ):
-        super().__init__(
-            user_id=user_id, world_id=world_id, engine=engine, session=session
-        )
+        super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    def create(self, conversation_data: ConversationCreate) -> Conversation:
+    async def create(self, conversation_data: ConversationCreate) -> Conversation:
         """Create a new conversation."""
-        with self.get_session() as session:
+        async with self.get_session() as session:
             # Serialize messages to JSON bytes
             messages_json = (
                 ModelMessagesTypeAdapter.dump_json(conversation_data.messages)
@@ -43,33 +40,32 @@ class ConversationStore(BaseStore):
                 messages=messages_json,
             )
             session.add(conversation_orm)
-            session.flush()
-            session.refresh(conversation_orm)
+            await session.flush()
+            await session.refresh(conversation_orm)
 
             return self._orm_to_conversation(conversation_orm)
 
-    def get(
+    async def get(
         self, player_id: int, character_id: int, encounter_id: int
     ) -> Conversation | None:
-        with self.get_session() as session:
-            conversation_orm = (
-                session.query(ConversationORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(ConversationORM).where(
                     ConversationORM.player_id == player_id,
                     ConversationORM.character_id == character_id,
                     ConversationORM.encounter_id == encounter_id,
                     ConversationORM.user_id == self.user_id,
                     ConversationORM.world_id == self.world_id,
                 )
-                .first()
             )
+            conversation_orm = result.scalars().first()
 
             if not conversation_orm:
                 return None
 
             return self._orm_to_conversation(conversation_orm)
 
-    def add_messages(
+    async def add_messages(
         self,
         player_id: int,
         character_id: int,
@@ -79,19 +75,18 @@ class ConversationStore(BaseStore):
         """
         Append messages to an existing conversation.
         """
-        with self.get_session() as session:
+        async with self.get_session() as session:
             # Find existing conversation
-            conversation_orm = (
-                session.query(ConversationORM)
-                .filter(
+            result = await session.execute(
+                select(ConversationORM).where(
                     ConversationORM.player_id == player_id,
                     ConversationORM.character_id == character_id,
                     ConversationORM.encounter_id == encounter_id,
                     ConversationORM.user_id == self.user_id,
                     ConversationORM.world_id == self.world_id,
                 )
-                .first()
             )
+            conversation_orm = result.scalars().first()
 
             if not conversation_orm:
                 logger.warning(
@@ -109,50 +104,48 @@ class ConversationStore(BaseStore):
             conversation_orm.messages = ModelMessagesTypeAdapter.dump_json(
                 existing_messages + new_messages
             )
-            session.flush()
-            session.refresh(conversation_orm)
+            await session.flush()
+            await session.refresh(conversation_orm)
 
             return self._orm_to_conversation(conversation_orm)
 
-    def conversation_exists(
+    async def conversation_exists(
         self, player_id: int, character_id: int, encounter_id: int
     ) -> bool:
         """Check if a conversation exists."""
-        with self.get_session() as session:
-            conversation_orm = (
-                session.query(ConversationORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(ConversationORM).where(
                     ConversationORM.player_id == player_id,
                     ConversationORM.character_id == character_id,
                     ConversationORM.encounter_id == encounter_id,
                     ConversationORM.user_id == self.user_id,
                     ConversationORM.world_id == self.world_id,
                 )
-                .first()
             )
+            conversation_orm = result.scalars().first()
             return conversation_orm is not None
 
-    def delete_conversation(
+    async def delete_conversation(
         self, player_id: int, character_id: int, encounter_id: int
     ) -> bool:
         """Delete a conversation."""
-        with self.get_session() as session:
-            conversation_orm = (
-                session.query(ConversationORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(ConversationORM).where(
                     ConversationORM.player_id == player_id,
                     ConversationORM.character_id == character_id,
                     ConversationORM.encounter_id == encounter_id,
                     ConversationORM.user_id == self.user_id,
                     ConversationORM.world_id == self.world_id,
                 )
-                .first()
             )
+            conversation_orm = result.scalars().first()
 
             if not conversation_orm:
                 return False
 
-            session.delete(conversation_orm)
+            await session.delete(conversation_orm)
             return True
 
     def _orm_to_conversation(self, conversation_orm: ConversationORM) -> Conversation:

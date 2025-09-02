@@ -1,4 +1,4 @@
-from unittest.mock import Mock
+from unittest.mock import AsyncMock
 
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
@@ -33,17 +33,16 @@ CONTEXT = ConvoContext(
     reveals=ALL_REVEALS,
     memories=ALL_MEMORIES,
     messages=None,
+    player=PLAYER,
+    character=CHARACTER,
 )
 
 DEPENDENCIES = ConversationAgentDeps(
-    player=PLAYER,
-    character=CHARACTER,
     context=CONTEXT,
-    user_id=1,
     telemetry=lambda: None,
 )
 
-CONVERSATION_STORE = Mock()
+CONVERSATION_STORE = AsyncMock()
 
 BASE_TEMPLATE_CONTEXT = {
     "max_response_length": 30,

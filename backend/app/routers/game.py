@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/game", tags=["games"])
 
 
 @router.get("/")
-async def get_game_data():
+def get_game_data():
     """Get all game data constants for frontend caching"""
     return {
         "races": VALID_RACES,
