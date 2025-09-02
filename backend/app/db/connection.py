@@ -1,13 +1,10 @@
 import logging
 import os
-from contextlib import contextmanager
-
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
-from sqlalchemy.orm import scoped_session, sessionmaker
+
+from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 load_dotenv()
 
@@ -25,39 +22,51 @@ WORLDS_TABLE = "worlds"
 CONVERSATIONS_TABLE = "conversations"
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
-
-
-def get_db_engine():
-    """Get database engine, defaulting to test database for safety"""
-    if not DATABASE_URL:
-        raise ValueError("DATABASE_URL not set in env")
-    # https://docs.sqlalchemy.org/en/20/core/pooling.html
-    return create_engine(DATABASE_URL, pool_size=0)
 
 
 def get_async_db_engine():
     """Get database engine, defaulting to test database for safety"""
-    if not ASYNC_DATABASE_URL:
-        raise ValueError("ASYNC_DATABASE_URL not set in env")
+    if not DATABASE_URL:
+        raise ValueError("DATABASE_URL not set in env")
     # https://docs.sqlalchemy.org/en/20/core/pooling.html
-    return create_async_engine(ASYNC_DATABASE_URL, pool_size=0)
+    return create_async_engine(DATABASE_URL, pool_size=0)
 
 
-@contextmanager
-def get_db_session(db_url: str = None):
-    """Creates a context with an open SQLAlchemy session with proper transaction management."""
+# FastAPI dependency for routes
+async def get_async_db_routes_session() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency that provides async session for route handlers"""
+    # Async session factory
+    AsyncSessionLocal = async_sessionmaker(
+        bind=get_async_db_engine(), class_=AsyncSession, expire_on_commit=False
+    )
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception as e:
+            logger.error(f"Rolling back transaction. {e}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
-    engine = create_engine(db_url) if db_url else get_db_engine()
-    db_session = scoped_session(sessionmaker(bind=engine))
 
-    try:
-        yield db_session
-        db_session.commit()
-    except Exception as e:
-        logger.error(f"Rolling back transaction. {e}")
-        db_session.rollback()
-        raise
-    finally:
-        db_session.close()
+# Async context manager for services
+@asynccontextmanager
+async def get_async_db_session(db_url: str = None):
+    """Creates an async context with proper transaction management."""
+    engine = create_async_engine(db_url) if db_url else get_async_db_engine()
+    async_session = async_sessionmaker(
+        bind=engine, class_=AsyncSession, expire_on_commit=False
+    )
 
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception as e:
+            logger.error(f"Rolling back transaction. {e}")
+            await session.rollback()
+            raise
+        finally:
+            await session.close()

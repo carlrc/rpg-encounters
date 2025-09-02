@@ -79,7 +79,7 @@ class ConversationAgent(BaseAgent):
             model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=selected_response)])
-            self.conversation_store.add_messages(
+            await self.conversation_store.add_messages(
                 player_id=deps.context.player.id,
                 character_id=deps.context.character.id,
                 encounter_id=deps.context.encounter.id,

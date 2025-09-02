@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[World])
-def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_world)):
+async def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Get all worlds for the current user"""
     user_id, _ = user_world
     try:
-        return WorldStore(user_id=user_id).get_all_worlds()
+        return await WorldStore(user_id=user_id).get_all_worlds()
     except HTTPException:
         raise
     except Exception as e:
@@ -27,13 +27,13 @@ def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_world)):
 
 
 @router.get("/{world_id}", response_model=World)
-def get_world(
+async def get_world(
     world_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Get a specific world by ID"""
     user_id, _ = user_world
     try:
-        world = WorldStore(user_id=user_id).get_world_by_id(world_id)
+        world = await WorldStore(user_id=user_id).get_world_by_id(world_id)
         if not world:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return world
@@ -45,11 +45,11 @@ def get_world(
 
 
 @router.post("", response_model=World, status_code=201)
-def create_world(user_world: tuple[int, int] = Depends(get_current_user_world)):
+async def create_world(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Create a new world for the current user"""
     user_id, _ = user_world
     try:
-        return WorldStore(user_id=user_id).create_world()
+        return await WorldStore(user_id=user_id).create_world()
     except HTTPException:
         raise
     except Exception as e:
@@ -58,13 +58,13 @@ def create_world(user_world: tuple[int, int] = Depends(get_current_user_world)):
 
 
 @router.delete("/{world_id}", status_code=204)
-def delete_world(
+async def delete_world(
     world_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Delete a world"""
     user_id, _ = user_world
     try:
-        success = WorldStore(user_id=user_id).delete_world(world_id)
+        success = await WorldStore(user_id=user_id).delete_world(world_id)
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None

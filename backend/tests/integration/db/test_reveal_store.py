@@ -3,22 +3,22 @@ import os
 
 from app.data.character_store import CharacterStore
 from app.data.reveal_store import RevealStore
-from app.db.connection import get_db_session
+from app.db.connection import get_async_db_session
 from app.models.character import CharacterCreate
 from app.models.reveal import RevealCreate, RevealUpdate
 from tests.fixtures.generate import default_character
 
 
-def test_reveal_store():
+async def test_reveal_store():
     url = os.getenv("TEST_DATABASE_URL")
-    with get_db_session(url) as session:
+    async with get_async_db_session(url) as session:
         character_store = CharacterStore(user_id=1, world_id=1, session=session)
 
         # Use generate function
         character = default_character()
         character1_data = CharacterCreate(**character.model_dump(exclude={"id"}))
 
-        created_character1 = character_store.create_character(character1_data)
+        created_character1 = await character_store.create_character(character1_data)
 
         # Now create reveal with actual character IDs
         reveal_store = RevealStore(user_id=1, world_id=1, session=session)
@@ -34,7 +34,7 @@ def test_reveal_store():
             exclusive_threshold=20,
         )
 
-        created_reveal = reveal_store.create_reveal(new_reveal_data)
+        created_reveal = await reveal_store.create_reveal(new_reveal_data)
         assert created_reveal.title == new_reveal_data.title
         assert created_reveal.id is not None
         assert created_reveal.character_ids == [created_character1.id]
@@ -47,16 +47,18 @@ def test_reveal_store():
         )
         assert created_reveal.exclusive_threshold == new_reveal_data.exclusive_threshold
 
-        all_reveals = reveal_store.get_all_reveals()
+        all_reveals = await reveal_store.get_all_reveals()
         assert len(all_reveals) == 1
 
-        retrieved_reveal = reveal_store.get_reveal(created_reveal.id)
+        retrieved_reveal = await reveal_store.get_reveal(created_reveal.id)
         assert retrieved_reveal is not None
 
-        retrieved_reveal_alias = reveal_store.get_by_id(created_reveal.id)
+        retrieved_reveal_alias = await reveal_store.get_by_id(created_reveal.id)
         assert retrieved_reveal_alias is not None
 
-        character_reveals = reveal_store.get_by_character_id(created_character1.id)
+        character_reveals = await reveal_store.get_by_character_id(
+            created_character1.id
+        )
         assert len(character_reveals) == 1
 
         update_data = RevealUpdate(
@@ -65,17 +67,19 @@ def test_reveal_store():
             privileged_threshold=10,
             exclusive_threshold=15,
         )
-        updated_reveal = reveal_store.update_reveal(created_reveal.id, update_data)
+        updated_reveal = await reveal_store.update_reveal(
+            created_reveal.id, update_data
+        )
         assert updated_reveal is not None
         assert updated_reveal.standard_threshold == update_data.standard_threshold
         assert updated_reveal.privileged_threshold == update_data.privileged_threshold
         assert updated_reveal.exclusive_threshold == update_data.exclusive_threshold
 
-        exists = reveal_store.reveal_exists(created_reveal.id)
+        exists = await reveal_store.reveal_exists(created_reveal.id)
         assert exists is True
 
-        deleted = reveal_store.delete_reveal(created_reveal.id)
+        deleted = await reveal_store.delete_reveal(created_reveal.id)
         assert deleted is True
 
-        exists_after_delete = reveal_store.reveal_exists(created_reveal.id)
+        exists_after_delete = await reveal_store.reveal_exists(created_reveal.id)
         assert exists_after_delete is False

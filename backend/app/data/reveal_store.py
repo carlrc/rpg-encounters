@@ -1,9 +1,10 @@
 from typing import List
 
-from sqlalchemy import Engine
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.data.base_store import BaseStore
-from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.db.models.reveal import RevealORM
 from app.models.reveal import Reveal, RevealCreate, RevealUpdate
@@ -14,34 +15,37 @@ class RevealStore(BaseStore):
         self,
         user_id: int,
         world_id: int,
-        engine: Engine = get_db_engine(),
-        session=None,
+        session: AsyncSession = None,
     ):
-        super().__init__(
-            user_id=user_id, world_id=world_id, engine=engine, session=session
-        )
+        super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    def get_all_reveals(self) -> List[Reveal]:
+    async def get_all_reveals(self) -> List[Reveal]:
         """Get all reveals for the current user and world"""
-        with self.get_session() as session:
-            reveal_orms = (
-                session.query(RevealORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(RevealORM)
+                .options(selectinload(RevealORM.characters))
+                .where(
                     RevealORM.user_id == self.user_id,
                     RevealORM.world_id == self.world_id,
                 )
-                .all()
             )
+            reveal_orms = result.scalars().all()
             return [RevealStore.orm_to_reveal(reveal_orm) for reveal_orm in reveal_orms]
 
-    def get_by_character_id(self, character_id: int) -> List[Reveal]:
+    async def get_by_character_id(self, character_id: int) -> List[Reveal]:
         """Get all reveals for a character"""
-        with self.get_session() as session:
-            character = (
-                session.query(CharacterORM)
-                .filter(CharacterORM.id == character_id)
-                .first()
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(CharacterORM)
+                .options(
+                    selectinload(CharacterORM.reveals).selectinload(
+                        RevealORM.characters
+                    )
+                )
+                .where(CharacterORM.id == character_id)
             )
+            character = result.scalars().first()
 
             if character:
                 return [
@@ -50,63 +54,67 @@ class RevealStore(BaseStore):
             else:
                 return []
 
-    def get_reveal(self, reveal_id: int) -> Reveal | None:
+    async def get_reveal(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID for the current user and world"""
-        with self.get_session() as session:
-            reveal_orm = (
-                session.query(RevealORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(RevealORM)
+                .options(selectinload(RevealORM.characters))
+                .where(
                     RevealORM.id == reveal_id,
                     RevealORM.user_id == self.user_id,
                     RevealORM.world_id == self.world_id,
                 )
-                .first()
             )
+            reveal_orm = result.scalars().first()
             if reveal_orm:
                 return RevealStore.orm_to_reveal(reveal_orm)
             return None
 
-    def get_by_id(self, reveal_id: int) -> Reveal | None:
+    async def get_by_id(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID (alias for get_reveal)"""
-        return self.get_reveal(reveal_id)
+        return await self.get_reveal(reveal_id)
 
-    def create_reveal(self, reveal_data: RevealCreate) -> Reveal:
+    async def create_reveal(self, reveal_data: RevealCreate) -> Reveal:
         """Create a new reveal"""
-        with self.get_session() as session:
+        async with self.get_session() as session:
             # Create the reveal without character_ids - much cleaner!
             reveal_dict = reveal_data.model_dump(exclude={"character_ids"})
             reveal_orm = RevealORM(
                 **reveal_dict, user_id=self.user_id, world_id=self.world_id
             )
 
-            # Automatic association handling
+            # Automatic association handling - always set characters to avoid lazy loading
             if reveal_data.character_ids:
-                characters = (
-                    session.query(CharacterORM)
-                    .filter(CharacterORM.id.in_(reveal_data.character_ids))
-                    .all()
+                result = await session.execute(
+                    select(CharacterORM).where(
+                        CharacterORM.id.in_(reveal_data.character_ids)
+                    )
                 )
+                characters = result.scalars().all()
                 reveal_orm.characters = characters
+            else:
+                reveal_orm.characters = []  # Set empty list to avoid lazy loading
 
             session.add(reveal_orm)
-            session.flush()
-            session.refresh(reveal_orm)
+            await session.flush()
             return RevealStore.orm_to_reveal(reveal_orm)
 
-    def update_reveal(
+    async def update_reveal(
         self, reveal_id: int, reveal_update: RevealUpdate
     ) -> Reveal | None:
         """Update an existing reveal"""
-        with self.get_session() as session:
-            reveal_orm = (
-                session.query(RevealORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(RevealORM)
+                .options(selectinload(RevealORM.characters))
+                .where(
                     RevealORM.id == reveal_id,
                     RevealORM.user_id == self.user_id,
                     RevealORM.world_id == self.world_id,
                 )
-                .first()
             )
+            reveal_orm = result.scalars().first()
 
             if not reveal_orm:
                 return None
@@ -120,48 +128,46 @@ class RevealStore(BaseStore):
 
             # Update character relationships
             if reveal_update.character_ids is not None:
-                characters = (
-                    session.query(CharacterORM)
-                    .filter(CharacterORM.id.in_(reveal_update.character_ids))
-                    .all()
+                result = await session.execute(
+                    select(CharacterORM).where(
+                        CharacterORM.id.in_(reveal_update.character_ids)
+                    )
                 )
+                characters = result.scalars().all()
                 reveal_orm.characters = characters
 
-            session.flush()
-            session.refresh(reveal_orm)
+            await session.flush()
+            await session.refresh(reveal_orm)
             return RevealStore.orm_to_reveal(reveal_orm)
 
-    def delete_reveal(self, reveal_id: int) -> bool:
+    async def delete_reveal(self, reveal_id: int) -> bool:
         """Delete a reveal"""
-        with self.get_session() as session:
-            reveal_orm = (
-                session.query(RevealORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(RevealORM).where(
                     RevealORM.id == reveal_id,
                     RevealORM.user_id == self.user_id,
                     RevealORM.world_id == self.world_id,
                 )
-                .first()
             )
+            reveal_orm = result.scalars().first()
             if not reveal_orm:
                 return False
 
-            session.delete(reveal_orm)
+            await session.delete(reveal_orm)
             return True
 
-    def reveal_exists(self, reveal_id: int) -> bool:
+    async def reveal_exists(self, reveal_id: int) -> bool:
         """Check if a reveal exists"""
-        with self.get_session() as session:
-            return (
-                session.query(RevealORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(RevealORM).where(
                     RevealORM.id == reveal_id,
                     RevealORM.user_id == self.user_id,
                     RevealORM.world_id == self.world_id,
                 )
-                .first()
-                is not None
             )
+            return result.scalars().first() is not None
 
     @staticmethod
     def orm_to_reveal(reveal_orm: RevealORM) -> Reveal:

@@ -3,7 +3,7 @@ import os
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.db.connection import get_db_session
+from app.db.connection import get_async_db_session
 from app.models.encounter import EncounterCreate
 from app.models.encounter_connection import (
     ConnectionCreate,
@@ -13,9 +13,9 @@ from app.models.encounter_connection import (
 )
 
 
-def test_connection_store():
+async def test_connection_store():
     url = os.getenv("TEST_DATABASE_URL")
-    with get_db_session(url) as session:
+    async with get_async_db_session(url) as session:
         encounter_store = EncounterStore(user_id=1, world_id=1, session=session)
 
         encounter1_data = EncounterCreate(
@@ -34,8 +34,8 @@ def test_connection_store():
             character_ids=[],
         )
 
-        created_encounter1 = encounter_store.create_encounter(encounter1_data)
-        created_encounter2 = encounter_store.create_encounter(encounter2_data)
+        created_encounter1 = await encounter_store.create_encounter(encounter1_data)
+        created_encounter2 = await encounter_store.create_encounter(encounter2_data)
 
         # Now create connection with actual encounter IDs
         connection_store = ConnectionStore(user_id=1, world_id=1, session=session)
@@ -50,20 +50,22 @@ def test_connection_store():
             stroke_width=3,
         )
 
-        created_connection = connection_store.create_connection(new_connection_data)
+        created_connection = await connection_store.create_connection(
+            new_connection_data
+        )
         assert created_connection.source_encounter_id == created_encounter1.id
         assert created_connection.target_encounter_id == created_encounter2.id
         assert created_connection.id is not None
 
-        all_connections = connection_store.get_all_connections()
+        all_connections = await connection_store.get_all_connections()
         assert len(all_connections) == 1
 
-        retrieved_connection = connection_store.get_connection_by_id(
+        retrieved_connection = await connection_store.get_connection_by_id(
             created_connection.id
         )
         assert retrieved_connection is not None
 
-        encounter_connections = connection_store.get_connections_for_encounter(
+        encounter_connections = await connection_store.get_connections_for_encounter(
             created_encounter1.id
         )
         assert len(encounter_connections) == 1
@@ -73,7 +75,7 @@ def test_connection_store():
             stroke_width=5,
             edge_type=EdgeType.BEZIER.value,
         )
-        updated_connection = connection_store.update_connection(
+        updated_connection = await connection_store.update_connection(
             created_connection.id, update_data
         )
         assert updated_connection is not None
@@ -81,11 +83,13 @@ def test_connection_store():
         assert updated_connection.stroke_width == update_data.stroke_width
         assert updated_connection.edge_type == update_data.edge_type
 
-        exists = connection_store.connection_exists(created_connection.id)
+        exists = await connection_store.connection_exists(created_connection.id)
         assert exists is True
 
-        deleted = connection_store.delete_connection(created_connection.id)
+        deleted = await connection_store.delete_connection(created_connection.id)
         assert deleted is True
 
-        exists_after_delete = connection_store.connection_exists(created_connection.id)
+        exists_after_delete = await connection_store.connection_exists(
+            created_connection.id
+        )
         assert exists_after_delete is False

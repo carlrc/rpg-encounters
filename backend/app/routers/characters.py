@@ -46,13 +46,15 @@ def _generate_communication_style_task(character):
 
 
 @router.get("", response_model=List[Character])
-def get_characters(
+async def get_characters(
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Get all characters"""
     user_id, world_id = user_world
     try:
-        return CharacterStore(user_id=user_id, world_id=world_id).get_all_characters()
+        return await CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).get_all_characters()
     except HTTPException:
         raise
     except Exception as e:
@@ -63,14 +65,14 @@ def get_characters(
 
 
 @router.get("/{character_id}", response_model=Character)
-def get_character(
+async def get_character(
     character_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Get a specific character by ID"""
     user_id, world_id = user_world
     try:
-        character = CharacterStore(
+        character = await CharacterStore(
             user_id=user_id, world_id=world_id
         ).get_character_by_id(character_id)
         if not character:
@@ -105,9 +107,9 @@ async def create_character(
         # Create character with generated summaries
         character = CharacterCreate(**character_data.model_dump())
 
-        return CharacterStore(user_id=user_id, world_id=world_id).create_character(
-            character
-        )
+        return await CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).create_character(character)
     except HTTPException:
         raise
     except Exception as e:
@@ -128,7 +130,7 @@ async def update_character(
     try:
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
         # Because generating content with LLMs is expensive, ensure the character exists first
-        character = character_store.get_character_by_id(character_id=character_id)
+        character = await character_store.get_character_by_id(character_id=character_id)
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
@@ -166,8 +168,7 @@ async def update_character(
             character_update.communication_style = communication_style.style_summary
             character_update.communication_style_examples = communication_style.examples
 
-        character = character_store.update_character(character_id, character_update)
-        return character
+        return await character_store.update_character(character_id, character_update)
     except HTTPException:
         raise
     except Exception as e:
@@ -178,27 +179,21 @@ async def update_character(
 
 
 @router.delete("/{character_id}", status_code=204)
-def delete_character(
+async def delete_character(
     character_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Delete a character"""
     user_id, world_id = user_world
     try:
-        success = CharacterStore(user_id=user_id, world_id=world_id).delete_character(
-            character_id
-        )
+        success = await CharacterStore(
+            user_id=user_id, world_id=world_id
+        ).delete_character(character_id)
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(
-            f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"
-        )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
-
     except Exception as e:
         logger.error(
             f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"

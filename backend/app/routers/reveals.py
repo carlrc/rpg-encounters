@@ -2,10 +2,11 @@ import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.character_store import CharacterStore
 from app.data.reveal_store import RevealStore
-from app.db.connection import get_db_session
+from app.db.connection import get_async_db_routes_session
 from app.dependencies import get_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.reveal import Reveal, RevealCreate, RevealUpdate
@@ -16,11 +17,13 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[Reveal])
-def get_all_reveals(user_world: tuple[int, int] = Depends(get_current_user_world)):
+async def get_all_reveals(
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+):
     """Get all reveals across all characters"""
     user_id, world_id = user_world
     try:
-        return RevealStore(user_id=user_id, world_id=world_id).get_all_reveals()
+        return await RevealStore(user_id=user_id, world_id=world_id).get_all_reveals()
     except HTTPException:
         raise
     except Exception as e:
@@ -29,25 +32,25 @@ def get_all_reveals(user_world: tuple[int, int] = Depends(get_current_user_world
 
 
 @router.post("", response_model=Reveal)
-def create_reveal(
+async def create_reveal(
     reveal_data: RevealCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Create a reveal for multiple characters"""
     user_id, world_id = user_world
     try:
-        with get_db_session() as session:
-            # Verify all characters exist
-            character_store = CharacterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            for character_id in reveal_data.character_ids:
-                if not character_store.character_exists(character_id):
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        # Verify all characters exist
+        character_store = CharacterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        for character_id in reveal_data.character_ids:
+            if not await character_store.character_exists(character_id):
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-            return RevealStore(
-                user_id=user_id, world_id=world_id, session=session
-            ).create_reveal(reveal_data)
+        return await RevealStore(
+            user_id=user_id, world_id=world_id, session=session
+        ).create_reveal(reveal_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -58,13 +61,15 @@ def create_reveal(
 
 
 @router.get("/{reveal_id}", response_model=Reveal)
-def get_reveal(
+async def get_reveal(
     reveal_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Get a specific reveal by ID"""
     user_id, world_id = user_world
     try:
-        reveal = RevealStore(user_id=user_id, world_id=world_id).get_reveal(reveal_id)
+        reveal = await RevealStore(user_id=user_id, world_id=world_id).get_reveal(
+            reveal_id
+        )
         if not reveal:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return reveal
@@ -78,23 +83,24 @@ def get_reveal(
 
 
 @router.get("/character/{character_id}", response_model=List[Reveal])
-def get_character_reveals(
-    character_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+async def get_character_reveals(
+    character_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get all reveals for a character"""
     user_id, world_id = user_world
     try:
-        with get_db_session() as session:
-            # Verify character exists
-            character_store = CharacterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            if not character_store.character_exists(character_id):
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        # Verify character exists
+        character_store = CharacterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        if not await character_store.character_exists(character_id):
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-            return RevealStore(
-                user_id=user_id, world_id=world_id, session=session
-            ).get_by_character_id(character_id)
+        return await RevealStore(
+            user_id=user_id, world_id=world_id, session=session
+        ).get_by_character_id(character_id)
     except HTTPException:
         raise
     except Exception as e:
@@ -105,30 +111,30 @@ def get_character_reveals(
 
 
 @router.put("/{reveal_id}", response_model=Reveal)
-def update_reveal(
+async def update_reveal(
     reveal_id: int,
     reveal_update: RevealUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update a reveal"""
     user_id, world_id = user_world
     try:
-        with get_db_session() as session:
-            # Verify all characters exist if character_ids are being updated
-            if reveal_update.character_ids:
-                character_store = CharacterStore(
-                    user_id=user_id, world_id=world_id, session=session
-                )
-                for character_id in reveal_update.character_ids:
-                    if not character_store.character_exists(character_id):
-                        raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-
-            reveal = RevealStore(
+        # Verify all characters exist if character_ids are being updated
+        if reveal_update.character_ids:
+            character_store = CharacterStore(
                 user_id=user_id, world_id=world_id, session=session
-            ).update_reveal(reveal_id, reveal_update)
-            if not reveal:
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-            return reveal
+            )
+            for character_id in reveal_update.character_ids:
+                if not await character_store.character_exists(character_id):
+                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+
+        reveal = await RevealStore(
+            user_id=user_id, world_id=world_id, session=session
+        ).update_reveal(reveal_id, reveal_update)
+        if not reveal:
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        return reveal
     except HTTPException:
         raise
     except Exception as e:
@@ -139,13 +145,13 @@ def update_reveal(
 
 
 @router.delete("/{reveal_id}")
-def delete_reveal(
+async def delete_reveal(
     reveal_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Delete a reveal"""
     user_id, world_id = user_world
     try:
-        success = RevealStore(user_id=user_id, world_id=world_id).delete_reveal(
+        success = await RevealStore(user_id=user_id, world_id=world_id).delete_reveal(
             reveal_id
         )
         if not success:

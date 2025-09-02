@@ -1,48 +1,49 @@
 from typing import List
 
-from sqlalchemy import Engine
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.base_store import BaseStore
-from app.db.connection import get_db_engine
 from app.db.models.user import UserORM
 from app.models.user import User, UserCreate, UserUpdate
 
 
 class UserStore(BaseStore):
-    def __init__(
-        self, user_id: int = None, engine: Engine = get_db_engine(), session=None
-    ):
+    def __init__(self, user_id: int = None, session: AsyncSession = None):
         """Initialize UserStore with user_id to follow the same pattern as other stores"""
         # UserStore doesn't have world_id, so we pass None
-        super().__init__(user_id=user_id, world_id=None, engine=engine, session=session)
+        super().__init__(user_id=user_id, world_id=None, session=session)
 
-    def get_all_users(self) -> List[User]:
+    async def get_all_users(self) -> List[User]:
         """Get all users"""
-        with self.get_session() as session:
-            user_orms = session.query(UserORM).all()
+        async with self.get_session() as session:
+            result = await session.execute(select(UserORM))
+            user_orms = result.scalars().all()
             return [User.model_validate(user_orm) for user_orm in user_orms]
 
-    def get_user_by_id(self, user_id: int) -> User | None:
+    async def get_user_by_id(self, user_id: int) -> User | None:
         """Get a specific user by ID"""
-        with self.get_session() as session:
-            user_orm = session.query(UserORM).filter(UserORM.id == user_id).first()
+        async with self.get_session() as session:
+            result = await session.execute(select(UserORM).where(UserORM.id == user_id))
+            user_orm = result.scalars().first()
             if user_orm:
                 return User.model_validate(user_orm)
             return None
 
-    def create_user(self, user_data: UserCreate) -> User:
+    async def create_user(self, user_data: UserCreate) -> User:
         """Create a new user"""
-        with self.get_session() as session:
+        async with self.get_session() as session:
             user_orm = UserORM(**user_data.model_dump())
             session.add(user_orm)
-            session.flush()
-            session.refresh(user_orm)
+            await session.flush()
+            await session.refresh(user_orm)
             return User.model_validate(user_orm)
 
-    def update_user(self, user_id: int, user_update: UserUpdate) -> User | None:
+    async def update_user(self, user_id: int, user_update: UserUpdate) -> User | None:
         """Update an existing user"""
-        with self.get_session() as session:
-            user_orm = session.query(UserORM).filter(UserORM.id == user_id).first()
+        async with self.get_session() as session:
+            result = await session.execute(select(UserORM).where(UserORM.id == user_id))
+            user_orm = result.scalars().first()
             if not user_orm:
                 return None
 
@@ -50,22 +51,24 @@ class UserStore(BaseStore):
             for key, value in update_data.items():
                 setattr(user_orm, key, value)
 
-            session.refresh(user_orm)
+            await session.refresh(user_orm)
             return User.model_validate(user_orm)
 
-    def delete_user(self) -> bool:
+    async def delete_user(self) -> bool:
         """Delete a user"""
-        with self.get_session() as session:
-            user_orm = session.query(UserORM).filter(UserORM.id == self.user_id).first()
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(UserORM).where(UserORM.id == self.user_id)
+            )
+            user_orm = result.scalars().first()
             if not user_orm:
                 return False
 
-            session.delete(user_orm)
+            await session.delete(user_orm)
             return True
 
-    def user_exists(self, user_id: int) -> bool:
+    async def user_exists(self, user_id: int) -> bool:
         """Check if a user exists"""
-        with self.get_session() as session:
-            return (
-                session.query(UserORM).filter(UserORM.id == user_id).first() is not None
-            )
+        async with self.get_session() as session:
+            result = await session.execute(select(UserORM).where(UserORM.id == user_id))
+            return result.scalars().first() is not None

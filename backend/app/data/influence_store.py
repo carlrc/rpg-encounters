@@ -1,9 +1,9 @@
 from typing import List
 
-from sqlalchemy import Engine
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.base_store import BaseStore
-from app.db.connection import get_db_engine
 from app.db.models.influence import InfluenceORM
 from app.models.influence import Influence
 
@@ -13,28 +13,24 @@ class InfluenceStore(BaseStore):
         self,
         user_id: int,
         world_id: int,
-        engine: Engine = get_db_engine(),
-        session=None,
+        session: AsyncSession = None,
     ):
-        super().__init__(
-            user_id=user_id, world_id=world_id, engine=engine, session=session
-        )
+        super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    def get_or_create(
+    async def get_or_create_influence(
         self, character_id: int, player_id: int, base: int = 0
     ) -> Influence:
         """Get existing influence state or create new one"""
-        with self.get_session() as session:
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(
                     InfluenceORM.character_id == character_id,
                     InfluenceORM.player_id == player_id,
                     InfluenceORM.user_id == self.user_id,
                     InfluenceORM.world_id == self.world_id,
                 )
-                .first()
             )
+            influence_orm = result.scalars().first()
 
             if influence_orm:
                 return Influence.model_validate(influence_orm)
@@ -49,23 +45,22 @@ class InfluenceStore(BaseStore):
                 world_id=self.world_id,
             )
             session.add(new_influence)
-            session.flush()
-            session.refresh(new_influence)
+            await session.flush()
+            await session.refresh(new_influence)
             return Influence.model_validate(new_influence)
 
-    def update_influence(self, influence: Influence) -> Influence | None:
+    async def update_influence(self, influence: Influence) -> Influence | None:
         """Update existing influence"""
-        with self.get_session() as session:
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(
                     InfluenceORM.character_id == influence.character_id,
                     InfluenceORM.player_id == influence.player_id,
                     InfluenceORM.user_id == self.user_id,
                     InfluenceORM.world_id == self.world_id,
                 )
-                .first()
             )
+            influence_orm = result.scalars().first()
 
             if not influence_orm:
                 return None
@@ -74,13 +69,13 @@ class InfluenceStore(BaseStore):
             influence_orm.base = influence.base
             influence_orm.earned = influence.earned
 
-            session.flush()
-            session.refresh(influence_orm)
+            await session.flush()
+            await session.refresh(influence_orm)
             return Influence.model_validate(influence_orm)
 
-    def create_influence(self, influence: Influence) -> Influence:
+    async def create_influence(self, influence: Influence) -> Influence:
         """Separate method for creating new influence records"""
-        with self.get_session() as session:
+        async with self.get_session() as session:
             influence_orm = InfluenceORM(
                 character_id=influence.character_id,
                 player_id=influence.player_id,
@@ -90,88 +85,89 @@ class InfluenceStore(BaseStore):
                 world_id=self.world_id,
             )
             session.add(influence_orm)
-            session.flush()
-            session.refresh(influence_orm)
+            await session.flush()
+            await session.refresh(influence_orm)
             return Influence.model_validate(influence_orm)
 
-    def get_influence(self, character_id: int, player_id: int) -> Influence | None:
+    async def get_influence(
+        self, character_id: int, player_id: int
+    ) -> Influence | None:
         """Get influence state for character-player pair"""
-        with self.get_session() as session:
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(
                     InfluenceORM.character_id == character_id,
                     InfluenceORM.player_id == player_id,
                 )
-                .first()
             )
+            influence_orm = result.scalars().first()
 
             if influence_orm:
                 return Influence.model_validate(influence_orm)
             return None
 
-    def reset_influence(self, character_id: int, player_id: int) -> bool:
+    async def reset_influence(self, character_id: int, player_id: int) -> bool:
         """Reset earned influence to 0, keep base influence"""
-        with self.get_session() as session:
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(
                     InfluenceORM.character_id == character_id,
                     InfluenceORM.player_id == player_id,
                 )
-                .first()
             )
+            influence_orm = result.scalars().first()
 
             if influence_orm:
                 influence_orm.earned = 0
                 return True
             return False
 
-    def get_all_influences(self) -> List[Influence]:
+    async def get_all_influences(self) -> List[Influence]:
         """Get all influence records"""
-        with self.get_session() as session:
-            influence_orms = session.query(InfluenceORM).all()
+        async with self.get_session() as session:
+            result = await session.execute(select(InfluenceORM))
+            influence_orms = result.scalars().all()
             return [Influence.model_validate(orm) for orm in influence_orms]
 
-    def get_by_character_id(self, character_id: int) -> List[Influence]:
+    async def get_by_character_id(self, character_id: int) -> List[Influence]:
         """Get all influence records for a character"""
-        with self.get_session() as session:
-            influence_orms = (
-                session.query(InfluenceORM)
-                .filter(InfluenceORM.character_id == character_id)
-                .all()
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(InfluenceORM.character_id == character_id)
             )
+            influence_orms = result.scalars().all()
             return [Influence.model_validate(orm) for orm in influence_orms]
 
-    def get_by_player_id(self, player_id: int) -> List[Influence]:
+    async def get_by_player_id(self, player_id: int) -> List[Influence]:
         """Get all influence records for a player"""
-        with self.get_session() as session:
-            influence_orms = (
-                session.query(InfluenceORM)
-                .filter(InfluenceORM.player_id == player_id)
-                .all()
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(InfluenceORM.player_id == player_id)
             )
+            influence_orms = result.scalars().all()
             return [Influence.model_validate(orm) for orm in influence_orms]
 
-    def delete_influence(self, character_id: int, player_id: int) -> bool:
+    async def delete_influence(self, character_id: int, player_id: int) -> bool:
         """Delete an influence record"""
-        with self.get_session() as session:
-            influence_orm = (
-                session.query(InfluenceORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(InfluenceORM).where(
                     InfluenceORM.character_id == character_id,
                     InfluenceORM.player_id == player_id,
                 )
-                .first()
             )
+            influence_orm = result.scalars().first()
 
             if not influence_orm:
                 return False
 
-            session.delete(influence_orm)
+            await session.delete(influence_orm)
             return True
 
-    def clear(self) -> None:
+    async def clear(self) -> None:
         """Clear all influence states - used for testing"""
-        with self.get_session() as session:
-            session.query(InfluenceORM).delete()
+        async with self.get_session() as session:
+            result = await session.execute(select(InfluenceORM))
+            influence_orms = result.scalars().all()
+            for influence_orm in influence_orms:
+                await session.delete(influence_orm)

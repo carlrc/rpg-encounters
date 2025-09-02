@@ -11,7 +11,7 @@ from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
-from app.db.connection import get_db_session
+from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
 from app.services.ability_challenge import (
     D20Outcomes,
@@ -41,7 +41,7 @@ async def challenge_character(
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
-        with get_db_session() as session:
+        async with get_async_db_session() as session:
             # Create store instances with shared session
             character_store = CharacterStore(
                 user_id=user_id, world_id=world_id, session=session
@@ -60,19 +60,21 @@ async def challenge_character(
             )
 
             # Get all data using shared session
-            character = character_store.get_character_by_id(character_id)
-            player = player_store.get_player_by_id(player_id)
-            encounter = encounter_store.get_encounter_by_id(encounter_id)
+            character = await character_store.get_character_by_id(character_id)
+            player = await player_store.get_player_by_id(player_id)
+            encounter = await encounter_store.get_encounter_by_id(encounter_id)
 
             # Auto-add character to encounter if not already present
             # Can happen if you create an encounter and add a character without saving
             if character_id not in encounter.character_ids:
-                encounter_store.add_character_to_encounter(encounter_id, character_id)
+                await encounter_store.add_character_to_encounter(
+                    encounter_id, character_id
+                )
                 # Refresh encounter data after adding character
-                encounter = encounter_store.get_encounter_by_id(encounter_id)
+                encounter = await encounter_store.get_encounter_by_id(encounter_id)
 
-            all_reveals = reveal_store.get_by_character_id(character_id)
-            all_memories = memory_store.get_by_character_id(character_id)
+            all_reveals = await reveal_store.get_by_character_id(character_id)
+            all_memories = await memory_store.get_by_character_id(character_id)
 
         # Calculate skill check and filter reveals outside of session
         total_roll = calculate_skill_check(

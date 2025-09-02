@@ -2,10 +2,11 @@ import logging
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.db.connection import get_db_session
+from app.db.connection import get_async_db_routes_session
 from app.dependencies import get_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
@@ -25,14 +26,14 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/{encounter_id}", response_model=Encounter)
-def get_encounter(
+async def get_encounter(
     encounter_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Get a specific encounter by ID"""
     user_id, world_id = user_world
     try:
-        encounter = EncounterStore(
+        encounter = await EncounterStore(
             user_id=user_id, world_id=world_id
         ).get_encounter_by_id(encounter_id)
         if not encounter:
@@ -48,16 +49,16 @@ def get_encounter(
 
 
 @router.post("/", response_model=Encounter, status_code=201)
-def create_encounter(
+async def create_encounter(
     encounter_data: EncounterCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Create a new encounter"""
     user_id, world_id = user_world
     try:
-        return EncounterStore(user_id=user_id, world_id=world_id).create_encounter(
-            encounter_data
-        )
+        return await EncounterStore(
+            user_id=user_id, world_id=world_id
+        ).create_encounter(encounter_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -68,7 +69,7 @@ def create_encounter(
 
 
 @router.put("/{encounter_id}", response_model=Encounter)
-def update_encounter(
+async def update_encounter(
     encounter_id: int,
     encounter_update: EncounterUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
@@ -78,9 +79,9 @@ def update_encounter(
     try:
         # Override the ID from the URL path
         encounter_update.id = encounter_id
-        encounter = EncounterStore(user_id=user_id, world_id=world_id).update_encounter(
-            encounter_id, encounter_update
-        )
+        encounter = await EncounterStore(
+            user_id=user_id, world_id=world_id
+        ).update_encounter(encounter_id, encounter_update)
         if not encounter:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return encounter
@@ -94,16 +95,16 @@ def update_encounter(
 
 
 @router.delete("/{encounter_id}", status_code=204)
-def delete_encounter(
+async def delete_encounter(
     encounter_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Delete an encounter"""
     user_id, world_id = user_world
     try:
-        success = EncounterStore(user_id=user_id, world_id=world_id).delete_encounter(
-            encounter_id
-        )
+        success = await EncounterStore(
+            user_id=user_id, world_id=world_id
+        ).delete_encounter(encounter_id)
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
@@ -117,32 +118,34 @@ def delete_encounter(
 
 
 @router.post("/connections", response_model=Connection, status_code=201)
-def create_connection(
+async def create_connection(
     connection_data: ConnectionCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: AsyncSession = Depends(
+        get_async_db_routes_session
+    ),  # Shared session for validation
 ):
     """Create a new connection between encounters"""
     user_id, world_id = user_world
     try:
-        with get_db_session() as session:
-            encounter_store = EncounterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            connection_store = ConnectionStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
+        encounter_store = EncounterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        connection_store = ConnectionStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
 
-            # Validate that both encounters exist
-            if not encounter_store.get_encounter_by_id(
-                connection_data.source_encounter_id
-            ):
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-            if not encounter_store.get_encounter_by_id(
-                connection_data.target_encounter_id
-            ):
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        # Validate that both encounters exist
+        if not await encounter_store.get_encounter_by_id(
+            connection_data.source_encounter_id
+        ):
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        if not await encounter_store.get_encounter_by_id(
+            connection_data.target_encounter_id
+        ):
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-            return connection_store.create_connection(connection_data)
+        return await connection_store.create_connection(connection_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -153,43 +156,45 @@ def create_connection(
 
 
 @router.put("/connections/{connection_id}", response_model=Connection)
-def update_connection(
+async def update_connection(
     connection_id: int,
     connection_update: ConnectionUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: AsyncSession = Depends(
+        get_async_db_routes_session
+    ),  # Shared session for validation
 ):
     """Update an existing connection"""
     user_id, world_id = user_world
     try:
-        with get_db_session() as session:
-            encounter_store = EncounterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            connection_store = ConnectionStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
+        encounter_store = EncounterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        connection_store = ConnectionStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
 
-            # Override the ID from the URL path
-            connection_update.id = connection_id
+        # Override the ID from the URL path
+        connection_update.id = connection_id
 
-            # If updating encounter IDs, validate they exist
-            if connection_update.source_encounter_id is not None:
-                if not encounter_store.get_encounter_by_id(
-                    connection_update.source_encounter_id
-                ):
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-            if connection_update.target_encounter_id is not None:
-                if not encounter_store.get_encounter_by_id(
-                    connection_update.target_encounter_id
-                ):
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-
-            connection = connection_store.update_connection(
-                connection_id, connection_update
-            )
-            if not connection:
+        # If updating encounter IDs, validate they exist
+        if connection_update.source_encounter_id is not None:
+            if not await encounter_store.get_encounter_by_id(
+                connection_update.source_encounter_id
+            ):
                 raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-            return connection
+        if connection_update.target_encounter_id is not None:
+            if not await encounter_store.get_encounter_by_id(
+                connection_update.target_encounter_id
+            ):
+                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+
+        connection = await connection_store.update_connection(
+            connection_id, connection_update
+        )
+        if not connection:
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        return connection
     except HTTPException:
         raise
     except Exception as e:
@@ -200,16 +205,16 @@ def update_connection(
 
 
 @router.delete("/connections/{connection_id}", status_code=204)
-def delete_connection(
+async def delete_connection(
     connection_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Delete a connection"""
     user_id, world_id = user_world
     try:
-        success = ConnectionStore(user_id=user_id, world_id=world_id).delete_connection(
-            connection_id
-        )
+        success = await ConnectionStore(
+            user_id=user_id, world_id=world_id
+        ).delete_connection(connection_id)
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
@@ -223,25 +228,28 @@ def delete_connection(
 
 
 @router.get("/{encounter_id}/connections", response_model=List[Connection])
-def get_encounter_connections(
-    encounter_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+async def get_encounter_connections(
+    encounter_id: int,
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: AsyncSession = Depends(
+        get_async_db_routes_session
+    ),  # Shared session for validation
 ):
     """Get all connections for a specific encounter"""
     user_id, world_id = user_world
     try:
-        with get_db_session() as session:
-            encounter_store = EncounterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            connection_store = ConnectionStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
+        encounter_store = EncounterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        connection_store = ConnectionStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
 
-            # Validate encounter exists
-            if not encounter_store.get_encounter_by_id(encounter_id):
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+        # Validate encounter exists
+        if not await encounter_store.get_encounter_by_id(encounter_id):
+            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-            return connection_store.get_connections_for_encounter(encounter_id)
+        return await connection_store.get_connections_for_encounter(encounter_id)
     except HTTPException:
         raise
     except Exception as e:
@@ -252,7 +260,7 @@ def get_encounter_connections(
 
 
 @router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
-def get_conversation_data(
+async def get_conversation_data(
     encounter_id: int,
     player_id: int,
     character_id: int,
@@ -262,7 +270,8 @@ def get_conversation_data(
     user_id, world_id = user_world
 
     try:
-        context = get_conversation_context(
+        # Note: get_conversation_context will be migrated in Phase 4
+        context = await get_conversation_context(
             world_id=world_id,
             player_id=player_id,
             user_id=user_id,

@@ -1,9 +1,10 @@
 from typing import List
 
-from sqlalchemy import Engine
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.data.base_store import BaseStore
-from app.db.connection import get_db_engine
 from app.db.models.character import CharacterORM
 from app.db.models.encounter import EncounterORM
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
@@ -14,82 +15,85 @@ class EncounterStore(BaseStore):
         self,
         user_id: int,
         world_id: int,
-        engine: Engine = get_db_engine(),
-        session=None,
+        session: AsyncSession = None,
     ):
-        super().__init__(
-            user_id=user_id, world_id=world_id, engine=engine, session=session
-        )
+        super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    def get_all_encounters(self) -> List[Encounter]:
+    async def get_all_encounters(self) -> List[Encounter]:
         """Get all encounters for the current user and world"""
-        with self.get_session() as session:
-            encounter_orms = (
-                session.query(EncounterORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(EncounterORM)
+                .options(selectinload(EncounterORM.characters))
+                .where(
                     EncounterORM.user_id == self.user_id,
                     EncounterORM.world_id == self.world_id,
                 )
-                .all()
             )
+            encounter_orms = result.scalars().all()
             return [
                 self._orm_to_encounter(encounter_orm)
                 for encounter_orm in encounter_orms
             ]
 
-    def get_encounter_by_id(self, encounter_id: int) -> Encounter | None:
+    async def get_encounter_by_id(self, encounter_id: int) -> Encounter | None:
         """Get a specific encounter by ID for the current user and world"""
-        with self.get_session() as session:
-            encounter_orm = (
-                session.query(EncounterORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(EncounterORM)
+                .options(selectinload(EncounterORM.characters))
+                .where(
                     EncounterORM.id == encounter_id,
                     EncounterORM.user_id == self.user_id,
                     EncounterORM.world_id == self.world_id,
                 )
-                .first()
             )
+            encounter_orm = result.scalars().first()
             if encounter_orm:
                 return self._orm_to_encounter(encounter_orm)
             return None
 
-    def create_encounter(self, encounter_data: EncounterCreate) -> Encounter:
+    async def create_encounter(self, encounter_data: EncounterCreate) -> Encounter:
         """Create a new encounter"""
-        with self.get_session() as session:
+        async with self.get_session() as session:
             # Create the encounter without character_ids - much cleaner!
             encounter_dict = encounter_data.model_dump(exclude={"character_ids"})
             encounter_orm = EncounterORM(
                 **encounter_dict, user_id=self.user_id, world_id=self.world_id
             )
 
-            # Automatic association handling
+            # Automatic association handling - always set characters to avoid lazy loading
             if encounter_data.character_ids:
-                characters = (
-                    session.query(CharacterORM)
-                    .filter(CharacterORM.id.in_(encounter_data.character_ids))
-                    .all()
+                result = await session.execute(
+                    select(CharacterORM).where(
+                        CharacterORM.id.in_(encounter_data.character_ids)
+                    )
                 )
+                characters = result.scalars().all()
                 encounter_orm.characters = characters
+            else:
+                encounter_orm.characters = []  # Set empty list to avoid lazy loading
 
             session.add(encounter_orm)
-            session.flush()
-            session.refresh(encounter_orm)
+            await session.flush()
+            # No need to refresh since we already have the relationships loaded
             return self._orm_to_encounter(encounter_orm)
 
-    def update_encounter(
+    async def update_encounter(
         self, encounter_id: int, encounter_update: EncounterUpdate
     ) -> Encounter | None:
         """Update an existing encounter"""
-        with self.get_session() as session:
-            encounter_orm = (
-                session.query(EncounterORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(EncounterORM)
+                .options(selectinload(EncounterORM.characters))
+                .where(
                     EncounterORM.id == encounter_id,
                     EncounterORM.user_id == self.user_id,
                     EncounterORM.world_id == self.world_id,
                 )
-                .first()
             )
+            encounter_orm = result.scalars().first()
 
             if not encounter_orm:
                 return None
@@ -103,47 +107,50 @@ class EncounterStore(BaseStore):
 
             # Update character relationships
             if encounter_update.character_ids is not None:
-                characters = (
-                    session.query(CharacterORM)
-                    .filter(CharacterORM.id.in_(encounter_update.character_ids))
-                    .all()
+                result = await session.execute(
+                    select(CharacterORM).where(
+                        CharacterORM.id.in_(encounter_update.character_ids)
+                    )
                 )
+                characters = result.scalars().all()
                 encounter_orm.characters = characters
 
-            session.flush()
-            session.refresh(encounter_orm)
+            await session.flush()
+            await session.refresh(encounter_orm)
             return self._orm_to_encounter(encounter_orm)
 
-    def delete_encounter(self, encounter_id: int) -> bool:
+    async def delete_encounter(self, encounter_id: int) -> bool:
         """Delete an encounter"""
-        with self.get_session() as session:
-            encounter_orm = (
-                session.query(EncounterORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(EncounterORM).where(
                     EncounterORM.id == encounter_id,
                     EncounterORM.user_id == self.user_id,
                     EncounterORM.world_id == self.world_id,
                 )
-                .first()
             )
+            encounter_orm = result.scalars().first()
             if not encounter_orm:
                 return False
 
-            session.delete(encounter_orm)
+            await session.delete(encounter_orm)
             return True
 
-    def add_character_to_encounter(self, encounter_id: int, character_id: int) -> bool:
+    async def add_character_to_encounter(
+        self, encounter_id: int, character_id: int
+    ) -> bool:
         """Add a character to an encounter if not already present"""
-        with self.get_session() as session:
-            encounter_orm = (
-                session.query(EncounterORM)
-                .filter(
+        async with self.get_session() as session:
+            result = await session.execute(
+                select(EncounterORM)
+                .options(selectinload(EncounterORM.characters))
+                .where(
                     EncounterORM.id == encounter_id,
                     EncounterORM.user_id == self.user_id,
                     EncounterORM.world_id == self.world_id,
                 )
-                .first()
             )
+            encounter_orm = result.scalars().first()
 
             if not encounter_orm:
                 return False
@@ -154,15 +161,14 @@ class EncounterStore(BaseStore):
                 return True  # Already present
 
             # Get the character ORM object and add to relationship
-            character_orm = (
-                session.query(CharacterORM)
-                .filter(
+            result = await session.execute(
+                select(CharacterORM).where(
                     CharacterORM.id == character_id,
                     CharacterORM.user_id == self.user_id,
                     CharacterORM.world_id == self.world_id,
                 )
-                .first()
             )
+            character_orm = result.scalars().first()
 
             if not character_orm:
                 return False

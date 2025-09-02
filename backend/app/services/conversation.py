@@ -16,13 +16,13 @@ from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.clients.elevan_labs import ElevenLabs
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
-from app.db.connection import get_db_session
+from app.db.connection import get_async_db_session
 from app.dependencies import (
     get_transcription_service,
 )
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
-from app.services.context import get_conversation_context_async
+from app.services.context import get_conversation_context
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
@@ -46,13 +46,14 @@ async def have_conversation(
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
-        with get_db_session() as session:
-            context = await get_conversation_context_async(
+        async with get_async_db_session() as session:
+            context = await get_conversation_context(
                 world_id=world_id,
                 user_id=user_id,
                 player_id=player_id,
                 character_id=character_id,
                 encounter_id=encounter_id,
+                session=session,
             )
 
             # Common template context for both conversation agents
@@ -142,7 +143,7 @@ async def have_conversation(
                     ),
                 )
 
-            InfluenceStore(
+            await InfluenceStore(
                 user_id=user_id, world_id=world_id, session=session
             ).update_influence(influence=influence)
 
