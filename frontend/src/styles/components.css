@@ -7,8 +7,10 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
   min-width: 320px;
   min-height: 100vh;
   font-family: var(--font-sans);
@@ -420,10 +422,8 @@ body {
 .main-layout {
   display: flex;
   flex: 1;
-  max-width: calc(var(--max-content-width) - 80px);
-  margin: 0 auto;
   margin-left: 80px;
-  width: 100%;
+  width: calc(100vw - 80px);
 }
 
 .sidebar {
@@ -467,6 +467,9 @@ body {
   flex: 1;
   background: var(--bg-white);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ===== UTILITY CLASSES ===== */
@@ -603,13 +606,15 @@ body {
 
 /* Maintain desktop layout with horizontal scrolling instead of aggressive collapse */
 body {
-  min-width: 800px; /* Prevent full layout collapse */
+  min-width: 800px;
+  /* Prevent full layout collapse */
 }
 
 /* Only collapse to mobile layout for very small screens (small phones) */
 @media (max-width: 480px) {
   body {
-    min-width: unset; /* Allow collapse only on very small screens */
+    min-width: unset;
+    /* Allow collapse only on very small screens */
   }
 
   .shared-field-columns {

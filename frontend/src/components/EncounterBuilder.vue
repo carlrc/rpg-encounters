@@ -748,21 +748,28 @@
 
 <style scoped>
   .encounter-builder {
-    height: calc(100vh - 140px);
+    height: 100%;
     width: 100%;
     position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .encounter-builder-container {
     height: 100%;
     width: 100%;
     position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 
   .encounter-canvas {
     height: 100%;
     width: 100%;
     background: var(--gray-50);
+    flex: 1;
   }
 
   /* Add Encounter Button Container */

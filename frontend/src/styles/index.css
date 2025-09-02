@@ -54,7 +54,7 @@ body {
 
 /* World Tabs Component */
 .world-tabs-positioned {
-  position: fixed;
+  position: absolute;
   left: var(--spacing-sm);
   top: 90px;
   z-index: var(--z-fixed);
@@ -190,7 +190,7 @@ body {
 /* Tablet-specific world tabs - maintain vertical positioning but enhance touch targets */
 @media (min-width: 481px) and (max-width: 1023px) {
   .world-tabs-positioned {
-    position: fixed;
+    position: absolute;
     left: var(--spacing-xs);
     /* Closer to edge for more space */
     top: 100px;
