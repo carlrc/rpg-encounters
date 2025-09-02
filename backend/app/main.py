@@ -22,7 +22,7 @@ from app.telemetry import setup_telemetry
 
 load_dotenv()
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="RPG Encounters")
