@@ -121,9 +121,7 @@ async def delete_encounter(
 async def create_connection(
     connection_data: ConnectionCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
-    session: AsyncSession = Depends(
-        get_async_db_routes_session
-    ),  # Shared session for validation
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Create a new connection between encounters"""
     user_id, world_id = user_world
@@ -160,9 +158,7 @@ async def update_connection(
     connection_id: int,
     connection_update: ConnectionUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
-    session: AsyncSession = Depends(
-        get_async_db_routes_session
-    ),  # Shared session for validation
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update an existing connection"""
     user_id, world_id = user_world
@@ -231,9 +227,7 @@ async def delete_connection(
 async def get_encounter_connections(
     encounter_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
-    session: AsyncSession = Depends(
-        get_async_db_routes_session
-    ),  # Shared session for validation
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get all connections for a specific encounter"""
     user_id, world_id = user_world

@@ -7,6 +7,9 @@ export default defineConfig({
   server: {
     port: parseInt(process.env.VITE_PORT),
     host: true,
+    hmr: {
+      port: parseInt(process.env.VITE_PORT),
+    },
   },
   resolve: {
     alias: {

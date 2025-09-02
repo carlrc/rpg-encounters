@@ -6,11 +6,6 @@ from langfuse import get_client
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.clients.elevan_labs import ElevenLabs
-from app.data.character_store import CharacterStore
-from app.data.encounter_store import EncounterStore
-from app.data.memory_store import MemoryStore
-from app.data.player_store import PlayerStore
-from app.data.reveal_store import RevealStore
 from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
 from app.services.ability_challenge import (
@@ -19,9 +14,58 @@ from app.services.ability_challenge import (
     filter_reveals_by_roll,
 )
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
+from app.services.context import get_conversation_context
 from app.services.websocket import get_audio_chunks
 
 logger = logging.getLogger(__name__)
+
+
+def _render_challenge_prompts(
+    ctx, d20_roll: int, filtered_reveals, total_roll: int
+) -> tuple[str, str | None]:
+    """Render challenge prompts based on D20 roll outcome."""
+
+    # Common template ctx for all challenge agents
+    base_template_ctx = {
+        "character": ctx.character,
+        "player": ctx.player,
+        "character_memories": ctx.memories,
+        "encounter": ctx.encounter,
+    }
+
+    if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
+        # Add filtered reveals and 70 word limit for critical success
+        template_ctx = {
+            **base_template_ctx,
+            "filtered_reveals": filtered_reveals,
+            "max_response_length": 70,
+        }
+        rendered_prompt = render_jinja_prompt(
+            "challenge_agent_critical_success", template_ctx
+        )
+        rendered_instructions = render_jinja_prompt(
+            "challenge_agent_instructions", template_ctx
+        )
+    elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
+        rendered_prompt = render_jinja_prompt(
+            "challenge_agent_critical_failure",
+            {**base_template_ctx, "max_response_length": 40},
+        )
+        rendered_instructions = None
+    else:
+        # Add filtered reveals, d20_roll, and 40 word limit for standard challenge
+        template_ctx = {
+            **base_template_ctx,
+            "filtered_reveals": filtered_reveals,
+            "max_response_length": 40,
+            "d20_roll": total_roll,
+        }
+        rendered_prompt = render_jinja_prompt("challenge_agent", template_ctx)
+        rendered_instructions = render_jinja_prompt(
+            "challenge_agent_instructions", template_ctx
+        )
+
+    return rendered_prompt, rendered_instructions
 
 
 async def challenge_character(
@@ -42,93 +86,33 @@ async def challenge_character(
 
     try:
         async with get_async_db_session() as session:
-            # Create store instances with shared session
-            character_store = CharacterStore(
-                user_id=user_id, world_id=world_id, session=session
+            ctx = await get_conversation_context(
+                world_id=world_id,
+                user_id=user_id,
+                player_id=player_id,
+                character_id=character_id,
+                encounter_id=encounter_id,
+                session=session,
             )
-            player_store = PlayerStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            encounter_store = EncounterStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            reveal_store = RevealStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-            memory_store = MemoryStore(
-                user_id=user_id, world_id=world_id, session=session
-            )
-
-            # Get all data using shared session
-            character = await character_store.get_character_by_id(character_id)
-            player = await player_store.get_player_by_id(player_id)
-            encounter = await encounter_store.get_encounter_by_id(encounter_id)
-
-            # Auto-add character to encounter if not already present
-            # Can happen if you create an encounter and add a character without saving
-            if character_id not in encounter.character_ids:
-                await encounter_store.add_character_to_encounter(
-                    encounter_id, character_id
-                )
-                # Refresh encounter data after adding character
-                encounter = await encounter_store.get_encounter_by_id(encounter_id)
-
-            all_reveals = await reveal_store.get_by_character_id(character_id)
-            all_memories = await memory_store.get_by_character_id(character_id)
 
         # Calculate skill check and filter reveals outside of session
         total_roll = calculate_skill_check(
-            skill=skill, player=player, d20_roll=d20_roll
+            skill=skill, player=ctx.player, d20_roll=d20_roll
         )
-        filtered_reveals = filter_reveals_by_roll(all_reveals, total_roll)
+        filtered_reveals = filter_reveals_by_roll(ctx.reveals, total_roll)
 
-        # Common template context for all challenge agents
-        base_template_context = {
-            "character": character,
-            "player": player,
-            "character_memories": all_memories,
-            "encounter": encounter,
-        }
-
-        if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
-            # Add filtered reveals and 70 word limit for critical success
-            template_context = {
-                **base_template_context,
-                "filtered_reveals": filtered_reveals,
-                "max_response_length": 70,
-            }
-            rendered_prompt = render_jinja_prompt(
-                "challenge_agent_critical_success", template_context
-            )
-            rendered_instructions = render_jinja_prompt(
-                "challenge_agent_instructions", template_context
-            )
-        elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
-            rendered_prompt = render_jinja_prompt(
-                "challenge_agent_critical_failure",
-                {**base_template_context, "max_response_length": 40},
-            )
-        else:
-            # Add filtered reveals, d20_roll, and 40 word limit for standard challenge
-            template_context = {
-                **base_template_context,
-                "filtered_reveals": filtered_reveals,
-                "max_response_length": 40,
-                "d20_roll": total_roll,
-            }
-            rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
-            rendered_instructions = render_jinja_prompt(
-                "challenge_agent_instructions", template_context
-            )
+        rendered_prompt, rendered_instructions = _render_challenge_prompts(
+            ctx, d20_roll, filtered_reveals, total_roll
+        )
 
         agent = ChallengeAgent(
             system_prompt=rendered_prompt,
             # In the case of critical failure there are no instructions
             instructions=rendered_instructions if rendered_instructions else None,
         )
-        # Create deps with encounter context
+        # Create deps with encounter ctx
         deps = ChallengeAgentDeps(
-            encounter=encounter,
+            encounter=ctx.encounter,
             # TODO: [SPIKE] Adding message history seems to reduce the chance the LLM answers with reveals, which is the purpose of challenges
             messages=None,
             telemetry=lambda: get_client().update_current_trace(
@@ -144,7 +128,7 @@ async def challenge_character(
         )
         # Stream TTS audio chunks back to frontend
         async for audio_chunk in ElevenLabs().text_to_speech_stream(
-            response, character.voice_id
+            response, ctx.character.voice_id
         ):
             try:
                 await websocket.send_bytes(audio_chunk)

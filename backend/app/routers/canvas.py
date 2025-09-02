@@ -121,7 +121,7 @@ async def save_canvas(
             if source_id is None:
                 # If not in map, it might be an existing encounter - check database
                 existing_encounter = await encounter_store.get_encounter_by_id(
-                    connection_data.source_encounter_id
+                    int(connection_data.source_encounter_id)
                 )
 
                 if not existing_encounter:
@@ -138,7 +138,7 @@ async def save_canvas(
             if target_id is None:
                 # If not in map, it might be an existing encounter - check database
                 existing_encounter = await encounter_store.get_encounter_by_id(
-                    connection_data.target_encounter_id
+                    int(connection_data.target_encounter_id)
                 )
 
                 if not existing_encounter:
@@ -150,9 +150,9 @@ async def save_canvas(
                 target_id = existing_encounter.id
                 encounter_id_map[target_id] = target_id  # Add to map for future lookups
 
-            # Update the connection data with real IDs
-            connection_data.source_encounter_id = source_id
-            connection_data.target_encounter_id = target_id
+            # Update the connection data with real IDs (ensure they are integers)
+            connection_data.source_encounter_id = int(source_id)
+            connection_data.target_encounter_id = int(target_id)
 
             created = await connection_store.create_connection(connection_data)
             all_connections.append(created)
@@ -163,6 +163,15 @@ async def save_canvas(
                 raise HTTPException(
                     status_code=400, detail="Existing connection missing ID"
                 )
+
+            # Ensure encounter IDs are integers (existing connections have DB IDs)
+            connection_update.source_encounter_id = int(
+                connection_update.source_encounter_id
+            )
+            connection_update.target_encounter_id = int(
+                connection_update.target_encounter_id
+            )
+
             updated = await connection_store.update_connection(
                 connection_update.id, connection_update
             )

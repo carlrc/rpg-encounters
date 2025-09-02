@@ -89,9 +89,7 @@ async def update_memory(
     memory_id: int,
     memory_update: MemoryUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
-    session: AsyncSession = Depends(
-        get_async_db_routes_session
-    ),  # Shared session for validation
+    session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update a memory"""
     user_id, world_id = user_world

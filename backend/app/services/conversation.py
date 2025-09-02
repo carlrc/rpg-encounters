@@ -47,7 +47,7 @@ async def have_conversation(
 
     try:
         async with get_async_db_session() as session:
-            context = await get_conversation_context(
+            ctx = await get_conversation_context(
                 world_id=world_id,
                 user_id=user_id,
                 player_id=player_id,
@@ -57,38 +57,35 @@ async def have_conversation(
             )
 
             # Common template context for both conversation agents
-            template_context = {
+            template_ctx = {
                 "max_response_length": 30,
-                "character": context.character,
-                "character_memories": context.memories,
-                "player": context.player,
-                "encounter": context.encounter,
+                "character": ctx.character,
+                "character_memories": ctx.memories,
+                "player": ctx.player,
+                "encounter": ctx.encounter,
             }
 
             influence_agent = InfluenceCalculatorAgent(
                 system_prompt=render_jinja_prompt(
                     "influence_scoring_agent",
                     {
-                        "character": context.character,
-                        "player": context.player,
+                        "character": ctx.character,
+                        "player": ctx.player,
                     },
                 ),
             )
 
-            # If negative sentiment, make the conversation negative
+            # If negative attitude, use negative sentiment agent
             negative_attitude = (
-                context.influence.score
-                < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
+                ctx.influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
             )
             if negative_attitude:
                 logger.info("Using negative conversation agent...")
 
-                rendered_negative_system_prompt = render_jinja_prompt(
-                    "negative_conversation_agent", template_context
-                )
-
                 agent = NegativeConvoAgent(
-                    system_prompt=rendered_negative_system_prompt,
+                    system_prompt=render_jinja_prompt(
+                        "negative_conversation_agent", template_ctx
+                    ),
                     conversation_store=ConversationStore(
                         user_id=user_id, world_id=world_id, session=session
                     ),
@@ -99,7 +96,7 @@ async def have_conversation(
                 response, influence = await agent.chat(
                     player_transcript=transcription,
                     deps=NegativeConvoAgentDeps(
-                        context=context,
+                        context=ctx,
                         telemetry=lambda: get_client().update_current_trace(
                             user_id=user_id,
                             name="negative-convo-agent",
@@ -112,18 +109,16 @@ async def have_conversation(
                 logger.info("Using positive conversation agent...")
 
                 # Add reveals for positive conversation agent
-                template_context["character_reveals"] = context.reveals
-                rendered_system_prompt = render_jinja_prompt(
-                    "conversation_agent", template_context
-                )
-                # LLM does not handle choosing reveals and memories well when combined in system prompt
-                rendered_instructions = render_jinja_prompt(
-                    "conversation_agent_instructions", template_context
-                )
+                template_ctx["character_reveals"] = ctx.reveals
 
                 agent = ConversationAgent(
-                    system_prompt=rendered_system_prompt,
-                    instructions=rendered_instructions,
+                    system_prompt=render_jinja_prompt(
+                        "conversation_agent", template_ctx
+                    ),
+                    # LLM does not handle choosing reveals and memories well when combined in system prompt
+                    instructions=render_jinja_prompt(
+                        "conversation_agent_instructions", template_ctx
+                    ),
                     conversation_store=ConversationStore(
                         user_id=user_id, world_id=world_id, session=session
                     ),
@@ -133,7 +128,7 @@ async def have_conversation(
                 response, _, influence = await agent.chat(
                     player_transcript=transcription,
                     deps=ConversationAgentDeps(
-                        context=context,
+                        context=ctx,
                         telemetry=lambda: get_client().update_current_trace(
                             user_id=user_id,
                             name="positive-convo-agent",
@@ -153,7 +148,7 @@ async def have_conversation(
                 "influence": influence.score,
                 "reveals": [
                     calculate_reveal_progress(reveal, influence.score)
-                    for reveal in context.reveals
+                    for reveal in ctx.reveals
                 ],
             }
 
@@ -164,7 +159,7 @@ async def have_conversation(
 
             # Stream TTS audio chunks back to frontend
             async for audio_chunk in ElevenLabs().text_to_speech_stream(
-                text=response, voice_id=context.character.voice_id
+                text=response, voice_id=ctx.character.voice_id
             ):
                 try:
                     await websocket.send_bytes(audio_chunk)
