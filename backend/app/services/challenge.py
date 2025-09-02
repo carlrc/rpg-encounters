@@ -2,6 +2,7 @@ import logging
 
 from fastapi import WebSocket
 from langfuse import get_client
+from langfuse import observe as langfuse_observe
 
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_jinja_prompt
@@ -68,6 +69,7 @@ def _render_challenge_prompts(
     return rendered_prompt, rendered_instructions
 
 
+@langfuse_observe
 async def challenge_character(
     websocket: WebSocket,
     world_id: int,
@@ -82,6 +84,7 @@ async def challenge_character(
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(audio_chunks)
     transcription = await get_transcription_service().transcribe_audio(wav_path)
+    get_client().update_current_trace(input=transcription)
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
@@ -115,10 +118,8 @@ async def challenge_character(
             encounter=ctx.encounter,
             # TODO: [SPIKE] Adding message history seems to reduce the chance the LLM answers with reveals, which is the purpose of challenges
             messages=None,
-            telemetry=lambda: get_client().update_current_trace(
-                user_id=user_id,
+            telemetry=lambda: get_client().update_current_span(
                 name="challenge-agent",
-                tags=["challenge"],
                 metadata=agent.metadata,
             ),
         )
@@ -126,6 +127,10 @@ async def challenge_character(
         logger.debug(
             f"Generated character response for D20 roll {d20_roll}: {response}"
         )
+
+        # Force overall trace output to be LLM response
+        get_client().update_current_trace(output=response)
+
         # Stream TTS audio chunks back to frontend
         async for audio_chunk in ElevenLabs().text_to_speech_stream(
             response, ctx.character.voice_id

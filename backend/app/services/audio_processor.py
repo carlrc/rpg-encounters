@@ -6,9 +6,12 @@ import subprocess
 import tempfile
 from typing import List
 
+from langfuse import observe as langfuse_observe
+
 logger = logging.getLogger(__name__)
 
 
+@langfuse_observe
 async def save_chunks_to_wav(chunks: List[bytes]) -> str:
     """Save audio chunks directly to WAV file using ffmpeg"""
     # Useful to use tempfile even though we are manually cleaning up after due to auto naming
@@ -49,6 +52,7 @@ async def save_chunks_to_wav(chunks: List[bytes]) -> str:
         raise
 
 
+@langfuse_observe
 def cleanup_files(*file_paths: str) -> None:
     for path in file_paths:
         if path and os.path.exists(path):

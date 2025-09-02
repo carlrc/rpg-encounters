@@ -1,7 +1,10 @@
 import logging
+import os
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
+from langfuse import get_client
+from langfuse import observe as langfuse_observe
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.connection_store import ConnectionStore
@@ -254,6 +257,7 @@ async def get_encounter_connections(
 
 
 @router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
+@langfuse_observe()
 async def get_conversation_data(
     encounter_id: int,
     player_id: int,
@@ -294,6 +298,7 @@ async def get_conversation_data(
 
 
 @router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")
+@langfuse_observe()
 async def websocket_convo_endpoint(
     websocket: WebSocket,
     encounter_id: int,
@@ -302,6 +307,14 @@ async def websocket_convo_endpoint(
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     user_id, world_id = user_world
+    get_client().update_current_trace(
+        user_id=user_id,
+        tags=["conversation"],
+        metadata={
+            "service": os.getenv("SERVICE"),
+            "env": os.getenv("ENVIRONMENT"),
+        },
+    )
     return await have_conversation(
         websocket=websocket,
         world_id=world_id,
@@ -313,6 +326,7 @@ async def websocket_convo_endpoint(
 
 
 @router.websocket("/{encounter_id}/challenge/{player_id}/{character_id}")
+@langfuse_observe()
 async def websocket_challenge_endpoint(
     websocket: WebSocket,
     encounter_id: int,
@@ -321,6 +335,14 @@ async def websocket_challenge_endpoint(
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     user_id, world_id = user_world
+    get_client().update_current_trace(
+        user_id=user_id,
+        tags=["challenge"],
+        metadata={
+            "service": os.getenv("SERVICE"),
+            "env": os.getenv("ENVIRONMENT"),
+        },
+    )
     skill = websocket.query_params.get("skill")
     d20_roll = websocket.query_params.get("d20_roll")
     return await challenge_character(

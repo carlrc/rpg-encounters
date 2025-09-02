@@ -5,6 +5,7 @@ import os
 
 import torch
 import whisper
+from langfuse import observe as langfuse_observe
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ class WhisperTranscriptionService:
             logger.error(f"Failed to determine device. {e}")
             raise
 
+    @langfuse_observe(capture_output=False)
     async def transcribe_audio(self, wav_file_path: str) -> str:
         """Transcribe WAV file using Whisper
 

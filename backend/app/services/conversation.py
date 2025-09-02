@@ -2,6 +2,7 @@ import logging
 
 from fastapi import WebSocket
 from langfuse import get_client
+from langfuse import observe as langfuse_observe
 
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
@@ -29,6 +30,7 @@ from app.services.websocket import get_audio_chunks
 logger = logging.getLogger(__name__)
 
 
+@langfuse_observe
 async def have_conversation(
     websocket: WebSocket,
     world_id: int,
@@ -43,7 +45,8 @@ async def have_conversation(
     transcription = await get_transcription_service().transcribe_audio(
         wav_file_path=wav_path
     )
-    logger.info(f"Transcribed audio text: {transcription}")
+    # Set user input as overall trace input
+    get_client().update_current_trace(input=transcription)
 
     try:
         async with get_async_db_session() as session:
@@ -80,8 +83,6 @@ async def have_conversation(
                 ctx.influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
             )
             if negative_attitude:
-                logger.info("Using negative conversation agent...")
-
                 agent = NegativeConvoAgent(
                     system_prompt=render_jinja_prompt(
                         "negative_conversation_agent", template_ctx
@@ -97,17 +98,13 @@ async def have_conversation(
                     player_transcript=transcription,
                     deps=NegativeConvoAgentDeps(
                         context=ctx,
-                        telemetry=lambda: get_client().update_current_trace(
-                            user_id=user_id,
+                        telemetry=lambda: get_client().update_current_span(
                             name="negative-convo-agent",
-                            tags=["conversation"],
                             metadata=agent.metadata,
                         ),
                     ),
                 )
             else:
-                logger.info("Using positive conversation agent...")
-
                 # Add reveals for positive conversation agent
                 template_ctx["character_reveals"] = ctx.reveals
 
@@ -129,14 +126,15 @@ async def have_conversation(
                     player_transcript=transcription,
                     deps=ConversationAgentDeps(
                         context=ctx,
-                        telemetry=lambda: get_client().update_current_trace(
-                            user_id=user_id,
+                        telemetry=lambda: get_client().update_current_span(
                             name="positive-convo-agent",
-                            tags=["conversation"],
                             metadata=agent.metadata,
                         ),
                     ),
                 )
+
+            # Force overall trace output to be LLM response
+            get_client().update_current_trace(output=response)
 
             await InfluenceStore(
                 user_id=user_id, world_id=world_id, session=session

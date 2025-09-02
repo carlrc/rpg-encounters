@@ -26,11 +26,7 @@ class BaseAgent:
     def __init__(self):
         self.retries = MAX_RETRIES
         self.temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
-        self.metadata = {
-            "service": os.getenv("SERVICE"),
-            "temperature": self.temp,
-            "env": os.getenv("ENVIRONMENT"),
-        }
+        self.metadata = {"temperature": self.temp}
 
     # TODO: This doesn't work well. Needs to be summarizing convo instead
     # https://ai.pydantic.dev/message-history/#summarize-old-messages
