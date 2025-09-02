@@ -10,7 +10,7 @@ from pydantic_ai.models.openai import OpenAIModel
 
 from app.telemetry import TelemetryFunc
 
-# TODO: Put this very high to avoid message trimming issue. This should be based on tokens anyways in future
+# TODO: Set arbitrarily high to avoid trimming issue (_keep_recent_messages doesn't work). Should be based on tokens in the future anyways.
 MAX_MESSAGE_HISTORY = 30
 
 MAX_RETRIES = 3
@@ -28,7 +28,6 @@ class BaseAgent:
         self.temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
         self.metadata = {"temperature": self.temp}
 
-    # TODO: This doesn't work well. Needs to be summarizing convo instead
     # https://ai.pydantic.dev/message-history/#summarize-old-messages
     async def _keep_recent_messages(
         self, messages: list[ModelMessage]

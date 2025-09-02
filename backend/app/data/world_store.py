@@ -10,7 +10,6 @@ from app.models.world import World
 
 class WorldStore(BaseStore):
     def __init__(self, user_id: int, session: AsyncSession = None):
-        # WorldStore has user_id but no world_id, so we pass None for world_id
         super().__init__(user_id=user_id, world_id=None, session=session)
 
     async def get_all_worlds(self) -> List[World]:
@@ -40,7 +39,6 @@ class WorldStore(BaseStore):
     async def create_world(self) -> World:
         """Create a new world for the current user"""
         async with self.get_session() as session:
-            # Create world with just user_id, other fields are auto-generated
             world_orm = WorldORM(user_id=self.user_id)
             session.add(world_orm)
             await session.flush()

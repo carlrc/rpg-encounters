@@ -12,6 +12,7 @@ from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_routes_session
 from app.dependencies import get_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
+from app.models.conversation import ConversationData
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
 from app.models.encounter_connection import (
     Connection,
@@ -256,7 +257,10 @@ async def get_encounter_connections(
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
-@router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
+@router.get(
+    "/{encounter_id}/conversation/{player_id}/{character_id}",
+    response_model=ConversationData,
+)
 @langfuse_observe()
 async def get_conversation_data(
     encounter_id: int,
@@ -268,8 +272,7 @@ async def get_conversation_data(
     user_id, world_id = user_world
 
     try:
-        # Note: get_conversation_context will be migrated in Phase 4
-        context = await get_conversation_context(
+        ctx = await get_conversation_context(
             world_id=world_id,
             player_id=player_id,
             user_id=user_id,
@@ -277,16 +280,13 @@ async def get_conversation_data(
             encounter_id=encounter_id,
         )
 
-        # TODO: Should be response class
-        # Format response to match WebSocket conversation_data format
-        return {
-            "type": "conversation_data",
-            "influence": context.influence.score,
-            "reveals": [
-                calculate_reveal_progress(reveal, context.influence.score)
-                for reveal in context.reveals
+        return ConversationData(
+            influence=ctx.influence.score,
+            reveals=[
+                calculate_reveal_progress(reveal, ctx.influence.score)
+                for reveal in ctx.reveals
             ],
-        }
+        )
 
     except HTTPException:
         raise

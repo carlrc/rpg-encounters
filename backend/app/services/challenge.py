@@ -115,7 +115,7 @@ async def challenge_character(
                 ).model_dump()
             )
         except Exception as e:
-            logger.error(f"Failed to send conversation data: {e}")
+            logger.error(f"Failed to send challenge data: {e}")
 
         # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals)
         rendered_prompt, rendered_instructions = _render_challenge_prompts(
@@ -126,19 +126,17 @@ async def challenge_character(
             # In the case of critical failure there are no instructions
             instructions=rendered_instructions if rendered_instructions else None,
         )
-        # Create deps with encounter ctx
-        deps = ChallengeAgentDeps(
-            encounter=ctx.encounter,
-            # TODO: [SPIKE] Adding message history seems to reduce the chance the LLM answers with reveals, which is the purpose of challenges
-            messages=None,
-            telemetry=lambda: get_client().update_current_span(
-                name="challenge-agent",
-                metadata=agent.metadata,
+
+        # Generate LLM response
+        response = await agent.chat(
+            player_transcript=transcription,
+            deps=ChallengeAgentDeps(
+                encounter=ctx.encounter,
+                telemetry=lambda: get_client().update_current_span(
+                    name="challenge-agent",
+                    metadata=agent.metadata,
+                ),
             ),
-        )
-        response = await agent.chat(player_transcript=transcription, deps=deps)
-        logger.debug(
-            f"Generated character response for D20 roll {d20_roll}: {response}"
         )
 
         # Force overall trace output to be LLM response

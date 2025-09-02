@@ -59,7 +59,6 @@ class NegativeConvoAgent(BaseAgent):
             # Add to running earned total
             deps.context.influence.earned += influence_result.score
 
-            # TODO: Sometimes new messages returns nothing?
             # User model request
             model_request = run_result.new_messages()[0]
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen

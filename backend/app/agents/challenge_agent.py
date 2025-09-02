@@ -1,10 +1,8 @@
 import logging
-from typing import List
 
 from langfuse import observe as langfuse_observe
 from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.messages import ModelMessage
 
 from app.agents.agent_output import StandardAgentOutput
 from app.agents.base_agent import AgentDeps, BaseAgent
@@ -15,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 class ChallengeAgentDeps(AgentDeps):
     encounter: Encounter
-    messages: List[ModelMessage] | None
 
 
 class ChallengeAgent(BaseAgent):
@@ -30,7 +27,7 @@ class ChallengeAgent(BaseAgent):
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
             self.run_result = await self.agent.run(
-                user_prompt=player_transcript, message_history=deps.messages, deps=deps
+                user_prompt=player_transcript, deps=deps
             )
 
             deps.telemetry()

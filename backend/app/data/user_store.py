@@ -11,7 +11,6 @@ from app.models.user import User, UserCreate, UserUpdate
 class UserStore(BaseStore):
     def __init__(self, user_id: int = None, session: AsyncSession = None):
         """Initialize UserStore with user_id to follow the same pattern as other stores"""
-        # UserStore doesn't have world_id, so we pass None
         super().__init__(user_id=user_id, world_id=None, session=session)
 
     async def get_all_users(self) -> List[User]:
