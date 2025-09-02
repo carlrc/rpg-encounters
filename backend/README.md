@@ -1,6 +1,6 @@
 # Backend
 
-## Installation
+## Setup
 
 Install [UV](https://docs.astral.sh/uv/getting-started/installation/) then setup the virtual environment
 
@@ -56,7 +56,13 @@ DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/$
 TEST_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}-test
 ```
 
-## Usage
+If you don't have a telemetry backend setup, you can disable tracing with Langfuse
+
+```bash
+LANGFUSE_TRACING_ENABLED=false
+```
+
+## Local Testing
 
 Run docker
 
