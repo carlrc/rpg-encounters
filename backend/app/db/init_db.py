@@ -26,6 +26,7 @@ from app.db.models.user import UserORM  # noqa: F401
 from app.db.models.world import WorldORM  # noqa: F401
 
 
+# TODO: This has to be async
 def create_tables(engine: Engine):
     """Create all database tables"""
     SimpleBase.metadata.create_all(bind=engine)

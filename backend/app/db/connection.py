@@ -4,6 +4,9 @@ from contextlib import contextmanager
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 load_dotenv()
@@ -22,13 +25,23 @@ WORLDS_TABLE = "worlds"
 CONVERSATIONS_TABLE = "conversations"
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+ASYNC_DATABASE_URL = os.getenv("ASYNC_DATABASE_URL")
 
 
 def get_db_engine():
     """Get database engine, defaulting to test database for safety"""
     if not DATABASE_URL:
         raise ValueError("DATABASE_URL not set in env")
-    return create_engine(DATABASE_URL)
+    # https://docs.sqlalchemy.org/en/20/core/pooling.html
+    return create_engine(DATABASE_URL, pool_size=0)
+
+
+def get_async_db_engine():
+    """Get database engine, defaulting to test database for safety"""
+    if not ASYNC_DATABASE_URL:
+        raise ValueError("ASYNC_DATABASE_URL not set in env")
+    # https://docs.sqlalchemy.org/en/20/core/pooling.html
+    return create_async_engine(ASYNC_DATABASE_URL, pool_size=0)
 
 
 @contextmanager
@@ -47,3 +60,4 @@ def get_db_session(db_url: str = None):
         raise
     finally:
         db_session.close()
+

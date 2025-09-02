@@ -3,10 +3,8 @@ from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
 
-from app.data.character_store import CharacterStore
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
-from app.data.player_store import PlayerStore
 from app.db.connection import get_db_session
 from app.dependencies import get_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
@@ -19,7 +17,6 @@ from app.models.encounter_connection import (
 from app.services.challenge import challenge_character
 from app.services.context import get_conversation_context
 from app.services.conversation import have_conversation
-from app.services.influence_calculator import calculate_base_influence
 from app.services.reveal_progress import calculate_reveal_progress
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
@@ -28,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/{encounter_id}", response_model=Encounter)
-async def get_encounter(
+def get_encounter(
     encounter_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -51,7 +48,7 @@ async def get_encounter(
 
 
 @router.post("/", response_model=Encounter, status_code=201)
-async def create_encounter(
+def create_encounter(
     encounter_data: EncounterCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -71,7 +68,7 @@ async def create_encounter(
 
 
 @router.put("/{encounter_id}", response_model=Encounter)
-async def update_encounter(
+def update_encounter(
     encounter_id: int,
     encounter_update: EncounterUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
@@ -97,7 +94,7 @@ async def update_encounter(
 
 
 @router.delete("/{encounter_id}", status_code=204)
-async def delete_encounter(
+def delete_encounter(
     encounter_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -120,7 +117,7 @@ async def delete_encounter(
 
 
 @router.post("/connections", response_model=Connection, status_code=201)
-async def create_connection(
+def create_connection(
     connection_data: ConnectionCreate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -156,7 +153,7 @@ async def create_connection(
 
 
 @router.put("/connections/{connection_id}", response_model=Connection)
-async def update_connection(
+def update_connection(
     connection_id: int,
     connection_update: ConnectionUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
@@ -203,7 +200,7 @@ async def update_connection(
 
 
 @router.delete("/connections/{connection_id}", status_code=204)
-async def delete_connection(
+def delete_connection(
     connection_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -226,7 +223,7 @@ async def delete_connection(
 
 
 @router.get("/{encounter_id}/connections", response_model=List[Connection])
-async def get_encounter_connections(
+def get_encounter_connections(
     encounter_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Get all connections for a specific encounter"""
@@ -255,7 +252,7 @@ async def get_encounter_connections(
 
 
 @router.get("/{encounter_id}/conversation/{player_id}/{character_id}")
-async def get_conversation_data(
+def get_conversation_data(
     encounter_id: int,
     player_id: int,
     character_id: int,
@@ -265,29 +262,13 @@ async def get_conversation_data(
     user_id, world_id = user_world
 
     try:
-        with get_db_session() as session:
-            character = CharacterStore(
-                user_id=user_id, world_id=world_id, session=session
-            ).get_character_by_id(character_id=character_id)
-            player = PlayerStore(
-                user_id=user_id, world_id=world_id, session=session
-            ).get_player_by_id(player_id=player_id)
-
-            if not character or not player:
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-
-            base_influence = calculate_base_influence(
-                character=character, player=player
-            )
-            context = get_conversation_context(
-                world_id=world_id,
-                player_id=player_id,
-                user_id=user_id,
-                character_id=character_id,
-                encounter_id=encounter_id,
-                base_influence=base_influence,
-                session=session,
-            )
+        context = get_conversation_context(
+            world_id=world_id,
+            player_id=player_id,
+            user_id=user_id,
+            character_id=character_id,
+            encounter_id=encounter_id,
+        )
 
         # TODO: Should be response class
         # Format response to match WebSocket conversation_data format

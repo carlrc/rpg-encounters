@@ -16,12 +16,16 @@ dependencies = [
     "torch==2.7.1",
     "torchaudio==2.7.1",
     "torchvision==0.22.1",
-    "SQLAlchemy==2.0.43",
+    "SQLAlchemy[asyncio]==2.0.43",
     "psycopg2-binary==2.9.10",
     "python-jose[cryptography]==3.5.0",
     "langfuse==3.3.0",
     "Jinja2==3.1.6",
-    "httpx==0.28.1"
+    "httpx==0.28.1",
+    "uvloop==0.21.0",
+    "httptools==0.6.4",
+    "asyncpg==0.30"
+
 ]
 
 [tool.uv]

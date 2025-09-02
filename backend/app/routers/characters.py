@@ -46,7 +46,7 @@ def _generate_communication_style_task(character):
 
 
 @router.get("", response_model=List[Character])
-async def get_characters(
+def get_characters(
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Get all characters"""
@@ -63,7 +63,7 @@ async def get_characters(
 
 
 @router.get("/{character_id}", response_model=Character)
-async def get_character(
+def get_character(
     character_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -178,7 +178,7 @@ async def update_character(
 
 
 @router.delete("/{character_id}", status_code=204)
-async def delete_character(
+def delete_character(
     character_id: int,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
@@ -199,7 +199,6 @@ async def delete_character(
         )
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
-        raise
     except Exception as e:
         logger.error(
             f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"

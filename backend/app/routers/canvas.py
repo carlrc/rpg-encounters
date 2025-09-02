@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=CanvasResponse)
-async def get_canvas(user_world: tuple[int, int] = Depends(get_current_user_world)):
+def get_canvas(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Get complete canvas state - all encounters with connections"""
     user_id, world_id = user_world
     try:
@@ -40,7 +40,7 @@ async def get_canvas(user_world: tuple[int, int] = Depends(get_current_user_worl
 
 
 @router.post("", response_model=CanvasResponse)
-async def save_canvas(
+def save_canvas(
     request: CanvasSaveRequest,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):

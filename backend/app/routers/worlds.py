@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[World])
-async def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_world)):
+def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Get all worlds for the current user"""
     user_id, _ = user_world
     try:
@@ -27,7 +27,7 @@ async def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_worl
 
 
 @router.get("/{world_id}", response_model=World)
-async def get_world(
+def get_world(
     world_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Get a specific world by ID"""
@@ -45,7 +45,7 @@ async def get_world(
 
 
 @router.post("", response_model=World, status_code=201)
-async def create_world(user_world: tuple[int, int] = Depends(get_current_user_world)):
+def create_world(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Create a new world for the current user"""
     user_id, _ = user_world
     try:
@@ -58,7 +58,7 @@ async def create_world(user_world: tuple[int, int] = Depends(get_current_user_wo
 
 
 @router.delete("/{world_id}", status_code=204)
-async def delete_world(
+def delete_world(
     world_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Delete a world"""

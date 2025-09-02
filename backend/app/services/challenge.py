@@ -2,7 +2,6 @@ import logging
 
 from fastapi import WebSocket
 from langfuse import get_client
-from sqlalchemy.orm import sessionmaker
 
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_jinja_prompt
@@ -12,7 +11,7 @@ from app.data.encounter_store import EncounterStore
 from app.data.memory_store import MemoryStore
 from app.data.player_store import PlayerStore
 from app.data.reveal_store import RevealStore
-from app.db.connection import get_db_engine
+from app.db.connection import get_db_session
 from app.dependencies import get_transcription_service
 from app.services.ability_challenge import (
     D20Outcomes,
@@ -42,8 +41,7 @@ async def challenge_character(
     logger.info(f"Transcribed audio text: {transcription}")
 
     try:
-        Session = sessionmaker(get_db_engine())
-        with Session() as session:
+        with get_db_session() as session:
             # Create store instances with shared session
             character_store = CharacterStore(
                 user_id=user_id, world_id=world_id, session=session
@@ -123,12 +121,13 @@ async def challenge_character(
 
         agent = ChallengeAgent(
             system_prompt=rendered_prompt,
+            # In the case of critical failure there are no instructions
             instructions=rendered_instructions if rendered_instructions else None,
         )
         # Create deps with encounter context
         deps = ChallengeAgentDeps(
             encounter=encounter,
-            # TODO: Adding history seems to reduce the chance the LLM answers with reveals, which is the purpose of challenges
+            # TODO: [SPIKE] Adding message history seems to reduce the chance the LLM answers with reveals, which is the purpose of challenges
             messages=None,
             telemetry=lambda: get_client().update_current_trace(
                 user_id=user_id,
@@ -163,8 +162,8 @@ async def challenge_character(
         raise
     finally:
         try:
-            # TODO: This crashes if no transcription was recorded and its an empty file
             # Clean up temporary files
             cleanup_files(wav_path)
         except Exception as e:
             logger.error(f"Could not destroy temp wav_path {wav_path}. {e}")
+            raise

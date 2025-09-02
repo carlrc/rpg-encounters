@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[Player])
-async def get_players(user_world: tuple[int, int] = Depends(get_current_user_world)):
+def get_players(user_world: tuple[int, int] = Depends(get_current_user_world)):
     """Get all players"""
     user_id, world_id = user_world
     try:
@@ -27,7 +27,7 @@ async def get_players(user_world: tuple[int, int] = Depends(get_current_user_wor
 
 
 @router.get("/{player_id}", response_model=Player)
-async def get_player(
+def get_player(
     player_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Get a specific player by ID"""
@@ -49,7 +49,7 @@ async def get_player(
 
 
 @router.post("/", response_model=Player, status_code=201)
-async def create_player(
+def create_player(
     player: PlayerCreate, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Create a new player"""
@@ -66,7 +66,7 @@ async def create_player(
 
 
 @router.put("/{player_id}", response_model=Player)
-async def update_player(
+def update_player(
     player_id: int,
     player_update: PlayerUpdate,
     user_world: tuple[int, int] = Depends(get_current_user_world),
@@ -90,7 +90,7 @@ async def update_player(
 
 
 @router.delete("/{player_id}", status_code=204)
-async def delete_player(
+def delete_player(
     player_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
 ):
     """Delete a player"""

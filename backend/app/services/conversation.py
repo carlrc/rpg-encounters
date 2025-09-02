@@ -14,18 +14,15 @@ from app.agents.conversations.negative_conversation_agent import (
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_jinja_prompt
 from app.clients.elevan_labs import ElevenLabs
-from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
-from app.data.player_store import PlayerStore
 from app.db.connection import get_db_session
 from app.dependencies import (
     get_transcription_service,
 )
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
-from app.services.context import get_conversation_context
-from app.services.influence_calculator import calculate_base_influence
+from app.services.context import get_conversation_context_async
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.websocket import get_audio_chunks
 
@@ -50,33 +47,20 @@ async def have_conversation(
 
     try:
         with get_db_session() as session:
-            # Get character and player information
-            character = CharacterStore(
-                world_id=world_id, user_id=user_id, session=session
-            ).get_character_by_id(character_id=character_id)
-            player = PlayerStore(
-                world_id=world_id, user_id=user_id, session=session
-            ).get_player_by_id(player_id=player_id)
-
-            base_influence = calculate_base_influence(
-                character=character, player=player
-            )
-            context = get_conversation_context(
+            context = await get_conversation_context_async(
                 world_id=world_id,
                 user_id=user_id,
-                player_id=player.id,
-                character_id=character.id,
+                player_id=player_id,
+                character_id=character_id,
                 encounter_id=encounter_id,
-                base_influence=base_influence,
-                session=session,
             )
 
             # Common template context for both conversation agents
             template_context = {
                 "max_response_length": 30,
-                "character": character,
+                "character": context.character,
                 "character_memories": context.memories,
-                "player": player,
+                "player": context.player,
                 "encounter": context.encounter,
             }
 
@@ -84,8 +68,8 @@ async def have_conversation(
                 system_prompt=render_jinja_prompt(
                     "influence_scoring_agent",
                     {
-                        "character": character,
-                        "player": player,
+                        "character": context.character,
+                        "player": context.player,
                     },
                 ),
             )
@@ -114,10 +98,7 @@ async def have_conversation(
                 response, influence = await agent.chat(
                     player_transcript=transcription,
                     deps=NegativeConvoAgentDeps(
-                        player=player,
-                        character=character,
                         context=context,
-                        user_id=user_id,
                         telemetry=lambda: get_client().update_current_trace(
                             user_id=user_id,
                             name="negative-convo-agent",
@@ -151,10 +132,7 @@ async def have_conversation(
                 response, _, influence = await agent.chat(
                     player_transcript=transcription,
                     deps=ConversationAgentDeps(
-                        player=player,
-                        character=character,
                         context=context,
-                        user_id=user_id,
                         telemetry=lambda: get_client().update_current_trace(
                             user_id=user_id,
                             name="positive-convo-agent",
@@ -185,7 +163,7 @@ async def have_conversation(
 
             # Stream TTS audio chunks back to frontend
             async for audio_chunk in ElevenLabs().text_to_speech_stream(
-                text=response, voice_id=character.voice_id
+                text=response, voice_id=context.character.voice_id
             ):
                 try:
                     await websocket.send_bytes(audio_chunk)
@@ -205,7 +183,6 @@ async def have_conversation(
         raise
     finally:
         try:
-            # TODO: This crashes if no transcription was recorded and its an empty file
             # Clean up temporary files
             cleanup_files(wav_path)
         except Exception as e:

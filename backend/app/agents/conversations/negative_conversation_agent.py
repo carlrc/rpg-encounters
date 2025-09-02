@@ -8,17 +8,13 @@ from pydantic_ai.messages import ModelResponse, TextPart
 from app.agents.base_agent import AgentDeps, BaseAgent
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.data.conversation_store import ConversationStore
-from app.models.character import Character
 from app.models.influence import Influence
-from app.models.player import Player
 from app.services.context import ConvoContext
 
 logger = logging.getLogger(__name__)
 
 
 class NegativeConvoAgentDeps(AgentDeps):
-    player: Player
-    character: Character
     context: ConvoContext
 
 
@@ -69,8 +65,8 @@ class NegativeConvoAgent(BaseAgent):
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=run_result.output)])
             self.conversation_store.add_messages(
-                player_id=deps.player.id,
-                character_id=deps.character.id,
+                player_id=deps.context.player.id,
+                character_id=deps.context.character.id,
                 encounter_id=deps.context.encounter.id,
                 new_messages=[model_request, model_response],
             )
