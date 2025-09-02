@@ -1,5 +1,5 @@
 import os
-from unittest.mock import Mock
+from unittest.mock import AsyncMock
 
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
@@ -23,7 +23,7 @@ PLAYER = default_player()
 INFLUENCE_STATE = default_influence(base=BASE_INFLUENCE_MAX)
 
 TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
-CONVERSATION_STORE = Mock()
+CONVERSATION_STORE = AsyncMock()
 
 CONTEXT = ConvoContext(
     encounter=default_encounter(),
@@ -31,6 +31,8 @@ CONTEXT = ConvoContext(
     reveals=[],  # No reveals for this test
     memories=[],  # No memories for this test
     messages=None,
+    player=PLAYER,
+    character=CHARACTER,
 )
 
 DEPENDENCIES = ConversationAgentDeps(

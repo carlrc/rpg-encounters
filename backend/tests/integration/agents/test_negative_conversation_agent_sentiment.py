@@ -1,5 +1,5 @@
 import os
-from unittest.mock import Mock
+from unittest.mock import AsyncMock
 
 from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgent,
@@ -29,11 +29,11 @@ CONTEXT = ConvoContext(
     reveals=[],  # No reveals for this test
     memories=ALL_MEMORIES,
     messages=None,
+    player=PLAYER,
+    character=CHARACTER,
 )
 
 DEPENDENCIES = NegativeConvoAgentDeps(
-    player=PLAYER,
-    character=CHARACTER,
     context=CONTEXT,
     user_id=1,
     telemetry=lambda: None,
@@ -52,7 +52,7 @@ RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
 )
 
 TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
-CONVERSATION_STORE = Mock()
+CONVERSATION_STORE = AsyncMock()
 
 
 async def test_negative_agent_is_negative():

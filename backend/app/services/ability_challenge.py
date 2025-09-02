@@ -1,8 +1,9 @@
 import logging
 from enum import Enum
-from typing import Dict, List
+from typing import List
 
-from app.models.class_traits import VALID_SKILLS, Abilities
+from app.models.class_traits import Abilities
+from app.models.influence import Influence
 from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
 
@@ -14,31 +15,17 @@ class D20Outcomes(Enum):
     CRITICAL_FAILURE = 1
 
 
-def get_skill_bonus(skill: str, player_skills: Dict[str, int]) -> int:
+def calculate_skill_check(
+    skill: str, player: Player, influence: Influence, d20_roll: int
+) -> int:
     """
-    Validate skill parameter and return skill bonus.
+    Calculate a skill check: d20 + modifiers.
     """
-    if skill not in VALID_SKILLS:
-        raise ValueError(f"Invalid skill '{skill}'. Valid skills: {VALID_SKILLS}")
-
-    if skill not in player_skills:
-        raise ValueError(
-            f"Player does not have skill '{skill}'. Player skills: {list(player_skills.keys())}"
-        )
-
-    return player_skills[skill]
-
-
-def calculate_skill_check(skill: str, player: Player, d20_roll: int) -> int:
-    """
-    Calculate a skill check: d20 + charisma modifier + skill modifier.
-    """
-    skill_modifier = get_skill_bonus(skill, player.skills)
+    skill_modifier = player.skills.get(skill)
     charisma_modifier = player.abilities.get(Abilities.CHARISMA.value)
-    if charisma_modifier is None:
-        raise ValueError(f"Player {player.id} missing charisma modifier")
+    influence_modifier = influence.score
 
-    total = d20_roll + charisma_modifier + skill_modifier
+    total = d20_roll + charisma_modifier + skill_modifier + influence_modifier
 
     return total
 

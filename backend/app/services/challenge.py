@@ -101,13 +101,14 @@ async def challenge_character(
 
         # Calculate skill check and filter reveals outside of session
         total_roll = calculate_skill_check(
-            skill=skill, player=ctx.player, d20_roll=d20_roll
+            skill=skill, player=ctx.player, d20_roll=d20_roll, influence=ctx.influence
         )
 
         try:
+            # TODO: Need to send the modifier (e.g., influence) in this case to make it clear whats happening
             await websocket.send_json(
                 ConversationData(
-                    influence=d20_roll,
+                    influence=total_roll,
                     reveals=[
                         calculate_reveal_progress(reveal, total_roll)
                         for reveal in ctx.reveals
@@ -127,7 +128,7 @@ async def challenge_character(
             instructions=rendered_instructions if rendered_instructions else None,
         )
 
-        # Generate LLM response
+        # Generate LLM
         response = await agent.chat(
             player_transcript=transcription,
             deps=ChallengeAgentDeps(
