@@ -86,7 +86,7 @@
     justify-content: flex-start !important;
     margin: 0 !important;
     max-width: none !important;
-    padding-left: var(--spacing-sm) !important;
+    padding-left: var(--spacing-md) !important;
   }
 
   .brand-section {
