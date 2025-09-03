@@ -23,7 +23,7 @@ export function useAudioPlayer() {
       error.value = null
       playingAudioId.value = audioId
 
-      const audioBlob = new Blob(audioChunks, { type: 'audio/mpeg' })
+      const audioBlob = new Blob(audioChunks)
       const audioUrl = URL.createObjectURL(audioBlob)
       const audio = new Audio(audioUrl)
 

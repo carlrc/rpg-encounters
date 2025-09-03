@@ -1,8 +1,7 @@
-import asyncio
 import logging
-from typing import List
+from typing import List, Union
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from app.agents.communication_style_agent import (
     COMMUNICATION_STYLE_PROFILES,
@@ -43,6 +42,64 @@ def _generate_communication_style_task(character):
         },
     )
     return CommunicationStyleAgent(system_prompt=system_prompt).generate(character)
+
+
+async def _generate_personality_background(
+    character_id: int,
+    character_data: Union[CharacterCreate, CharacterUpdate],
+    user_id: int,
+    world_id: int,
+):
+    """Generate personality in background and update character"""
+    try:
+        # Generate personality
+        personality = await PersonalityAgent().generate(character_data)
+
+        # Update character with generated personality
+        character_store = CharacterStore(user_id=user_id, world_id=world_id)
+        update_data = CharacterUpdate(personality=personality)
+
+        await character_store.update_character(character_id, update_data)
+
+        logger.info(f"Created personality for user {user_id} in background task...")
+    except Exception as e:
+        logger.error(
+            f"Background personality generation for user {user_id} failed: {e}"
+        )
+        raise
+
+
+async def _generate_communication_style_background(
+    character_id: int,
+    character_data: Union[CharacterCreate, CharacterUpdate],
+    user_id: int,
+    world_id: int,
+):
+    """Generate communication style in background and update character"""
+    try:
+        # Generate communication style if not custom
+        communication_task = _generate_communication_style_task(character_data)
+        if not communication_task:
+            return
+
+        communication_style = await communication_task
+
+        # Update character with generated communication style
+        character_store = CharacterStore(user_id=user_id, world_id=world_id)
+        update_data = CharacterUpdate(
+            communication_style=communication_style.style_summary,
+            communication_style_examples=communication_style.examples,
+        )
+
+        await character_store.update_character(character_id, update_data)
+        logger.debug(
+            f"Created communication style for user {user_id} in background task..."
+        )
+    except Exception as e:
+        logger.error(
+            f"Background communication style generation for user {user_id} failed: {e}"
+        )
+        raise
 
 
 @router.get("", response_model=List[Character])
@@ -90,26 +147,40 @@ async def get_character(
 @router.post("", response_model=Character, status_code=201)
 async def create_character(
     character_data: CharacterCreate,
+    background_tasks: BackgroundTasks,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    """Create a new character with AI-generated personality"""
+    """Create a new character and generate AI content in background"""
     user_id, world_id = user_world
     try:
-        communication_task = _generate_communication_style_task(character_data)
-        if communication_task:
-            communication_style = await communication_task
-            character_data.communication_style = communication_style.style_summary
-            character_data.communication_style_examples = communication_style.examples
-
-        # For CUSTOM communication style, only generate personality and leave custom communication style
-        character_data.personality = await PersonalityAgent().generate(character_data)
-
-        # Create character with generated summaries
-        character = CharacterCreate(**character_data.model_dump())
-
-        return await CharacterStore(
+        # Create character immediately without AI-generated content
+        # personality field defaults to empty string
+        character = await CharacterStore(
             user_id=user_id, world_id=world_id
-        ).create_character(character)
+        ).create_character(character_data)
+
+        # Add background tasks for AI generation
+        background_tasks.add_task(
+            _generate_personality_background,
+            character_id=character.id,
+            character_data=character_data,
+            user_id=user_id,
+            world_id=world_id,
+        )
+
+        background_tasks.add_task(
+            _generate_communication_style_background,
+            character_id=character.id,
+            character_data=character_data,
+            user_id=user_id,
+            world_id=world_id,
+        )
+
+        logger.debug(
+            f"Created character for user {user_id} and queued background AI generation..."
+        )
+        return character
+
     except HTTPException:
         raise
     except Exception as e:
@@ -123,52 +194,62 @@ async def create_character(
 async def update_character(
     character_id: int,
     character_update: CharacterUpdate,
+    background_tasks: BackgroundTasks,
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    """Update an existing character"""
+    """Update an existing character and regenerate AI content in background if needed"""
     user_id, world_id = user_world
     try:
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
-        # Because generating content with LLMs is expensive, ensure the character exists first
+        # Ensure the character exists first
         character = await character_store.get_character_by_id(character_id=character_id)
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-        # Only regenerate personality if background or motivation changed
-        personality_task = None
-        if character_update.background or character_update.motivation:
+        # Update character immediately (without AI regeneration)
+        updated_character = await character_store.update_character(
+            character_id, character_update
+        )
+
+        # Add background tasks only if fields that affect AI generation changed
+        needs_personality_regen = (
+            character_update.background or character_update.motivation
+        )
+        needs_communication_regen = (
+            character_update.communication_style_type
+            or character_update.communication_style
+        )
+
+        if needs_personality_regen:
             # Merge existing character with updates for AI generation
             merged_data = character.model_dump()
             merged_data.update(character_update.model_dump(exclude_unset=True))
             merged_character = CharacterUpdate(**merged_data)
-            personality_task = PersonalityAgent().generate(merged_character)
 
-        communication_task = None
-        if (
-            character_update.communication_style_type
-            or character_update.communication_style
-        ):
-            communication_task = _generate_communication_style_task(merged_character)
+            background_tasks.add_task(
+                _generate_personality_background,
+                character_id,
+                merged_character,
+                user_id,
+                world_id,
+            )
 
-        # Run tasks concurrently with defaults for consistent unpacking
-        async def null_task():
-            return None
+        if needs_communication_regen:
+            # Merge existing character with updates for AI generation
+            merged_data = character.model_dump()
+            merged_data.update(character_update.model_dump(exclude_unset=True))
+            merged_character = CharacterUpdate(**merged_data)
 
-        personality_task = personality_task or null_task()
-        communication_task = communication_task or null_task()
+            background_tasks.add_task(
+                _generate_communication_style_background,
+                character_id,
+                merged_character,
+                user_id,
+                world_id,
+            )
 
-        personality, communication_style = await asyncio.gather(
-            personality_task, communication_task
-        )
+        return updated_character
 
-        if personality is not None:
-            character_update.personality = personality
-
-        if communication_style is not None:
-            character_update.communication_style = communication_style.style_summary
-            character_update.communication_style_examples = communication_style.examples
-
-        return await character_store.update_character(character_id, character_update)
     except HTTPException:
         raise
     except Exception as e:
