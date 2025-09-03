@@ -1,12 +1,12 @@
 import logging
 
 from fastapi import WebSocket, WebSocketDisconnect
-from langfuse import observe as langfuse_observe
+from langfuse import observe
 
 logger = logging.getLogger(__name__)
 
 
-@langfuse_observe(capture_output=False)
+@observe(capture_output=False)
 async def get_audio_chunks(websocket: WebSocket):
     await websocket.accept()
     logger.debug("WebSocket connection established...")

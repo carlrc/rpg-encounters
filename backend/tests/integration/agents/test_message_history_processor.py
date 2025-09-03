@@ -10,7 +10,7 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt
 from app.models.influence import BASE_INFLUENCE_MIN
 from tests.fixtures.generate import (
     default_character,
@@ -57,12 +57,12 @@ async def test_message_history_processor_trims_at_max_limit():
     template_context = {
         "max_response_length": 30,
         "character": CHARACTER,
-        "character_memories": ALL_MEMORIES,
+        "memories": ALL_MEMORIES,
         "player": PLAYER,
         "encounter": ENCOUNTER,
     }
 
-    rendered_system_prompt = render_jinja_prompt(
+    rendered_system_prompt = render_prompt(
         "negative_conversation_agent", template_context
     )
 
@@ -70,8 +70,9 @@ async def test_message_history_processor_trims_at_max_limit():
         system_prompt=rendered_system_prompt,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=render_jinja_prompt(
-                "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+            system_prompt=render_prompt(
+                "influence_scoring_agent",
+                {"character": CHARACTER, "player": PLAYER, "encounter": ENCOUNTER},
             ),
             character=CHARACTER,
             player=PLAYER,

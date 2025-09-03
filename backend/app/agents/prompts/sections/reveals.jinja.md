@@ -1,9 +1,9 @@
-{% if character_reveals %}
+{% if reveals %}
 
 CRITICAL: You must select exactly ONE reveal that best matches the conversation topic. Always reference the reveal by its ID number.
 
 Available Reveals:
-{% for reveal in character_reveals %}
+{% for reveal in reveals %}
     **REVEAL ID {{ reveal.id }}: {{ reveal.title }}**:
         - STANDARD: {{ reveal.level_1_content }}
         {% if reveal.level_2_content %}
@@ -14,5 +14,5 @@ Available Reveals:
         {% endif %}
 {% endfor %}
 {% else %}
-IMPORTANT: No reveals available for this character. Base responses on memories and character background only.
+IMPORTANT: No reveals available for this character. Base your responses on memories and/or character background only.
 {% endif %}

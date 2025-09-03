@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from langfuse import observe as langfuse_observe
+from langfuse import observe
 from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.messages import ModelResponse, TextPart
 
@@ -34,7 +34,7 @@ class NegativeConvoAgent(BaseAgent):
         # Set instance variable after decorators defined
         self.agent = agent
 
-    @langfuse_observe
+    @observe
     async def chat(
         self, player_transcript: str, deps: NegativeConvoAgentDeps
     ) -> tuple[str, Influence]:

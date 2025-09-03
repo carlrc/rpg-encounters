@@ -13,7 +13,7 @@ You are speaking with a player for which your character has a negative attitude 
 Build your responses based upon the following traits.
 {% include 'sections/character_base.jinja.md' %}
 
-{% include 'sections/character_memories.jinja.md' %}
+{% include 'sections/memories.jinja.md' %}
 
 ### Communication Style
 

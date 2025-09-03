@@ -9,7 +9,7 @@ from app.agents.communication_style_agent import (
     CommunicationStyleAgent,
 )
 from app.agents.personality_agent import PersonalityAgent
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt
 from app.data.character_store import CharacterStore
 from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.dependencies import get_current_user_world
@@ -32,7 +32,7 @@ def _generate_communication_style_task(character):
     if character.communication_style_type == CommunicationStyle.CUSTOM.value:
         return None
 
-    system_prompt = render_jinja_prompt(
+    system_prompt = render_prompt(
         "communication_style_agent",
         {
             "character": character,

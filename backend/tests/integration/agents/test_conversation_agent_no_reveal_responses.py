@@ -6,7 +6,7 @@ from app.agents.conversations.conversation_agent import (
     ConversationAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.models.influence import BASE_INFLUENCE_MAX
 from app.models.reveal import RevealLayer
 from app.services.context import ConvoContext
@@ -46,18 +46,14 @@ DEPENDENCIES = ConversationAgentDeps(
 BASE_TEMPLATE_CONTEXT = {
     "max_response_length": 30,
     "character": CHARACTER,
-    "character_memories": [],
-    "character_reveals": [],
+    "memories": [],
+    "reveals": [],
     "player": PLAYER,
     "encounter": CONTEXT.encounter,
 }
 
-RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
-    "conversation_agent", BASE_TEMPLATE_CONTEXT
-)
-RENDERED_INSTRUCTIONS = render_jinja_prompt(
-    "conversation_agent_instructions", BASE_TEMPLATE_CONTEXT
-)
+RENDERED_SYSTEM_PROMPT = render_prompt("conversation_agent", BASE_TEMPLATE_CONTEXT)
+RENDERED_INSTRUCTIONS = render_prompt_section("memories_reveals", BASE_TEMPLATE_CONTEXT)
 
 
 async def test_agent_handles_no_reveals():
@@ -66,8 +62,13 @@ async def test_agent_handles_no_reveals():
         instructions=RENDERED_INSTRUCTIONS,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=render_jinja_prompt(
-                "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+            system_prompt=render_prompt(
+                "influence_scoring_agent",
+                {
+                    "character": CHARACTER,
+                    "player": PLAYER,
+                    "encounter": CONTEXT.encounter,
+                },
             )
         ),
     )

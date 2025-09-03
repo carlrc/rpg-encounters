@@ -20,14 +20,14 @@ def import_system_prompt(prefix: str) -> str:
         raise RuntimeError()
 
 
-def render_jinja_prompt(template_name: str, context: Dict[str, Any]) -> str:
-    """Render a Jinja2 template with the given context variables."""
-    current_dir = path.dirname(path.abspath(__file__))
-
+def _render_template(
+    template_dir: str, template_name: str, context: Dict[str, Any]
+) -> str:
+    """Shared helper function to render a Jinja2 template with the given context variables."""
     try:
         # Create Jinja2 environment
         env = Environment(
-            loader=FileSystemLoader(current_dir), undefined=StrictUndefined
+            loader=FileSystemLoader(template_dir), undefined=StrictUndefined
         )
         template = env.get_template(f"{template_name}.jinja.md")
 
@@ -39,3 +39,16 @@ def render_jinja_prompt(template_name: str, context: Dict[str, Any]) -> str:
     except Exception as e:
         logger.error(f"Failed to render Jinja template {template_name}: {e}")
         raise RuntimeError(f"Template rendering failed: {e}")
+
+
+def render_prompt(template_name: str, context: Dict[str, Any]) -> str:
+    """Render a Jinja2 template with the given context variables."""
+    current_dir = path.dirname(path.abspath(__file__))
+    return _render_template(current_dir, template_name, context)
+
+
+def render_prompt_section(template_name: str, context: Dict[str, Any]) -> str:
+    """Render a Jinja2 template from the sections subdirectory with the given context variables."""
+    current_dir = path.dirname(path.abspath(__file__))
+    sections_dir = path.join(current_dir, "sections")
+    return _render_template(sections_dir, template_name, context)
