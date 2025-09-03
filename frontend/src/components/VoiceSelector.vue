@@ -28,7 +28,7 @@
       <div class="manual-input-controls">
         <input
           v-model="manualVoiceId"
-          placeholder="Enter ElevenLabs Voice ID (e.g., JBFqnCBsd6RMkjVDRZzb)"
+          placeholder="Voice ID"
           class="shared-input manual-voice-input"
           :disabled="disabled"
         />
@@ -65,7 +65,7 @@
       <div v-if="!initialLoading" class="voice-search">
         <input
           v-model="searchTerm"
-          placeholder="🔍 Search voices by name or description..."
+          placeholder="🔍 Filter voices..."
           class="shared-input voice-search-input"
         />
       </div>

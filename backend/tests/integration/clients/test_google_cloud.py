@@ -4,7 +4,8 @@ from app.clients.google_cloud_tts import GoogleCloudTTS
 async def test_gcloud_tts_streaming():
     response_count = 0
     async for audio_chunk in GoogleCloudTTS().text_to_speech_stream(
-        "test on how the google api actually works!"
+        text="test on how the google api actually works!",
+        voice_id="en-AU-Chirp3-HD-Achernar",
     ):
         response_count += 1
         assert audio_chunk is not None
@@ -13,7 +14,6 @@ async def test_gcloud_tts_streaming():
 
 
 async def test_list_voices():
-    responses = await GoogleCloudTTS().search_voices("en")
+    response = await GoogleCloudTTS().search_voices("en")
 
-    for response in responses.voices:
-        assert response is not None
+    assert len(response) > 10

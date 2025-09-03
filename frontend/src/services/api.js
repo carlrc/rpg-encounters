@@ -78,8 +78,7 @@ const getCurrentWorldIdFromStore = async () => {
 
 // Utility function for backward compatibility
 export const getAllVoices = async () => {
-  // Use broad search terms to get all available voices
-  // We'll search for common vowels which should match most voice names
-  const response = await searchVoices('a')
+  // Force english voices for now
+  const response = await searchVoices('en')
   return response.voices || []
 }

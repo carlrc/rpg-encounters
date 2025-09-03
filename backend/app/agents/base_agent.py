@@ -6,7 +6,7 @@ from pydantic_ai import Agent
 from pydantic_ai.agent import ModelSettings
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
-from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.models.openai import OpenAIChatModel
 
 from app.telemetry import TelemetryFunc
 
@@ -55,7 +55,7 @@ class BaseAgent:
         }
 
         if not model:
-            model = OpenAIModel(model_name="gpt-4o-mini")
+            model = OpenAIChatModel(model_name=os.getenv("DEFAULT_MODEL_NAME"))
 
         agent_kwargs["model"] = model
 
