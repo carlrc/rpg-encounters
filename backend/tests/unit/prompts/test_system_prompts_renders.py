@@ -20,14 +20,14 @@ def get_base_template_context():
     }
 
 
-def test_conversation_agent_template_renders_without_jinja_elements():
+def test_conversation_agent_template_renders():
     template_context = get_base_template_context()
 
     rendered_prompt = render_prompt("conversation_agent", template_context)
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_negative_conversation_agent_template_renders_without_jinja_elements():
+def test_negative_conversation_agent_template_renders():
     template_context = get_base_template_context()
     template_context["memories"] = default_memories()
 
@@ -35,14 +35,14 @@ def test_negative_conversation_agent_template_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_challenge_agent_template_renders_without_jinja_elements():
+def test_challenge_agent_template_renders():
     template_context = get_base_template_context()
 
     rendered_prompt = render_prompt("challenge_agent", template_context)
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_challenge_agent_critical_success_template_renders_without_jinja_elements():
+def test_challenge_agent_critical_success_template_renders():
     template_context = get_base_template_context()
 
     rendered_prompt = render_prompt(
@@ -51,7 +51,7 @@ def test_challenge_agent_critical_success_template_renders_without_jinja_element
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_challenge_agent_critical_failure_template_renders_without_jinja_elements():
+def test_challenge_agent_critical_failure_template_renders():
     template_context = get_base_template_context()
 
     rendered_prompt = render_prompt(
@@ -60,7 +60,7 @@ def test_challenge_agent_critical_failure_template_renders_without_jinja_element
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_influence_scoring_agent_template_renders_without_jinja_elements():
+def test_influence_scoring_agent_template_renders():
     template_context = {
         "character": default_character(),
         "player": default_player(),
@@ -71,7 +71,7 @@ def test_influence_scoring_agent_template_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_personality_agent_template_renders_without_jinja_elements():
+def test_personality_agent_template_renders():
     template_context = {
         "character": default_character(),
     }
@@ -80,7 +80,7 @@ def test_personality_agent_template_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_prompt)
 
 
-def test_communication_style_agent_template_renders_without_jinja_elements():
+def test_communication_style_agent_template_renders():
     template_context = {
         "character": default_character(),
         "max_response_length": 200,

@@ -85,7 +85,7 @@ async def test_evil_low_moral_alignment():
         )
     )
     response = await agent.process(
-        msg="My good man, I've just come from slaying a monster"
+        msg="My good man, I've just come from slaying a monster to protect someone"
     )
 
     assert response.score <= -5

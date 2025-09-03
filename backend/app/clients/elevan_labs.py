@@ -25,6 +25,7 @@ class VoiceLabels(BaseModel):
     descriptive: str | None = Field(None, description="Descriptive label")
     age: str | None = Field(None, description="Voice age")
     language: str | None = Field(None, description="Voice language")
+    use_case: str | None = Field(None, description="Voice use case")
 
 
 class Voice(BaseModel):
@@ -79,10 +80,18 @@ class ElevenLabs:
                             yield chunk
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Elevant Labs {e.response.status_code} error. {e}")
+            logger.error(f"ElevenLabs HTTP {e.response.status_code} error: {e}")
+            raise
+        except httpx.ConnectTimeout as e:
+            logger.error(
+                f"ElevenLabs connection timeout: Failed to connect to {url}. Error: {e}"
+            )
+            raise
+        except httpx.TimeoutException as e:
+            logger.error(f"ElevenLabs request timeout: {e}")
             raise
         except Exception as e:
-            logger.error(f"TTS streaming failed: {e}")
+            logger.error(f"ElevenLabs TTS streaming failed: {type(e).__name__}: {e}")
             raise
 
     async def search_voices(
@@ -114,8 +123,16 @@ class ElevenLabs:
                 return VoicesResponse.model_validate(response.json())
 
         except httpx.HTTPStatusError as e:
-            logger.error(f"Elevant Labs {e.response.status_code} error. {e}")
+            logger.error(f"ElevenLabs HTTP {e.response.status_code} error: {e}")
+            raise
+        except httpx.ConnectTimeout as e:
+            logger.error(
+                f"ElevenLabs connection timeout: Failed to connect to {url}. Error: {e}"
+            )
+            raise
+        except httpx.TimeoutException as e:
+            logger.error(f"ElevenLabs request timeout: {e}")
             raise
         except Exception as e:
-            logger.error(f"Voice search failed: {e}")
+            logger.error(f"ElevenLabs voice search failed: {e}")
             raise

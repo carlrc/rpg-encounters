@@ -8,12 +8,12 @@ from tests.fixtures.generate import (
 from tests.unit.prompts.utils import assert_template_rendered_completely
 
 
-def test_mechanics_section_renders_without_jinja_elements():
+def test_mechanics_section_renders():
     rendered_section = render_prompt_section("mechanics", {})
     assert_template_rendered_completely(rendered_section)
 
 
-def test_character_base_section_renders_without_jinja_elements():
+def test_character_base_section_renders():
     context = {
         "character": default_character(),
     }
@@ -22,7 +22,7 @@ def test_character_base_section_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_section)
 
 
-def test_current_task_section_renders_without_jinja_elements():
+def test_current_task_section_renders():
     context = {
         "player": default_player(),
         "encounter": default_encounter(),
@@ -32,7 +32,7 @@ def test_current_task_section_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_section)
 
 
-def test_absolute_rules_section_renders_without_jinja_elements():
+def test_absolute_rules_section_renders():
     context = {
         "max_response_length": 30,
     }
@@ -41,7 +41,7 @@ def test_absolute_rules_section_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_section)
 
 
-def test_communication_style_section_renders_without_jinja_elements():
+def test_communication_style_section_renders():
     context = {
         "character": default_character(),
     }
@@ -50,7 +50,7 @@ def test_communication_style_section_renders_without_jinja_elements():
     assert_template_rendered_completely(rendered_section)
 
 
-def test_memories_section_renders_without_jinja_elements():
+def test_memories_section_renders():
     context = {
         "memories": default_memories(),
     }
@@ -68,3 +68,14 @@ def test_memories_section_renders_empty_when_no_memories():
     assert_template_rendered_completely(rendered_section)
     # Should render but be mostly empty due to conditional logic
     assert "No memories available for this character" in rendered_section
+
+
+def test_reveals_section_renders_empty_when_no_reveals():
+    context = {
+        "reveals": [],
+    }
+
+    rendered_section = render_prompt_section("reveals", context)
+    assert_template_rendered_completely(rendered_section)
+    # Should render but be mostly empty due to conditional logic
+    assert "No reveals available for this character" in rendered_section
