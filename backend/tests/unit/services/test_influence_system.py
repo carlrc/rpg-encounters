@@ -30,6 +30,7 @@ def test_influence_calculation():
         },
         gender_preferences={Gender.MALE: -DifficultyClass.VERY_EASY.value},
         voice_id="test",
+        tts_provider="google",
         voice_name="Test Voice",
         communication_style_type=CommunicationStyle.CUSTOM.value,
     )

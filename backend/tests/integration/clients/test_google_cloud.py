@@ -16,4 +16,4 @@ async def test_gcloud_tts_streaming():
 async def test_list_voices():
     response = await GoogleCloudTTS().search_voices("en")
 
-    assert len(response) > 10
+    assert len(response.voices) > 10

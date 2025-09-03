@@ -255,7 +255,9 @@
       <VoiceSelector
         :current-voice-id="editForm.voice_id"
         :current-voice-name="editForm.voice_name"
+        :current-provider="editForm.tts_provider"
         @select-voice="handleVoiceSelection"
+        @select-provider="handleProviderSelection"
       />
 
       <!-- Character Biases Section -->
@@ -424,6 +426,7 @@
     motivation: '',
     voice_id: '',
     voice_name: '',
+    tts_provider: '',
     biases: {
       race_preferences: [],
       class_preferences: [],
@@ -493,6 +496,7 @@
     editForm.motivation = props.character.motivation || ''
     editForm.voice_id = props.character.voice_id || ''
     editForm.voice_name = props.character.voice_name || ''
+    editForm.tts_provider = props.character.tts_provider || ''
 
     // Store original AI-triggering field values for change detection
     originalAIFields.value = {
@@ -533,8 +537,9 @@
         alignment: editForm.alignment,
         gender: editForm.gender,
         profession: editForm.profession.trim(),
-        voice_id: editForm.voice_id || '',
-        voice_name: editForm.voice_name || '',
+        voice_id: editForm.voice_id,
+        voice_name: editForm.voice_name,
+        tts_provider: editForm.tts_provider,
         // Include bias profile fields
         race_preferences: convertBiasesToObject(editForm.biases.race_preferences),
         class_preferences: convertBiasesToObject(editForm.biases.class_preferences),
@@ -635,12 +640,17 @@
     editForm.voice_name = voice.name
   }
 
+  // Handle provider selection
+  const handleProviderSelection = (provider) => {
+    editForm.tts_provider = provider
+  }
+
   // Voice preview method
   const playCharacterVoiceSample = async () => {
-    if (!props.character.voice_id || previewLoading.value) return
+    if (previewLoading.value) return
 
     try {
-      const response = await getVoiceSample(props.character.voice_id)
+      const response = await getVoiceSample(props.character.voice_id, props.character.tts_provider)
       await playStreamingResponse(response, `character-${props.character.id}`)
     } catch (err) {
       console.error('Failed to play character voice sample:', err)

@@ -19,7 +19,7 @@ class VoiceType(Enum):
 
 
 class ElevenLabs(TTSProvider):
-    def __init__(self, page_size: int = 15):
+    def __init__(self, page_size: int = 40):
         super().__init__()
         self.api_key = os.getenv("ELEVENLABS_API_KEY")
         self.base_url = "https://api.elevenlabs.io"
@@ -69,7 +69,7 @@ class ElevenLabs(TTSProvider):
     async def search_voices(
         self,
         search_term: str | None = None,
-        next_page_token: str = None,
+        next_page_token: str | None = None,
     ) -> VoicesResponse:
         """Search for available voices"""
 

@@ -44,6 +44,7 @@ class CharacterORM(UnifiedBase):
     personality: Mapped[str] = mapped_column(Text, default="")
     voice_id: Mapped[str] = mapped_column(String(100))
     voice_name: Mapped[str] = mapped_column(String(200))
+    tts_provider: Mapped[str] = mapped_column(String(50))
 
     # Bias preferences stored as JSON
     race_preferences: Mapped[dict | None] = mapped_column(JSON, nullable=True)

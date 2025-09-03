@@ -14,7 +14,7 @@ def eleven_labs_client():
     api_key = os.getenv("ELEVENLABS_API_KEY")
     if not api_key:
         pytest.skip("ELEVENLABS_API_KEY not found in environment")
-    return ElevenLabs()
+    return ElevenLabs(page_size=5)
 
 
 async def test_search_voices_for_english(eleven_labs_client):

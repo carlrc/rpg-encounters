@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS
 from app.db.limits import (
     CHARACTER_BACKGROUND_LIMIT,
     CHARACTER_COMMUNICATION_LIMIT,
@@ -58,4 +59,5 @@ def get_game_data():
             "step": 5,
             "min_gap": 5,
         },
+        "tts_providers": [GOOGLE_TTS, ELEVANLABS_TTS],
     }

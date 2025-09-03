@@ -123,7 +123,7 @@ async def challenge_character(
             instructions=rendered_instructions if rendered_instructions else None,
         )
 
-        # Generate LLM
+        # Generate LLM response
         response = await agent.chat(
             player_transcript=transcription,
             deps=ChallengeAgentDeps(

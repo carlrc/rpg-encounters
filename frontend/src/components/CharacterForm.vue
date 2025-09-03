@@ -89,7 +89,9 @@
     <VoiceSelector
       :current-voice-id="form.voice_id"
       :current-voice-name="form.voice_name"
+      :current-provider="form.tts_provider"
       @select-voice="handleVoiceSelection"
+      @select-provider="handleProviderSelection"
     />
 
     <!-- Character Biases Section -->
@@ -253,8 +255,9 @@
         communication_style: props.initialData.communication_style || '',
         communication_style_type: props.initialData.communication_style_type || 'Custom',
         motivation: props.initialData.motivation || '',
-        voice_id: props.initialData.voice_id || '',
-        voice_name: props.initialData.voice_name || '',
+        voice_id: props.initialData.voice_id,
+        voice_name: props.initialData.voice_name,
+        tts_provider: props.initialData.tts_provider,
         biases: {
           race_preferences: Object.entries(props.initialData.race_preferences || {}).map(
             ([option, value]) => ({ option, value })
@@ -335,6 +338,11 @@
         form.voice_name = voice.name
       }
 
+      // Provider selection
+      const handleProviderSelection = (provider) => {
+        form.tts_provider = provider
+      }
+
       // Convert biases from array to object format for API
       const convertBiasesToObject = (arr) => {
         const obj = {}
@@ -386,6 +394,7 @@
         handleSizeBiasRemove,
         handleCommunicationStyleTypeChange,
         handleVoiceSelection,
+        handleProviderSelection,
         handleSave,
         handleCancel,
       }
