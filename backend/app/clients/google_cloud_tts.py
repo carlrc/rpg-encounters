@@ -9,11 +9,11 @@ logger = logging.getLogger(__name__)
 class GoogleCloudTTS:
     def __init__(self, page_size: int = 15):
         self.page_size = page_size
-        self.client = texttospeech.TextToSpeechClient(
+        self.client = texttospeech.TextToSpeechAsyncClient(
             client_options={"api_key": os.getenv("GOOGLE_CLOUD_TTS_API_KEY")}
         )
 
-    def text_to_speech_stream(self, text: str):
+    async def text_to_speech_stream(self, text: str):
         # See https://cloud.google.com/text-to-speech/docs/voices for all voices.
         streaming_config = texttospeech.StreamingSynthesizeConfig(
             voice=texttospeech.VoiceSelectionParams(
@@ -31,20 +31,25 @@ class GoogleCloudTTS:
             streaming_config=streaming_config
         )
 
-        text_iterator = [text]
-
-        def request_generator():
+        # Must be bidirectional streaming
+        async def request_generator():
             yield config_request
-            for item in text_iterator:
+            for item in [text]:
                 yield texttospeech.StreamingSynthesizeRequest(
                     input=texttospeech.StreamingSynthesisInput(text=item)
                 )
 
         try:
-            streaming_responses = self.client.streaming_synthesize(request_generator())
+            streaming_responses = await self.client.streaming_synthesize(
+                request_generator()
+            )
 
-            for response in streaming_responses:
-                yield response
+            async for response in streaming_responses:
+                yield response.audio_content
         except Exception as e:
             logger.error(f"Google Cloud TTS error: {e}")
             raise
+
+    async def search_voices(self, search_term: str):
+        request = texttospeech.ListVoicesRequest(language_code=search_term)
+        return await self.client.list_voices(request=request)

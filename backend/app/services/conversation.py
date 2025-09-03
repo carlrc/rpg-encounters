@@ -14,7 +14,7 @@ from app.agents.conversations.negative_conversation_agent import (
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
-from app.clients.elevan_labs import ElevenLabs
+from app.clients.google_cloud_tts import GoogleCloudTTS
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
 from app.db.connection import get_async_db_session
@@ -150,8 +150,8 @@ async def have_conversation(
                 logger.error(f"Failed to send conversation data: {e}")
 
             # Stream TTS audio chunks back to frontend
-            async for audio_chunk in ElevenLabs().text_to_speech_stream(
-                text=response, voice_id=ctx.character.voice_id
+            async for audio_chunk in GoogleCloudTTS().text_to_speech_stream(
+                text=response
             ):
                 try:
                     await websocket.send_bytes(audio_chunk)
