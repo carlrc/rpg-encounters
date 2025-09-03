@@ -1,5 +1,5 @@
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.models.memory import Memory
 from tests.fixtures.generate import (
     REVEAL_LEVEL_3,
@@ -39,7 +39,7 @@ DEPENDENCIES = ChallengeAgentDeps(
 BASE_TEMPLATE_CONTEXT = {
     "character": CHARACTER,
     "player": PLAYER,
-    "character_memories": ALL_MEMORIES,
+    "memories": ALL_MEMORIES,
     "encounter": ENCOUNTER,
 }
 
@@ -52,9 +52,9 @@ async def test_challenge_agent_standard():
         "max_response_length": 40,
         "d20_roll": 15,
     }
-    rendered_prompt = render_jinja_prompt("challenge_agent", template_context)
-    rendered_instructions = render_jinja_prompt(
-        "challenge_agent_instructions", template_context
+    rendered_prompt = render_prompt("challenge_agent", template_context)
+    rendered_instructions = render_prompt_section(
+        "memories_filtered_reveals", template_context
     )
     agent = ChallengeAgent(
         system_prompt=rendered_prompt, instructions=rendered_instructions
@@ -75,11 +75,11 @@ async def test_challenge_agent_critical_success():
         "filtered_reveals": [SECRET_CORRIDOR, MAYOR_SECRET],
         "max_response_length": 70,
     }
-    rendered_prompt = render_jinja_prompt(
+    rendered_prompt = render_prompt(
         "challenge_agent_critical_success", template_context
     )
-    rendered_instructions = render_jinja_prompt(
-        "challenge_agent_instructions", template_context
+    rendered_instructions = render_prompt_section(
+        "memories_filtered_reveals", template_context
     )
     agent = ChallengeAgent(
         system_prompt=rendered_prompt, instructions=rendered_instructions
@@ -97,7 +97,7 @@ async def test_challenge_agent_critical_success():
 
 async def test_challenge_agent_critical_failure():
     """Test that critical failure (d20=1) produces hostile response with no information"""
-    rendered_prompt = render_jinja_prompt(
+    rendered_prompt = render_prompt(
         "challenge_agent_critical_failure",
         {**BASE_TEMPLATE_CONTEXT, "max_response_length": 40},
     )

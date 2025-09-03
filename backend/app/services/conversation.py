@@ -1,8 +1,7 @@
 import logging
 
 from fastapi import WebSocket
-from langfuse import get_client
-from langfuse import observe as langfuse_observe
+from langfuse import get_client, observe
 
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
@@ -13,7 +12,7 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.clients.elevan_labs import ElevenLabs
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
@@ -31,7 +30,7 @@ from app.services.websocket import get_audio_chunks
 logger = logging.getLogger(__name__)
 
 
-@langfuse_observe
+@observe
 async def have_conversation(
     websocket: WebSocket,
     world_id: int,
@@ -63,18 +62,15 @@ async def have_conversation(
             template_ctx = {
                 "max_response_length": 30,
                 "character": ctx.character,
-                "character_memories": ctx.memories,
+                "memories": ctx.memories,
                 "player": ctx.player,
                 "encounter": ctx.encounter,
             }
 
             influence_agent = InfluenceCalculatorAgent(
-                system_prompt=render_jinja_prompt(
+                system_prompt=render_prompt(
                     "influence_scoring_agent",
-                    {
-                        "character": ctx.character,
-                        "player": ctx.player,
-                    },
+                    template_ctx,
                 ),
             )
 
@@ -84,7 +80,7 @@ async def have_conversation(
             )
             if negative_attitude:
                 agent = NegativeConvoAgent(
-                    system_prompt=render_jinja_prompt(
+                    system_prompt=render_prompt(
                         "negative_conversation_agent", template_ctx
                     ),
                     conversation_store=ConversationStore(
@@ -106,15 +102,13 @@ async def have_conversation(
                 )
             else:
                 # Add reveals for positive conversation agent
-                template_ctx["character_reveals"] = ctx.reveals
+                template_ctx["reveals"] = ctx.reveals
 
                 agent = ConversationAgent(
-                    system_prompt=render_jinja_prompt(
-                        "conversation_agent", template_ctx
-                    ),
+                    system_prompt=render_prompt("conversation_agent", template_ctx),
                     # LLM does not handle choosing reveals and memories well when combined in system prompt
-                    instructions=render_jinja_prompt(
-                        "conversation_agent_instructions", template_ctx
+                    instructions=render_prompt_section(
+                        "memories_reveals", template_ctx
                     ),
                     conversation_store=ConversationStore(
                         user_id=user_id, world_id=world_id, session=session

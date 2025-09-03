@@ -1,11 +1,10 @@
 import logging
 
 from fastapi import WebSocket
-from langfuse import get_client
-from langfuse import observe as langfuse_observe
+from langfuse import get_client, observe
 
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.clients.elevan_labs import ElevenLabs
 from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
@@ -23,55 +22,47 @@ from app.services.websocket import get_audio_chunks
 logger = logging.getLogger(__name__)
 
 
-def _render_challenge_prompts(
+def render_challenge_prompts(
     ctx, d20_roll: int, filtered_reveals, total_roll: int
 ) -> tuple[str, str | None]:
     """Render challenge prompts based on D20 roll outcome."""
 
-    # Common template ctx for all challenge agents
     base_template_ctx = {
         "character": ctx.character,
         "player": ctx.player,
-        "character_memories": ctx.memories,
+        "memories": ctx.memories,
         "encounter": ctx.encounter,
+        "filtered_reveals": filtered_reveals,
+        "max_response_length": 40,
     }
 
+    # Render standard prompts
+    rendered_prompt = render_prompt("challenge_agent", base_template_ctx)
+    rendered_instructions = render_prompt_section(
+        "memories_filtered_reveals", base_template_ctx
+    )
+
     if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
-        # Add filtered reveals and 70 word limit for critical success
+        # Set 70 word limit for critical success for longer answers
         template_ctx = {
             **base_template_ctx,
-            "filtered_reveals": filtered_reveals,
             "max_response_length": 70,
         }
-        rendered_prompt = render_jinja_prompt(
+        rendered_prompt = render_prompt(
             "challenge_agent_critical_success", template_ctx
         )
-        rendered_instructions = render_jinja_prompt(
-            "challenge_agent_instructions", template_ctx
-        )
     elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
-        rendered_prompt = render_jinja_prompt(
+        # Set reveals and memories to None such that LLM can't share anything
+        rendered_prompt = render_prompt(
             "challenge_agent_critical_failure",
-            {**base_template_ctx, "max_response_length": 40},
+            {**base_template_ctx, "filtered_reveals": None, "memories": None},
         )
         rendered_instructions = None
-    else:
-        # Add filtered reveals, d20_roll, and 40 word limit for standard challenge
-        template_ctx = {
-            **base_template_ctx,
-            "filtered_reveals": filtered_reveals,
-            "max_response_length": 40,
-            "d20_roll": total_roll,
-        }
-        rendered_prompt = render_jinja_prompt("challenge_agent", template_ctx)
-        rendered_instructions = render_jinja_prompt(
-            "challenge_agent_instructions", template_ctx
-        )
 
     return rendered_prompt, rendered_instructions
 
 
-@langfuse_observe
+@observe
 async def challenge_character(
     websocket: WebSocket,
     world_id: int,
@@ -118,8 +109,8 @@ async def challenge_character(
         except Exception as e:
             logger.error(f"Failed to send challenge data: {e}")
 
-        # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals)
-        rendered_prompt, rendered_instructions = _render_challenge_prompts(
+        # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render prompt
+        rendered_prompt, rendered_instructions = render_challenge_prompts(
             ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll), total_roll
         )
         agent = ChallengeAgent(

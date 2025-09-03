@@ -5,7 +5,7 @@ from app.agents.conversations.conversation_agent import (
     ConversationAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.models.influence import BASE_INFLUENCE_MAX, BASE_INFLUENCE_MIN, Influence
 from app.models.reveal import Reveal, RevealLayer
 from app.services.context import ConvoContext
@@ -47,22 +47,19 @@ CONVERSATION_STORE = AsyncMock()
 BASE_TEMPLATE_CONTEXT = {
     "max_response_length": 30,
     "character": CHARACTER,
-    "character_memories": ALL_MEMORIES,
-    "character_reveals": ALL_REVEALS,
+    "memories": ALL_MEMORIES,
+    "reveals": ALL_REVEALS,
     "player": PLAYER,
     "encounter": CONTEXT.encounter,
 }
 
-RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
-    "conversation_agent", BASE_TEMPLATE_CONTEXT
-)
-RENDERED_INSTRUCTIONS = render_jinja_prompt(
-    "conversation_agent_instructions", BASE_TEMPLATE_CONTEXT
-)
+RENDERED_SYSTEM_PROMPT = render_prompt("conversation_agent", BASE_TEMPLATE_CONTEXT)
+RENDERED_INSTRUCTIONS = render_prompt_section("memories_reveals", BASE_TEMPLATE_CONTEXT)
 
 INFLUENCE_CALCULATOR_AGENT = InfluenceCalculatorAgent(
-    system_prompt=render_jinja_prompt(
-        "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+    system_prompt=render_prompt(
+        "influence_scoring_agent",
+        {"character": CHARACTER, "player": PLAYER, "encounter": CONTEXT.encounter},
     )
 )
 
@@ -93,7 +90,7 @@ async def test_personality_based_earned_influence_respects_privileged_level():
 
     # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
     _, level, _ = await agent.chat(
-        player_transcript="Hello good man! I've just come from a long quest saving a lost princess. Oh what a quest it was. It will be told for millennia! I need the best room that you have.",
+        player_transcript="Hello good man! I've just come from a long quest saving a lost princess. Oh what a quest it was. I want your finest ale",
         deps=DEPENDENCIES.model_copy(),
     )
 
@@ -145,19 +142,21 @@ async def test_personality_based_earned_influence_can_be_negative():
     template_context = BASE_TEMPLATE_CONTEXT.copy()
     template_context["player"] = opposing_player
 
-    rendered_system_prompt = render_jinja_prompt("conversation_agent", template_context)
-    rendered_instructions = render_jinja_prompt(
-        "conversation_agent_instructions", template_context
-    )
+    rendered_system_prompt = render_prompt("conversation_agent", template_context)
+    rendered_instructions = render_prompt_section("memories_reveals", template_context)
 
     agent = ConversationAgent(
         system_prompt=rendered_system_prompt,
         instructions=rendered_instructions,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=render_jinja_prompt(
+            system_prompt=render_prompt(
                 "influence_scoring_agent",
-                {"character": CHARACTER, "player": opposing_player},
+                {
+                    "character": CHARACTER,
+                    "player": opposing_player,
+                    "encounter": CONTEXT.encounter,
+                },
             )
         ),
     )
@@ -207,12 +206,10 @@ async def test_conversation_agent_handles_multiple_reveals():
 
     # Create custom template context for different reveals
     template_context = BASE_TEMPLATE_CONTEXT.copy()
-    template_context["character_reveals"] = reveals
+    template_context["reveals"] = reveals
 
-    rendered_system_prompt = render_jinja_prompt("conversation_agent", template_context)
-    rendered_instructions = render_jinja_prompt(
-        "conversation_agent_instructions", template_context
-    )
+    rendered_system_prompt = render_prompt("conversation_agent", template_context)
+    rendered_instructions = render_prompt_section("memories_reveals", template_context)
 
     agent = ConversationAgent(
         system_prompt=rendered_system_prompt,

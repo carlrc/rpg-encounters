@@ -1,8 +1,7 @@
 import logging
 from typing import Any
 
-from langfuse import get_client
-from langfuse import observe as langfuse_observe
+from langfuse import get_client, observe
 from pydantic import BaseModel
 from pydantic_ai import RunContext, UnexpectedModelBehavior
 
@@ -39,7 +38,7 @@ class InfluenceCalculatorAgent(BaseAgent):
 
         self.agent = agent
 
-    @langfuse_observe
+    @observe
     async def process(self, msg: str) -> InfluenceCalculatorAgentOutput:
         try:
             run_result = await self.agent.run(msg)

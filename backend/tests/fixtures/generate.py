@@ -27,7 +27,7 @@ def create_default_innkeeper_character(character_id: int) -> Character:
         background="Friendly Inn keeper. Knows everyone in town and all the local gossip.",
         communication_style="Chatty and welcoming, always ready with a story or bit of news.",
         communication_style_type="Custom",
-        motivation="To keep the tavern running smoothly and make more money and attract more customers",
+        motivation="To keep the tavern running smoothly, attract more customers and make more money.",
         personality="Appreciates friendly conversation and local gossip sharing.",
         race_preferences={Race.LIGHTFOOT_HALFLING.value: DifficultyClass.VERY_EASY.value},
         class_preferences={Class.BARD.value: DifficultyClass.VERY_EASY.value},
@@ -36,6 +36,18 @@ def create_default_innkeeper_character(character_id: int) -> Character:
         voice_name="Default",
         voice_id="JBFqnCBsd6RMkjVDRZzb"
     )
+
+def create_default_evil_character(character_id: int) -> Character:
+    """Create an evil character with malicious motivations for tests."""
+    character = create_default_innkeeper_character(character_id=character_id)
+    character.alignment = Alignment.CHAOTIC_EVIL.value
+    character.profession = "Merchant"
+    character.background = "A corrupted trader who thinks poorly of the world and its people. Uses his establishment as a front for illegal activities and information brokering."
+    character.communication_style = "Smooth-talking and manipulative, with a sinister undertone. Often speaks in veiled threats and double meanings."
+    character.motivation = "To gain power and wealth through any means necessary. Seeks to manipulate others for personal gain and enjoys watching them suffer. Plots to expand his criminal network and eliminate rivals."
+    character.personality = "Cruel, calculating, and utterly selfish. Takes pleasure in others' misfortune and has no qualms about betraying anyone for profit."
+
+    return character
 
 
 def create_default_bard_player(player_id: int) -> Player:

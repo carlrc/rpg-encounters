@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Callable
 
 from langfuse import get_client
@@ -10,11 +11,17 @@ TelemetryFunc = Callable[[], None]
 
 
 def setup_telemetry():
-    # Verify langfuse connection
-    if get_client().auth_check():
-        logger.debug("Langfuse client is authenticated and ready!")
-    else:
+    run_telemetry = os.getenv("LANGFUSE_TRACING_ENABLED", "false")
+
+    if run_telemetry == "false" or run_telemetry == "False":
+        logger.info("Skipping telemetry setup...")
+        return
+
+    # Check langfuse
+    if not get_client().auth_check():
         raise RuntimeError("Langfuse auth failed.")
 
     # Initialize Pydantic AI instrumentation
     Agent.instrument_all()
+
+    logger.info("Telemetry setup!")

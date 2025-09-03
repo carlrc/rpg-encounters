@@ -3,8 +3,7 @@ import os
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
-from langfuse import get_client
-from langfuse import observe as langfuse_observe
+from langfuse import get_client, observe
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.connection_store import ConnectionStore
@@ -261,7 +260,7 @@ async def get_encounter_connections(
     "/{encounter_id}/conversation/{player_id}/{character_id}",
     response_model=ConversationData,
 )
-@langfuse_observe()
+@observe()
 async def get_conversation_data(
     encounter_id: int,
     player_id: int,
@@ -298,7 +297,7 @@ async def get_conversation_data(
 
 
 @router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")
-@langfuse_observe()
+@observe()
 async def websocket_convo_endpoint(
     websocket: WebSocket,
     encounter_id: int,
@@ -326,7 +325,7 @@ async def websocket_convo_endpoint(
 
 
 @router.websocket("/{encounter_id}/challenge/{player_id}/{character_id}")
-@langfuse_observe()
+@observe()
 async def websocket_challenge_endpoint(
     websocket: WebSocket,
     encounter_id: int,

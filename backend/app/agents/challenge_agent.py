@@ -1,6 +1,6 @@
 import logging
 
-from langfuse import observe as langfuse_observe
+from langfuse import observe
 from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.agent import AgentRunResult
 
@@ -23,7 +23,7 @@ class ChallengeAgent(BaseAgent):
         )
         self.run_result: AgentRunResult[StandardAgentOutput] = None
 
-    @langfuse_observe
+    @observe
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
             self.run_result = await self.agent.run(

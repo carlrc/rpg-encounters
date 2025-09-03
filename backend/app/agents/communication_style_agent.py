@@ -1,8 +1,7 @@
 import logging
 from typing import Dict, List
 
-from langfuse import get_client
-from langfuse import observe as langfuse_observe
+from langfuse import get_client, observe
 from pydantic import BaseModel, Field
 from pydantic_ai import UnexpectedModelBehavior
 
@@ -114,7 +113,7 @@ class CommunicationStyleAgent(BaseAgent):
         # Set after decorators
         self.agent = agent
 
-    @langfuse_observe
+    @observe
     async def generate(
         self, character: CharacterCreate
     ) -> CommunicationStyleAgentOutput:

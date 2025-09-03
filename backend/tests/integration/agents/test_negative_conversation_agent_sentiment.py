@@ -6,7 +6,7 @@ from app.agents.conversations.negative_conversation_agent import (
     NegativeConvoAgentDeps,
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
-from app.agents.prompts.import_prompts import render_jinja_prompt
+from app.agents.prompts.import_prompts import render_prompt
 from app.models.influence import BASE_INFLUENCE_MIN
 from app.services.context import ConvoContext
 from tests.fixtures.generate import (
@@ -42,12 +42,12 @@ DEPENDENCIES = NegativeConvoAgentDeps(
 BASE_TEMPLATE_CONTEXT = {
     "max_response_length": 30,
     "character": CHARACTER,
-    "character_memories": ALL_MEMORIES,
+    "memories": ALL_MEMORIES,
     "player": PLAYER,
     "encounter": CONTEXT.encounter,
 }
 
-RENDERED_SYSTEM_PROMPT = render_jinja_prompt(
+RENDERED_SYSTEM_PROMPT = render_prompt(
     "negative_conversation_agent", BASE_TEMPLATE_CONTEXT
 )
 
@@ -60,8 +60,13 @@ async def test_negative_agent_is_negative():
         system_prompt=RENDERED_SYSTEM_PROMPT,
         conversation_store=CONVERSATION_STORE,
         influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=render_jinja_prompt(
-                "influence_scoring_agent", {"character": CHARACTER, "player": PLAYER}
+            system_prompt=render_prompt(
+                "influence_scoring_agent",
+                {
+                    "character": CHARACTER,
+                    "player": PLAYER,
+                    "encounter": CONTEXT.encounter,
+                },
             ),
         ),
     )

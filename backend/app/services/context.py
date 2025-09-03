@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from fastapi import HTTPException
-from langfuse import observe as langfuse_observe
+from langfuse import observe
 from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,7 +39,7 @@ class ConvoContext(BaseModel):
 
 
 # We don't want to have DB records in telemetry
-@langfuse_observe(capture_output=False)
+@observe(capture_output=False)
 async def get_conversation_context(
     world_id: int,
     player_id: int,
