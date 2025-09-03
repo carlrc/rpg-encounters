@@ -17,7 +17,7 @@ class GoogleCloudTTS:
         # See https://cloud.google.com/text-to-speech/docs/voices for all voices.
         streaming_config = texttospeech.StreamingSynthesizeConfig(
             voice=texttospeech.VoiceSelectionParams(
-                name="en-US-Chirp3-HD-Charon",
+                name="en-US-Chirp3-HD-Achernar",
                 language_code="en-US",
             ),
             # https://cloud.google.com/text-to-speech/docs/reference/rest/Shared.Types/StreamingAudioConfig
