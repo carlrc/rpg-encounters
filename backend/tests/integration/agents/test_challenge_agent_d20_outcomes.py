@@ -1,5 +1,9 @@
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
+from app.agents.prompts.limits import (
+    MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
+    MAX_RESPONSE_WORD_LENGTH,
+)
 from app.models.memory import Memory
 from tests.fixtures.generate import (
     REVEAL_LEVEL_3,
@@ -49,7 +53,7 @@ async def test_challenge_agent_standard():
     template_context = {
         **BASE_TEMPLATE_CONTEXT,
         "filtered_reveals": [MAYOR_SECRET],
-        "max_response_length": 40,
+        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
         "d20_roll": 15,
     }
     rendered_prompt = render_prompt("challenge_agent", template_context)
@@ -73,7 +77,7 @@ async def test_challenge_agent_critical_success():
     template_context = {
         **BASE_TEMPLATE_CONTEXT,
         "filtered_reveals": [SECRET_CORRIDOR, MAYOR_SECRET],
-        "max_response_length": 70,
+        "max_response_length": MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
     }
     rendered_prompt = render_prompt(
         "challenge_agent_critical_success", template_context

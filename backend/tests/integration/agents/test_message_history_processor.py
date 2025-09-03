@@ -11,6 +11,7 @@ from app.agents.conversations.negative_conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt
+from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
 from app.models.influence import BASE_INFLUENCE_MIN
 from tests.fixtures.generate import (
     default_character,
@@ -55,7 +56,7 @@ async def test_message_history_processor_trims_at_max_limit():
 
     # Template context for rendering Jinja prompt
     template_context = {
-        "max_response_length": 30,
+        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
         "character": CHARACTER,
         "memories": ALL_MEMORIES,
         "player": PLAYER,

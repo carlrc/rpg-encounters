@@ -7,6 +7,7 @@ from app.agents.conversations.conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
+from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
 from app.models.influence import BASE_INFLUENCE_MAX
 from app.models.reveal import RevealLayer
 from app.services.context import ConvoContext
@@ -44,7 +45,7 @@ DEPENDENCIES = ConversationAgentDeps(
 )
 
 BASE_TEMPLATE_CONTEXT = {
-    "max_response_length": 30,
+    "max_response_length": MAX_RESPONSE_WORD_LENGTH,
     "character": CHARACTER,
     "memories": [],
     "reveals": [],

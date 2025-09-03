@@ -5,6 +5,10 @@ from langfuse import get_client, observe
 
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
+from app.agents.prompts.limits import (
+    MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
+    MAX_RESPONSE_WORD_LENGTH,
+)
 from app.clients.elevan_labs import ElevenLabs
 from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
@@ -33,7 +37,7 @@ def render_challenge_prompts(
         "memories": ctx.memories,
         "encounter": ctx.encounter,
         "filtered_reveals": filtered_reveals,
-        "max_response_length": 40,
+        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
     }
 
     # Render standard prompts
@@ -46,7 +50,7 @@ def render_challenge_prompts(
         # Set 70 word limit for critical success for longer answers
         template_ctx = {
             **base_template_ctx,
-            "max_response_length": 70,
+            "max_response_length": MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
         }
         rendered_prompt = render_prompt(
             "challenge_agent_critical_success", template_ctx

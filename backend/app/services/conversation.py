@@ -13,6 +13,7 @@ from app.agents.conversations.negative_conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
+from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
 from app.clients.elevan_labs import ElevenLabs
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
@@ -60,7 +61,7 @@ async def have_conversation(
 
             # Common template context for both conversation agents
             template_ctx = {
-                "max_response_length": 30,
+                "max_response_length": MAX_RESPONSE_WORD_LENGTH,
                 "character": ctx.character,
                 "memories": ctx.memories,
                 "player": ctx.player,

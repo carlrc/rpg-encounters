@@ -1,7 +1,5 @@
 {% if reveals %}
 
-CRITICAL: You must select exactly ONE reveal that best matches the conversation topic. Always reference the reveal by its ID number.
-
 Available Reveals:
 {% for reveal in reveals %}
     **REVEAL ID {{ reveal.id }}: {{ reveal.title }}**:
