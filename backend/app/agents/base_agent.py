@@ -4,14 +4,14 @@ from typing import Any
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.agent import ModelSettings
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, ToolReturnPart
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 
 from app.telemetry import TelemetryFunc
 
 # TODO: Set arbitrarily high to avoid trimming issue (_keep_recent_messages doesn't work). Should be based on tokens in the future anyways.
-MAX_MESSAGE_HISTORY = 30
+MAX_MESSAGE_HISTORY = 20
 
 MAX_RETRIES = 3
 
@@ -33,11 +33,35 @@ class BaseAgent:
         self, messages: list[ModelMessage]
     ) -> list[ModelMessage]:
         """Keep only the last N messages to manage token usage."""
-        return (
-            messages[-MAX_MESSAGE_HISTORY:]
-            if len(messages) > MAX_MESSAGE_HISTORY
-            else messages
-        )
+
+        # https://github.com/pydantic/pydantic-ai/issues/2050#issuecomment-3185056339
+        def message_at_index_contains_tool_return_parts(
+            messages: list[ModelMessage], index: int
+        ) -> bool:
+            return any(
+                isinstance(part, ToolReturnPart) for part in messages[index].parts
+            )
+
+        number_of_messages = len(messages)
+
+        if number_of_messages <= MAX_MESSAGE_HISTORY:
+            return messages
+
+        # Calculate how many complete pairs we can keep within the limit
+        # Ensure we always keep an even number of messages (complete pairs)
+        messages_to_keep = MAX_MESSAGE_HISTORY
+        if messages_to_keep % 2 != 0:
+            messages_to_keep -= 1  # Make it even to preserve pairs
+
+        # Check for tool return parts at the boundary
+        if message_at_index_contains_tool_return_parts(
+            messages, number_of_messages - messages_to_keep
+        ):
+            return messages
+
+        # TODO: Internally pydantic doesn't adjust the index of latest messages after this and then using new_messages() returns an empty array incorrectly
+        trimmed_messages = messages[-messages_to_keep:]
+        return trimmed_messages
 
     def _generate_agent(
         self,
