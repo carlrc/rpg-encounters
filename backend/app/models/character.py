@@ -3,6 +3,7 @@ from typing import Dict, List
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS
 from app.db.limits import (
     CHARACTER_BACKGROUND_LIMIT,
     CHARACTER_COMMUNICATION_LIMIT,
@@ -64,7 +65,8 @@ class CharacterBase(BaseModel):
         "", description="AI-generated personality profile for influence decisions"
     )
     voice_id: str = Field(..., description="ElevenLabs voice ID for TTS")
-    voice_name: str = Field("Default Voice", description="Voice name")
+    voice_name: str = Field("Manual", description="Voice name")
+    tts_provider: str = Field(..., description="Text to speach provider")
 
     # Bias
     race_preferences: Dict[str, int] | None = Field(
@@ -79,6 +81,13 @@ class CharacterBase(BaseModel):
     size_preferences: Dict[str, int] | None = Field(
         None, description="Size preferences for influence calculation"
     )
+
+    @field_validator("tts_provider")
+    @classmethod
+    def validate_tts(cls, v):
+        if v is not None:
+            return validate_choice(v, [GOOGLE_TTS, ELEVANLABS_TTS], "Race")
+        return v
 
     @field_validator("race")
     @classmethod

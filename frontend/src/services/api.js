@@ -45,16 +45,19 @@ export const createWorld = () => http.post('/worlds')
 export const deleteWorld = (worldId) => http.delete(`/worlds/${worldId}`)
 
 // Voice operations
-export const searchVoices = (searchTerm, pageToken = null) => {
-  const params = new URLSearchParams({ search_term: searchTerm })
+export const searchVoices = (searchTerm, ttsProvider, pageToken = null) => {
+  const params = new URLSearchParams({
+    search_term: searchTerm,
+    tts_provider: ttsProvider,
+  })
   if (pageToken) params.append('next_page_token', pageToken)
   return http.get(`/voices/search?${params}`)
 }
 
-export const getVoiceSample = async (voiceId) => {
+export const getVoiceSample = async (voiceId, ttsProvider) => {
   // Use the http client which already includes world ID headers
   const response = await fetch(
-    `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/voices/${voiceId}/sample`,
+    `${import.meta.env.VITE_BACKEND_URL}/voices/${voiceId}/sample?tts_provider=${ttsProvider}`,
     {
       headers: {
         'X-World-Id': await getCurrentWorldIdFromStore(),
@@ -77,9 +80,8 @@ const getCurrentWorldIdFromStore = async () => {
 }
 
 // Utility function for backward compatibility
-export const getAllVoices = async () => {
-  // Use broad search terms to get all available voices
-  // We'll search for common vowels which should match most voice names
-  const response = await searchVoices('a')
+export const getAllVoices = async (ttsProvider = 'google') => {
+  // Force english voices for now
+  const response = await searchVoices('en', ttsProvider)
   return response.voices || []
 }

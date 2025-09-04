@@ -11,21 +11,20 @@ dependencies = [
     "elevenlabs==2.7.1",
     "python-dotenv==1.1.1",
     "ollama==0.5.1",
-    "pydantic-ai==0.7.4",
+    "pydantic-ai==0.8.1",
     "pre-commit==4.2.0",
     "torch==2.7.1",
     "torchaudio==2.7.1",
     "torchvision==0.22.1",
     "SQLAlchemy[asyncio]==2.0.43",
-    "psycopg2-binary==2.9.10",
     "python-jose[cryptography]==3.5.0",
     "langfuse==3.3.0",
     "Jinja2==3.1.6",
     "httpx==0.28.1",
     "uvloop==0.21.0",
     "httptools==0.6.4",
-    "asyncpg==0.30"
-
+    "asyncpg==0.30",
+    "google-cloud-texttospeech==2.28.0"
 ]
 
 [tool.uv]

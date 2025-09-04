@@ -9,7 +9,7 @@ from app.agents.prompts.limits import (
     MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
     MAX_RESPONSE_WORD_LENGTH,
 )
-from app.clients.elevan_labs import ElevenLabs
+from app.clients.tts import create_tts_provider
 from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
 from app.models.conversation import ConversationData
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def render_challenge_prompts(
-    ctx, d20_roll: int, filtered_reveals, total_roll: int
+    ctx, d20_roll: int, filtered_reveals
 ) -> tuple[str, str | None]:
     """Render challenge prompts based on D20 roll outcome."""
 
@@ -115,7 +115,7 @@ async def challenge_character(
 
         # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render prompt
         rendered_prompt, rendered_instructions = render_challenge_prompts(
-            ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll), total_roll
+            ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll)
         )
         agent = ChallengeAgent(
             system_prompt=rendered_prompt,
@@ -123,7 +123,7 @@ async def challenge_character(
             instructions=rendered_instructions if rendered_instructions else None,
         )
 
-        # Generate LLM
+        # Generate LLM response
         response = await agent.chat(
             player_transcript=transcription,
             deps=ChallengeAgentDeps(
@@ -139,9 +139,9 @@ async def challenge_character(
         get_client().update_current_trace(output=response)
 
         # Stream TTS audio chunks back to frontend
-        async for audio_chunk in ElevenLabs().text_to_speech_stream(
-            response, ctx.character.voice_id
-        ):
+        async for audio_chunk in create_tts_provider(
+            provider=ctx.character.tts_provider
+        ).text_to_speech_stream(text=response, voice_id=ctx.character.voice_id):
             try:
                 await websocket.send_bytes(audio_chunk)
             except Exception as e:

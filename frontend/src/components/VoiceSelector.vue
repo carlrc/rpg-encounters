@@ -1,6 +1,6 @@
 <template>
   <div class="shared-field shared-field-full-width">
-    <div class="shared-field-label">🎤 Character Voice</div>
+    <div class="shared-field-label character-voice-title">🎤 Character Voice</div>
 
     <!-- Current Voice Display -->
     <div v-if="currentVoiceId && currentVoiceName" class="shared-field-value">
@@ -28,7 +28,7 @@
       <div class="manual-input-controls">
         <input
           v-model="manualVoiceId"
-          placeholder="Enter ElevenLabs Voice ID (e.g., JBFqnCBsd6RMkjVDRZzb)"
+          placeholder="Voice ID"
           class="shared-input manual-voice-input"
           :disabled="disabled"
         />
@@ -61,11 +61,29 @@
         <label class="browser-label">Browse Available Voices</label>
       </div>
 
-      <!-- Voice Search -->
+      <!-- Provider Selection -->
       <div v-if="!initialLoading" class="voice-search">
+        <select
+          v-model="selectedProvider"
+          class="shared-select voice-provider-select"
+          @change="handleProviderChange"
+          :disabled="disabled"
+        >
+          <option
+            v-for="provider in gameData?.tts_providers || []"
+            :key="provider"
+            :value="provider"
+          >
+            {{ formatProviderName(provider) }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Voice Search -->
+      <div v-if="!initialLoading && selectedProvider" class="voice-search">
         <input
           v-model="searchTerm"
-          placeholder="🔍 Search voices by name or description..."
+          placeholder="🔍 Filter voices..."
           class="shared-input voice-search-input"
         />
       </div>
@@ -86,7 +104,7 @@
 
       <div v-else-if="filteredVoices.length === 0" class="voice-empty">
         <div v-if="searchTerm.trim()">No voices found for "{{ searchTerm }}"</div>
-        <div v-else>No voices available.</div>
+        <div v-else>No voices available for {{ formatProviderName(selectedProvider) }}.</div>
       </div>
 
       <div v-else class="voice-results-container">
@@ -161,8 +179,10 @@
 
 <script>
   import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { storeToRefs } from 'pinia'
+  import { useGameDataStore } from '../stores/gameData.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
-  import { getAllVoices, getVoiceSample } from '../services/api.js'
+  import { searchVoices, getVoiceSample } from '../services/api.js'
 
   export default {
     name: 'VoiceSelector',
@@ -175,13 +195,20 @@
         type: String,
         default: null,
       },
+      currentProvider: {
+        type: String,
+        default: null,
+      },
       disabled: {
         type: Boolean,
         default: false,
       },
     },
-    emits: ['select-voice'],
+    emits: ['select-voice', 'select-provider'],
     setup(props, { emit }) {
+      // Game data store
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
       // Audio player composable
       const {
         playStreamingResponse,
@@ -202,6 +229,9 @@
 
       // Search state
       const searchTerm = ref('')
+
+      // Provider state
+      const selectedProvider = ref(props.currentProvider || '')
 
       // Computed properties
       const filteredVoices = computed(() => {
@@ -237,18 +267,37 @@
 
       // Methods
       const loadAllVoices = async () => {
+        if (!selectedProvider.value) {
+          allVoices.value = []
+          initialLoading.value = false
+          return
+        }
+
         try {
           initialLoading.value = true
           loadError.value = null
 
-          const voices = await getAllVoices()
-          allVoices.value = voices || []
+          const response = await searchVoices('en', selectedProvider.value)
+          allVoices.value = response.voices || []
         } catch (err) {
           loadError.value = 'Failed to load voices. Please try again.'
           console.error('Failed to load voices:', err)
         } finally {
           initialLoading.value = false
         }
+      }
+
+      const handleProviderChange = () => {
+        emit('select-provider', selectedProvider.value)
+        loadAllVoices()
+      }
+
+      const formatProviderName = (provider) => {
+        return provider === 'elevanlabs'
+          ? 'ElevenLabs'
+          : provider === 'google'
+            ? 'Google'
+            : provider
       }
 
       // Voice selection and preview methods
@@ -286,13 +335,13 @@
       }
 
       const playSample = async (voiceId) => {
-        if (audioLoading.value) return
+        if (audioLoading.value || !selectedProvider.value) return
 
         try {
           playingVoiceId.value = voiceId
           manualVoiceError.value = null
 
-          const response = await getVoiceSample(voiceId)
+          const response = await getVoiceSample(voiceId, selectedProvider.value)
           await playStreamingResponse(response, voiceId)
         } catch (err) {
           if (voiceId === manualVoiceId.value.trim()) {
@@ -305,7 +354,9 @@
       }
 
       // Lifecycle
-      onMounted(() => {
+      onMounted(async () => {
+        await gameDataStore.load()
+        selectedProvider.value = props.currentProvider
         loadAllVoices()
       })
 
@@ -319,6 +370,8 @@
         manualVoiceId,
         manualVoiceError,
         searchTerm,
+        selectedProvider,
+        gameData,
 
         // Computed
         filteredVoices,
@@ -330,12 +383,30 @@
         previewManualVoice,
         playSample,
         playCurrentVoiceSample,
+        handleProviderChange,
+        formatProviderName,
       }
     },
   }
 </script>
 
 <style scoped>
+  /* Character Voice Title */
+  .character-voice-title {
+    text-align: center !important;
+    display: block;
+    width: 100%;
+  }
+
+  /* Center the current voice display */
+  .shared-field-value .communication-style-display {
+    align-items: center;
+  }
+
+  .shared-field-value .voice-name-container {
+    justify-content: center !important;
+  }
+
   /* Manual Input Section */
   .voice-manual-input {
     margin: 16px 0;
@@ -391,7 +462,7 @@
 
   .browser-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 12px;
   }
@@ -400,6 +471,7 @@
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--gray-600);
+    text-align: center;
   }
 
   /* Voice Search */

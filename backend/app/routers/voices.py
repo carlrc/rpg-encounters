@@ -3,7 +3,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from app.clients.elevan_labs import ElevenLabs, VoicesResponse
+from app.clients.tts import create_tts_provider
+from app.clients.tts_base import VoicesResponse
 from app.dependencies import get_current_user_world
 from app.http import INTERNAL_SERVER_ERROR
 
@@ -20,12 +21,13 @@ async def search_voices(
     next_page_token: str | None = Query(
         None, description="Pagination token for next page"
     ),
+    tts_provider: str = Query(..., description="TTS provider"),
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    """Search for available ElevenLabs voices"""
+    """Search for available voices"""
     user_id, world_id = user_world
     try:
-        return await ElevenLabs(page_size=100).search_voices(
+        return await create_tts_provider(provider=tts_provider).search_voices(
             search_term=search_term, next_page_token=next_page_token
         )
     except Exception as e:
@@ -38,17 +40,17 @@ async def search_voices(
 @router.get("/{voice_id}/sample")
 async def get_voice_sample(
     voice_id: str,
+    tts_provider: str = Query(..., description="TTS provider"),
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Generate and stream a voice sample using static text"""
     user_id, world_id = user_world
     try:
-        eleven_labs = ElevenLabs()
 
         async def generate_sample():
-            async for chunk in eleven_labs.text_to_speech_stream(
-                VOICE_SAMPLE_TEXT, voice_id
-            ):
+            async for chunk in create_tts_provider(
+                provider=tts_provider
+            ).text_to_speech_stream(VOICE_SAMPLE_TEXT, voice_id):
                 yield chunk
 
         return StreamingResponse(

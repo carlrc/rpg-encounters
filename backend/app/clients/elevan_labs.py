@@ -1,10 +1,11 @@
 import logging
 import os
 from enum import Enum
-from typing import AsyncGenerator, List
+from typing import AsyncGenerator
 
 import httpx
-from pydantic import BaseModel, Field
+
+from app.clients.tts_base import TTSProvider, VoicesResponse
 
 logger = logging.getLogger(__name__)
 
@@ -17,38 +18,9 @@ class VoiceType(Enum):
     NON_DEFAULT = "non-default"
 
 
-class VoiceLabels(BaseModel):
-    """Voice labels for additional metadata"""
-
-    gender: str | None = Field(None, description="Voice gender")
-    accent: str | None = Field(None, description="Voice accent")
-    descriptive: str | None = Field(None, description="Descriptive label")
-    age: str | None = Field(None, description="Voice age")
-    language: str | None = Field(None, description="Voice language")
-    use_case: str | None = Field(None, description="Voice use case")
-
-
-class Voice(BaseModel):
-    """Simplified voice model for frontend display"""
-
-    voice_id: str = Field(..., description="Voice ID")
-    name: str = Field(..., description="Voice name")
-    description: str | None = Field(..., description="Voice description")
-    category: str = Field(..., description="Voice category")
-    labels: VoiceLabels | None = Field(None, description="Voice labels")
-
-
-class VoicesResponse(BaseModel):
-    """Response model for voices search with pagination"""
-
-    voices: List[Voice] | None = Field(..., description="List of available voices")
-    has_more: bool = Field(..., description="Whether there are more voices available")
-    next_page_token: str | None = Field(None, description="Token for next page")
-    total_count: int = Field(None, description="Total available voices")
-
-
-class ElevenLabs:
-    def __init__(self, page_size: int = 15):
+class ElevenLabs(TTSProvider):
+    def __init__(self, page_size: int = 40):
+        super().__init__()
         self.api_key = os.getenv("ELEVENLABS_API_KEY")
         self.base_url = "https://api.elevenlabs.io"
         self.output_format = "mp3_44100_128"
@@ -96,9 +68,8 @@ class ElevenLabs:
 
     async def search_voices(
         self,
-        voice_type: VoiceType | None = None,
         search_term: str | None = None,
-        next_page_token: str = None,
+        next_page_token: str | None = None,
     ) -> VoicesResponse:
         """Search for available voices"""
 
@@ -111,7 +82,7 @@ class ElevenLabs:
         params = {}
         params["page_size"] = self.page_size
         params["search"] = search_term
-        params["voice_type"] = voice_type.value if voice_type else voice_type
+        params["voice_type"] = None
         params["next_page_token"] = next_page_token
         params["include_total_count"] = True
 
