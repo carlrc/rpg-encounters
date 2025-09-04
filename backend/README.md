@@ -18,6 +18,12 @@ sudo apt update && sudo apt install ffmpeg
 brew install ffmpeg
 ```
 
+Install PostgreSQL
+
+```bash
+apt install postgresql
+```
+
 Install [Docker](https://docs.docker.com/engine/install/) and verify
 
 ```bash
@@ -43,20 +49,13 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-Create a `.env` file with the following keys in the `backend` directory
+Setup telemetry backend by cloning [langfuse](https://github.com/langfuse/langfuse) alongside this repo
 
 ```bash
-OPENAI_API_KEY={SERVICE_ACC_API_KEY}
-ELEVENLABS_API_KEY={USER_API_KEY}
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=mysecretpassword
-POSTGRES_DB=dnd-postgres
-DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}
-# Test Database (same server, different database name)
-TEST_DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}-test
+git clone https://github.com/langfuse/langfuse.git
 ```
 
-If you don't have a telemetry backend setup, you can disable tracing with Langfuse
+If you don't want telemetry, you can disable tracing with Langfuse and by removing it from the root docker compose file
 
 ```bash
 LANGFUSE_TRACING_ENABLED=false
@@ -68,6 +67,12 @@ Run docker
 
 ```bash
 docker compose up -d
+```
+
+Create test db
+
+```bash
+createdb -h localhost -p 5432 -U postgres dnd-postgres-test
 ```
 
 Create dev db tables
