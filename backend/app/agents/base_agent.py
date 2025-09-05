@@ -4,7 +4,12 @@ from typing import Any
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.agent import ModelSettings
-from pydantic_ai.messages import ModelMessage, ToolReturnPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelRequest,
+    ToolReturnPart,
+    UserPromptPart,
+)
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 
@@ -14,6 +19,29 @@ from app.telemetry import TelemetryFunc
 MAX_MESSAGE_HISTORY = 20
 
 MAX_RETRIES = 3
+
+
+def get_latest_user_message(run_result) -> ModelRequest:
+    """Get the latest user message, handling pydantic bug where new_messages() can be empty."""
+    # Try new_messages() first (normal case)
+    new_messages = run_result.new_messages()
+    if new_messages:
+        return new_messages[0]
+
+    # Fallback: traverse all messages to find the most recent user message
+    all_messages = run_result.all_messages()
+
+    # Traverse from newest to oldest
+    for message in reversed(all_messages):
+        if (
+            isinstance(message, ModelRequest)
+            and message.kind == "request"
+            and any(isinstance(part, UserPromptPart) for part in message.parts)
+        ):
+            return message
+
+    # This should not happen in normal operation
+    raise ValueError("No user message found in message history")
 
 
 class AgentDeps(BaseModel):

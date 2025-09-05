@@ -1,6 +1,10 @@
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, ToolReturnPart
 
-from app.agents.base_agent import MAX_MESSAGE_HISTORY, BaseAgent
+from app.agents.base_agent import (
+    MAX_MESSAGE_HISTORY,
+    BaseAgent,
+    get_latest_user_message,
+)
 
 AGENT = BaseAgent()
 
@@ -108,8 +112,10 @@ async def test_agent_new_messages_with_history_processor():
         user_prompt="Test message", message_history=initial_messages
     )
 
-    new_messages = run_result.new_messages()
+    # If this passes then the bug is fixed and we can rely on it
+    assert not run_result.new_messages()
 
-    if len(new_messages) != 0:
-        # This proves the bug no longer exists and this test should be adjusted
-        assert False, "History processor no longer returning an empty list!"
+    new_message = get_latest_user_message(run_result=run_result)
+
+    assert new_message
+    assert new_message.parts[0].content == "Test message"
