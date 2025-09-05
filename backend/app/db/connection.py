@@ -11,6 +11,8 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 USERS_TABLE = "users"
+ACCOUNTS_TABLE = "accounts"
+MODERATIONS_TABLE = "moderations"
 PLAYERS_TABLE = "players"
 CHARACTERS_TABLE = "characters"
 MEMORIES_TABLE = "memories"
