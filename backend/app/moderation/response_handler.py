@@ -4,6 +4,8 @@ from fastapi import WebSocket
 from langfuse import get_client
 
 from app.clients.tts import create_tts_provider
+from app.data.moderation_store import ModerationStore
+from app.models.moderation import ModerationCreate
 from app.moderation.check import ModerationResponse, get_random_moderation_response
 from app.services.websocket import stream_tts_audio
 
@@ -24,11 +26,23 @@ async def handle_moderation_response(
     Args:
         websocket: WebSocket connection to send audio to
         user_id: ID of the user whose content was blocked
+        text: The flagged text content from the user
         response: The moderation response containing block details
         tts_provider_name: TTS provider to use for audio generation
         voice_id: Voice ID for TTS
     """
-    # TODO: Save the text the user said to a table with their violations for auditing down the road
+    # Save the flagged text to the moderation table for auditing
+    try:
+        await ModerationStore().create_moderation(
+            moderation_data=ModerationCreate(
+                user_id=user_id, text=text, openai_id=response.id
+            )
+        )
+        logger.info(f"Saved moderation record for user {user_id}")
+    except Exception as e:
+        logger.error(f"Failed to save moderation record for user {user_id}: {e}")
+        raise e
+
     logger.warning(f"User {user_id} msg violated TOS. Using default replies...")
     default_response = get_random_moderation_response()
     get_client().update_current_trace(
