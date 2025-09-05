@@ -23,7 +23,7 @@ async def get_all_reveals(
     """Get all reveals across all characters"""
     user_id, world_id = user_world
     try:
-        return await RevealStore(user_id=user_id, world_id=world_id).get_all_reveals()
+        return await RevealStore(user_id=user_id, world_id=world_id).get_all()
     except HTTPException:
         raise
     except Exception as e:
@@ -45,12 +45,12 @@ async def create_reveal(
             user_id=user_id, world_id=world_id, session=session
         )
         for character_id in reveal_data.character_ids:
-            if not await character_store.character_exists(character_id):
+            if not await character_store.exists(character_id):
                 raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         return await RevealStore(
             user_id=user_id, world_id=world_id, session=session
-        ).create_reveal(reveal_data)
+        ).create(reveal_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -95,7 +95,7 @@ async def get_character_reveals(
         character_store = CharacterStore(
             user_id=user_id, world_id=world_id, session=session
         )
-        if not await character_store.character_exists(character_id):
+        if not await character_store.exists(character_id):
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         return await RevealStore(
@@ -126,12 +126,12 @@ async def update_reveal(
                 user_id=user_id, world_id=world_id, session=session
             )
             for character_id in reveal_update.character_ids:
-                if not await character_store.character_exists(character_id):
+                if not await character_store.exists(character_id):
                     raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         reveal = await RevealStore(
             user_id=user_id, world_id=world_id, session=session
-        ).update_reveal(reveal_id, reveal_update)
+        ).update(reveal_id, reveal_update)
         if not reveal:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return reveal
@@ -151,7 +151,7 @@ async def delete_reveal(
     """Delete a reveal"""
     user_id, world_id = user_world
     try:
-        success = await RevealStore(user_id=user_id, world_id=world_id).delete_reveal(
+        success = await RevealStore(user_id=user_id, world_id=world_id).delete(
             reveal_id
         )
         if not success:

@@ -18,7 +18,7 @@ async def test_reveal_store():
         character = default_character()
         character1_data = CharacterCreate(**character.model_dump(exclude={"id"}))
 
-        created_character1 = await character_store.create_character(character1_data)
+        created_character1 = await character_store.create(character1_data)
 
         # Now create reveal with actual character IDs
         reveal_store = RevealStore(user_id=1, world_id=1, session=session)
@@ -34,7 +34,7 @@ async def test_reveal_store():
             exclusive_threshold=20,
         )
 
-        created_reveal = await reveal_store.create_reveal(new_reveal_data)
+        created_reveal = await reveal_store.create(new_reveal_data)
         assert created_reveal.title == new_reveal_data.title
         assert created_reveal.id is not None
         assert created_reveal.character_ids == [created_character1.id]
@@ -47,10 +47,10 @@ async def test_reveal_store():
         )
         assert created_reveal.exclusive_threshold == new_reveal_data.exclusive_threshold
 
-        all_reveals = await reveal_store.get_all_reveals()
+        all_reveals = await reveal_store.get_all()
         assert len(all_reveals) == 1
 
-        retrieved_reveal = await reveal_store.get_reveal(created_reveal.id)
+        retrieved_reveal = await reveal_store.get_by_id(created_reveal.id)
         assert retrieved_reveal is not None
 
         retrieved_reveal_alias = await reveal_store.get_by_id(created_reveal.id)
@@ -67,19 +67,17 @@ async def test_reveal_store():
             privileged_threshold=10,
             exclusive_threshold=15,
         )
-        updated_reveal = await reveal_store.update_reveal(
-            created_reveal.id, update_data
-        )
+        updated_reveal = await reveal_store.update(created_reveal.id, update_data)
         assert updated_reveal is not None
         assert updated_reveal.standard_threshold == update_data.standard_threshold
         assert updated_reveal.privileged_threshold == update_data.privileged_threshold
         assert updated_reveal.exclusive_threshold == update_data.exclusive_threshold
 
-        exists = await reveal_store.reveal_exists(created_reveal.id)
+        exists = await reveal_store.exists(created_reveal.id)
         assert exists is True
 
-        deleted = await reveal_store.delete_reveal(created_reveal.id)
+        deleted = await reveal_store.delete(created_reveal.id)
         assert deleted is True
 
-        exists_after_delete = await reveal_store.reveal_exists(created_reveal.id)
+        exists_after_delete = await reveal_store.exists(created_reveal.id)
         assert exists_after_delete is False

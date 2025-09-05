@@ -15,7 +15,7 @@ class ModerationStore(BaseStore):
     def __init__(self, user_id: int, session: AsyncSession = None):
         super().__init__(user_id=user_id, world_id=None, session=session)
 
-    async def create_moderation(self, moderation_data: ModerationCreate) -> Moderation:
+    async def create(self, moderation_data: ModerationCreate) -> Moderation:
         async with self.get_session() as session:
             db_moderation = ModerationORM(**moderation_data.model_dump())
             session.add(db_moderation)
@@ -23,7 +23,7 @@ class ModerationStore(BaseStore):
             await session.refresh(db_moderation)
             return Moderation.model_validate(db_moderation)
 
-    async def get_moderation_by_id(self, moderation_id: int) -> Moderation | None:
+    async def get_by_id(self, moderation_id: int) -> Moderation | None:
         async with self.get_session() as session:
             result = await session.execute(
                 select(ModerationORM).where(ModerationORM.id == moderation_id)
@@ -41,7 +41,7 @@ class ModerationStore(BaseStore):
             moderations = result.scalars().all()
             return [Moderation.model_validate(moderation) for moderation in moderations]
 
-    async def get_all_moderations(self) -> List[Moderation]:
+    async def get_all(self) -> List[Moderation]:
         async with self.get_session() as session:
             result = await session.execute(
                 select(ModerationORM).order_by(ModerationORM.created_at.desc())
@@ -49,12 +49,12 @@ class ModerationStore(BaseStore):
             moderations = result.scalars().all()
             return [Moderation.model_validate(moderation) for moderation in moderations]
 
-    async def update_moderation(
+    async def update(
         self, moderation_id: int, moderation_update: ModerationUpdate
     ) -> Moderation | None:
         update_data = moderation_update.model_dump(exclude_unset=True)
         if not update_data:
-            return await self.get_moderation_by_id(moderation_id)
+            return await self.get_by_id(moderation_id)
 
         async with self.get_session() as session:
             await session.execute(
@@ -62,16 +62,16 @@ class ModerationStore(BaseStore):
                 .where(ModerationORM.id == moderation_id)
                 .values(**update_data)
             )
-        return await self.get_moderation_by_id(moderation_id)
+        return await self.get_by_id(moderation_id)
 
-    async def delete_moderation(self, moderation_id: int) -> bool:
+    async def delete(self, moderation_id: int) -> bool:
         async with self.get_session() as session:
             result = await session.execute(
                 delete(ModerationORM).where(ModerationORM.id == moderation_id)
             )
             return result.rowcount > 0
 
-    async def moderation_exists(self, moderation_id: int) -> bool:
+    async def exists(self, moderation_id: int) -> bool:
         async with self.get_session() as session:
             result = await session.execute(
                 select(ModerationORM.id).where(ModerationORM.id == moderation_id)

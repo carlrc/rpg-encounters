@@ -89,9 +89,6 @@ class ConversationStore(BaseStore):
             conversation_orm = result.scalars().first()
 
             if not conversation_orm:
-                logger.warning(
-                    f"Could not find conversation for player_id={player_id}, character_id={character_id}, encounter_id={encounter_id}, user_id={self.user_id}, world_id={self.world_id}"
-                )
                 return None
 
             # Deserialize existing messages
@@ -109,7 +106,7 @@ class ConversationStore(BaseStore):
 
             return self._orm_to_conversation(conversation_orm)
 
-    async def conversation_exists(
+    async def exists(
         self, player_id: int, character_id: int, encounter_id: int
     ) -> bool:
         """Check if a conversation exists."""
@@ -126,7 +123,7 @@ class ConversationStore(BaseStore):
             conversation_orm = result.scalars().first()
             return conversation_orm is not None
 
-    async def delete_conversation(
+    async def delete(
         self, player_id: int, character_id: int, encounter_id: int
     ) -> bool:
         """Delete a conversation."""

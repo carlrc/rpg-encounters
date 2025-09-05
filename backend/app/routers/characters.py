@@ -60,7 +60,7 @@ async def _generate_personality_background(
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
         update_data = CharacterUpdate(personality=personality)
 
-        await character_store.update_character(character_id, update_data)
+        await character_store.update(character_id, update_data)
 
         logger.info(f"Created personality for user {user_id} in background task...")
     except Exception as e:
@@ -92,7 +92,7 @@ async def _generate_communication_style_background(
             communication_style_examples=communication_style.examples,
         )
 
-        await character_store.update_character(character_id, update_data)
+        await character_store.update(character_id, update_data)
         logger.debug(
             f"Created communication style for user {user_id} in background task..."
         )
@@ -110,9 +110,7 @@ async def get_characters(
     """Get all characters"""
     user_id, world_id = user_world
     try:
-        return await CharacterStore(
-            user_id=user_id, world_id=world_id
-        ).get_all_characters()
+        return await CharacterStore(user_id=user_id, world_id=world_id).get_all()
     except HTTPException:
         raise
     except Exception as e:
@@ -130,9 +128,9 @@ async def get_character(
     """Get a specific character by ID"""
     user_id, world_id = user_world
     try:
-        character = await CharacterStore(
-            user_id=user_id, world_id=world_id
-        ).get_character_by_id(character_id)
+        character = await CharacterStore(user_id=user_id, world_id=world_id).get_by_id(
+            character_id
+        )
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return character
@@ -161,9 +159,9 @@ async def create_character(
 
         # Create character immediately without AI-generated content
         # personality field defaults to empty string
-        character = await CharacterStore(
-            user_id=user_id, world_id=world_id
-        ).create_character(character_data)
+        character = await CharacterStore(user_id=user_id, world_id=world_id).create(
+            character_data
+        )
 
         # TODO: If moderated we would want to skip incurring this computation cost
         # Add background tasks for AI generation
@@ -209,7 +207,7 @@ async def update_character(
     try:
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
         # Ensure the character exists first
-        character = await character_store.get_character_by_id(character_id=character_id)
+        character = await character_store.get_by_id(character_id=character_id)
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
@@ -219,9 +217,7 @@ async def update_character(
         )
 
         # Update character immediately (without AI regeneration)
-        updated_character = await character_store.update_character(
-            character_id, character_update
-        )
+        updated_character = await character_store.update(character_id, character_update)
 
         # Add background tasks only if fields that affect AI generation changed
         needs_personality_regen = (
@@ -279,9 +275,9 @@ async def delete_character(
     """Delete a character"""
     user_id, world_id = user_world
     try:
-        success = await CharacterStore(
-            user_id=user_id, world_id=world_id
-        ).delete_character(character_id)
+        success = await CharacterStore(user_id=user_id, world_id=world_id).delete(
+            character_id
+        )
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None

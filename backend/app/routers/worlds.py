@@ -18,7 +18,7 @@ async def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_worl
     """Get all worlds for the current user"""
     user_id, _ = user_world
     try:
-        return await WorldStore(user_id=user_id).get_all_worlds()
+        return await WorldStore(user_id=user_id).get_all()
     except HTTPException:
         raise
     except Exception as e:
@@ -33,7 +33,7 @@ async def get_world(
     """Get a specific world by ID"""
     user_id, _ = user_world
     try:
-        world = await WorldStore(user_id=user_id).get_world_by_id(world_id)
+        world = await WorldStore(user_id=user_id).get_by_id(world_id)
         if not world:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return world
@@ -49,7 +49,7 @@ async def create_world(user_world: tuple[int, int] = Depends(get_current_user_wo
     """Create a new world for the current user"""
     user_id, _ = user_world
     try:
-        return await WorldStore(user_id=user_id).create_world()
+        return await WorldStore(user_id=user_id).create()
     except HTTPException:
         raise
     except Exception as e:
@@ -64,7 +64,7 @@ async def delete_world(
     """Delete a world"""
     user_id, _ = user_world
     try:
-        success = await WorldStore(user_id=user_id).delete_world(world_id)
+        success = await WorldStore(user_id=user_id).delete(world_id)
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None

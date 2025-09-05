@@ -24,8 +24,8 @@ async def test_influence_store():
         player = default_player()
         player_data = PlayerCreate(**player.model_dump(exclude={"id"}))
 
-        created_character = await character_store.create_character(character_data)
-        created_player = await player_store.create_player(player_data)
+        created_character = await character_store.create(character_data)
+        created_player = await player_store.create(player_data)
 
         # Test influence store
         influence_store = InfluenceStore(user_id=1, world_id=1, session=session)
@@ -62,7 +62,7 @@ async def test_influence_store():
             base=base_influence,
             earned=3,
         )
-        result = await influence_store.update_influence(updated_influence)
+        result = await influence_store.update(updated_influence)
         assert result.earned == 3
         assert result.score == base_influence + 3
 
@@ -79,7 +79,7 @@ async def test_influence_store():
         assert reset_influence.base == base_influence  # Base should remain
 
         # Test get_all_influences
-        all_influences = await influence_store.get_all_influences()
+        all_influences = await influence_store.get_all()
         assert len(all_influences) >= 1
         assert any(
             inf.character_id == created_character.id
@@ -102,9 +102,7 @@ async def test_influence_store():
         assert all(inf.player_id == created_player.id for inf in player_influences)
 
         # Test delete_influence
-        deleted = await influence_store.delete_influence(
-            created_character.id, created_player.id
-        )
+        deleted = await influence_store.delete(created_character.id, created_player.id)
         assert deleted is True
 
         # Verify deletion
@@ -114,7 +112,7 @@ async def test_influence_store():
         assert deleted_influence is None
 
         # Test delete non-existent influence
-        deleted_again = await influence_store.delete_influence(
+        deleted_again = await influence_store.delete(
             created_character.id, created_player.id
         )
         assert deleted_again is False
@@ -124,5 +122,5 @@ async def test_influence_store():
             created_character.id, created_player.id, 5
         )
         await influence_store.clear()
-        all_after_clear = await influence_store.get_all_influences()
+        all_after_clear = await influence_store.get_all()
         assert len(all_after_clear) == 0

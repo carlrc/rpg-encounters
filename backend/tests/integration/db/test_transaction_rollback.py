@@ -21,9 +21,9 @@ async def test_transaction_rollback_on_error():
     # Count characters and encounters before test
     async with get_async_db_session(db_url=url) as session:
         character_store = CharacterStore(user_id=1, world_id=1, session=session)
-        initial_character_count = len(await character_store.get_all_characters())
+        initial_character_count = len(await character_store.get_all())
         encounter_store = EncounterStore(user_id=1, world_id=1, session=session)
-        initial_encounter_count = len(await encounter_store.get_all_encounters())
+        initial_encounter_count = len(await encounter_store.get_all())
 
     # Attempt transaction that should fail - error happens WITHIN session context
     with pytest.raises(ValueError):
@@ -36,7 +36,7 @@ async def test_transaction_rollback_on_error():
             character_data = CharacterCreate(**character.model_dump(exclude={"id"}))
 
             # Create character in session
-            await character_store.create_character(character_data)
+            await character_store.create(character_data)
 
             # At this point character exists in session but not yet committed
             # Now force an error WITHIN the session:
@@ -45,9 +45,9 @@ async def test_transaction_rollback_on_error():
     # Verify nothing was committed - counts should be unchanged
     async with get_async_db_session(db_url=url) as session:
         character_store = CharacterStore(user_id=1, world_id=1, session=session)
-        final_character_count = len(await character_store.get_all_characters())
+        final_character_count = len(await character_store.get_all())
         encounter_store = EncounterStore(user_id=1, world_id=1, session=session)
-        final_encounter_count = len(await encounter_store.get_all_encounters())
+        final_encounter_count = len(await encounter_store.get_all())
 
         assert (
             final_character_count == initial_character_count

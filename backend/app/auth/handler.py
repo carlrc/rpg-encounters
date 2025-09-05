@@ -87,7 +87,7 @@ async def get_current_user_bearer(
     user_id = payload.get("sub")
     if user_id is None:
         raise credentials_exception
-    user = UserStore().get_user_by_id()
+    user = UserStore().get_by_id()
     if user is None:
         raise credentials_exception
     return user

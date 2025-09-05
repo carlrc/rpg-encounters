@@ -21,7 +21,7 @@ class ConnectionStore(BaseStore):
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    async def get_all_connections(self) -> List[Connection]:
+    async def get_all(self) -> List[Connection]:
         """Get all connections for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -36,7 +36,7 @@ class ConnectionStore(BaseStore):
                 for connection_orm in connection_orms
             ]
 
-    async def get_connection_by_id(self, connection_id: int) -> Connection | None:
+    async def get_by_id(self, connection_id: int) -> Connection | None:
         """Get a specific connection by ID for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -51,7 +51,7 @@ class ConnectionStore(BaseStore):
                 return Connection.model_validate(connection_orm)
             return None
 
-    async def create_connection(self, connection_data: ConnectionCreate) -> Connection:
+    async def create(self, connection_data: ConnectionCreate) -> Connection:
         """Create a new connection"""
         async with self.get_session() as session:
             connection_dict = connection_data.model_dump()
@@ -63,7 +63,7 @@ class ConnectionStore(BaseStore):
             await session.refresh(connection_orm)
             return Connection.model_validate(connection_orm)
 
-    async def update_connection(
+    async def update(
         self, connection_id: int, connection_update: ConnectionUpdate
     ) -> Connection | None:
         """Update an existing connection for the current user and world"""
@@ -90,7 +90,7 @@ class ConnectionStore(BaseStore):
             await session.refresh(connection_orm)
             return Connection.model_validate(connection_orm)
 
-    async def delete_connection(self, connection_id: int) -> bool:
+    async def delete(self, connection_id: int) -> bool:
         """Delete a connection for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -128,7 +128,7 @@ class ConnectionStore(BaseStore):
                 for connection_orm in connection_orms
             ]
 
-    async def connection_exists(self, connection_id: int) -> bool:
+    async def exists(self, connection_id: int) -> bool:
         """Check if a connection exists for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(

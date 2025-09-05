@@ -19,7 +19,7 @@ class MemoryStore(BaseStore):
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    async def get_all_memories(self) -> List[Memory]:
+    async def get_all(self) -> List[Memory]:
         """Get all memories for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -54,7 +54,7 @@ class MemoryStore(BaseStore):
             else:
                 return []
 
-    async def get_memory(self, memory_id: int) -> Memory | None:
+    async def get_by_id(self, memory_id: int) -> Memory | None:
         """Get a specific memory by ID for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -71,11 +71,7 @@ class MemoryStore(BaseStore):
                 return MemoryStore.orm_to_memory(memory_orm)
             return None
 
-    async def get_by_id(self, memory_id: int) -> Memory | None:
-        """Get a specific memory by ID (alias for get_memory)"""
-        return await self.get_memory(memory_id)
-
-    async def create_memory(self, memory_data: MemoryCreate) -> Memory:
+    async def create(self, memory_data: MemoryCreate) -> Memory:
         """Create a new memory with automatic association management"""
         async with self.get_session() as session:
             memory_orm = MemoryORM(
@@ -102,7 +98,7 @@ class MemoryStore(BaseStore):
             # No need to refresh since we already have the relationships loaded
             return MemoryStore.orm_to_memory(memory_orm)
 
-    async def update_memory(
+    async def update(
         self, memory_id: int, memory_update: MemoryUpdate
     ) -> Memory | None:
         """Update memory with simplified association handling"""
@@ -142,7 +138,7 @@ class MemoryStore(BaseStore):
             await session.refresh(memory_orm)
             return MemoryStore.orm_to_memory(memory_orm)
 
-    async def delete_memory(self, memory_id: int) -> bool:
+    async def delete(self, memory_id: int) -> bool:
         """Delete a memory"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -159,7 +155,7 @@ class MemoryStore(BaseStore):
             await session.delete(memory_orm)  # Cascade handles associations
             return True
 
-    async def memory_exists(self, memory_id: int) -> bool:
+    async def exists(self, memory_id: int) -> bool:
         """Check if a memory exists"""
         async with self.get_session() as session:
             result = await session.execute(

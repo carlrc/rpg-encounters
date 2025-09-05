@@ -19,7 +19,7 @@ class EncounterStore(BaseStore):
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    async def get_all_encounters(self) -> List[Encounter]:
+    async def get_all(self) -> List[Encounter]:
         """Get all encounters for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -36,7 +36,7 @@ class EncounterStore(BaseStore):
                 for encounter_orm in encounter_orms
             ]
 
-    async def get_encounter_by_id(self, encounter_id: int) -> Encounter | None:
+    async def get_by_id(self, encounter_id: int) -> Encounter | None:
         """Get a specific encounter by ID for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -53,7 +53,7 @@ class EncounterStore(BaseStore):
                 return self._orm_to_encounter(encounter_orm)
             return None
 
-    async def create_encounter(self, encounter_data: EncounterCreate) -> Encounter:
+    async def create(self, encounter_data: EncounterCreate) -> Encounter:
         """Create a new encounter"""
         async with self.get_session() as session:
             # Create the encounter without character_ids - much cleaner!
@@ -79,7 +79,7 @@ class EncounterStore(BaseStore):
             # No need to refresh since we already have the relationships loaded
             return self._orm_to_encounter(encounter_orm)
 
-    async def update_encounter(
+    async def update(
         self, encounter_id: int, encounter_update: EncounterUpdate
     ) -> Encounter | None:
         """Update an existing encounter"""
@@ -119,7 +119,7 @@ class EncounterStore(BaseStore):
             await session.refresh(encounter_orm)
             return self._orm_to_encounter(encounter_orm)
 
-    async def delete_encounter(self, encounter_id: int) -> bool:
+    async def delete(self, encounter_id: int) -> bool:
         """Delete an encounter"""
         async with self.get_session() as session:
             result = await session.execute(

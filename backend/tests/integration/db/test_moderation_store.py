@@ -13,10 +13,10 @@ async def test_moderation_store():
     async with get_async_db_session(url) as session:
         # Create a user first
         user_data = UserCreate()
-        created_user = await UserStore(session=session).create_user(user_data)
+        created_user = await UserStore(session=session).create(user_data)
 
         # Create moderation entries
-        moderation_store = ModerationStore(session=session)
+        moderation_store = ModerationStore(user_id=created_user.id, session=session)
 
         # First moderation entry
         first_moderation_data = ModerationCreate(
@@ -25,9 +25,7 @@ async def test_moderation_store():
             openai_id="mod_abc123",
         )
 
-        created_moderation1 = await moderation_store.create_moderation(
-            first_moderation_data
-        )
+        created_moderation1 = await moderation_store.create(first_moderation_data)
         assert created_moderation1.id is not None
         assert created_moderation1.user_id == created_user.id
         assert (
@@ -44,9 +42,7 @@ async def test_moderation_store():
             openai_id="mod_def456",
         )
 
-        created_moderation2 = await moderation_store.create_moderation(
-            second_moderation_data
-        )
+        created_moderation2 = await moderation_store.create(second_moderation_data)
         assert created_moderation2.id is not None
         assert created_moderation2.user_id == created_user.id
         assert (
@@ -56,9 +52,7 @@ async def test_moderation_store():
         assert created_moderation2.openai_id == "mod_def456"
 
         # Test get by id
-        retrieved_moderation = await moderation_store.get_moderation_by_id(
-            created_moderation1.id
-        )
+        retrieved_moderation = await moderation_store.get_by_id(created_moderation1.id)
         assert retrieved_moderation is not None
         assert retrieved_moderation.id == created_moderation1.id
         assert retrieved_moderation.user_id == created_user.id
@@ -77,7 +71,7 @@ async def test_moderation_store():
         assert user_moderations[1].id == created_moderation1.id
 
         # Test get all moderations
-        all_moderations = await moderation_store.get_all_moderations()
+        all_moderations = await moderation_store.get_all()
         assert len(all_moderations) >= 2
         moderation_ids = [mod.id for mod in all_moderations]
         assert created_moderation1.id in moderation_ids
@@ -88,7 +82,7 @@ async def test_moderation_store():
             text="Updated: Content has been reviewed and flagged for hate speech.",
             openai_id="mod_updated789",
         )
-        updated_moderation = await moderation_store.update_moderation(
+        updated_moderation = await moderation_store.update(
             created_moderation1.id, update_data
         )
         assert updated_moderation is not None
@@ -100,17 +94,15 @@ async def test_moderation_store():
         assert updated_moderation.user_id == created_user.id
 
         # Test moderation exists
-        exists = await moderation_store.moderation_exists(created_moderation1.id)
+        exists = await moderation_store.exists(created_moderation1.id)
         assert exists is True
 
         # Test delete moderation
-        deleted = await moderation_store.delete_moderation(created_moderation1.id)
+        deleted = await moderation_store.delete(created_moderation1.id)
         assert deleted is True
 
         # Test moderation no longer exists
-        exists_after_delete = await moderation_store.moderation_exists(
-            created_moderation1.id
-        )
+        exists_after_delete = await moderation_store.exists(created_moderation1.id)
         assert exists_after_delete is False
 
         # Verify user still has one moderation entry
@@ -121,5 +113,5 @@ async def test_moderation_store():
         assert remaining_moderations[0].id == created_moderation2.id
 
         # Cleanup remaining moderation and user
-        await moderation_store.delete_moderation(created_moderation2.id)
-        await UserStore(user_id=created_user.id, session=session).delete_user()
+        await moderation_store.delete(created_moderation2.id)
+        await UserStore(user_id=created_user.id, session=session).delete()

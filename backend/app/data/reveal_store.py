@@ -19,7 +19,7 @@ class RevealStore(BaseStore):
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    async def get_all_reveals(self) -> List[Reveal]:
+    async def get_all(self) -> List[Reveal]:
         """Get all reveals for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -54,7 +54,7 @@ class RevealStore(BaseStore):
             else:
                 return []
 
-    async def get_reveal(self, reveal_id: int) -> Reveal | None:
+    async def get_by_id(self, reveal_id: int) -> Reveal | None:
         """Get a specific reveal by ID for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -71,11 +71,7 @@ class RevealStore(BaseStore):
                 return RevealStore.orm_to_reveal(reveal_orm)
             return None
 
-    async def get_by_id(self, reveal_id: int) -> Reveal | None:
-        """Get a specific reveal by ID (alias for get_reveal)"""
-        return await self.get_reveal(reveal_id)
-
-    async def create_reveal(self, reveal_data: RevealCreate) -> Reveal:
+    async def create(self, reveal_data: RevealCreate) -> Reveal:
         """Create a new reveal"""
         async with self.get_session() as session:
             # Create the reveal without character_ids - much cleaner!
@@ -100,7 +96,7 @@ class RevealStore(BaseStore):
             await session.flush()
             return RevealStore.orm_to_reveal(reveal_orm)
 
-    async def update_reveal(
+    async def update(
         self, reveal_id: int, reveal_update: RevealUpdate
     ) -> Reveal | None:
         """Update an existing reveal"""
@@ -140,7 +136,7 @@ class RevealStore(BaseStore):
             await session.refresh(reveal_orm)
             return RevealStore.orm_to_reveal(reveal_orm)
 
-    async def delete_reveal(self, reveal_id: int) -> bool:
+    async def delete(self, reveal_id: int) -> bool:
         """Delete a reveal"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -157,7 +153,7 @@ class RevealStore(BaseStore):
             await session.delete(reveal_orm)
             return True
 
-    async def reveal_exists(self, reveal_id: int) -> bool:
+    async def exists(self, reveal_id: int) -> bool:
         """Check if a reveal exists"""
         async with self.get_session() as session:
             result = await session.execute(

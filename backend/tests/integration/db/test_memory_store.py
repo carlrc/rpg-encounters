@@ -18,7 +18,7 @@ async def test_memory_store():
         character = default_character()
         character1_data = CharacterCreate(**character.model_dump(exclude={"id"}))
 
-        created_character1 = await character_store.create_character(character1_data)
+        created_character1 = await character_store.create(character1_data)
 
         # Now create memory with actual character IDs
         memory_store = MemoryStore(user_id=1, world_id=1, session=session)
@@ -29,15 +29,15 @@ async def test_memory_store():
             character_ids=[created_character1.id],
         )
 
-        created_memory = await memory_store.create_memory(new_memory_data)
+        created_memory = await memory_store.create(new_memory_data)
         assert created_memory.title == "Ancient Battle"
         assert created_memory.id is not None
         assert created_memory.character_ids == [created_character1.id]
 
-        all_memories = await memory_store.get_all_memories()
+        all_memories = await memory_store.get_all()
         assert len(all_memories) >= 1
 
-        retrieved_memory = await memory_store.get_memory(created_memory.id)
+        retrieved_memory = await memory_store.get_by_id(created_memory.id)
         assert retrieved_memory is not None
         assert retrieved_memory.title == "Ancient Battle"
 
@@ -56,17 +56,15 @@ async def test_memory_store():
             content="An epic battle took place at the old stone bridge where legendary heroes fought valiantly against the forces of darkness.",
             character_ids=[created_character1.id],
         )
-        updated_memory = await memory_store.update_memory(
-            created_memory.id, update_data
-        )
+        updated_memory = await memory_store.update(created_memory.id, update_data)
         assert updated_memory is not None
         assert updated_memory.title == "Updated Ancient Battle"
 
-        exists = await memory_store.memory_exists(created_memory.id)
+        exists = await memory_store.exists(created_memory.id)
         assert exists is True
 
-        deleted = await memory_store.delete_memory(created_memory.id)
+        deleted = await memory_store.delete(created_memory.id)
         assert deleted is True
 
-        exists_after_delete = await memory_store.memory_exists(created_memory.id)
+        exists_after_delete = await memory_store.exists(created_memory.id)
         assert exists_after_delete is False

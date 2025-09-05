@@ -13,14 +13,14 @@ class UserStore(BaseStore):
         """Initialize UserStore with user_id to follow the same pattern as other stores"""
         super().__init__(user_id=user_id, world_id=None, session=session)
 
-    async def get_all_users(self) -> List[User]:
+    async def get_all(self) -> List[User]:
         """Get all users"""
         async with self.get_session() as session:
             result = await session.execute(select(UserORM))
             user_orms = result.scalars().all()
             return [User.model_validate(user_orm) for user_orm in user_orms]
 
-    async def get_user_by_id(self, user_id: int) -> User | None:
+    async def get_by_id(self, user_id: int) -> User | None:
         """Get a specific user by ID"""
         async with self.get_session() as session:
             result = await session.execute(select(UserORM).where(UserORM.id == user_id))
@@ -29,7 +29,7 @@ class UserStore(BaseStore):
                 return User.model_validate(user_orm)
             return None
 
-    async def create_user(self, user_data: UserCreate) -> User:
+    async def create(self, user_data: UserCreate) -> User:
         """Create a new user"""
         async with self.get_session() as session:
             user_orm = UserORM(**user_data.model_dump())
@@ -38,7 +38,7 @@ class UserStore(BaseStore):
             await session.refresh(user_orm)
             return User.model_validate(user_orm)
 
-    async def update_user(self, user_id: int, user_update: UserUpdate) -> User | None:
+    async def update(self, user_id: int, user_update: UserUpdate) -> User | None:
         """Update an existing user"""
         async with self.get_session() as session:
             result = await session.execute(select(UserORM).where(UserORM.id == user_id))
@@ -53,7 +53,7 @@ class UserStore(BaseStore):
             await session.refresh(user_orm)
             return User.model_validate(user_orm)
 
-    async def delete_user(self) -> bool:
+    async def delete(self) -> bool:
         """Delete a user"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -66,7 +66,7 @@ class UserStore(BaseStore):
             await session.delete(user_orm)
             return True
 
-    async def user_exists(self, user_id: int) -> bool:
+    async def exists(self, user_id: int) -> bool:
         """Check if a user exists"""
         async with self.get_session() as session:
             result = await session.execute(select(UserORM).where(UserORM.id == user_id))

@@ -12,7 +12,7 @@ class WorldStore(BaseStore):
     def __init__(self, user_id: int, session: AsyncSession = None):
         super().__init__(user_id=user_id, world_id=None, session=session)
 
-    async def get_all_worlds(self) -> List[World]:
+    async def get_all(self) -> List[World]:
         """Get all worlds for the current user"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -23,7 +23,7 @@ class WorldStore(BaseStore):
             world_orms = result.scalars().all()
             return [World.model_validate(world_orm) for world_orm in world_orms]
 
-    async def get_world_by_id(self, world_id: int) -> World | None:
+    async def get_by_id(self, world_id: int) -> World | None:
         """Get a specific world by ID for the current user"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -36,7 +36,7 @@ class WorldStore(BaseStore):
                 return World.model_validate(world_orm)
             return None
 
-    async def create_world(self) -> World:
+    async def create(self) -> World:
         """Create a new world for the current user"""
         async with self.get_session() as session:
             world_orm = WorldORM(user_id=self.user_id)
@@ -45,7 +45,7 @@ class WorldStore(BaseStore):
             await session.refresh(world_orm)
             return World.model_validate(world_orm)
 
-    async def delete_world(self, world_id: int) -> bool:
+    async def delete(self, world_id: int) -> bool:
         """Delete a world for the current user"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -60,7 +60,7 @@ class WorldStore(BaseStore):
             await session.delete(world_orm)
             return True
 
-    async def world_exists(self, world_id: int) -> bool:
+    async def exists(self, world_id: int) -> bool:
         """Check if a world exists for the current user"""
         async with self.get_session() as session:
             result = await session.execute(

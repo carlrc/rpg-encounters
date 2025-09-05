@@ -16,31 +16,29 @@ async def test_character_store():
         character = default_character()
         new_character_data = CharacterCreate(**character.model_dump(exclude={"id"}))
 
-        created_character = await store.create_character(new_character_data)
+        created_character = await store.create(new_character_data)
         assert created_character.name == character.name
 
-        all_characters = await store.get_all_characters()
+        all_characters = await store.get_all()
         assert len(all_characters) >= 1
 
-        retrieved_character = await store.get_character_by_id(created_character.id)
+        retrieved_character = await store.get_by_id(created_character.id)
         assert retrieved_character is not None
 
         update_data = CharacterUpdate(
             name="Updated " + character.name,
             profession="Archmage",
         )
-        updated_character = await store.update_character(
-            created_character.id, update_data
-        )
+        updated_character = await store.update(created_character.id, update_data)
         assert updated_character is not None
         assert updated_character.name == "Updated " + character.name
         assert updated_character.profession == "Archmage"
 
-        exists = await store.character_exists(created_character.id)
+        exists = await store.exists(created_character.id)
         assert exists is True
 
-        deleted = await store.delete_character(created_character.id)
+        deleted = await store.delete(created_character.id)
         assert deleted is True
 
-        exists_after_delete = await store.character_exists(created_character.id)
+        exists_after_delete = await store.exists(created_character.id)
         assert exists_after_delete is False

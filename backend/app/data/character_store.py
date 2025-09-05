@@ -17,7 +17,7 @@ class CharacterStore(BaseStore):
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    async def get_all_characters(self) -> List[Character]:
+    async def get_all(self) -> List[Character]:
         """Get all characters for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -32,7 +32,7 @@ class CharacterStore(BaseStore):
                 for character_orm in character_orms
             ]
 
-    async def get_character_by_id(self, character_id: int) -> Character | None:
+    async def get_by_id(self, character_id: int) -> Character | None:
         """Get a specific character by ID for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -47,7 +47,7 @@ class CharacterStore(BaseStore):
                 return Character.model_validate(character_orm)
             return None
 
-    async def create_character(self, character_data: CharacterCreate) -> Character:
+    async def create(self, character_data: CharacterCreate) -> Character:
         """Create a new character"""
         async with self.get_session() as session:
             character_orm = CharacterORM(
@@ -60,7 +60,7 @@ class CharacterStore(BaseStore):
             await session.refresh(character_orm)
             return Character.model_validate(character_orm)
 
-    async def update_character(
+    async def update(
         self, character_id: int, character_update: CharacterUpdate
     ) -> Character | None:
         """Update an existing character for the current user and world"""
@@ -84,7 +84,7 @@ class CharacterStore(BaseStore):
             await session.refresh(character_orm)
             return Character.model_validate(character_orm)
 
-    async def delete_character(self, character_id: int) -> bool:
+    async def delete(self, character_id: int) -> bool:
         """Delete a character for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -101,7 +101,7 @@ class CharacterStore(BaseStore):
             await session.delete(character_orm)
             return True
 
-    async def character_exists(self, character_id: int) -> bool:
+    async def exists(self, character_id: int) -> bool:
         """Check if a character exists for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(

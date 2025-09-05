@@ -17,7 +17,7 @@ class PlayerStore(BaseStore):
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 
-    async def get_all_players(self) -> List[Player]:
+    async def get_all(self) -> List[Player]:
         """Get all players for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -29,7 +29,7 @@ class PlayerStore(BaseStore):
             player_orms = result.scalars().all()
             return [Player.model_validate(player_orm) for player_orm in player_orms]
 
-    async def get_player_by_id(self, player_id: int) -> Player | None:
+    async def get_by_id(self, player_id: int) -> Player | None:
         """Get a specific player by ID for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -44,7 +44,7 @@ class PlayerStore(BaseStore):
                 return Player.model_validate(player_orm)
             return None
 
-    async def create_player(self, player_data: PlayerCreate) -> Player:
+    async def create(self, player_data: PlayerCreate) -> Player:
         """Create a new player"""
         async with self.get_session() as session:
             player_orm = PlayerORM(
@@ -55,7 +55,7 @@ class PlayerStore(BaseStore):
             await session.refresh(player_orm)
             return Player.model_validate(player_orm)
 
-    async def update_player(
+    async def update(
         self, player_id: int, player_update: PlayerUpdate
     ) -> Player | None:
         """Update an existing player for the current user and world"""
@@ -79,7 +79,7 @@ class PlayerStore(BaseStore):
             await session.refresh(player_orm)
             return Player.model_validate(player_orm)
 
-    async def delete_player(self, player_id: int) -> bool:
+    async def delete(self, player_id: int) -> bool:
         """Delete a player for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -96,7 +96,7 @@ class PlayerStore(BaseStore):
             await session.delete(player_orm)
             return True
 
-    async def player_exists(self, player_id: int) -> bool:
+    async def exists(self, player_id: int) -> bool:
         """Check if a player exists for the current user and world"""
         async with self.get_session() as session:
             result = await session.execute(

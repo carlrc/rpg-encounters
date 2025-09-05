@@ -23,7 +23,7 @@ async def get_all_memories(
     """Get all memories across all characters"""
     user_id, world_id = user_world
     try:
-        return await MemoryStore(user_id=user_id, world_id=world_id).get_all_memories()
+        return await MemoryStore(user_id=user_id, world_id=world_id).get_all()
     except HTTPException:
         raise
     except Exception as e:
@@ -69,12 +69,12 @@ async def create_memory(
             user_id=user_id, world_id=world_id, session=session
         )
         for character_id in memory_data.character_ids:
-            if not await character_store.character_exists(character_id):
+            if not await character_store.exists(character_id):
                 raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         return await MemoryStore(
             user_id=user_id, world_id=world_id, session=session
-        ).create_memory(memory_data)
+        ).create(memory_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -100,12 +100,12 @@ async def update_memory(
                 user_id=user_id, world_id=world_id, session=session
             )
             for character_id in memory_update.character_ids:
-                if not await character_store.character_exists(character_id):
+                if not await character_store.exists(character_id):
                     raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         memory = await MemoryStore(
             user_id=user_id, world_id=world_id, session=session
-        ).update_memory(memory_id, memory_update)
+        ).update(memory_id, memory_update)
         if not memory:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return memory
@@ -125,7 +125,7 @@ async def delete_memory(
     """Delete a memory"""
     user_id, world_id = user_world
     try:
-        success = await MemoryStore(user_id=user_id, world_id=world_id).delete_memory(
+        success = await MemoryStore(user_id=user_id, world_id=world_id).delete(
             memory_id
         )
         if not success:

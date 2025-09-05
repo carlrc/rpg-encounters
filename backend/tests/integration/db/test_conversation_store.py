@@ -27,16 +27,16 @@ async def test_conversation_store():
         # Use generate functions
         character = default_character()
         character_data = CharacterCreate(**character.model_dump(exclude={"id"}))
-        created_character = await character_store.create_character(character_data)
+        created_character = await character_store.create(character_data)
 
         player = default_player()
         player_data = PlayerCreate(**player.model_dump(exclude={"id"}))
-        created_player = await player_store.create_player(player_data)
+        created_player = await player_store.create(player_data)
 
         encounter = default_encounter()
         encounter_data = EncounterCreate(**encounter.model_dump(exclude={"id"}))
         encounter_data.character_ids = [created_character.id]
-        created_encounter = await encounter_store.create_encounter(encounter_data)
+        created_encounter = await encounter_store.create(encounter_data)
 
         user_message = ModelRequest.user_text_prompt(
             "Hello, do you have any rooms available?"
@@ -89,21 +89,21 @@ async def test_conversation_store():
         assert updated_conversation is not None
         assert len(updated_conversation.messages) == 4
 
-        exists = await conversation_store.conversation_exists(
+        exists = await conversation_store.exists(
             player_id=created_player.id,
             character_id=created_character.id,
             encounter_id=created_encounter.id,
         )
         assert exists is True
 
-        deleted = await conversation_store.delete_conversation(
+        deleted = await conversation_store.delete(
             player_id=created_player.id,
             character_id=created_character.id,
             encounter_id=created_encounter.id,
         )
         assert deleted is True
 
-        exists_after_delete = await conversation_store.conversation_exists(
+        exists_after_delete = await conversation_store.exists(
             player_id=created_player.id,
             character_id=created_character.id,
             encounter_id=created_encounter.id,

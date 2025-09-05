@@ -36,9 +36,9 @@ async def get_encounter(
     """Get a specific encounter by ID"""
     user_id, world_id = user_world
     try:
-        encounter = await EncounterStore(
-            user_id=user_id, world_id=world_id
-        ).get_encounter_by_id(encounter_id)
+        encounter = await EncounterStore(user_id=user_id, world_id=world_id).get_by_id(
+            encounter_id
+        )
         if not encounter:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return encounter
@@ -59,9 +59,9 @@ async def create_encounter(
     """Create a new encounter"""
     user_id, world_id = user_world
     try:
-        return await EncounterStore(
-            user_id=user_id, world_id=world_id
-        ).create_encounter(encounter_data)
+        return await EncounterStore(user_id=user_id, world_id=world_id).create(
+            encounter_data
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -82,9 +82,9 @@ async def update_encounter(
     try:
         # Override the ID from the URL path
         encounter_update.id = encounter_id
-        encounter = await EncounterStore(
-            user_id=user_id, world_id=world_id
-        ).update_encounter(encounter_id, encounter_update)
+        encounter = await EncounterStore(user_id=user_id, world_id=world_id).update(
+            encounter_id, encounter_update
+        )
         if not encounter:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return encounter
@@ -105,9 +105,9 @@ async def delete_encounter(
     """Delete an encounter"""
     user_id, world_id = user_world
     try:
-        success = await EncounterStore(
-            user_id=user_id, world_id=world_id
-        ).delete_encounter(encounter_id)
+        success = await EncounterStore(user_id=user_id, world_id=world_id).delete(
+            encounter_id
+        )
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
@@ -137,16 +137,12 @@ async def create_connection(
         )
 
         # Validate that both encounters exist
-        if not await encounter_store.get_encounter_by_id(
-            connection_data.source_encounter_id
-        ):
+        if not await encounter_store.get_by_id(connection_data.source_encounter_id):
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-        if not await encounter_store.get_encounter_by_id(
-            connection_data.target_encounter_id
-        ):
+        if not await encounter_store.get_by_id(connection_data.target_encounter_id):
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-        return await connection_store.create_connection(connection_data)
+        return await connection_store.create(connection_data)
     except HTTPException:
         raise
     except Exception as e:
@@ -178,19 +174,17 @@ async def update_connection(
 
         # If updating encounter IDs, validate they exist
         if connection_update.source_encounter_id is not None:
-            if not await encounter_store.get_encounter_by_id(
+            if not await encounter_store.get_by_id(
                 connection_update.source_encounter_id
             ):
                 raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         if connection_update.target_encounter_id is not None:
-            if not await encounter_store.get_encounter_by_id(
+            if not await encounter_store.get_by_id(
                 connection_update.target_encounter_id
             ):
                 raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-        connection = await connection_store.update_connection(
-            connection_id, connection_update
-        )
+        connection = await connection_store.update(connection_id, connection_update)
         if not connection:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return connection
@@ -211,9 +205,9 @@ async def delete_connection(
     """Delete a connection"""
     user_id, world_id = user_world
     try:
-        success = await ConnectionStore(
-            user_id=user_id, world_id=world_id
-        ).delete_connection(connection_id)
+        success = await ConnectionStore(user_id=user_id, world_id=world_id).delete(
+            connection_id
+        )
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
         return None
@@ -243,7 +237,7 @@ async def get_encounter_connections(
         )
 
         # Validate encounter exists
-        if not await encounter_store.get_encounter_by_id(encounter_id):
+        if not await encounter_store.get_by_id(encounter_id):
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         return await connection_store.get_connections_for_encounter(encounter_id)

@@ -49,7 +49,7 @@ class InfluenceStore(BaseStore):
             await session.refresh(new_influence)
             return Influence.model_validate(new_influence)
 
-    async def update_influence(self, influence: Influence) -> Influence | None:
+    async def update(self, influence: Influence) -> Influence | None:
         """Update existing influence"""
         async with self.get_session() as session:
             result = await session.execute(
@@ -73,7 +73,7 @@ class InfluenceStore(BaseStore):
             await session.refresh(influence_orm)
             return Influence.model_validate(influence_orm)
 
-    async def create_influence(self, influence: Influence) -> Influence:
+    async def create(self, influence: Influence) -> Influence:
         """Separate method for creating new influence records"""
         async with self.get_session() as session:
             influence_orm = InfluenceORM(
@@ -122,7 +122,7 @@ class InfluenceStore(BaseStore):
                 return True
             return False
 
-    async def get_all_influences(self) -> List[Influence]:
+    async def get_all(self) -> List[Influence]:
         """Get all influence records"""
         async with self.get_session() as session:
             result = await session.execute(select(InfluenceORM))
@@ -147,7 +147,7 @@ class InfluenceStore(BaseStore):
             influence_orms = result.scalars().all()
             return [Influence.model_validate(orm) for orm in influence_orms]
 
-    async def delete_influence(self, character_id: int, player_id: int) -> bool:
+    async def delete(self, character_id: int, player_id: int) -> bool:
         """Delete an influence record"""
         async with self.get_session() as session:
             result = await session.execute(

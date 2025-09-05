@@ -77,8 +77,8 @@ async def get_conversation_context(
         )
 
         # Get character and player data
-        character = await character_store.get_character_by_id(character_id)
-        player = await player_store.get_player_by_id(player_id)
+        character = await character_store.get_by_id(character_id)
+        player = await player_store.get_by_id(player_id)
 
         if not character or not player:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
@@ -86,7 +86,7 @@ async def get_conversation_context(
         base_influence = calculate_base_influence(character=character, player=player)
 
         # Get encounter
-        encounter = await encounter_store.get_encounter_by_id(encounter_id)
+        encounter = await encounter_store.get_by_id(encounter_id)
         if not encounter:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
@@ -94,7 +94,7 @@ async def get_conversation_context(
         if character_id not in encounter.character_ids:
             await encounter_store.add_character_to_encounter(encounter_id, character_id)
             # Refresh encounter data after adding character
-            encounter = await encounter_store.get_encounter_by_id(encounter_id)
+            encounter = await encounter_store.get_by_id(encounter_id)
 
         # Get all related data using shared session
         reveals = await reveal_store.get_by_character_id(character_id)

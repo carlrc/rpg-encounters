@@ -33,7 +33,7 @@ async def handle_moderation_response(
     """
     # Save the flagged text to the moderation table for auditing
     try:
-        await ModerationStore().create_moderation(
+        await ModerationStore().create(
             moderation_data=ModerationCreate(
                 user_id=user_id, text=text, openai_id=response.id
             )
