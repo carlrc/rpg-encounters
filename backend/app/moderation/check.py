@@ -54,6 +54,9 @@ MODERATION_REGEX = compile_bad_content_regex(BAD_CONTENT)
 
 @observe(capture_input=False, capture_output=False)
 async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
+    if SKIP_MODERATION:
+        return None
+
     failover = ModerationResponse(id="default", model="failover")
     try:
         if MODERATION_REGEX.search(text):
