@@ -436,6 +436,25 @@
         audioChunks.value.push(audioBlob)
       }
 
+      const checkMicrophoneAccess = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              sampleRate: AUDIO_SAMPLE_RATE,
+              channelCount: AUDIO_CHANNEL_COUNT,
+              echoCancellation: true,
+              noiseSuppression: true,
+            },
+          })
+          // Stop the test stream immediately
+          stream.getTracks().forEach((track) => track.stop())
+          return true
+        } catch (error) {
+          alert('Could not access microphone. Please check permissions.')
+          return false
+        }
+      }
+
       const startRecording = async () => {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
@@ -484,12 +503,18 @@
         closeWebSocket()
       }
 
-      const toggleRecording = () => {
+      const toggleRecording = async () => {
         if (isRecording.value) {
           stopRecording()
         } else {
           if (isChallengeMode.value) {
             prepareChallengeMode()
+          }
+
+          // Check microphone access before opening WebSocket
+          const microphoneAvailable = await checkMicrophoneAccess()
+          if (!microphoneAvailable) {
+            return
           }
 
           if (!websocket.value) {
