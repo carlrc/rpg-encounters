@@ -15,7 +15,7 @@ class PersonalityAgent(BaseAgent):
         super().__init__()
         self.agent = self._generate_agent()
 
-    @observe
+    @observe(capture_input=False, capture_output=False)
     async def generate(self, character: CharacterCreate) -> str:
         """Generate personality profile from character attributes"""
         try:

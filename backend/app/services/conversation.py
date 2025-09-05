@@ -69,6 +69,7 @@ async def have_conversation(
                 await handle_moderation_response(
                     websocket=websocket,
                     user_id=user_id,
+                    text=transcription,
                     response=is_blocked,
                     tts_provider_name=ctx.character.tts_provider,
                     voice_id=ctx.character.voice_id,

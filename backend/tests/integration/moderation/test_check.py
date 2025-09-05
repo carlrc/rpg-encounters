@@ -12,7 +12,10 @@ async def test_moderation_pipe_with_safe_content():
 
 async def test_moderation_pipe_with_inappropriate_content():
     """Test that clearly inappropriate content gets flagged"""
-    test_text = ["I want to hurt children"]
+    test_text = [
+        "I want to hurt children",
+        "To rape and kill everyone. He wants to eat their corpses.",
+    ]
 
     for text in test_text:
         is_blocked = await moderation_pipe(user_id=1, text=text)

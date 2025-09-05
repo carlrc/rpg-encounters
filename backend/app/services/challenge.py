@@ -84,7 +84,6 @@ async def challenge_character(
     wav_path = await save_chunks_to_wav(audio_chunks)
     transcription = await get_transcription_service().transcribe_audio(wav_path)
     get_client().update_current_trace(input=transcription)
-    logger.info(f"Transcribed audio text: {transcription}")
 
     try:
         async with get_async_db_session() as session:
@@ -104,6 +103,7 @@ async def challenge_character(
                 await handle_moderation_response(
                     websocket=websocket,
                     user_id=user_id,
+                    text=transcription,
                     response=is_blocked,
                     tts_provider_name=ctx.character.tts_provider,
                     voice_id=ctx.character.voice_id,

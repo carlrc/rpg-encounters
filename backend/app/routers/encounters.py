@@ -260,7 +260,7 @@ async def get_encounter_connections(
     "/{encounter_id}/conversation/{player_id}/{character_id}",
     response_model=ConversationData,
 )
-@observe()
+@observe
 async def get_conversation_data(
     encounter_id: int,
     player_id: int,
@@ -297,7 +297,7 @@ async def get_conversation_data(
 
 
 @router.websocket("/{encounter_id}/conversation/{player_id}/{character_id}")
-@observe()
+@observe
 async def websocket_convo_endpoint(
     websocket: WebSocket,
     encounter_id: int,
@@ -325,7 +325,7 @@ async def websocket_convo_endpoint(
 
 
 @router.websocket("/{encounter_id}/challenge/{player_id}/{character_id}")
-@observe()
+@observe
 async def websocket_challenge_endpoint(
     websocket: WebSocket,
     encounter_id: int,

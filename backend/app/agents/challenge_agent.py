@@ -23,7 +23,7 @@ class ChallengeAgent(BaseAgent):
         )
         self.run_result: AgentRunResult[StandardAgentOutput] = None
 
-    @observe
+    @observe(as_type="generation")
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
             self.run_result = await self.agent.run(

@@ -1,14 +1,27 @@
-# Content Moderation
+# Content Moderation System
 
-The following lists were updated to remove topics such as: nationalities, colours, body parts, emotions, religions, and social, political, health and legal terms.
+## Overview
+The platform implements a two-layer content moderation system to maintain a safe environment while preserving creative expression in RPG storytelling.
 
-- [LDNOOBW](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words) word list `./ldnoobw_words.txt`
-- [Luis von Ahn's Research Group](https://www.cs.cmu.edu/~biglou/resources/) word list `./luis_von_ahn_bad_words.txt`
+## How It Works
+1. **Initial Screening**: Curated word lists flag potentially problematic content
+   - [LDNOOBW](https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words) blocklist (`./ldnoobw_words.text`)
+   - [CMU Research](https://www.cs.cmu.edu/~biglou/resources/) word list (`./luis_von_ahn_bad_words.txt`)
+   - Lists sanitized to remove false positives (nationalities, colors, emotions, legal terms, profanity etc.)
 
-In cases where words are present from the aforementioned lists, the [OpenAI](https://platform.openai.com/docs/guides/moderation) content moderation endpoint is used to further check user input. 
+2. **AI Analysis**: Flagged content is analyzed by [OpenAI's Moderation API](https://platform.openai.com/docs/guides/moderation)
+   - Multi-category assessment (harassment, hate, violence, sexual content)
+   - Zero tolerance for content involving minors or self-harm
+   - Conservative thresholds (0.4 general, 0.1 for minors)
 
-To skip all moderation, set the following env var.
+## What's Protected
+All user-generated text: character names, backgrounds, motivations, personality and dialogue.
 
+## Privacy & Security
+- Fail-secure design: blocks content if moderation unavailable
+
+## Configuration
 ```bash
-SKIP_MODERATION=true
+SKIP_MODERATION=true              # Disable moderation (development only)
+OPEN_AI_MODERATION_THRESHOLD=0.4  # Adjust sensitivity (0.0-1.0)
 ```

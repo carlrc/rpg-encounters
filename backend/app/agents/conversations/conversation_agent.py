@@ -43,7 +43,7 @@ class ConversationAgent(BaseAgent):
             output_type=ConversationAgentOutput,
         )
 
-    @observe
+    @observe(as_type="generation")
     async def chat(
         self, player_transcript: str, deps: ConversationAgentDeps
     ) -> tuple[str, RevealLayer, Influence]:

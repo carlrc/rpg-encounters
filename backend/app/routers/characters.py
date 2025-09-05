@@ -19,6 +19,7 @@ from app.models.character import (
     CharacterUpdate,
     CommunicationStyle,
 )
+from app.moderation.check import moderate_character
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -153,12 +154,18 @@ async def create_character(
     """Create a new character and generate AI content in background"""
     user_id, world_id = user_world
     try:
+        # Moderate character fields
+        character_data = await moderate_character(
+            user_id=user_id, character_data=character_data
+        )
+
         # Create character immediately without AI-generated content
         # personality field defaults to empty string
         character = await CharacterStore(
             user_id=user_id, world_id=world_id
         ).create_character(character_data)
 
+        # TODO: If moderated we would want to skip incurring this computation cost
         # Add background tasks for AI generation
         background_tasks.add_task(
             _generate_personality_background,
@@ -205,6 +212,11 @@ async def update_character(
         character = await character_store.get_character_by_id(character_id=character_id)
         if not character:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+
+        # Moderate character fields
+        character_update = await moderate_character(
+            user_id=user_id, character_data=character_update
+        )
 
         # Update character immediately (without AI regeneration)
         updated_character = await character_store.update_character(

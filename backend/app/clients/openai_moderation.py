@@ -104,7 +104,7 @@ class ModerationResponse(BaseModel):
 
     id: str
     model: str
-    results: List[ModerationResult]
+    results: List[ModerationResult] | None = None
 
 
 def openai_flag(categories: Categories) -> bool:
@@ -129,7 +129,8 @@ def openai_scores(scores: CategoryScores, breach_threshold: float) -> bool:
         return score > breach_threshold
 
     should_block = breach(scores.violence) and (
-        breach(scores.hate)
+        breach(scores.violence_graphic)
+        or breach(scores.hate)
         or breach(scores.harassment_threatening)
         or breach(scores.self_harm)
         or breach(scores.self_harm_intent)
@@ -154,7 +155,7 @@ class OpenAIModerationClient:
 
         self.base_url = "https://api.openai.com/v1"
 
-    @observe()
+    @observe(capture_input=False, capture_output=False)
     async def check(self, text: str) -> ModerationResponse:
         """Check text for NSFW/harmful content using OpenAI's moderation API"""
         url = f"{self.base_url}/moderations"

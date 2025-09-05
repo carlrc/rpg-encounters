@@ -4,6 +4,7 @@ import random
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Union
 
 from langfuse import observe
 
@@ -14,12 +15,14 @@ from app.clients.openai_moderation import (
     openai_scores,
     openai_scores_minors,
 )
+from app.models.character import CharacterCreate, CharacterUpdate
 
 logger = logging.getLogger(__name__)
 
 # Environment variable to skip moderation checks entirely
 SKIP_MODERATION = os.getenv("SKIP_MODERATION", "false").lower() == "true"
 OPEN_AI_MODERATION_THRESHOLD = float(os.getenv("OPEN_AI_MODERATION_THRESHOLD", 0.4))
+INAPPROPRIATE_CONTENT_DEFAULT = "INAPPROPRIATE_CONTENT"
 
 
 @lru_cache(maxsize=2)
@@ -49,16 +52,18 @@ BAD_CONTENT = LUIS_WORDS | LDNOOBW_WORDS
 MODERATION_REGEX = compile_bad_content_regex(BAD_CONTENT)
 
 
-@observe()
+@observe(capture_input=False, capture_output=False)
 async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
+    failover = ModerationResponse(id="default", model="failover")
     try:
         if MODERATION_REGEX.search(text):
             logger.warning(
-                f"Moderation flag triggered for {user_id}. Checking with OpenAI..."
+                f"Moderation flag triggered for user {user_id}. Checking with OpenAI..."
             )
             response = await OpenAIModerationClient().check(text=text)
             if not response.results:
-                return None
+                # Do not fail open
+                return failover
             results = response.results[0]
             must_block = openai_flag(
                 categories=results.categories
@@ -73,8 +78,8 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
             return None
     except Exception as e:
         logger.error(f"Moderation pipeline failed: {e}")
-        # Fail open
-        return None
+        # Do not fail open
+        return failover
 
 
 def get_random_moderation_response() -> str:
@@ -95,3 +100,49 @@ def get_random_moderation_response() -> str:
     ]
 
     return random.choice(responses)
+
+
+async def moderate_text(user_id: int, text: str) -> str:
+    """
+    Check text content and return either the original text or inappropriate content message.
+
+    Args:
+        user_id: ID of the user whose content is being moderated
+        text: The text content to check
+
+    Returns:
+        Either the original text if it passes moderation, or a random inappropriate content message
+    """
+    if not text or not text.strip():
+        return text
+
+    moderation_result = await moderation_pipe(user_id=user_id, text=text)
+
+    if moderation_result:
+        logger.warning(f"User {user_id} text violated TOS. Using default replies...")
+        return INAPPROPRIATE_CONTENT_DEFAULT
+
+    return text
+
+
+async def moderate_character(
+    user_id: int, character_data: Union[CharacterCreate, CharacterUpdate]
+) -> Union[CharacterCreate, CharacterUpdate]:
+    if character_data.name:
+        character_data.name = await moderate_text(
+            user_id=user_id, text=character_data.name
+        )
+    if character_data.background:
+        character_data.background = await moderate_text(
+            user_id=user_id, text=character_data.background
+        )
+    if character_data.motivation:
+        character_data.motivation = await moderate_text(
+            user_id=user_id, text=character_data.motivation
+        )
+    if character_data.communication_style:
+        character_data.communication_style = await moderate_text(
+            user_id=user_id, text=character_data.communication_style
+        )
+
+    return character_data
