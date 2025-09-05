@@ -23,51 +23,53 @@ class Categories(BaseModel):
     """Category flags from moderation API"""
 
     sexual: bool = Field(
-        description="Content meant to arouse sexual excitement or promote sexual services"
+        description="Content meant to arouse sexual excitement, such as the description of sexual activity, or that promotes sexual services (excluding sex education and wellness)."
     )
     hate: bool = Field(
-        description="Content that expresses, incites, or promotes hate based on identity"
+        description="Content that expresses, incites, or promotes hate based on race, gender, ethnicity, religion, nationality, sexual orientation, disability status, or caste."
     )
     harassment: bool = Field(
-        description="Content that harasses or bullies an individual"
+        description="Content that expresses, incites, or promotes harassing language towards any target."
     )
     violence: bool = Field(
-        description="Content that depicts death, violence, or physical injury"
+        description="Content that depicts death, violence, or physical injury."
     )
     self_harm: bool = Field(
         alias=SELF_HARM,
-        description="Content that promotes or depicts acts of self-harm",
+        description="Content that promotes, encourages, or depicts acts of self-harm, such as suicide, cutting, and eating disorders.",
     )
     sexual_minors: bool = Field(
-        alias=SEXUAL_MINORS, description="Sexual content involving individuals under 18"
+        alias=SEXUAL_MINORS,
+        description="Sexual content that includes an individual who is under 18 years old.",
     )
     hate_threatening: bool = Field(
         alias=HATE_THREATENING,
-        description="Hateful content that includes violence or serious harm",
+        description="Hateful content that also includes violence or serious harm towards the targeted group based on race, gender, ethnicity, religion, nationality, sexual orientation, disability status, or caste.",
     )
     violence_graphic: bool = Field(
         alias=VIOLENCE_GRAPHIC,
-        description="Graphic depictions of death, violence, or injury",
+        description="Content that depicts death, violence, or physical injury in graphic detail.",
     )
     self_harm_intent: bool = Field(
         alias=SELF_HARM_INTENT,
-        description="Content where speaker expresses intent to engage in self-harm",
+        description="Content where the speaker expresses that they are engaging or intend to engage in acts of self-harm, such as suicide, cutting, and eating disorders.",
     )
     self_harm_instructions: bool = Field(
         alias=SELF_HARM_INSTRUCTIONS,
-        description="Content that provides instructions for self-harm",
+        description="Content that encourages performing acts of self-harm, such as suicide, cutting, and eating disorders, or that gives instructions or advice on how to commit such acts.",
     )
     harassment_threatening: bool = Field(
         alias=HARASSMENT_THREATENING,
-        description="Harassment content that includes violence or serious harm",
+        description="Harassment content that also includes violence or serious harm towards any target.",
     )
     illicit: bool = Field(
-        default=False, description="Content that promotes or enables illegal activities"
+        default=False,
+        description="Content that gives advice or instruction on how to commit illicit acts. A phrase like 'how to shoplift' would fit this category.",
     )
     illicit_violent: bool = Field(
         default=False,
         alias=ILLICIT_VIOLENT,
-        description="Illegal violence or weapons-related content",
+        description="The same types of content flagged by the illicit category, but also includes references to violence or procuring a weapon.",
     )
 
 
@@ -105,45 +107,45 @@ class ModerationResponse(BaseModel):
     results: List[ModerationResult]
 
 
-class ModerationDecision(BaseModel):
-    """Decision on whether content should be blocked"""
-
-    should_block: bool
-    reasons: List[str]
-    triggered_must_block: List[str]
-    triggered_should_block: List[str]
-
-
 def openai_flag(categories: Categories) -> bool:
-    must_block = (
+    is_illegal = (
         categories.sexual_minors
-        | categories.self_harm
-        | categories.self_harm_instructions
-        | categories.hate_threatening
-        | categories.self_harm_intent
+        or categories.self_harm
+        or categories.self_harm_instructions
+        or categories.hate_threatening
+        or categories.self_harm_intent
     )
 
-    return must_block
+    is_sexually_violent = (
+        categories.violence and categories.harassment and categories.sexual
+    )
+
+    return is_illegal or is_sexually_violent
+
+
+def openai_scores(scores: CategoryScores, breach_threshold: float) -> bool:
+    # Enforce lower threshold than OpenAI flags
+    def breach(score: float) -> bool:
+        return score > breach_threshold
+
+    should_block = breach(scores.violence) and (
+        breach(scores.hate)
+        or breach(scores.harassment_threatening)
+        or breach(scores.self_harm)
+        or breach(scores.self_harm_intent)
+        or breach(scores.self_harm_instructions)
+    )
+
+    return should_block
+
+
+def openai_scores_minors(score: float) -> bool:
+    # Enforce extremely low threshold on this category in case OpenAI flags don't
+    return score > 0.1
 
 
 class OpenAIModerationClient:
     """Client for OpenAI's content moderation API"""
-
-    # Must block categories - any of these flagged = instant block
-    MUST_BLOCK_CATEGORIES = [
-        "sexual_minors",
-        "self_harm_intent",
-        "self_harm_instructions",
-        "illicit",
-    ]
-
-    # Should block categories - flagged + any one must block = block
-    SHOULD_BLOCK_CATEGORIES = [
-        "self_harm",
-        "harassment_threatening",
-        "hate_threatening",
-        "illicit_violent",
-    ]
 
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
@@ -152,8 +154,8 @@ class OpenAIModerationClient:
 
         self.base_url = "https://api.openai.com/v1"
 
-    @observe(capture_input=False, capture_output=False)
-    async def moderate(self, text: str) -> ModerationResponse:
+    @observe()
+    async def check(self, text: str) -> ModerationResponse:
         """Check text for NSFW/harmful content using OpenAI's moderation API"""
         url = f"{self.base_url}/moderations"
         headers = {
@@ -162,10 +164,25 @@ class OpenAIModerationClient:
         }
         payload = {"input": text}
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                url, headers=headers, json=payload, timeout=5.0
-            )
-            response.raise_for_status()
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url, headers=headers, json=payload, timeout=5.0
+                )
+                response.raise_for_status()
 
-            return ModerationResponse(**response.json())
+                return ModerationResponse(**response.json())
+        except httpx.HTTPStatusError as e:
+            logger.error(f"OpenAI Moderation HTTP {e.response.status_code} error: {e}")
+            raise
+        except httpx.ConnectTimeout as e:
+            logger.error(
+                f"OpenAI Moderation connection timeout: Failed to connect to {url}. Error: {e}"
+            )
+            raise
+        except httpx.TimeoutException as e:
+            logger.error(f"OpenAI Moderation request timeout: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"OpenAI Moderation check failed: {type(e).__name__}: {e}")
+            raise

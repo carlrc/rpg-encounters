@@ -158,6 +158,7 @@ class CharacterUpdate(CharacterBase):
     personality: str | None = None
     voice_id: str | None = None
     voice_name: str | None = None
+    tts_provider: str | None = None
     race_preferences: Dict[str, int] | None = None
     class_preferences: Dict[str, int] | None = None
     gender_preferences: Dict[str, int] | None = None

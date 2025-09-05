@@ -1,12 +1,12 @@
 import logging
 
 from fastapi import WebSocket, WebSocketDisconnect
-from langfuse import observe
+
+from app.clients.tts import TTSProvider
 
 logger = logging.getLogger(__name__)
 
 
-@observe(capture_output=False)
 async def get_audio_chunks(websocket: WebSocket):
     await websocket.accept()
     logger.debug("WebSocket connection established...")
@@ -43,3 +43,33 @@ async def get_audio_chunks(websocket: WebSocket):
         raise
 
     return audio_chunks
+
+
+async def stream_tts_audio(
+    websocket: WebSocket, tts_provider: TTSProvider, text: str, voice_id: str
+) -> None:
+    """
+    Stream TTS audio chunks back to frontend through WebSocket.
+
+    Args:
+        websocket: The WebSocket connection to send audio through
+        tts_provider: The TTS provider instance to use
+        text: The text to convert to speech
+        voice_id: The voice ID to use for TTS
+        send_completion_signal: Whether to send "AUDIO_COMPLETE" signal when done
+    """
+    # Stream TTS audio chunks back to frontend
+    async for audio_chunk in tts_provider.text_to_speech_stream(
+        text=text, voice_id=voice_id
+    ):
+        try:
+            await websocket.send_bytes(audio_chunk)
+        except Exception as e:
+            logger.error(f"Failed to send audio chunk: {e}")
+            break
+
+    # Send completion signal
+    try:
+        await websocket.send_text("AUDIO_COMPLETE")
+    except Exception as e:
+        logger.error(f"Failed to send completion signal: {e}")

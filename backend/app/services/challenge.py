@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from fastapi import WebSocket
@@ -13,6 +14,8 @@ from app.clients.tts import create_tts_provider
 from app.db.connection import get_async_db_session
 from app.dependencies import get_transcription_service
 from app.models.conversation import ConversationData
+from app.moderation.check import moderation_pipe
+from app.moderation.response_handler import handle_moderation_response
 from app.services.ability_challenge import (
     D20Outcomes,
     calculate_skill_check,
@@ -21,7 +24,7 @@ from app.services.ability_challenge import (
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.context import get_conversation_context
 from app.services.reveal_progress import calculate_reveal_progress
-from app.services.websocket import get_audio_chunks
+from app.services.websocket import get_audio_chunks, stream_tts_audio
 
 logger = logging.getLogger(__name__)
 
@@ -85,14 +88,27 @@ async def challenge_character(
 
     try:
         async with get_async_db_session() as session:
-            ctx = await get_conversation_context(
-                world_id=world_id,
-                user_id=user_id,
-                player_id=player_id,
-                character_id=character_id,
-                encounter_id=encounter_id,
-                session=session,
+            ctx, is_blocked = await asyncio.gather(
+                get_conversation_context(
+                    world_id=world_id,
+                    user_id=user_id,
+                    player_id=player_id,
+                    character_id=character_id,
+                    encounter_id=encounter_id,
+                    session=session,
+                ),
+                moderation_pipe(user_id=user_id, text=transcription),
             )
+
+            if is_blocked:
+                await handle_moderation_response(
+                    websocket=websocket,
+                    user_id=user_id,
+                    response=is_blocked,
+                    tts_provider_name=ctx.character.tts_provider,
+                    voice_id=ctx.character.voice_id,
+                )
+                return
 
         # Calculate skill check and filter reveals outside of session
         total_roll = calculate_skill_check(
@@ -139,21 +155,12 @@ async def challenge_character(
         get_client().update_current_trace(output=response)
 
         # Stream TTS audio chunks back to frontend
-        async for audio_chunk in create_tts_provider(
-            provider=ctx.character.tts_provider
-        ).text_to_speech_stream(text=response, voice_id=ctx.character.voice_id):
-            try:
-                await websocket.send_bytes(audio_chunk)
-            except Exception as e:
-                logger.error(f"Failed to send audio chunk: {e}")
-                break
-
-        # Send completion signal
-        try:
-            await websocket.send_text("AUDIO_COMPLETE")
-        except Exception as e:
-            logger.error(f"Failed to send completion signal: {e}")
-            raise
+        await stream_tts_audio(
+            websocket=websocket,
+            tts_provider=create_tts_provider(provider=ctx.character.tts_provider),
+            text=response,
+            voice_id=ctx.character.voice_id,
+        )
 
     except Exception as e:
         logger.error(f"Processing challenge failed: {e}")

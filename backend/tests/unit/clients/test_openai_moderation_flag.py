@@ -124,3 +124,67 @@ def test_flag_blocks_multiple_violations():
     categories.hate_threatening = True
 
     assert openai_flag(categories) is True
+
+
+def test_flag_blocks_with_should_block_logic():
+    """Test that should_block logic works when must_block + violence/harassment"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.self_harm = True
+    categories.violence = True
+
+    assert openai_flag(categories) is True
+
+
+def test_flag_blocks_with_harassment_threatening_should_block():
+    """Test should_block logic with harassment_threatening"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.sexual_minors = True
+    categories.harassment_threatening = True
+
+    assert openai_flag(categories) is True
+
+
+def test_flag_blocks_with_violence_graphic_should_block():
+    """Test should_block logic with violence_graphic"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.hate_threatening = True
+    categories.violence_graphic = True
+
+    assert openai_flag(categories) is True
+
+
+def test_flag_blocks_violence_harassment_sexual_combination():
+    """Test that violence + harassment + sexual triggers should_block"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.violence = True
+    categories.harassment = True
+    categories.sexual = True
+
+    assert openai_flag(categories) is True
+
+
+def test_flag_allows_violence_harassment_without_sexual():
+    """Test that violence + harassment without sexual is not blocked"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.violence = True
+    categories.harassment = True
+
+    assert openai_flag(categories) is False
+
+
+def test_flag_allows_violence_sexual_without_harassment():
+    """Test that violence + sexual without harassment is not blocked"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.violence = True
+    categories.sexual = True
+
+    assert openai_flag(categories) is False
+
+
+def test_flag_allows_harassment_sexual_without_violence():
+    """Test that harassment + sexual without violence is not blocked"""
+    categories = SAFE_CATEGORIES.model_copy()
+    categories.harassment = True
+    categories.sexual = True
+
+    assert openai_flag(categories) is False
