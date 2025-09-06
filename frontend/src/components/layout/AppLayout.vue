@@ -7,6 +7,9 @@
           <img :src="logoUrl" alt="RPG Encounters Logo" class="logo" />
           <h1 class="brand-title">RPG Encounters</h1>
         </div>
+        <div class="header-actions">
+          <button class="instructions-button" @click="showInstructions = true">Instructions</button>
+        </div>
       </div>
     </header>
 
@@ -38,6 +41,9 @@
         <slot />
       </main>
     </div>
+
+    <!-- Instructions Modal -->
+    <InstructionsModal :is-open="showInstructions" @close="showInstructions = false" />
   </div>
 </template>
 
@@ -45,12 +51,14 @@
   import { computed, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import WorldTabs from '../WorldTabs.vue'
+  import InstructionsModal from '../ui/InstructionsModal.vue'
   import { useWorldStore } from '@/stores/world'
   import logoUrl from '@/assets/images/logo.png'
 
   const route = useRoute()
   const router = useRouter()
   const successMessage = ref('')
+  const showInstructions = ref(false)
   const worldStore = useWorldStore()
 
   // Get navigation routes from router configuration
@@ -83,10 +91,11 @@
   }
 
   .custom-header-content {
-    justify-content: flex-start !important;
+    justify-content: space-between !important;
     margin: 0 !important;
     max-width: none !important;
     padding-left: var(--spacing-md) !important;
+    padding-right: var(--spacing-md) !important;
   }
 
   .brand-section {
@@ -107,6 +116,28 @@
     color: var(--color-text-primary);
     margin: 0;
     white-space: nowrap;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .instructions-button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .instructions-button:hover {
+    color: var(--color-text-secondary);
   }
 
   /* Tablet-specific navigation optimizations - maintain desktop layout */
@@ -130,6 +161,7 @@
 
     .custom-header-content {
       padding-left: var(--spacing-lg) !important;
+      padding-right: var(--spacing-lg) !important;
     }
   }
 
@@ -153,6 +185,10 @@
     .main-layout {
       margin-left: 0;
       min-width: unset; /* Allow collapse only on very small screens */
+    }
+
+    .instructions-button {
+      font-size: 1rem;
     }
   }
 </style>
