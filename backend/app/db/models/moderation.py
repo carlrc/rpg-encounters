@@ -12,7 +12,7 @@ class ModerationORM(SimpleBase):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey(f"{USERS_TABLE}.id"), nullable=False
+        Integer, ForeignKey(f"{USERS_TABLE}.id", ondelete="CASCADE"), nullable=False
     )
     text: Mapped[str] = mapped_column(Text, nullable=False)
     openai_id: Mapped[str] = mapped_column(String(255), nullable=False)

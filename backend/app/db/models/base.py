@@ -8,7 +8,7 @@ class UserWorldBase:
     """Base class to add user_id and world_id as required fields to all models"""
 
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey(f"{USERS_TABLE}.id"), nullable=False
+        Integer, ForeignKey(f"{USERS_TABLE}.id", ondelete="CASCADE"), nullable=False
     )
     world_id: Mapped[int] = mapped_column(
         Integer, ForeignKey(f"{WORLDS_TABLE}.id", ondelete="CASCADE"), nullable=False

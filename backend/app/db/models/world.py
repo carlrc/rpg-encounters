@@ -12,7 +12,7 @@ class WorldORM(SimpleBase):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey(f"{USERS_TABLE}.id"), nullable=False
+        Integer, ForeignKey(f"{USERS_TABLE}.id", ondelete="CASCADE"), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
