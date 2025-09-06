@@ -2,6 +2,7 @@ import logging
 from typing import List
 
 from sqlalchemy import delete, select, update
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.base_store import BaseStore
@@ -16,60 +17,96 @@ class AccountStore(BaseStore):
         super().__init__(user_id=user_id, world_id=None, session=session)
 
     async def create(self, account_data: AccountCreate) -> Account:
-        async with self.get_session() as session:
-            db_account = AccountORM(**account_data.model_dump())
-            session.add(db_account)
-            await session.flush()
-            await session.refresh(db_account)
-            return Account.model_validate(db_account)
+        try:
+            async with self.get_session() as session:
+                db_account = AccountORM(**account_data.model_dump())
+                session.add(db_account)
+                await session.flush()
+                await session.refresh(db_account)
+                return Account.model_validate(db_account)
+        except SQLAlchemyError as e:
+            logger.error(f"Error creating account for user {self.user_id}: {e}")
+            raise
 
     async def get_by_id(self, account_id: int) -> Account | None:
-        async with self.get_session() as session:
-            result = await session.execute(
-                select(AccountORM).where(AccountORM.id == account_id)
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(AccountORM).where(AccountORM.id == account_id)
+                )
+                account = result.scalar_one_or_none()
+                return Account.model_validate(account) if account else None
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error getting account {account_id} for user {self.user_id}: {e}"
             )
-            account = result.scalar_one_or_none()
-            return Account.model_validate(account) if account else None
+            raise
 
     async def get_account_by_user_id(self, user_id: int) -> Account | None:
-        async with self.get_session() as session:
-            result = await session.execute(
-                select(AccountORM).where(AccountORM.user_id == user_id)
-            )
-            account = result.scalar_one_or_none()
-            return Account.model_validate(account) if account else None
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(AccountORM).where(AccountORM.user_id == user_id)
+                )
+                account = result.scalar_one_or_none()
+                return Account.model_validate(account) if account else None
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting account by user {user_id}: {e}")
+            raise
 
     async def get_all(self) -> List[Account]:
-        async with self.get_session() as session:
-            result = await session.execute(select(AccountORM))
-            accounts = result.scalars().all()
-            return [Account.model_validate(account) for account in accounts]
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(select(AccountORM))
+                accounts = result.scalars().all()
+                return [Account.model_validate(account) for account in accounts]
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting all accounts for user {self.user_id}: {e}")
+            raise
 
     async def update(
         self, account_id: int, account_update: AccountUpdate
     ) -> Account | None:
-        update_data = account_update.model_dump(exclude_unset=True)
-        if not update_data:
-            return await self.get_by_id(account_id)
+        try:
+            update_data = account_update.model_dump(exclude_unset=True)
+            if not update_data:
+                return await self.get_by_id(account_id)
 
-        async with self.get_session() as session:
-            await session.execute(
-                update(AccountORM)
-                .where(AccountORM.id == account_id)
-                .values(**update_data)
+            async with self.get_session() as session:
+                await session.execute(
+                    update(AccountORM)
+                    .where(AccountORM.id == account_id)
+                    .values(**update_data)
+                )
+            return await self.get_by_id(account_id)
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error updating account {account_id} for user {self.user_id}: {e}"
             )
-        return await self.get_by_id(account_id)
+            raise
 
     async def delete(self, account_id: int) -> bool:
-        async with self.get_session() as session:
-            result = await session.execute(
-                delete(AccountORM).where(AccountORM.id == account_id)
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    delete(AccountORM).where(AccountORM.id == account_id)
+                )
+                return result.rowcount > 0
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error deleting account {account_id} for user {self.user_id}: {e}"
             )
-            return result.rowcount > 0
+            raise
 
     async def exists(self, account_id: int) -> bool:
-        async with self.get_session() as session:
-            result = await session.execute(
-                select(AccountORM.id).where(AccountORM.id == account_id)
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(AccountORM.id).where(AccountORM.id == account_id)
+                )
+                return result.scalar_one_or_none() is not None
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error checking if account {account_id} exists for user {self.user_id}: {e}"
             )
-            return result.scalar_one_or_none() is not None
+            raise
