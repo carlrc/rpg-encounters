@@ -7,7 +7,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
+from app.auth.session import get_session_middleware
 from app.routers import (
+    auth,
     canvas,
     characters,
     encounters,
@@ -37,6 +39,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add session middleware
+app.add_middleware(
+    get_session_middleware(),
+    secret_key=os.getenv("SESSION_SECRET_KEY", "dev-secret-change-in-production"),
+    session_cookie="session",
+    max_age=60 * 60 * 24 * 7,  # 7 days
+)
+
+app.include_router(auth.router)
 app.include_router(players.router)
 app.include_router(characters.router)
 app.include_router(memories.router)

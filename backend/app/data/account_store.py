@@ -54,6 +54,18 @@ class AccountStore(BaseStore):
             logger.error(f"Error getting account by user {user_id}: {e}")
             raise
 
+    async def get_by_email(self, email: str) -> Account | None:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(AccountORM).where(AccountORM.email == email)
+                )
+                account = result.scalar_one_or_none()
+                return Account.model_validate(account) if account else None
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting account by email {email}: {e}")
+            raise
+
     async def get_all(self) -> List[Account]:
         try:
             async with self.get_session() as session:

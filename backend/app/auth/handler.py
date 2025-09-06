@@ -1,14 +1,14 @@
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pydantic import ValidationError
 
-from app.auth.token import TokenData
 from app.data.user_store import UserStore
+from app.models.auth import TokenData
 from app.models.user import User
 
 # TODO: Leaving this here as reference for now
@@ -32,7 +32,7 @@ def _expire_at(minutes: int) -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
 
-def create_magic_link_token(email: str, *, minutes: Optional[int] = None) -> str:
+def create_magic_link_token(email: str, minutes: int | None = None) -> str:
     """
     Create a short-lived JWT to embed in a magic-link.
     Use when emailing login links. Store subject as email.
@@ -46,7 +46,7 @@ def create_magic_link_token(email: str, *, minutes: Optional[int] = None) -> str
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def create_bearer_access_token(subject: str, *, minutes: Optional[int] = None) -> str:
+def create_bearer_access_token(subject: str, minutes: int | None = None) -> str:
     """
     Create a standard Bearer JWT for use after exchanging a magic link.
     """

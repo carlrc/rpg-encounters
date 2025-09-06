@@ -24,7 +24,8 @@ dependencies = [
     "uvloop==0.21.0",
     "httptools==0.6.4",
     "asyncpg==0.30",
-    "google-cloud-texttospeech==2.28.0"
+    "google-cloud-texttospeech==2.28.0",
+    "itsdangerous==2.2.0"
 ]
 
 [tool.uv]
