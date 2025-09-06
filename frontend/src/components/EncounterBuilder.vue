@@ -75,6 +75,7 @@
       <CharacterEncounterPopup
         :character="selectedCharacter"
         :encounter-id="parseInt(selectedEncounterId) || 0"
+        :initial-player-id="route.query.playerId"
         :is-open="showEncounterPopup"
         @close="closeEncounterPopup"
       />
@@ -312,13 +313,14 @@
     selectedEncounterId.value = encounterId
     showEncounterPopup.value = true
 
-    // Add popup state to URL
+    // Add popup state to URL - preserve existing playerId if present
     router.replace({
       query: {
         ...route.query,
         popup: 'encounter',
         characterId: character.id,
         encounterId: encounterId,
+        playerId: route.query.playerId || undefined,
       },
     })
   }
@@ -329,7 +331,7 @@
     selectedEncounterId.value = null
 
     // Remove popup params from URL
-    const { popup, characterId, encounterId, ...remainingQuery } = route.query
+    const { popup, characterId, encounterId, playerId, ...remainingQuery } = route.query
     router.replace({ query: remainingQuery })
   }
 

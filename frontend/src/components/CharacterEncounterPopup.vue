@@ -114,7 +114,7 @@
 
 <script>
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { useRouter, useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
@@ -143,6 +143,10 @@
         type: Number,
         required: true,
       },
+      initialPlayerId: {
+        type: [String, Number],
+        default: null,
+      },
     },
     emits: ['close'],
     setup(props, { emit }) {
@@ -150,6 +154,7 @@
       const conversationDataStore = useConversationDataStore()
       const { data: gameData } = storeToRefs(gameDataStore)
       const router = useRouter()
+      const route = useRoute()
 
       // Use the standardized audio player composable
       const {
@@ -628,12 +633,27 @@
             influenceScore.value = null
             revealsData.value = []
           }
+
+          // Update URL with new playerId when player selection changes
+          if (props.isOpen) {
+            router.replace({
+              query: {
+                ...route.query,
+                playerId: selectedPlayerId.value || undefined,
+              },
+            })
+          }
         }
       )
 
       onMounted(async () => {
         await gameDataStore.load()
         loadData()
+
+        // Set initial player selection from prop if provided
+        if (props.initialPlayerId) {
+          selectedPlayerId.value = props.initialPlayerId
+        }
       })
 
       onUnmounted(() => {
