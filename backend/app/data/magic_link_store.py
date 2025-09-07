@@ -3,7 +3,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import and_, delete, select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,30 @@ from app.db.models.magic_link import MagicLinkORM
 from app.models.magic_link import MagicLink, MagicLinkCreate
 
 logger = logging.getLogger(__name__)
+
+
+class TokenNotFoundError(Exception):
+    """Token was not found in database"""
+
+    pass
+
+
+class TokenExpiredError(Exception):
+    """Token has expired"""
+
+    pass
+
+
+class TokenAlreadyUsedError(Exception):
+    """Token has already been used"""
+
+    pass
+
+
+class DeviceMismatchError(Exception):
+    """Device nonce doesn't match the one that requested the token"""
+
+    pass
 
 
 class MagicLinkStore(BaseStore):
@@ -24,15 +48,18 @@ class MagicLinkStore(BaseStore):
         # Magic links don't need user_id for creation, but keep consistent with BaseStore
         super().__init__(user_id, world_id, session)
 
-    def generate_token(self, nbytes: int = 32) -> str:  # cspell:disable-line
+    @staticmethod
+    def generate_token(num_bytes: int = 32) -> str:
         """Generate a random URL-safe token"""
-        return secrets.token_urlsafe(nbytes)  # cspell:disable-line
+        return secrets.token_urlsafe(num_bytes)
 
-    def hash_token(self, token: str) -> str:
+    @staticmethod
+    def hash_token(token: str) -> str:
         """Generate SHA-256 hash of token"""
         return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
-    def magic_link_expiry(self, minutes: int = 10) -> datetime:
+    @staticmethod
+    def magic_link_expiry(minutes: int = 10) -> datetime:
         """Calculate expiry time for magic link"""
         return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
@@ -49,44 +76,66 @@ class MagicLinkStore(BaseStore):
             logger.error(f"Error creating magic link for user {data.user_id}: {e}")
             raise
 
-    async def get_by_token_hash(self, token_hash: str) -> MagicLink | None:
-        """Get magic link by token hash"""
+    async def consume(
+        self, token_hash: str, device_nonce_hash: str
+    ) -> MagicLink | None:
+        """
+        Validate and consume a magic link token in a single atomic operation.
+        Returns the MagicLink if successful, None if token not found.
+        Raises specific exceptions for different error conditions.
+        """
         try:
             async with self.get_session() as session:
-                result = await session.execute(
-                    select(MagicLinkORM).where(MagicLinkORM.token_hash == token_hash)
-                )
-                magic_link = result.scalar_one_or_none()
-                return MagicLink.model_validate(magic_link) if magic_link else None
-        except SQLAlchemyError as e:
-            logger.error(f"Error getting magic link by token hash: {e}")
-            raise
+                now = datetime.now(timezone.utc)
 
-    async def mark_used(self, token_hash: str) -> bool:
-        """Mark a magic link as used"""
-        try:
-            async with self.get_session() as session:
+                # Find and validate in one query with row lock for atomic update
                 result = await session.execute(
-                    select(MagicLinkORM).where(
-                        and_(
-                            MagicLinkORM.token_hash == token_hash,
-                            MagicLinkORM.used == False,  # noqa: E712
-                            MagicLinkORM.expires_at > datetime.now(timezone.utc),
-                        )
+                    select(MagicLinkORM)
+                    .where(MagicLinkORM.token_hash == token_hash)
+                    .with_for_update()
+                )
+
+                magic_link = result.scalar_one_or_none()
+                if not magic_link:
+                    raise TokenNotFoundError("Token not found")
+
+                # Check validation criteria and raise specific exceptions
+                if magic_link.used:
+                    logger.debug(
+                        f"User {magic_link.user_id} already used token {magic_link.id}."
                     )
-                )
-                magic_link = result.scalar_one_or_none()
-                if magic_link:
-                    magic_link.used = True
-                    magic_link.used_at = datetime.now(timezone.utc)
-                    await session.flush()
-                    return True
-                return False
+                    raise TokenAlreadyUsedError("Token has already been used")
+                elif magic_link.expires_at <= now:
+                    logger.debug(
+                        f"User {magic_link.user_id} tried to use expired token {magic_link.id}."
+                    )
+                    raise TokenExpiredError("Token has expired")
+                elif magic_link.device_nonce_hash != device_nonce_hash:
+                    logger.debug(
+                        f"User {magic_link.user_id} tried to use a new device with token {magic_link.id}"
+                    )
+                    raise DeviceMismatchError(
+                        "Device mismatch - please use the same device that requested the magic link"
+                    )
+
+                # Mark as used atomically
+                magic_link.used = True
+                magic_link.used_at = now
+                await session.flush()
+
+                return MagicLink.model_validate(magic_link)
+        except (
+            TokenNotFoundError,
+            TokenAlreadyUsedError,
+            TokenExpiredError,
+            DeviceMismatchError,
+        ):
+            raise
         except SQLAlchemyError as e:
-            logger.error(f"Error marking magic link as used: {e}")
+            logger.error(f"Error consuming magic link for user {self.user_id}: {e}")
             raise
 
-    async def cleanup_expired(self) -> int:
+    async def cleanup(self) -> int:
         """Delete expired and used magic links. Returns count of deleted records."""
         try:
             async with self.get_session() as session:
@@ -101,25 +150,7 @@ class MagicLinkStore(BaseStore):
                 await session.flush()
                 return result.rowcount or 0
         except SQLAlchemyError as e:
-            logger.error(f"Error cleaning up expired magic links: {e}")
+            logger.error(
+                f"Error cleaning up expired magic links for user {self.user_id}: {e}"
+            )
             raise
-
-    async def is_valid_token(
-        self, token_hash: str, device_nonce_hash: str
-    ) -> tuple[bool, MagicLink | None]:
-        """
-        Check if token is valid for consumption.
-        Returns (is_valid, magic_link_data)
-        Note: device_nonce_hash validation is done at router level
-        """
-        magic_link = await self.get_by_token_hash(token_hash)
-        if not magic_link:
-            return False, None
-
-        now = datetime.now(timezone.utc)
-
-        # Check all validation criteria
-        if magic_link.used or magic_link.expires_at <= now:
-            return False, magic_link
-
-        return True, magic_link

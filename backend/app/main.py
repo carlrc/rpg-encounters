@@ -6,8 +6,9 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from starlette.middleware.sessions import SessionMiddleware
 
-from app.auth.session import get_session_middleware
+from app.auth.session import SESSION_CONFIG
 from app.routers import (
     auth,
     canvas,
@@ -41,10 +42,11 @@ app.add_middleware(
 
 # Add session middleware
 app.add_middleware(
-    get_session_middleware(),
-    secret_key=os.getenv("SESSION_SECRET_KEY", "dev-secret-change-in-production"),
-    session_cookie="session",
-    max_age=60 * 60 * 24 * 7,  # 7 days
+    SessionMiddleware,
+    secret_key=SESSION_CONFIG.secret_key,
+    session_cookie=SESSION_CONFIG.session_cookie_name,
+    max_age=SESSION_CONFIG.max_age,
+    https_only=SESSION_CONFIG.secure,
 )
 
 app.include_router(auth.router)

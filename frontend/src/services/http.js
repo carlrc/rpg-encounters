@@ -7,6 +7,7 @@ const request = async (method, url, body, { signal } = {}) => {
   const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}${url}`, {
     method,
     signal,
+    credentials: 'include',
     headers: {
       'content-type': 'application/json',
       'X-World-Id': worldStore.currentWorldId,

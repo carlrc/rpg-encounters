@@ -1,31 +1,60 @@
+import logging
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.session import (
-    create_session,
+    SESSION_CONFIG,
     destroy_session,
-    get_current_user,
-    get_current_user_id,
 )
 from app.data.account_store import AccountStore
-from app.data.magic_link_store import MagicLinkStore
+from app.data.magic_link_store import (
+    DeviceMismatchError,
+    MagicLinkStore,
+    TokenAlreadyUsedError,
+    TokenExpiredError,
+    TokenNotFoundError,
+)
 from app.db.connection import get_async_db_routes_session
 from app.models.magic_link import (
-    MagicLinkConsume,
-    MagicLinkConsumeResponse,
     MagicLinkCreate,
     MagicLinkRequest,
-    MagicLinkResponse,
 )
-from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
+logger = logging.getLogger(__name__)
 
 DEVICE_NONCE_COOKIE = "device_nonce"
 DEVICE_NONCE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+INVALID_TOKEN = "Invalid or expired token"
+DEVICE_MISMATCH = "Login link requested from a different device."
 
 
-@router.post("/magic/request", response_model=MagicLinkResponse)
+def is_safe_redirect_url(url: str) -> bool:
+    """
+    Validate that redirect URL is safe to prevent open redirect attacks.
+    Only allows relative paths or URLs from the same origin.
+    """
+    # Allow relative URLs (starting with /)
+    if url.startswith("/") and not url.startswith("//"):
+        return True
+
+    # Parse the URL to check if it's absolute
+    try:
+        parsed = urlparse(url)
+        # Reject absolute URLs with schemes (http, https, etc.)
+        if parsed.scheme or parsed.netloc:
+            logger.warning(f"Rejected absolute redirect URL: {url}")
+            return False
+        return True
+    except Exception:
+        logger.warning(f"Invalid redirect URL format: {url}")
+        return False
+
+
+@router.post("/request")
 async def request_magic_link(
     body: MagicLinkRequest,
     request: Request,
@@ -34,152 +63,107 @@ async def request_magic_link(
 ):
     """
     Request a magic link for login. Account must already exist.
-    Sets device_nonce cookie for soft device binding.
+    Sets device_nonce cookie for device binding.
+    Returns empty 200 response to prevent user enumeration.
     """
+    # Validate redirect URL to prevent open redirect attacks
+    if not is_safe_redirect_url(body.redirect_to):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid redirect URL. Only relative paths are allowed.",
+        )
+
     try:
-        # Find existing account - do not create new accounts
-        account_store = AccountStore(user_id=0, session=session)
-        account = await account_store.get_by_email(body.email)
+        account = await AccountStore(user_id=None, session=session).get_by_email(
+            body.email
+        )
 
+        # TODO: This will eventually need to assert on paid aspects of the account
         if not account:
-            # Always return success to prevent user enumeration
+            logger.warning(f"Invalid email {body.email} used to create login link.")
+            # Always return 200 to prevent user enumeration
             # But don't actually create a magic link
-            return MagicLinkResponse(
-                success=True, token=None, message="Magic link sent successfully"
-            )
+            return
 
-        # Handle device nonce for soft device binding
-        device_nonce = request.cookies.get(DEVICE_NONCE_COOKIE)
-        set_cookie = False
-
+        # Generate new device nonce for strict device binding
         magic_link_store = MagicLinkStore(session=session)
-
-        if not device_nonce:
-            device_nonce = magic_link_store.generate_token()
-            set_cookie = True
+        device_nonce = MagicLinkStore.generate_token()
 
         # Create magic link
-        raw_token = magic_link_store.generate_token()
+        raw_token = MagicLinkStore.generate_token()
 
         magic_link_data = MagicLinkCreate(
             user_id=account.user_id,
-            token_hash=magic_link_store.hash_token(raw_token),
-            device_nonce_hash=magic_link_store.hash_token(device_nonce),
-            expires_at=magic_link_store.magic_link_expiry(),
+            token_hash=MagicLinkStore.hash_token(raw_token),
+            device_nonce_hash=MagicLinkStore.hash_token(device_nonce),
+            expires_at=MagicLinkStore.magic_link_expiry(),
             used=False,
             redirect_to=body.redirect_to,
         )
 
         await magic_link_store.create(magic_link_data)
 
-        # Set device nonce cookie if needed
-        if set_cookie:
-            response.set_cookie(
-                key=DEVICE_NONCE_COOKIE,
-                value=device_nonce,
-                max_age=DEVICE_NONCE_MAX_AGE,
-                secure=True,
-                httponly=False,  # Frontend readable for potential future use
-                samesite="lax",
-                path="/",
-            )
-
-        # For testing: return the raw token. In production, this would be emailed.
-        return MagicLinkResponse(
-            success=True,
-            token=raw_token,
-            message="Magic link created successfully. In production, this would be emailed.",
+        # Always set new device nonce cookie for strict device binding
+        response.set_cookie(
+            key=DEVICE_NONCE_COOKIE,
+            value=device_nonce,
+            max_age=DEVICE_NONCE_MAX_AGE,
+            secure=SESSION_CONFIG.secure,
+            httponly=SESSION_CONFIG.httponly,
+            path="/",
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create magic link: {str(e)}",
-        )
+        logger.error(f"Failed to create magic link for email {body.email}: {e}")
+        raise
 
 
-@router.post("/magic/consume", response_model=MagicLinkConsumeResponse)
+@router.get("")
 async def consume_magic_link(
-    body: MagicLinkConsume,
+    token: str,
     request: Request,
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """
-    Consume a magic link token to create a user session.
+    Consume a magic link token to create a user session and redirect to destination.
     Requires matching device_nonce cookie.
+    Token is provided as a query parameter.
     """
-    if not body.token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token is required"
-        )
-
     # Check device nonce cookie
     device_nonce = request.cookies.get(DEVICE_NONCE_COOKIE)
     if not device_nonce:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Device not recognized. Please request a new magic link.",
+            status_code=status.HTTP_400_BAD_REQUEST, detail=DEVICE_MISMATCH
         )
 
-    # Validate magic link
+    # Validate and consume magic link atomically
     magic_link_store = MagicLinkStore(session=session)
-    token_hash = magic_link_store.hash_token(body.token)
-    device_nonce_hash = magic_link_store.hash_token(device_nonce)
+    token_hash = MagicLinkStore.hash_token(token)
+    device_nonce_hash = MagicLinkStore.hash_token(device_nonce)
 
-    is_valid, magic_link = await magic_link_store.is_valid_token(
-        token_hash, device_nonce_hash
-    )
+    try:
+        magic_link = await magic_link_store.consume(token_hash, device_nonce_hash)
 
-    if not is_valid or not magic_link:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token"
-        )
+        # Create session
+        request.session["user_id"] = magic_link.user_id
 
-    # Additional device nonce validation (not implemented in is_valid_token)
-    # We need to get the magic link from DB to check device_nonce_hash
-    stored_magic_link = await magic_link_store.get_by_token_hash(token_hash)
-    if (
-        not stored_magic_link
-        or stored_magic_link.device_nonce_hash != device_nonce_hash
+        return RedirectResponse(url=magic_link.redirect_to, status_code=302)
+
+    except (
+        TokenNotFoundError,
+        TokenAlreadyUsedError,
+        TokenExpiredError,
+        DeviceMismatchError,
     ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Device mismatch. Please use the same device that requested the magic link.",
-        )
-
-    # Mark magic link as used
-    success = await magic_link_store.mark_used(token_hash)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token has already been used or expired",
-        )
-
-    # Create session
-    create_session(request, magic_link.user_id)
-
-    return MagicLinkConsumeResponse(
-        success=True,
-        redirect_to=magic_link.redirect_to,
-        message="Successfully authenticated",
-    )
+        # Redirect to login page with error instead of returning JSON
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Error processing magic link: {e}")
+        raise
 
 
 @router.post("/logout")
 async def logout(request: Request):
     """Logout by destroying the session"""
     destroy_session(request)
-    return {"success": True, "message": "Logged out successfully"}
-
-
-@router.get("/me", response_model=User)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Get current authenticated user information"""
-    return current_user
-
-
-@router.get("/status")
-async def auth_status(request: Request):
-    """Check authentication status without requiring login"""
-    user_id = get_current_user_id(request)
-    return {"authenticated": user_id is not None, "user_id": user_id}
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

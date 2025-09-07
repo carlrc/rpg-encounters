@@ -33,4 +33,4 @@ class MagicLinkORM(SimpleBase):
     used_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    redirect_to: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    redirect_to: Mapped[str] = mapped_column(String(512), nullable=False)

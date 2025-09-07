@@ -11,8 +11,6 @@ from app.data.user_store import UserStore
 from app.models.auth import TokenData
 from app.models.user import User
 
-# TODO: Leaving this here as reference for now
-
 """
 References:
 - OAuth2 with Password and JWT Bearer (FastAPI docs): https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/
@@ -32,6 +30,14 @@ def _expire_at(minutes: int) -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
 
+def _encode_token(payload: dict) -> str:
+    """
+    Centralized JWT encoding to ensure consistent algorithm and secret key usage.
+    Matches the pattern of _decode_token for symmetry.
+    """
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+
 def create_magic_link_token(email: str, minutes: int | None = None) -> str:
     """
     Create a short-lived JWT to embed in a magic-link.
@@ -43,7 +49,7 @@ def create_magic_link_token(email: str, minutes: int | None = None) -> str:
         "purpose": "magic_link",
         "exp": int(_expire_at(exp_minutes).timestamp()),
     }
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return _encode_token(to_encode)
 
 
 def create_bearer_access_token(subject: str, minutes: int | None = None) -> str:
@@ -56,7 +62,7 @@ def create_bearer_access_token(subject: str, minutes: int | None = None) -> str:
         "purpose": "access",
         "exp": int(_expire_at(exp_minutes).timestamp()),
     }
-    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return _encode_token(to_encode)
 
 
 def _decode_token(token: str) -> TokenData:
@@ -106,27 +112,3 @@ async def require_magic_link_token(
     if payload.purpose != "magic_link":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     return payload
-
-
-# === Minimal usage examples ===
-# routers/auth.py
-# from fastapi import APIRouter, Depends
-# from .auth_tokens import require_magic_link_token, create_bearer_access_token
-#
-# router = APIRouter(prefix="/auth", tags=["auth"])
-#
-# @router.get("/callback")
-# async def magic_link_callback(tok=Depends(require_magic_link_token)):
-#     # Issue normal bearer token for subsequent API calls
-#     access = create_bearer_access_token(tok.sub)
-#     return {"access_token": access, "token_type": "bearer"}
-#
-# routers/protected.py
-# from fastapi import APIRouter, Depends
-# from .auth_tokens import get_current_user_bearer
-#
-# router = APIRouter(prefix="/protected", tags=["protected"])
-#
-# @router.get("/me")
-# async def me(user=Depends(get_current_user_bearer)):
-#     return {"email": user.sub}
