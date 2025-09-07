@@ -1,4 +1,3 @@
-import os
 from unittest.mock import AsyncMock
 
 from app.agents.conversations.conversation_agent import (
@@ -22,9 +21,6 @@ from tests.fixtures.generate import (
 CHARACTER = default_character()
 PLAYER = default_player()
 INFLUENCE_STATE = default_influence(base=BASE_INFLUENCE_MAX)
-
-TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
-CONVERSATION_STORE = AsyncMock()
 
 CONTEXT = ConvoContext(
     encounter=default_encounter(),
@@ -61,7 +57,7 @@ async def test_agent_handles_no_reveals():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
-        conversation_store=CONVERSATION_STORE,
+        conversation_store=AsyncMock(),
         influence_calculator_agent=InfluenceCalculatorAgent(
             system_prompt=render_prompt(
                 "influence_scoring_agent",
