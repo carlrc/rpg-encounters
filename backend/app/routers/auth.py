@@ -1,5 +1,4 @@
 import logging
-from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -26,38 +25,20 @@ from app.models.magic_link import (
 router = APIRouter(prefix="/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
+# System constants
 DEVICE_NONCE_COOKIE = "device_nonce"
 DEVICE_NONCE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
+BACKEND_REDIRECT_URI = "/players"
+
+# Error constants
 INVALID_TOKEN = "Invalid or expired token"
 DEVICE_MISMATCH = "Login link requested from a different device."
-
-
-def is_safe_redirect_url(url: str) -> bool:
-    """
-    Validate that redirect URL is safe to prevent open redirect attacks.
-    Only allows relative paths or URLs from the same origin.
-    """
-    # Allow relative URLs (starting with /)
-    if url.startswith("/") and not url.startswith("//"):
-        return True
-
-    # Parse the URL to check if it's absolute
-    try:
-        parsed = urlparse(url)
-        # Reject absolute URLs with schemes (http, https, etc.)
-        if parsed.scheme or parsed.netloc:
-            logger.warning(f"Rejected absolute redirect URL: {url}")
-            return False
-        return True
-    except Exception:
-        logger.warning(f"Invalid redirect URL format: {url}")
-        return False
 
 
 @router.post("/request")
 async def request_magic_link(
     body: MagicLinkRequest,
-    request: Request,
+    _: Request,
     response: Response,
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
@@ -66,12 +47,6 @@ async def request_magic_link(
     Sets device_nonce cookie for device binding.
     Returns empty 200 response to prevent user enumeration.
     """
-    # Validate redirect URL to prevent open redirect attacks
-    if not is_safe_redirect_url(body.redirect_to):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid redirect URL. Only relative paths are allowed.",
-        )
 
     try:
         account = await AccountStore(user_id=None, session=session).get_by_email(
@@ -98,7 +73,6 @@ async def request_magic_link(
             device_nonce_hash=MagicLinkStore.hash_token(device_nonce),
             expires_at=MagicLinkStore.magic_link_expiry(),
             used=False,
-            redirect_to=body.redirect_to,
         )
 
         await magic_link_store.create(magic_link_data)
@@ -147,7 +121,7 @@ async def consume_magic_link(
         # Create session
         request.session["user_id"] = magic_link.user_id
 
-        return RedirectResponse(url=magic_link.redirect_to, status_code=302)
+        return RedirectResponse(url=BACKEND_REDIRECT_URI, status_code=302)
 
     except (
         TokenNotFoundError,

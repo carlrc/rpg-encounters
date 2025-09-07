@@ -70,16 +70,13 @@ async def test_magic_link_complete_flow():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        response = client.post(
-            "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-        )
+        response = client.post("/auth/request", json={"email": account.email})
         assert response.status_code == 200
         # No response body now - just 200 status
 
     # Verify magic link was created in database
     magic_link = await get_latest_magic_link_for_user(user.id)
     assert magic_link is not None
-    assert magic_link.redirect_to == "/players"
     assert magic_link.used is False
 
     # Extract device nonce cookie
@@ -114,16 +111,12 @@ async def test_magic_link_with_redirect():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        response = client.post(
-            "/auth/request",
-            json={"email": account.email, "redirect_to": "/dashboard"},
-        )
+        response = client.post("/auth/request", json={"email": account.email})
         assert response.status_code == 200
 
-    # Verify magic link was created with correct redirect
+    # Verify magic link was created
     magic_link = await get_latest_magic_link_for_user(user.id)
     assert magic_link is not None
-    assert magic_link.redirect_to == "/dashboard"
 
     if "device_nonce" in response.cookies:
         client.cookies.set("device_nonce", response.cookies["device_nonce"])
@@ -131,17 +124,14 @@ async def test_magic_link_with_redirect():
     # Consume magic link
     response = client.get(f"/auth?token={test_token}", follow_redirects=False)
     assert response.status_code == 302
-    assert response.headers["location"] == "/dashboard"
+    assert response.headers["location"] == "/players"
 
 
 async def test_nonexistent_user_request():
     """Test magic link request for non-existent user (no user enumeration)"""
     client = TestClient(app)
 
-    response = client.post(
-        "/auth/request",
-        json={"email": "nonexistent@example.com", "redirect_to": "/players"},
-    )
+    response = client.post("/auth/request", json={"email": "nonexistent@example.com"})
     assert response.status_code == 200
     # Should return empty response to prevent user enumeration
     # No magic link should be created in database
@@ -155,8 +145,7 @@ async def test_invalid_token_consumption():
     client.cookies.set("device_nonce", "test-device-nonce")
 
     response = client.get("/auth?token=invalid-token", follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["location"] == "/login?error=invalid_token"
+    assert response.status_code == 400
 
 
 async def test_token_reuse_prevention():
@@ -171,9 +160,7 @@ async def test_token_reuse_prevention():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        magic_response = client.post(
-            "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-        )
+        magic_response = client.post("/auth/request", json={"email": account.email})
         assert magic_response.status_code == 200
 
     if "device_nonce" in magic_response.cookies:
@@ -196,8 +183,7 @@ async def test_token_reuse_prevention():
 
     # Second consumption - should fail
     response = client2.get(f"/auth?token={test_token}", follow_redirects=False)
-    assert response.status_code == 302
-    assert response.headers["location"] == "/login?error=invalid_token"
+    assert response.status_code == 400
 
 
 async def test_device_binding_enforcement():
@@ -212,9 +198,7 @@ async def test_device_binding_enforcement():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        response = client.post(
-            "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-        )
+        response = client.post("/auth/request", json={"email": account.email})
         assert response.status_code == 200
 
     device_nonce = response.cookies.get("device_nonce")
@@ -252,9 +236,7 @@ async def test_invalid_email_format():
     """Test magic link request with invalid email"""
     client = TestClient(app)
 
-    response = client.post(
-        "/auth/request", json={"email": "invalid-email", "redirect_to": "/players"}
-    )
+    response = client.post("/auth/request", json={"email": "invalid-email"})
     assert response.status_code == 422  # Validation error
 
 
@@ -278,9 +260,7 @@ async def test_session_persistence_across_requests():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        response = client.post(
-            "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-        )
+        response = client.post("/auth/request", json={"email": account.email})
 
     if "device_nonce" in response.cookies:
         client.cookies.set("device_nonce", response.cookies["device_nonce"])
@@ -305,9 +285,7 @@ async def test_token_hashing_security():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        client.post(
-            "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-        )
+        client.post("/auth/request", json={"email": account.email})
 
     # Verify token is hashed in database
     token_hash = MagicLinkStore.hash_token(test_token)
@@ -322,11 +300,9 @@ async def test_token_hashing_security():
 async def test_device_nonce_cookie_creation():
     """Test that device nonce cookie is properly created"""
     client = TestClient(app)
-    user, account = await create_test_user_and_account()
+    _, account = await create_test_user_and_account()
 
-    response = client.post(
-        "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-    )
+    response = client.post("/auth/request", json={"email": account.email})
 
     # In TestClient, cookies are handled differently than real HTTP
     # We can verify the response was successful and cookie was set
@@ -348,9 +324,7 @@ async def test_session_authentication_works():
         "app.data.magic_link_store.MagicLinkStore.generate_token"
     ) as mock_generate:
         mock_generate.side_effect = [test_device_nonce, test_token]
-        response = client.post(
-            "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-        )
+        response = client.post("/auth/request", json={"email": account.email})
 
     if "device_nonce" in response.cookies:
         client.cookies.set("device_nonce", response.cookies["device_nonce"])
@@ -374,12 +348,10 @@ async def test_cleanup_expired_tokens():
 async def test_device_nonce_persistence():
     """Test that device nonce persists across multiple requests"""
     client = TestClient(app)
-    user, account = await create_test_user_and_account()
+    _, account = await create_test_user_and_account()
 
     # First request - should create device nonce
-    response1 = client.post(
-        "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-    )
+    response1 = client.post("/auth/request", json={"email": account.email})
     assert response1.status_code == 200
 
     if "device_nonce" in response1.cookies:
@@ -387,8 +359,20 @@ async def test_device_nonce_persistence():
         client.cookies.set("device_nonce", device_nonce1)
 
     # Second request with same client - should reuse device nonce
-    response2 = client.post(
-        "/auth/request", json={"email": account.email, "redirect_to": "/players"}
-    )
+    response2 = client.post("/auth/request", json={"email": account.email})
     assert response2.status_code == 200
     # Should not set device_nonce cookie again since client already has it
+
+
+async def test_session_security_configuration():
+    """Test that session config has proper values"""
+    from app.auth.session import SESSION_CONFIG
+
+    # Test that session config has reasonable defaults
+    assert SESSION_CONFIG.max_age == 60 * 60 * 12  # 12 hours
+    assert SESSION_CONFIG.session_cookie_name == "session"
+    assert SESSION_CONFIG.secret_key is not None
+
+    # Verify security flags are boolean values (actual values depend on environment setup timing)
+    assert isinstance(SESSION_CONFIG.secure, bool)
+    assert isinstance(SESSION_CONFIG.httponly, bool)

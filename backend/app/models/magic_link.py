@@ -6,9 +6,6 @@ from pydantic import BaseModel, EmailStr, Field
 
 class MagicLinkRequest(BaseModel):
     email: EmailStr = Field(description="Email address to send the magic link to")
-    redirect_to: str = Field(
-        description="URL to redirect to after successful authentication"
-    )
 
 
 class MagicLinkBase(BaseModel):
@@ -19,7 +16,6 @@ class MagicLinkBase(BaseModel):
     )
     expires_at: datetime = Field(description="When this magic link expires")
     used: bool = Field(description="Whether this magic link has been used")
-    redirect_to: str = Field(description="URL to redirect to after authentication")
 
 
 class MagicLinkCreate(MagicLinkBase):
@@ -34,9 +30,3 @@ class MagicLink(MagicLinkBase):
     )
 
     model_config = {"from_attributes": True}
-
-
-class MagicLinkConsumeResponse(BaseModel):
-    redirect_to: str = Field(
-        description="URL to redirect to after successful authentication"
-    )

@@ -28,7 +28,6 @@ async def test_account_store():
         assert created_account.id is not None
         assert created_account.user_id == created_user.id
         assert created_account.email == "test@example.com"
-        assert created_account.token == "test-token-123"
         assert created_account.elevenlabs_token == "elevenlabs-token-456"
         assert created_account.created_at is not None
 
@@ -51,14 +50,10 @@ async def test_account_store():
         assert any(account.id == created_account.id for account in all_accounts)
 
         # Test update account
-        update_data = AccountUpdate(
-            email="updated@example.com",
-            token="updated-token-789",
-        )
+        update_data = AccountUpdate(email="updated@example.com")
         updated_account = await account_store.update(created_account.id, update_data)
         assert updated_account is not None
         assert updated_account.email == "updated@example.com"
-        assert updated_account.token == "updated-token-789"
         assert updated_account.elevenlabs_token == "elevenlabs-token-456"  # unchanged
 
         # Test account exists
