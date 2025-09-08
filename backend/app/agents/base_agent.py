@@ -1,4 +1,3 @@
-import os
 from typing import Any
 
 from pydantic import BaseModel
@@ -14,6 +13,7 @@ from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 
 from app.telemetry import TelemetryFunc
+from app.utils import get_or_throw
 
 # TODO: Set arbitrarily high to avoid trimming issue (_keep_recent_messages doesn't work). Should be based on tokens in the future anyways.
 MAX_MESSAGE_HISTORY = 20
@@ -53,7 +53,7 @@ class BaseAgent:
 
     def __init__(self):
         self.retries = MAX_RETRIES
-        self.temp = float(os.getenv("DEFAULT_MODEL_TEMP", "0.5"))
+        self.temp = float(get_or_throw("DEFAULT_MODEL_TEMP"))
         self.metadata = {"temperature": self.temp}
 
     # https://ai.pydantic.dev/message-history/#summarize-old-messages
@@ -107,7 +107,7 @@ class BaseAgent:
         }
 
         if not model:
-            model = OpenAIChatModel(model_name=os.getenv("DEFAULT_MODEL_NAME"))
+            model = OpenAIChatModel(model_name=get_or_throw("DEFAULT_MODEL_NAME"))
 
         agent_kwargs["model"] = model
 

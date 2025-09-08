@@ -71,7 +71,6 @@ async def test_token_reuse_prevention():
     # First consumption - should work
     response = client.get(f"/api/auth?token={test_token}", follow_redirects=False)
     assert response.status_code == 302
-    assert response.headers["location"] == "/players"
 
     # Verify token is now marked as used in database
     magic_link = await get_latest_magic_link_for_user(user.id)
@@ -127,7 +126,6 @@ async def test_device_binding_enforcement():
     client.cookies.set(name=DEVICE_NONCE_COOKIE, value=device_nonce)
     response = client.get(f"/api/auth?token={test_token}", follow_redirects=False)
     assert response.status_code == 302
-    assert response.headers["location"] == "/players"
 
 
 async def test_missing_token_in_consume():

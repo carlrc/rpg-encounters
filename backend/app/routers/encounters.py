@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket
@@ -22,6 +21,7 @@ from app.services.challenge import challenge_character
 from app.services.context import get_conversation_context
 from app.services.conversation import have_conversation
 from app.services.reveal_progress import calculate_reveal_progress
+from app.utils import get_or_throw
 
 router = APIRouter(prefix="/api/encounters", tags=["encounters"])
 
@@ -304,8 +304,8 @@ async def websocket_convo_endpoint(
         user_id=user_id,
         tags=["conversation"],
         metadata={
-            "service": os.getenv("SERVICE"),
-            "env": os.getenv("ENVIRONMENT"),
+            "service": get_or_throw("SERVICE"),
+            "env": get_or_throw("ENVIRONMENT"),
         },
     )
     return await have_conversation(
@@ -332,8 +332,8 @@ async def websocket_challenge_endpoint(
         user_id=user_id,
         tags=["challenge"],
         metadata={
-            "service": os.getenv("SERVICE"),
-            "env": os.getenv("ENVIRONMENT"),
+            "service": get_or_throw("SERVICE"),
+            "env": get_or_throw("ENVIRONMENT"),
         },
     )
     skill = websocket.query_params.get("skill")

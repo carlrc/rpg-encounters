@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-import os
 
 from app.data.player_store import PlayerStore
 from app.db.connection import get_async_db_session
 from app.models.player import PlayerCreate, PlayerUpdate
+from app.utils import get_or_throw
 from tests.fixtures.generate import default_player
 
 
 async def test_player_store():
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
     async with get_async_db_session(url) as session:
         store = PlayerStore(user_id=1, world_id=1, session=session)
 

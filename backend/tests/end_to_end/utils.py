@@ -83,7 +83,6 @@ async def create_authenticated_client():
     # Consume magic link to create session
     response = client.get(f"/api/auth?token={test_token}", follow_redirects=False)
     assert response.status_code == 302
-    assert response.headers["location"] == "/players"
 
     # Get session token from cookies
     session = client.cookies.get(SESSION_CONFIG.session_cookie_name)

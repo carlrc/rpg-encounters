@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart
 
@@ -12,11 +11,12 @@ from app.models.character import CharacterCreate
 from app.models.conversation import ConversationCreate
 from app.models.encounter import EncounterCreate
 from app.models.player import PlayerCreate
+from app.utils import get_or_throw
 from tests.fixtures.generate import default_character, default_encounter, default_player
 
 
 async def test_conversation_store():
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
     async with get_async_db_session(url) as session:
         # Create stores for prerequisite data
         character_store = CharacterStore(user_id=1, world_id=1, session=session)

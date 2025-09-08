@@ -1,4 +1,3 @@
-import os
 from unittest.mock import AsyncMock
 
 from app.agents.conversations.negative_conversation_agent import (
@@ -10,6 +9,7 @@ from app.agents.prompts.import_prompts import render_prompt
 from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
 from app.models.influence import BASE_INFLUENCE_MIN
 from app.services.context import ConvoContext
+from app.utils import get_or_throw
 from tests.fixtures.generate import (
     default_character,
     default_encounter,
@@ -52,7 +52,7 @@ RENDERED_SYSTEM_PROMPT = render_prompt(
     "negative_conversation_agent", BASE_TEMPLATE_CONTEXT
 )
 
-TEST_DB_URL = os.getenv("TEST_DATABASE_URL")
+TEST_DB_URL = get_or_throw("TEST_DATABASE_URL")
 CONVERSATION_STORE = AsyncMock()
 
 

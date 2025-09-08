@@ -1,8 +1,9 @@
-import os
 import sys
 import asyncio
 import logging
 from dotenv import load_dotenv
+
+from app.utils import get_or_throw
 from sqlalchemy import Engine, create_engine, select
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
@@ -447,10 +448,10 @@ async def main():
     
     if not use_dev:
         print("🔴 Seeding to DEV database")
-        url = os.getenv("DATABASE_URL")
+        url = get_or_throw("DATABASE_URL")
     else:
         print("🟢 Seeding to TEST database (default)")
-        url = os.getenv("TEST_DATABASE_URL")
+        url = get_or_throw("TEST_DATABASE_URL")
 
     engine = create_async_engine(url)
     await drop_tables(engine=engine)

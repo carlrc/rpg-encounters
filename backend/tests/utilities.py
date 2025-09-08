@@ -1,8 +1,7 @@
-import os
-
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.db.init_db import create_tables, drop_tables
+from app.utils import get_or_throw
 from tests.fixtures.seed_data import seed_user_data, seed_world_data
 
 
@@ -33,7 +32,7 @@ def assert_does_not_contain_keywords(text: str, keywords: list) -> list[str]:
 
 async def setup_test_database():
     """Setup test database with tables and seed data"""
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
     async_engine = create_async_engine(url)
     await create_tables(engine=async_engine)
     await seed_user_data(engine=async_engine)

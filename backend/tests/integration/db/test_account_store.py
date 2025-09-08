@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-import os
 
 from app.data.account_store import AccountStore
 from app.data.user_store import UserStore
 from app.db.connection import get_async_db_session
 from app.models.account import AccountCreate, AccountUpdate
 from app.models.user import UserCreate
+from app.utils import get_or_throw
 
 
 async def test_account_store():
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
     async with get_async_db_session(url) as session:
         # Create a user first
         user_data = UserCreate()

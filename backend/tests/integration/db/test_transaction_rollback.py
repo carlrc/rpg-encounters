@@ -3,20 +3,19 @@
 Integration test for transaction rollback functionality.
 Tests that database operations properly rollback on errors within the session lifecycle.
 """
-import os
-
 import pytest
 
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_session
 from app.models.character import CharacterCreate
+from app.utils import get_or_throw
 from tests.fixtures.generate import default_character
 
 
 async def test_transaction_rollback_on_error():
     """Test that multiple operations rollback completely when an error occurs within the session"""
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
 
     # Count characters and encounters before test
     async with get_async_db_session(db_url=url) as session:
