@@ -13,6 +13,7 @@ from app.data.magic_link_store import MagicLinkStore
 from app.data.user_store import UserStore
 from app.data.world_store import WorldStore
 from app.db.models.magic_link import MagicLinkORM
+from app.http import DEVICE_NONCE_COOKIE
 from app.main import app
 from app.models.account import AccountCreate
 from app.models.magic_link import MagicLink, MagicLinkCreate
@@ -39,8 +40,19 @@ async def create_test_user_and_account():
     return user, account, world
 
 
-def decode_session(cookie_value: str) -> dict[str, int]:
-    signer = TimestampSigner(SESSION_CONFIG.secret_key)
+def encode_session(
+    session_data: dict[str, int], secret_key: str = SESSION_CONFIG.secret_key
+) -> str:
+    signer = TimestampSigner(secret_key=secret_key)
+    raw = base64.b64encode(json.dumps(session_data).encode("utf-8"))
+    signed = signer.sign(raw)
+    return signed.decode("utf-8")
+
+
+def decode_session(
+    cookie_value: str, secret_key: str = SESSION_CONFIG.secret_key
+) -> dict[str, int]:
+    signer = TimestampSigner(secret_key=secret_key)
     raw = signer.unsign(cookie_value.encode("utf-8"), max_age=SESSION_CONFIG.max_age)
     return json.loads(base64.b64decode(raw))
 
@@ -66,7 +78,7 @@ async def create_authenticated_client():
     await magic_link_store.create(magic_link_data)
 
     # Set device nonce cookie
-    client.cookies.set("device_nonce", test_device_nonce)
+    client.cookies.set(DEVICE_NONCE_COOKIE, test_device_nonce)
 
     # Consume magic link to create session
     response = client.get(f"/api/auth?token={test_token}", follow_redirects=False)
@@ -74,7 +86,7 @@ async def create_authenticated_client():
     assert response.headers["location"] == "/players"
 
     # Get session token from cookies
-    session = client.cookies.get("session")
+    session = client.cookies.get(SESSION_CONFIG.session_cookie_name)
     assert session
 
     decoded_session = decode_session(cookie_value=session)

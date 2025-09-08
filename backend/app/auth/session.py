@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from app.http import SESSION_COOKIE
 from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class SessionConfig(BaseModel):
         default_factory=lambda: get_or_throw("SESSION_SECRET_KEY"),
         frozen=True,
     )
-    session_cookie_name: str = Field(default="session", frozen=True)
+    session_cookie_name: str = Field(default=SESSION_COOKIE, frozen=True)
     max_age: int = Field(default=60 * 60 * 12, frozen=True)  # 12 hours
     secure: bool = Field(default=not IS_LOCAL, frozen=True)
     httponly: bool = Field(default=not IS_LOCAL, frozen=True)

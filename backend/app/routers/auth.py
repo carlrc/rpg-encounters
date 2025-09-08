@@ -19,6 +19,7 @@ from app.data.magic_link_store import (
 )
 from app.db.connection import get_async_db_routes_session
 from app.dependencies import get_current_user_world
+from app.http import DEVICE_MISMATCH, DEVICE_NONCE_COOKIE
 from app.models.magic_link import (
     MagicLinkCreate,
     MagicLinkRequest,
@@ -27,13 +28,7 @@ from app.models.magic_link import (
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
-# System constants
-DEVICE_NONCE_COOKIE = "device_nonce"
 BACKEND_REDIRECT_URI = "/players"
-
-# Error constants
-INVALID_TOKEN = "Invalid or expired token"
-DEVICE_MISMATCH = "Login link requested from a different device."
 
 
 @router.post("/request")
@@ -73,6 +68,7 @@ async def request_magic_link(
         if IS_LOCAL:
             # So you can login manually locally
             logger.info(f"Login token {raw_token}")
+            logger.info(f"Device nonce {device_nonce}")
 
         magic_link_data = MagicLinkCreate(
             user_id=account.user_id,
