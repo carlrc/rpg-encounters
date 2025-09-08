@@ -250,9 +250,15 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: var(--spacing-xl);
-  max-width: var(--max-content-width);
   margin: 0 auto;
   padding: var(--spacing-xl);
+}
+
+/* Desktop only: limit grid width for design */
+@media (min-width: 1024px) {
+  .player-cards-grid {
+    max-width: var(--max-content-width);
+  }
 }
 
 .player-card {
