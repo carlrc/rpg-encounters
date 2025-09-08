@@ -85,3 +85,55 @@ export const getAllVoices = async (ttsProvider = 'google') => {
   const response = await searchVoices('en', ttsProvider)
   return response.voices || []
 }
+
+// Auth operations - use fetch directly to avoid world store dependency
+export const checkAuth = async () => {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/check`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+    },
+  })
+
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`)
+  }
+
+  return res.json()
+}
+
+export const requestMagicLink = async (email) => {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/request`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`)
+  }
+
+  if (res.status === 204) return null
+  return res.json()
+}
+export const consumeMagicLink = (token) => http.get(`/auth?token=${encodeURIComponent(token)}`)
+export const logout = async () => {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+    },
+  })
+
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`)
+  }
+
+  if (res.status === 204) return null
+  return res.json()
+}

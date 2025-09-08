@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import LoginPage from '../views/LoginPage.vue'
+import AuthCallbackPage from '../views/AuthCallbackPage.vue'
 import PlayersPage from '../views/PlayersPage.vue'
 import CharactersPage from '../views/CharactersPage.vue'
 import MemoriesPage from '../views/MemoriesPage.vue'
@@ -7,8 +9,14 @@ import EncountersPage from '../views/EncountersPage.vue'
 
 const routes = [
   {
-    path: '/',
-    redirect: '/players',
+    path: '/login',
+    name: 'Login',
+    component: LoginPage,
+  },
+  {
+    path: '/auth',
+    name: 'AuthCallback',
+    component: AuthCallbackPage,
   },
   {
     path: '/players',

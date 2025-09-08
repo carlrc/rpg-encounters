@@ -8,18 +8,29 @@
           <h1 class="brand-title">RPG Encounters</h1>
         </div>
         <div class="header-actions">
-          <button class="instructions-button" @click="showInstructions = true">Instructions</button>
+          <button
+            v-if="isAuthenticated"
+            class="instructions-button"
+            @click="showInstructions = true"
+          >
+            Instructions
+          </button>
+          <button v-if="isAuthenticated" class="logout-button" @click="handleLogout">Logout</button>
         </div>
       </div>
     </header>
 
-    <!-- World Tabs positioned in left margin -->
-    <WorldTabs class="world-tabs-positioned" @world-changed="handleWorldChange" />
+    <!-- World Tabs - only show when authenticated -->
+    <WorldTabs
+      v-if="isAuthenticated"
+      class="world-tabs-positioned"
+      @world-changed="handleWorldChange"
+    />
 
     <!-- Main Layout -->
     <div class="main-layout">
-      <!-- Left Sidebar Navigation -->
-      <nav class="sidebar">
+      <!-- Left Sidebar Navigation - only show when authenticated -->
+      <nav v-if="isAuthenticated" class="sidebar">
         <router-link
           v-for="route in navigationRoutes"
           :key="route.path"
@@ -32,7 +43,7 @@
       </nav>
 
       <!-- Main Content Area -->
-      <main class="content-area">
+      <main class="content-area" :class="{ 'full-width': !isAuthenticated }">
         <!-- Success Toast -->
         <div v-if="successMessage" class="success-toast">
           {{ successMessage }}
@@ -43,7 +54,11 @@
     </div>
 
     <!-- Instructions Modal -->
-    <InstructionsModal :is-open="showInstructions" @close="showInstructions = false" />
+    <InstructionsModal
+      v-if="isAuthenticated"
+      :is-open="showInstructions"
+      @close="showInstructions = false"
+    />
   </div>
 </template>
 
@@ -53,6 +68,7 @@
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
   import { useWorldStore } from '@/stores/world'
+  import { logout } from '@/services/api'
   import logoUrl from '@/assets/images/logo.png'
 
   const route = useRoute()
@@ -61,11 +77,16 @@
   const showInstructions = ref(false)
   const worldStore = useWorldStore()
 
+  // Simple route-based authentication check
+  const isAuthenticated = computed(() => {
+    return route.path !== '/login' && route.path !== '/auth'
+  })
+
   // Get navigation routes from router configuration
   const navigationRoutes = computed(() => {
     return router
       .getRoutes()
-      .filter((route) => route.name && route.path !== '/')
+      .filter((route) => route.name && route.path !== '/login' && route.path !== '/auth')
       .map((route) => ({
         path: route.path,
         name: route.name,
@@ -77,6 +98,17 @@
     setTimeout(() => {
       successMessage.value = ''
     }, 1500)
+  }
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Force redirect anyway
+      window.location.href = '/login'
+    }
   }
 
   const handleWorldChange = (worldId) => {
@@ -138,6 +170,28 @@
 
   .instructions-button:hover {
     color: var(--color-text-secondary);
+  }
+
+  .logout-button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-left: var(--spacing-lg);
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .logout-button:hover {
+    color: var(--error-color);
+  }
+
+  .content-area.full-width {
+    margin-left: 0;
+    max-width: 100%;
   }
 
   /* Tablet-specific navigation optimizations - maintain desktop layout */

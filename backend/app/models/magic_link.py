@@ -30,3 +30,7 @@ class MagicLink(MagicLinkBase):
     )
 
     model_config = {"from_attributes": True}
+
+
+class AuthCheckResponse(BaseModel):
+    authenticated: bool = Field(description="Whether the user is authenticated")

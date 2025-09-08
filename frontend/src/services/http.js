@@ -15,6 +15,16 @@ const request = async (method, url, body, { signal } = {}) => {
     body: body ? JSON.stringify(body) : undefined,
   })
 
+  // Redirect to login on any 4xx error
+  if (res.status >= 400 && res.status < 500) {
+    // Don't redirect if already on login page
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login'
+    }
+    const error = new Error(`HTTP error! status: ${res.status}`)
+    throw error
+  }
+
   if (!res.ok) {
     const error = new Error(`HTTP error! status: ${res.status}`)
     throw error

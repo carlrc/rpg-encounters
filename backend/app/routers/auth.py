@@ -21,14 +21,17 @@ from app.db.connection import get_async_db_routes_session
 from app.dependencies import get_current_user_world
 from app.http import DEVICE_MISMATCH, DEVICE_NONCE_COOKIE
 from app.models.magic_link import (
+    AuthCheckResponse,
     MagicLinkCreate,
     MagicLinkRequest,
 )
+from app.utils import get_or_throw
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
-BACKEND_REDIRECT_URI = "/players"
+FRONTEND_URL = get_or_throw("FRONTEND_URL")
+BACKEND_REDIRECT_URI = f"{FRONTEND_URL}/players"
 
 
 @router.post("/request")
@@ -124,7 +127,9 @@ async def consume_magic_link(
         # Create session
         request.session["user_id"] = magic_link.user_id
 
-        return RedirectResponse(url=BACKEND_REDIRECT_URI, status_code=302)
+        return RedirectResponse(
+            url=BACKEND_REDIRECT_URI, status_code=status.HTTP_302_FOUND
+        )
 
     except (
         TokenNotFoundError,
@@ -136,6 +141,19 @@ async def consume_magic_link(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error processing magic link: {e}")
+        raise
+
+
+@router.get("/check", response_model=AuthCheckResponse)
+async def check_auth(request: Request) -> AuthCheckResponse:
+    """Check if user is authenticated via session."""
+    try:
+        user_id = request.session.get("user_id")
+        return AuthCheckResponse(authenticated=bool(user_id))
+    except Exception:
+        logger.error(
+            f"Could not check authentication status of session: {request.session}"
+        )
         raise
 
 
