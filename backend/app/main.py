@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.auth.session import SESSION_CONFIG
+from app.auth.session import IS_LOCAL, SESSION_CONFIG
 from app.routers import (
     auth,
     canvas,
@@ -63,4 +63,6 @@ setup_telemetry()
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True, loop="uvloop")
+    uvicorn.run(
+        "app.main:app", host="0.0.0.0", port=8000, reload=IS_LOCAL, loop="uvloop"
+    )

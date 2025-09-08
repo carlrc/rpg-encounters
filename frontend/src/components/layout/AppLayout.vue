@@ -1,5 +1,11 @@
 <template>
-  <div class="app-container">
+  <!-- Auth pages get minimal container -->
+  <div v-if="!isAuthenticated" class="auth-app-container">
+    <slot />
+  </div>
+
+  <!-- Full app layout for authenticated users -->
+  <div v-else class="app-container">
     <!-- Page Header -->
     <header class="page-header custom-header">
       <div class="header-content custom-header-content">
@@ -8,29 +14,19 @@
           <h1 class="brand-title">RPG Encounters</h1>
         </div>
         <div class="header-actions">
-          <button
-            v-if="isAuthenticated"
-            class="instructions-button"
-            @click="showInstructions = true"
-          >
-            Instructions
-          </button>
-          <button v-if="isAuthenticated" class="logout-button" @click="handleLogout">Logout</button>
+          <button class="instructions-button" @click="showInstructions = true">Instructions</button>
+          <button class="logout-button" @click="handleLogout">Logout</button>
         </div>
       </div>
     </header>
 
-    <!-- World Tabs - only show when authenticated -->
-    <WorldTabs
-      v-if="isAuthenticated"
-      class="world-tabs-positioned"
-      @world-changed="handleWorldChange"
-    />
+    <!-- World Tabs -->
+    <WorldTabs class="world-tabs-positioned" @world-changed="handleWorldChange" />
 
     <!-- Main Layout -->
     <div class="main-layout">
-      <!-- Left Sidebar Navigation - only show when authenticated -->
-      <nav v-if="isAuthenticated" class="sidebar">
+      <!-- Left Sidebar Navigation -->
+      <nav class="sidebar">
         <router-link
           v-for="route in navigationRoutes"
           :key="route.path"
@@ -43,7 +39,7 @@
       </nav>
 
       <!-- Main Content Area -->
-      <main class="content-area" :class="{ 'full-width': !isAuthenticated }">
+      <main class="content-area">
         <!-- Success Toast -->
         <div v-if="successMessage" class="success-toast">
           {{ successMessage }}
@@ -54,11 +50,7 @@
     </div>
 
     <!-- Instructions Modal -->
-    <InstructionsModal
-      v-if="isAuthenticated"
-      :is-open="showInstructions"
-      @close="showInstructions = false"
-    />
+    <InstructionsModal :is-open="showInstructions" @close="showInstructions = false" />
   </div>
 </template>
 
@@ -119,6 +111,16 @@
 </script>
 
 <style scoped>
+  .auth-app-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-light);
+    overflow: hidden;
+  }
+
   .custom-header {
     padding: 0 !important;
   }

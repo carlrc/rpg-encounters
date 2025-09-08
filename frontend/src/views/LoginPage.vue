@@ -57,11 +57,10 @@
 
 <style scoped>
   .login-page {
-    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg-light);
+    width: 100%;
   }
 
   .login-container {

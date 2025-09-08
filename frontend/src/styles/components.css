@@ -11,8 +11,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  min-width: 320px;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: var(--font-weight-normal);
@@ -22,7 +22,7 @@ body {
 
 #app {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
 }
 
 /* ===== SHARED CARD SYSTEM ===== */
@@ -382,7 +382,7 @@ body {
 
 /* App Layout */
 .app-container {
-  min-height: 100vh;
+  height: 100%;
   background: var(--bg-light);
   display: flex;
   flex-direction: column;
@@ -423,7 +423,7 @@ body {
   display: flex;
   flex: 1;
   margin-left: 80px;
-  width: calc(100vw - 80px);
+  max-width: calc(100% - 80px);
 }
 
 .sidebar {
@@ -605,9 +605,21 @@ body {
 }
 
 /* Maintain desktop layout with horizontal scrolling instead of aggressive collapse */
-body {
-  min-width: 800px;
-  /* Prevent full layout collapse */
+/* Only apply min-width for tablets and smaller to prevent permanent scrollbars on desktop */
+@media (max-width: 1023px) {
+  html,
+  body {
+    min-width: 800px;
+    /* Prevent full layout collapse on tablets */
+  }
+}
+
+/* Add min-width for very small screens */
+@media (min-width: 320px) and (max-width: 1023px) {
+  html,
+  body {
+    min-width: 320px;
+  }
 }
 
 /* Only collapse to mobile layout for very small screens (small phones) */
@@ -651,7 +663,7 @@ body {
 
 @media (max-width: 1480px) {
   .main-layout {
-    max-width: calc(100vw - 80px);
+    max-width: calc(100% - 80px);
   }
 }
 

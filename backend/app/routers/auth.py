@@ -31,7 +31,7 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
-BACKEND_REDIRECT_URI = f"{FRONTEND_URL}/players"
+BACKEND_REDIRECT_URL = f"{FRONTEND_URL}/players"
 
 
 @router.post("/request")
@@ -128,7 +128,7 @@ async def consume_magic_link(
         request.session["user_id"] = magic_link.user_id
 
         return RedirectResponse(
-            url=BACKEND_REDIRECT_URI, status_code=status.HTTP_302_FOUND
+            url=BACKEND_REDIRECT_URL, status_code=status.HTTP_302_FOUND
         )
 
     except (
