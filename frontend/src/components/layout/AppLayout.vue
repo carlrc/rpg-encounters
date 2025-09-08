@@ -67,7 +67,6 @@
   import { useRoute, useRouter } from 'vue-router'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
-  import { useWorldStore } from '@/stores/world'
   import { logout } from '@/services/api'
   import logoUrl from '@/assets/images/logo.png'
 
@@ -75,11 +74,11 @@
   const router = useRouter()
   const successMessage = ref('')
   const showInstructions = ref(false)
-  const worldStore = useWorldStore()
 
   // Simple route-based authentication check
   const isAuthenticated = computed(() => {
-    return route.path !== '/login' && route.path !== '/auth'
+    const path = route.path
+    return path && path !== '/login' && path !== '/auth' && path !== '/'
   })
 
   // Get navigation routes from router configuration
@@ -111,8 +110,10 @@
     }
   }
 
-  const handleWorldChange = (worldId) => {
-    // Update the store directly - stores will handle their own reactive updates
+  const handleWorldChange = async (worldId) => {
+    // Lazy load world store to avoid accessing it on login page
+    const { useWorldStore } = await import('@/stores/world')
+    const worldStore = useWorldStore()
     worldStore.setCurrentWorldId(worldId)
   }
 </script>
@@ -186,7 +187,7 @@
   }
 
   .logout-button:hover {
-    color: var(--error-color);
+    color: var(--danger-color);
   }
 
   .content-area.full-width {

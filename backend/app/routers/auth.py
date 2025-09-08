@@ -70,7 +70,7 @@ async def request_magic_link(
         # TODO: Raw token would be emailed to users here
         if IS_LOCAL:
             # So you can login manually locally
-            logger.info(f"Login token {raw_token}")
+            logger.info(f"Login link {FRONTEND_URL}/auth?token={raw_token}")
             logger.info(f"Device nonce {device_nonce}")
 
         magic_link_data = MagicLinkCreate(

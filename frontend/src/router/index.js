@@ -9,6 +9,10 @@ import EncountersPage from '../views/EncountersPage.vue'
 
 const routes = [
   {
+    path: '/',
+    redirect: '/login',
+  },
+  {
     path: '/login',
     name: 'Login',
     component: LoginPage,

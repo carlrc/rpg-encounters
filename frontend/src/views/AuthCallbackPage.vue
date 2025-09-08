@@ -1,7 +1,7 @@
 <template>
   <div class="auth-callback-page">
     <div class="auth-container">
-      <div class="auth-card">
+      <div class="shared-card">
         <div class="auth-status">
           <p>Authenticating...</p>
           <div class="spinner"></div>
@@ -14,6 +14,7 @@
 <script setup>
   import { onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import '@/components/shared.css'
 
   const route = useRoute()
   const router = useRouter()
@@ -26,8 +27,11 @@
       return
     }
 
-    // Direct browser navigation - let the browser handle the 302 redirect
-    window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth?token=${encodeURIComponent(token)}`
+    // Add 2 second delay to show the spinner
+    setTimeout(() => {
+      // Direct browser navigation - let the browser handle the 302 redirect
+      window.location.href = `${import.meta.env.VITE_BACKEND_URL}/auth?token=${encodeURIComponent(token)}`
+    }, 2000)
   })
 </script>
 
@@ -44,14 +48,6 @@
     width: 100%;
     max-width: 400px;
     padding: var(--spacing-xl);
-  }
-
-  .auth-card {
-    background: var(--bg-white);
-    border-radius: var(--radius-xl);
-    padding: var(--spacing-xxl);
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border-light);
   }
 
   .auth-status {

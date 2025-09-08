@@ -120,20 +120,21 @@ export const requestMagicLink = async (email) => {
   if (res.status === 204) return null
   return res.json()
 }
-export const consumeMagicLink = (token) => http.get(`/auth?token=${encodeURIComponent(token)}`)
-export const logout = async () => {
-  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'content-type': 'application/json',
-    },
-  })
+export const consumeMagicLink = async (token) => {
+  // Use direct fetch to avoid world store access (this is only called from AuthCallbackPage)
+  const res = await fetch(
+    `${import.meta.env.VITE_BACKEND_URL}/auth?token=${encodeURIComponent(token)}`,
+    {
+      method: 'GET',
+      credentials: 'include',
+    }
+  )
 
+  // Any other status is an error
   if (!res.ok) {
     throw new Error(`HTTP error! status: ${res.status}`)
   }
 
-  if (res.status === 204) return null
   return res.json()
 }
+export const logout = () => http.post('/auth/logout')

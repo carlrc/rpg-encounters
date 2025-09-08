@@ -4,7 +4,6 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth.session import SESSION_CONFIG
@@ -61,11 +60,6 @@ app.include_router(voices.router)
 app.include_router(worlds.router)
 
 setup_telemetry()
-
-
-@app.get("/")
-async def root():
-    return RedirectResponse(url=f"{FRONTEND_URL}/players", status_code=302)
 
 
 if __name__ == "__main__":

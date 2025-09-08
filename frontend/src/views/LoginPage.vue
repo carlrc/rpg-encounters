@@ -1,22 +1,22 @@
 <template>
   <div class="login-page">
     <div class="login-container">
-      <div class="login-card">
-        <form v-if="!emailSent" @submit.prevent="handleSubmit" class="login-form">
+      <div class="shared-card">
+        <form v-if="!emailSent" @submit.prevent="handleSubmit" class="shared-form">
           <div class="form-group">
-            <label for="email" class="form-label">Email Address</label>
+            <label for="email" class="shared-field-label">Email Address</label>
             <input
               id="email"
               v-model="email"
               type="email"
               required
-              class="form-input"
+              class="shared-input"
               placeholder="Enter your email"
               :disabled="loading"
             />
           </div>
 
-          <button type="submit" class="submit-button" :disabled="loading || !email">
+          <button type="submit" class="shared-btn shared-btn-primary" :disabled="loading || !email">
             {{ loading ? 'Sending...' : 'Request Login Link' }}
           </button>
         </form>
@@ -33,6 +33,7 @@
 <script setup>
   import { ref } from 'vue'
   import { requestMagicLink } from '@/services/api'
+  import '@/components/shared.css'
 
   const email = ref('')
   const loading = ref(false)
@@ -69,69 +70,10 @@
     padding: var(--spacing-xl);
   }
 
-  .login-card {
-    background: var(--bg-white);
-    border-radius: var(--radius-xl);
-    padding: var(--spacing-xxl);
-    box-shadow: var(--shadow-card);
-    border: 1px solid var(--border-light);
-  }
-
-  .login-form {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-lg);
-  }
-
   .form-group {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-  }
-
-  .form-label {
-    font-weight: var(--font-weight-bold);
-    color: var(--text-label);
-    font-size: 0.85em;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-align: center;
-  }
-
-  .form-input {
-    padding: var(--spacing-md);
-    border: 1px solid var(--border-medium);
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-md);
-    width: 100%;
-    transition: border-color var(--transition-fast);
-  }
-
-  .form-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-  }
-
-  .submit-button {
-    padding: var(--spacing-md) var(--spacing-xl);
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
-    cursor: pointer;
-    transition: all var(--transition-fast);
-  }
-
-  .submit-button:hover:not(:disabled) {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-  }
-
-  .submit-button:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 
   .success-message {
