@@ -15,6 +15,7 @@ from app.db.models.reveal import RevealORM
 from app.db.models.connection import ConnectionORM
 from app.db.models.user import UserORM
 from app.db.models.world import WorldORM
+from app.db.models.account import AccountORM
 # Needs to be imported for sqlalchemy
 from app.db.models.influence import InfluenceORM  # noqa: F401
 from app.db.init_db import create_tables, drop_tables
@@ -114,6 +115,43 @@ async def seed_world_data(engine: AsyncEngine):
         raise
     except Exception as e:
         logger.error(f"Unexpected error creating world data: {e}")
+        raise
+
+async def seed_account_data(engine: AsyncEngine):
+    """Create account for testing user"""
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
+    
+    try:
+        async with AsyncSession() as session:
+            # Check if account already exists
+            result = await session.execute(select(AccountORM))
+            existing_account = result.scalars().first()
+            if existing_account:
+                logger.info("Account already exists. Skipping account creation.")
+                return
+            
+            # Get the user to associate with the account
+            result = await session.execute(select(UserORM))
+            user = result.scalars().first()
+            if not user:
+                logger.error("No user found. Cannot create account.")
+                raise Exception("No user found for account creation")
+            
+            # Create account with test email
+            account = AccountORM(
+                user_id=user.id,
+                email="test@example.com",
+                elevenlabs_token=None
+            )
+            session.add(account)
+            await session.flush()
+            await session.commit()
+            logger.info(f"Created account with email: test@example.com for user ID: {user.id}")
+    except SQLAlchemyError as e:
+        logger.error(f"Error creating account data: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error creating account data: {e}")
         raise
 
 async def seed_player_data(engine: AsyncEngine):
@@ -387,6 +425,7 @@ async def seed_all_data(engine: AsyncEngine):
         # Seed required user and world data first
         await seed_user_data(engine=engine)
         await seed_world_data(engine=engine)
+        await seed_account_data(engine=engine)
         
         # Seed in dependency order
         await seed_player_data(engine=engine)

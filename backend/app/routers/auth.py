@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.session import (
+    IS_LOCAL,
     SESSION_CONFIG,
     destroy_session,
 )
@@ -17,17 +18,17 @@ from app.data.magic_link_store import (
     TokenNotFoundError,
 )
 from app.db.connection import get_async_db_routes_session
+from app.dependencies import get_current_user_world
 from app.models.magic_link import (
     MagicLinkCreate,
     MagicLinkRequest,
 )
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(prefix="/api/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
 # System constants
 DEVICE_NONCE_COOKIE = "device_nonce"
-DEVICE_NONCE_MAX_AGE = 60 * 60 * 24 * 365  # 1 year
 BACKEND_REDIRECT_URI = "/players"
 
 # Error constants
@@ -60,12 +61,18 @@ async def request_magic_link(
             # But don't actually create a magic link
             return
 
-        # Generate new device nonce for strict device binding
         magic_link_store = MagicLinkStore(session=session)
+
+        # Generate new device nonce for strict device binding
         device_nonce = MagicLinkStore.generate_token()
 
         # Create magic link
         raw_token = MagicLinkStore.generate_token()
+
+        # TODO: Raw token would be emailed to users here
+        if IS_LOCAL:
+            # So you can login manually locally
+            logger.info(f"Login token {raw_token}")
 
         magic_link_data = MagicLinkCreate(
             user_id=account.user_id,
@@ -81,7 +88,7 @@ async def request_magic_link(
         response.set_cookie(
             key=DEVICE_NONCE_COOKIE,
             value=device_nonce,
-            max_age=DEVICE_NONCE_MAX_AGE,
+            max_age=SESSION_CONFIG.max_age,
             secure=SESSION_CONFIG.secure,
             httponly=SESSION_CONFIG.httponly,
             path="/",
@@ -137,7 +144,9 @@ async def consume_magic_link(
 
 
 @router.post("/logout")
-async def logout(request: Request):
+async def logout(
+    request: Request, _: tuple[int, int] = Depends(get_current_user_world)
+):
     """Logout by destroying the session"""
     destroy_session(request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

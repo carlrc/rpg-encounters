@@ -1,25 +1,30 @@
 import logging
-import os
 
+from dotenv import load_dotenv
 from fastapi import HTTPException, Request, status
 from pydantic import BaseModel, Field
 
+from app.utils import get_or_throw
+
 logger = logging.getLogger(__name__)
-is_local = os.getenv("ENVIRONMENT") != "local"
+
+
+# main.app loads session config before load, so re-declaring
+load_dotenv()
+
+IS_LOCAL = get_or_throw("ENVIRONMENT") == "local"
 
 
 # https://www.starlette.io/middleware/#sessionmiddleware
 class SessionConfig(BaseModel):
     secret_key: str = Field(
-        default_factory=lambda: os.getenv(
-            "SESSION_SECRET_KEY", "dev-secret-change-in-production"
-        ),
+        default_factory=lambda: get_or_throw("SESSION_SECRET_KEY"),
         frozen=True,
     )
     session_cookie_name: str = Field(default="session", frozen=True)
     max_age: int = Field(default=60 * 60 * 12, frozen=True)  # 12 hours
-    secure: bool = Field(default=not is_local, frozen=True)
-    httponly: bool = Field(default=not is_local, frozen=True)
+    secure: bool = Field(default=not IS_LOCAL, frozen=True)
+    httponly: bool = Field(default=not IS_LOCAL, frozen=True)
 
 
 # Global config instance

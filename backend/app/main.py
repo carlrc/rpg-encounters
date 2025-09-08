@@ -1,5 +1,4 @@
 import logging
-import os
 
 import uvicorn
 from dotenv import load_dotenv
@@ -22,6 +21,7 @@ from app.routers import (
     worlds,
 )
 from app.telemetry import setup_telemetry
+from app.utils import get_or_throw
 
 load_dotenv()
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="RPG Encounters")
 
-FRONTEND_URL = os.getenv("FRONTEND_URL")
+FRONTEND_URL = get_or_throw("FRONTEND_URL")
 
 app.add_middleware(
     CORSMiddleware,
