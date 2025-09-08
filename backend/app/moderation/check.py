@@ -56,6 +56,7 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
     if SKIP_MODERATION:
         return None
 
+    # Do not fail open (e.g., default to None)
     failover = ModerationResponse(id="default", model="failover")
     try:
         if MODERATION_REGEX.search(text):
@@ -64,7 +65,6 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
             )
             response = await OpenAIModerationClient().check(text=text)
             if not response.results:
-                # Do not fail open
                 return failover
             results = response.results[0]
             must_block = openai_illegal_flag(
@@ -77,7 +77,6 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
             return None
     except Exception as e:
         logger.error(f"Moderation pipeline failed: {e}")
-        # Do not fail open
         return failover
 
 
