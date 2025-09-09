@@ -17,28 +17,21 @@ const request = async (method, url, body, { signal } = {}) => {
     body: body ? JSON.stringify(body) : undefined,
   })
 
-  // Handle authentication based on response
   if (res.ok) {
-    // Successful response means user is authenticated
     authStore.setAuthenticated(true)
   } else if (res.status === 401 || res.status === 403) {
-    // Unauthorized means user is not authenticated
     authStore.setAuthenticated(false)
-  }
-
-  // Redirect to login on any 4xx error
-  if (res.status >= 400 && res.status < 500) {
-    // Don't redirect if already on login page
-    if (window.location.pathname !== '/login') {
+    // Use window.location for navigation to avoid circular imports
+    // Only redirect if not already on login/auth pages
+    const currentPath = window.location.pathname
+    if (currentPath !== '/login' && currentPath !== '/auth') {
       window.location.href = '/login'
     }
-    const error = new Error(`HTTP error! status: ${res.status}`)
-    throw error
   }
 
+  // Other client/server errors - let caller handle
   if (!res.ok) {
-    const error = new Error(`HTTP error! status: ${res.status}`)
-    throw error
+    throw new Error(`HTTP error! status: ${res.status}`)
   }
 
   if (res.status === 204) return null

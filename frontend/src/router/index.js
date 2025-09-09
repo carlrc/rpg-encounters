@@ -58,13 +58,18 @@ const router = createRouter({
 })
 
 // Navigation guard to check authentication
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
   // Allow public routes
   if (to.meta.public) {
     next()
     return
+  }
+
+  // Initialize auth if not already done
+  if (!authStore.isInitialized) {
+    await authStore.initializeAuth()
   }
 
   // Check authentication status
