@@ -10,3 +10,7 @@ services:
       - ./app:/app/app  # Mount code for hot reload
       - ./.env:/app/.env:ro  # Mount your local .env file
     user: root  # Override user for development to avoid permission issues with mounted volumes
+    networks:
+      - rpg-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
