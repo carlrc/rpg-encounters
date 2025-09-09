@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 import LoginPage from '../views/LoginPage.vue'
 import AuthCallbackPage from '../views/AuthCallbackPage.vue'
 import PlayersPage from '../views/PlayersPage.vue'
@@ -16,11 +17,13 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginPage,
+    meta: { public: true },
   },
   {
     path: '/auth',
     name: 'AuthCallback',
     component: AuthCallbackPage,
+    meta: { public: true },
   },
   {
     path: '/players',
@@ -52,6 +55,24 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// Navigation guard to check authentication
+router.beforeEach((to, _from, next) => {
+  const authStore = useAuthStore()
+
+  // Allow public routes
+  if (to.meta.public) {
+    next()
+    return
+  }
+
+  // Check authentication status
+  if (authStore.isAuthenticated) {
+    next()
+  } else {
+    next('/login')
+  }
 })
 
 export default router

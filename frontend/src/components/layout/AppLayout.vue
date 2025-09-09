@@ -65,21 +65,19 @@
 <script setup>
   import { computed, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { useAuthStore } from '@/stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
   import AppBanner from '../ui/AppBanner.vue'
   import { logout } from '@/services/api'
 
-  const route = useRoute()
   const router = useRouter()
+  const authStore = useAuthStore()
   const successMessage = ref('')
   const showInstructions = ref(false)
 
-  // Simple route-based authentication check
-  const isAuthenticated = computed(() => {
-    const path = route.path
-    return path && path !== '/login' && path !== '/auth' && path !== '/'
-  })
+  // Use auth store for authentication check
+  const isAuthenticated = computed(() => authStore.isAuthenticated === true)
 
   // Get navigation routes from router configuration
   const navigationRoutes = computed(() => {

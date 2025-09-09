@@ -1,8 +1,10 @@
 import { useWorldStore } from '@/stores/world'
+import { useAuthStore } from '@/stores/auth'
 
 const request = async (method, url, body, { signal } = {}) => {
   // Get current world ID from store
   const worldStore = useWorldStore()
+  const authStore = useAuthStore()
 
   const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}${url}`, {
     method,
@@ -14,6 +16,15 @@ const request = async (method, url, body, { signal } = {}) => {
     },
     body: body ? JSON.stringify(body) : undefined,
   })
+
+  // Handle authentication based on response
+  if (res.ok) {
+    // Successful response means user is authenticated
+    authStore.setAuthenticated(true)
+  } else if (res.status === 401 || res.status === 403) {
+    // Unauthorized means user is not authenticated
+    authStore.setAuthenticated(false)
+  }
 
   // Redirect to login on any 4xx error
   if (res.status >= 400 && res.status < 500) {

@@ -1,7 +1,6 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.rate_limiter import check_email_rate_limit
@@ -129,10 +128,6 @@ async def consume_magic_link(
 
         # Create session
         request.session["user_id"] = magic_link.user_id
-
-        return RedirectResponse(
-            url=BACKEND_REDIRECT_URL, status_code=status.HTTP_302_FOUND
-        )
 
     except (
         TokenNotFoundError,
