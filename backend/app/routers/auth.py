@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.rate_limiter import check_email_rate_limit
 from app.auth.session import (
     IS_LOCAL,
     SESSION_CONFIG,
@@ -46,6 +47,9 @@ async def request_magic_link(
     Sets device_nonce cookie for device binding.
     Returns empty 200 response to prevent user enumeration.
     """
+
+    if not await check_email_rate_limit(body.email):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     try:
         account = await AccountStore(user_id=None, session=session).get_by_email(
@@ -90,7 +94,6 @@ async def request_magic_link(
             max_age=SESSION_CONFIG.max_age,
             secure=SESSION_CONFIG.secure,
             httponly=SESSION_CONFIG.httponly,
-            path="/",
         )
 
     except Exception as e:
