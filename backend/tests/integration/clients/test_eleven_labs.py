@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-import os
 
 import pytest
 from dotenv import load_dotenv
 
 from app.clients.elevan_labs import ElevenLabs
+from app.utils import get_or_throw
 
 
 @pytest.fixture
 def eleven_labs_client():
     """Create an ElevenLabs client instance"""
     load_dotenv()
-    api_key = os.getenv("ELEVENLABS_API_KEY")
+    api_key = get_or_throw("ELEVENLABS_API_KEY")
     if not api_key:
         pytest.skip("ELEVENLABS_API_KEY not found in environment")
     return ElevenLabs(page_size=5)

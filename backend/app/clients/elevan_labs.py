@@ -1,11 +1,11 @@
 import logging
-import os
 from enum import Enum
 from typing import AsyncGenerator
 
 import httpx
 
 from app.clients.tts_base import TTSProvider, VoicesResponse
+from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class VoiceType(Enum):
 class ElevenLabs(TTSProvider):
     def __init__(self, page_size: int = 40):
         super().__init__()
-        self.api_key = os.getenv("ELEVENLABS_API_KEY")
+        self.api_key = get_or_throw("ELEVENLABS_API_KEY")
         self.base_url = "https://api.elevenlabs.io"
         self.output_format = "mp3_44100_128"
         self.model = "eleven_flash_v2_5"

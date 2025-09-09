@@ -8,7 +8,7 @@ from app.db.connection import get_async_db_session
 class BaseStore:
     def __init__(
         self,
-        user_id: int,
+        user_id: int | None,
         world_id: int | None = None,
         session: AsyncSession | None = None,
     ):

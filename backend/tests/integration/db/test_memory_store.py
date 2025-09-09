@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-import os
 
 from app.data.character_store import CharacterStore
 from app.data.memory_store import MemoryStore
 from app.db.connection import get_async_db_session
 from app.models.character import CharacterCreate
 from app.models.memory import MemoryCreate, MemoryUpdate
+from app.utils import get_or_throw
 from tests.fixtures.generate import default_character
 
 
 async def test_memory_store():
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
     async with get_async_db_session(url) as session:
         character_store = CharacterStore(user_id=1, world_id=1, session=session)
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class AccountStore(BaseStore):
-    def __init__(self, user_id: int, session: AsyncSession = None):
+    def __init__(self, user_id: int | None, session: AsyncSession = None):
         super().__init__(user_id=user_id, world_id=None, session=session)
 
     async def create(self, account_data: AccountCreate) -> Account:
@@ -52,6 +52,18 @@ class AccountStore(BaseStore):
                 return Account.model_validate(account) if account else None
         except SQLAlchemyError as e:
             logger.error(f"Error getting account by user {user_id}: {e}")
+            raise
+
+    async def get_by_email(self, email: str) -> Account | None:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(AccountORM).where(AccountORM.email == email)
+                )
+                account = result.scalar_one_or_none()
+                return Account.model_validate(account) if account else None
+        except SQLAlchemyError as e:
+            logger.error(f"Error getting account by email {email}: {e}")
             raise
 
     async def get_all(self) -> List[Account]:

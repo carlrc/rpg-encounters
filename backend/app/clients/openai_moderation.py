@@ -1,10 +1,11 @@
 import logging
-import os
 from typing import List
 
 import httpx
 from langfuse import observe
 from pydantic import BaseModel, Field
+
+from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,10 @@ class ModerationResponse(BaseModel):
     results: List[ModerationResult] | None = None
 
 
-def openai_flag(categories: Categories) -> bool:
+OPEN_AI_MODERATION_THRESHOLD = float(get_or_throw("OPEN_AI_MODERATION_THRESHOLD"))
+
+
+def openai_illegal_flag(categories: Categories) -> bool:
     is_illegal = (
         categories.sexual_minors
         or categories.self_harm
@@ -123,24 +127,11 @@ def openai_flag(categories: Categories) -> bool:
     return is_illegal or is_sexually_violent
 
 
-def openai_scores(scores: CategoryScores, breach_threshold: float) -> bool:
-    # Enforce lower threshold than OpenAI flags
-    def breach(score: float) -> bool:
-        return score > breach_threshold
-
-    should_block = breach(scores.violence) and (
-        breach(scores.violence_graphic)
-        or breach(scores.hate)
-        or breach(scores.harassment_threatening)
-        or breach(scores.self_harm)
-        or breach(scores.self_harm_intent)
-        or breach(scores.self_harm_instructions)
-    )
-
-    return should_block
+def openai_score(score: float) -> bool:
+    return score > OPEN_AI_MODERATION_THRESHOLD
 
 
-def openai_scores_minors(score: float) -> bool:
+def openai_minors_score(score: float) -> bool:
     # Enforce extremely low threshold on this category in case OpenAI flags don't
     return score > 0.1
 
@@ -149,10 +140,7 @@ class OpenAIModerationClient:
     """Client for OpenAI's content moderation API"""
 
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
-
+        self.api_key = get_or_throw("OPENAI_API_KEY")
         self.base_url = "https://api.openai.com/v1"
 
     @observe(capture_input=False, capture_output=False)

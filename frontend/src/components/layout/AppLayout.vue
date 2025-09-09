@@ -1,19 +1,34 @@
 <template>
-  <div class="app-container">
+  <!-- Auth pages get minimal container -->
+  <div v-if="!isAuthenticated" class="auth-app-container">
+    <!-- Page Header for auth pages -->
+    <header class="page-header custom-header">
+      <div class="header-content custom-header-content">
+        <AppBanner />
+        <div class="header-actions">
+          <!-- Empty space for alignment -->
+        </div>
+      </div>
+    </header>
+    <div class="auth-content">
+      <slot />
+    </div>
+  </div>
+
+  <!-- Full app layout for authenticated users -->
+  <div v-else class="app-container">
     <!-- Page Header -->
     <header class="page-header custom-header">
       <div class="header-content custom-header-content">
-        <div class="brand-section">
-          <img :src="logoUrl" alt="RPG Encounters Logo" class="logo" />
-          <h1 class="brand-title">RPG Encounters</h1>
-        </div>
+        <AppBanner />
         <div class="header-actions">
           <button class="instructions-button" @click="showInstructions = true">Instructions</button>
+          <button class="logout-button" @click="handleLogout">Logout</button>
         </div>
       </div>
     </header>
 
-    <!-- World Tabs positioned in left margin -->
+    <!-- World Tabs -->
     <WorldTabs class="world-tabs-positioned" @world-changed="handleWorldChange" />
 
     <!-- Main Layout -->
@@ -50,22 +65,25 @@
 <script setup>
   import { computed, ref } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { useAuthStore } from '@/stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
-  import { useWorldStore } from '@/stores/world'
-  import logoUrl from '@/assets/images/logo.png'
+  import AppBanner from '../ui/AppBanner.vue'
+  import { logout } from '@/services/api'
 
-  const route = useRoute()
   const router = useRouter()
+  const authStore = useAuthStore()
   const successMessage = ref('')
   const showInstructions = ref(false)
-  const worldStore = useWorldStore()
+
+  // Use auth store for authentication check
+  const isAuthenticated = computed(() => authStore.isAuthenticated === true)
 
   // Get navigation routes from router configuration
   const navigationRoutes = computed(() => {
     return router
       .getRoutes()
-      .filter((route) => route.name && route.path !== '/')
+      .filter((route) => route.name && route.path !== '/login' && route.path !== '/auth')
       .map((route) => ({
         path: route.path,
         name: route.name,
@@ -79,13 +97,43 @@
     }, 1500)
   }
 
-  const handleWorldChange = (worldId) => {
-    // Update the store directly - stores will handle their own reactive updates
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Force redirect anyway
+      window.location.href = '/login'
+    }
+  }
+
+  const handleWorldChange = async (worldId) => {
+    // Lazy load world store to avoid accessing it on login page
+    const { useWorldStore } = await import('@/stores/world')
+    const worldStore = useWorldStore()
     worldStore.setCurrentWorldId(worldId)
   }
 </script>
 
 <style scoped>
+  .auth-app-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-light);
+    overflow: hidden;
+  }
+
+  .auth-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
   .custom-header {
     padding: 0 !important;
   }
@@ -96,26 +144,6 @@
     max-width: none !important;
     padding-left: var(--spacing-md) !important;
     padding-right: var(--spacing-md) !important;
-  }
-
-  .brand-section {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xl);
-  }
-
-  .logo {
-    height: 60px !important;
-    width: auto;
-    flex-shrink: 0;
-  }
-
-  .brand-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin: 0;
-    white-space: nowrap;
   }
 
   .header-actions {
@@ -140,20 +168,30 @@
     color: var(--color-text-secondary);
   }
 
+  .logout-button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-left: var(--spacing-lg);
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .logout-button:hover {
+    color: var(--danger-color);
+  }
+
+  .content-area.full-width {
+    margin-left: 0;
+    max-width: 100%;
+  }
+
   /* Tablet-specific navigation optimizations - maintain desktop layout */
   @media (min-width: 481px) and (max-width: 1023px) {
-    .brand-section {
-      gap: var(--spacing-lg);
-    }
-
-    .brand-title {
-      font-size: 1.35rem; /* Responsive but not mobile-collapsed */
-    }
-
-    .logo {
-      height: 55px !important;
-    }
-
     .main-layout {
       margin-left: 70px; /* Maintain sidebar space */
       min-width: 800px; /* Prevent layout collapse */
@@ -174,14 +212,6 @@
 
   /* Only collapse to mobile layout for very small screens */
   @media (max-width: 480px) {
-    .brand-title {
-      font-size: 1.25rem;
-    }
-
-    .logo {
-      height: 50px !important;
-    }
-
     .main-layout {
       margin-left: 0;
       min-width: unset; /* Allow collapse only on very small screens */

@@ -6,25 +6,26 @@ readme = "README.md"
 requires-python = "==3.11.13"
 dependencies = [
     "uvicorn[standard]==0.35.0",
-    "fastapi==0.116.0",
+    "fastapi==0.116.1",
     "openai-whisper==20250625",
     "elevenlabs==2.7.1",
     "python-dotenv==1.1.1",
-    "ollama==0.5.1",
-    "pydantic-ai==0.8.1",
+    "pydantic-ai==1.0.1",
+    "pydantic[email]==2.11.7",
     "pre-commit==4.2.0",
     "torch==2.7.1",
     "torchaudio==2.7.1",
     "torchvision==0.22.1",
     "SQLAlchemy[asyncio]==2.0.43",
     "python-jose[cryptography]==3.5.0",
-    "langfuse==3.3.0",
+    "langfuse==3.3.4",
     "Jinja2==3.1.6",
     "httpx==0.28.1",
     "uvloop==0.21.0",
     "httptools==0.6.4",
     "asyncpg==0.30",
-    "google-cloud-texttospeech==2.28.0"
+    "google-cloud-texttospeech==2.29.0",
+    "itsdangerous==2.2.0"
 ]
 
 [tool.uv]

@@ -1,5 +1,4 @@
 import logging
-import os
 import random
 import re
 from functools import lru_cache
@@ -11,17 +10,17 @@ from langfuse import observe
 from app.clients.openai_moderation import (
     ModerationResponse,
     OpenAIModerationClient,
-    openai_flag,
-    openai_scores,
-    openai_scores_minors,
+    openai_illegal_flag,
+    openai_minors_score,
+    openai_score,
 )
 from app.models.character import CharacterCreate, CharacterUpdate
+from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
 
 # Environment variable to skip moderation checks entirely
-SKIP_MODERATION = os.getenv("SKIP_MODERATION", "false").lower() == "true"
-OPEN_AI_MODERATION_THRESHOLD = float(os.getenv("OPEN_AI_MODERATION_THRESHOLD", 0.4))
+SKIP_MODERATION = get_or_throw("SKIP_MODERATION").lower() == "true"
 INAPPROPRIATE_CONTENT_DEFAULT = "INAPPROPRIATE_CONTENT"
 
 
@@ -57,31 +56,27 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
     if SKIP_MODERATION:
         return None
 
+    # Do not fail open (e.g., default to None)
     failover = ModerationResponse(id="default", model="failover")
     try:
         if MODERATION_REGEX.search(text):
             logger.warning(
-                f"Moderation flag triggered for user {user_id}. Checking with OpenAI..."
+                f"Moderation flag triggered for user {user_id}. Checking moderation service..."
             )
             response = await OpenAIModerationClient().check(text=text)
             if not response.results:
-                # Do not fail open
                 return failover
             results = response.results[0]
-            must_block = openai_flag(
+            must_block = openai_illegal_flag(
                 categories=results.categories
-            ) or openai_scores_minors(results.category_scores.sexual_minors)
-            should_block = openai_scores(
-                scores=results.category_scores,
-                breach_threshold=OPEN_AI_MODERATION_THRESHOLD,
-            )
+            ) or openai_minors_score(results.category_scores.sexual_minors)
+            should_block = openai_score(results.category_scores.sexual)
 
             return response if (must_block or should_block) else None
         else:
             return None
     except Exception as e:
         logger.error(f"Moderation pipeline failed: {e}")
-        # Do not fail open
         return failover
 
 

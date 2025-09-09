@@ -21,6 +21,7 @@ from app.db.models.connection import ConnectionORM  # noqa: F401
 from app.db.models.conversation import ConversationORM  # noqa: F401
 from app.db.models.encounter import EncounterORM  # noqa: F401
 from app.db.models.influence import InfluenceORM  # noqa: F401
+from app.db.models.magic_link import MagicLinkORM  # noqa: F401
 from app.db.models.memory import MemoryORM  # noqa: F401
 from app.db.models.moderation import ModerationORM  # noqa: F401
 from app.db.models.player import PlayerORM  # noqa: F401

@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS
 from app.db.limits import (
@@ -12,52 +12,58 @@ from app.db.limits import (
     REVEAL_CONTENT_LIMIT,
     TITLE_LIMIT,
 )
+from app.dependencies import get_current_user_world
 from app.models.alignment import VALID_ALIGNMENTS
 from app.models.character import CommunicationStyle
 from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
+from app.models.game import (
+    DefaultThresholds,
+    GameDataResponse,
+    SizeOptions,
+    ThresholdLimits,
+    ValidationLimits,
+)
 from app.models.race import VALID_RACES, VALID_SIZES
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, DifficultyClass, RevealLayer
 
 router = APIRouter(prefix="/api/game", tags=["games"])
 
 
-@router.get("/")
-def get_game_data():
+@router.get("/", response_model=GameDataResponse)
+def get_game_data(
+    _: tuple[int, int] = Depends(get_current_user_world),
+) -> GameDataResponse:
     """Get all game data constants for frontend caching"""
-    return {
-        "races": VALID_RACES,
-        "classes": VALID_CLASSES,
-        "alignments": VALID_ALIGNMENTS,
-        "skills": VALID_SKILLS,
-        "communication_styles": [style.value for style in CommunicationStyle],
-        "sizes": {
-            "player": VALID_SIZES,
-            "character": VALID_SIZES + ["Large"],
-        },
-        "difficulty_classes": {dc.name: dc.value for dc in DifficultyClass},
-        "default_thresholds": {
-            "standard": REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD],
-            "privileged": REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED],
-            "exclusive": REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE],
-        },
-        "validation_limits": {
-            # All limits are character-based
-            "name": NAME_LIMIT,
-            "player_appearance": PLAYER_APPEARANCE_MAX_LIMIT,
-            "character_profession": CHARACTER_PROFESSION_LIMIT,
-            "character_background": CHARACTER_BACKGROUND_LIMIT,
-            "character_communication": CHARACTER_COMMUNICATION_LIMIT,
-            "character_motivation": CHARACTER_MOTIVATION_LIMIT,
-            "memory_title": TITLE_LIMIT,
-            "memory_content": MEMORY_CONTENT_LIMIT,
-            "reveal_title": TITLE_LIMIT,
-            "reveal_content": REVEAL_CONTENT_LIMIT,
-        },
-        "threshold_limits": {
-            "min": DifficultyClass.ALWAYS.value,
-            "max": DifficultyClass.NEARLY_IMPOSSIBLE.value,
-            "step": 5,
-            "min_gap": 5,
-        },
-        "tts_providers": [GOOGLE_TTS, ELEVANLABS_TTS],
-    }
+    return GameDataResponse(
+        races=VALID_RACES,
+        classes=VALID_CLASSES,
+        alignments=VALID_ALIGNMENTS,
+        skills=VALID_SKILLS,
+        communication_styles=[style.value for style in CommunicationStyle],
+        sizes=SizeOptions(player=VALID_SIZES, character=VALID_SIZES + ["Large"]),
+        difficulty_classes={dc.name: dc.value for dc in DifficultyClass},
+        default_thresholds=DefaultThresholds(
+            standard=REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD],
+            privileged=REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED],
+            exclusive=REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE],
+        ),
+        validation_limits=ValidationLimits(
+            name=NAME_LIMIT,
+            player_appearance=PLAYER_APPEARANCE_MAX_LIMIT,
+            character_profession=CHARACTER_PROFESSION_LIMIT,
+            character_background=CHARACTER_BACKGROUND_LIMIT,
+            character_communication=CHARACTER_COMMUNICATION_LIMIT,
+            character_motivation=CHARACTER_MOTIVATION_LIMIT,
+            memory_title=TITLE_LIMIT,
+            memory_content=MEMORY_CONTENT_LIMIT,
+            reveal_title=TITLE_LIMIT,
+            reveal_content=REVEAL_CONTENT_LIMIT,
+        ),
+        threshold_limits=ThresholdLimits(
+            min=DifficultyClass.ALWAYS.value,
+            max=DifficultyClass.NEARLY_IMPOSSIBLE.value,
+            step=5,
+            min_gap=5,
+        ),
+        tts_providers=[GOOGLE_TTS, ELEVANLABS_TTS],
+    )

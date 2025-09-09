@@ -85,3 +85,45 @@ export const getAllVoices = async (ttsProvider = 'google') => {
   const response = await searchVoices('en', ttsProvider)
   return response.voices || []
 }
+
+// Auth operations - use fetch directly to avoid world store dependency
+export const checkAuth = async () => {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/check`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+    },
+  })
+
+  return res.ok
+}
+
+export const requestMagicLink = async (email) => {
+  const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/request`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`)
+  }
+
+  if (res.status === 204) return null
+  return res.json()
+}
+export const consumeMagicLink = async (token) => {
+  // Use direct fetch to avoid world store access (this is only called from AuthCallbackPage)
+  return await fetch(
+    `${import.meta.env.VITE_BACKEND_URL}/auth?token=${encodeURIComponent(token)}`,
+    {
+      method: 'GET',
+      credentials: 'include',
+    }
+  )
+}
+export const logout = () => http.post('/auth/logout')

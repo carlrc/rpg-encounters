@@ -1,9 +1,9 @@
 import logging
-import os
 
 from google.cloud import texttospeech
 
 from app.clients.tts_base import TTSProvider, Voice, VoiceLabels, VoicesResponse
+from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ class GoogleCloudTTS(TTSProvider):
     def __init__(self):
         super().__init__()
         self.client = texttospeech.TextToSpeechAsyncClient(
-            client_options={"api_key": os.getenv("GOOGLE_CLOUD_TTS_API_KEY")}
+            client_options={"api_key": get_or_throw("GOOGLE_CLOUD_TTS_API_KEY")}
         )
 
     async def text_to_speech_stream(self, text: str, voice_id: str):

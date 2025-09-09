@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
@@ -11,10 +10,11 @@ from app.models.encounter_connection import (
     ConnectionUpdate,
     EdgeType,
 )
+from app.utils import get_or_throw
 
 
 async def test_connection_store():
-    url = os.getenv("TEST_DATABASE_URL")
+    url = get_or_throw("TEST_DATABASE_URL")
     async with get_async_db_session(url) as session:
         encounter_store = EncounterStore(user_id=1, world_id=1, session=session)
 

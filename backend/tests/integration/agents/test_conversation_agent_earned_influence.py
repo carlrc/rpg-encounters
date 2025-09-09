@@ -43,8 +43,6 @@ DEPENDENCIES = ConversationAgentDeps(
     telemetry=lambda: None,
 )
 
-CONVERSATION_STORE = AsyncMock()
-
 BASE_TEMPLATE_CONTEXT = {
     "max_response_length": MAX_RESPONSE_WORD_LENGTH,
     "character": CHARACTER,
@@ -57,20 +55,27 @@ BASE_TEMPLATE_CONTEXT = {
 RENDERED_SYSTEM_PROMPT = render_prompt("conversation_agent", BASE_TEMPLATE_CONTEXT)
 RENDERED_INSTRUCTIONS = render_prompt_section("memories_reveals", BASE_TEMPLATE_CONTEXT)
 
-INFLUENCE_CALCULATOR_AGENT = InfluenceCalculatorAgent(
-    system_prompt=render_prompt(
-        "influence_scoring_agent",
-        {"character": CHARACTER, "player": PLAYER, "encounter": CONTEXT.encounter},
+
+def create_influence_calculator_agent(character=None, player=None, encounter=None):
+    """Create a new InfluenceCalculatorAgent instance for each test."""
+    return InfluenceCalculatorAgent(
+        system_prompt=render_prompt(
+            "influence_scoring_agent",
+            {
+                "character": character or CHARACTER,
+                "player": player or PLAYER,
+                "encounter": encounter or CONTEXT.encounter,
+            },
+        )
     )
-)
 
 
 async def test_personality_based_earned_influence_respects_standard_level():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
-        conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
+        conversation_store=AsyncMock(),
+        influence_calculator_agent=create_influence_calculator_agent(),
     )
 
     _, level, _ = await agent.chat(
@@ -85,8 +90,8 @@ async def test_personality_based_earned_influence_respects_privileged_level():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
-        conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
+        conversation_store=AsyncMock(),
+        influence_calculator_agent=create_influence_calculator_agent(),
     )
 
     # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
@@ -111,8 +116,8 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
     agent = ConversationAgent(
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
-        conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
+        conversation_store=AsyncMock(),
+        influence_calculator_agent=create_influence_calculator_agent(),
     )
 
     updated_context = CONTEXT.model_copy(update={"influence": influence})
@@ -149,16 +154,9 @@ async def test_personality_based_earned_influence_can_be_negative():
     agent = ConversationAgent(
         system_prompt=rendered_system_prompt,
         instructions=rendered_instructions,
-        conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=InfluenceCalculatorAgent(
-            system_prompt=render_prompt(
-                "influence_scoring_agent",
-                {
-                    "character": CHARACTER,
-                    "player": opposing_player,
-                    "encounter": CONTEXT.encounter,
-                },
-            )
+        conversation_store=AsyncMock(),
+        influence_calculator_agent=create_influence_calculator_agent(
+            character=CHARACTER, player=opposing_player, encounter=CONTEXT.encounter
         ),
     )
 
@@ -215,8 +213,8 @@ async def test_conversation_agent_handles_multiple_reveals():
     agent = ConversationAgent(
         system_prompt=rendered_system_prompt,
         instructions=rendered_instructions,
-        conversation_store=CONVERSATION_STORE,
-        influence_calculator_agent=INFLUENCE_CALCULATOR_AGENT,
+        conversation_store=AsyncMock(),
+        influence_calculator_agent=create_influence_calculator_agent(),
     )
 
     garden_keywords = ["vandalizing", "garden", "foreigner", "Merry"]

@@ -1,4 +1,4 @@
-from app.clients.openai_moderation import Categories, openai_flag
+from app.clients.openai_moderation import Categories, openai_illegal_flag
 
 # Base safe categories - all False
 # Using a dict with proper field names/aliases to create the model
@@ -26,7 +26,7 @@ def test_flag_blocks_sexual_minors():
     categories = SAFE_CATEGORIES.model_copy()
     categories.sexual_minors = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_self_harm():
@@ -34,7 +34,7 @@ def test_flag_blocks_self_harm():
     categories = SAFE_CATEGORIES.model_copy()
     categories.self_harm = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_self_harm_intent():
@@ -42,7 +42,7 @@ def test_flag_blocks_self_harm_intent():
     categories = SAFE_CATEGORIES.model_copy()
     categories.self_harm_intent = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_self_harm_instructions():
@@ -50,7 +50,7 @@ def test_flag_blocks_self_harm_instructions():
     categories = SAFE_CATEGORIES.model_copy()
     categories.self_harm_instructions = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_hate_threatening():
@@ -58,14 +58,14 @@ def test_flag_blocks_hate_threatening():
     categories = SAFE_CATEGORIES.model_copy()
     categories.hate_threatening = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_allows_safe_content():
     """Test that safe content is not blocked"""
     categories = SAFE_CATEGORIES.model_copy()
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_rpg_violence():
@@ -73,7 +73,7 @@ def test_flag_allows_rpg_violence():
     categories = SAFE_CATEGORIES.model_copy()
     categories.violence = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_graphic_violence():
@@ -81,7 +81,7 @@ def test_flag_allows_graphic_violence():
     categories = SAFE_CATEGORIES.model_copy()
     categories.violence_graphic = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_sexual_content():
@@ -89,7 +89,7 @@ def test_flag_allows_sexual_content():
     categories = SAFE_CATEGORIES.model_copy()
     categories.sexual = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_mild_harassment():
@@ -97,7 +97,7 @@ def test_flag_allows_mild_harassment():
     categories = SAFE_CATEGORIES.model_copy()
     categories.harassment = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_harassment_threatening():
@@ -105,7 +105,7 @@ def test_flag_allows_harassment_threatening():
     categories = SAFE_CATEGORIES.model_copy()
     categories.harassment_threatening = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_non_threatening_hate():
@@ -113,7 +113,7 @@ def test_flag_allows_non_threatening_hate():
     categories = SAFE_CATEGORIES.model_copy()
     categories.hate = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_blocks_multiple_violations():
@@ -123,7 +123,7 @@ def test_flag_blocks_multiple_violations():
     categories.sexual_minors = True
     categories.hate_threatening = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_with_should_block_logic():
@@ -132,7 +132,7 @@ def test_flag_blocks_with_should_block_logic():
     categories.self_harm = True
     categories.violence = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_with_harassment_threatening_should_block():
@@ -141,7 +141,7 @@ def test_flag_blocks_with_harassment_threatening_should_block():
     categories.sexual_minors = True
     categories.harassment_threatening = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_with_violence_graphic_should_block():
@@ -150,7 +150,7 @@ def test_flag_blocks_with_violence_graphic_should_block():
     categories.hate_threatening = True
     categories.violence_graphic = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_blocks_violence_harassment_sexual_combination():
@@ -160,7 +160,7 @@ def test_flag_blocks_violence_harassment_sexual_combination():
     categories.harassment = True
     categories.sexual = True
 
-    assert openai_flag(categories) is True
+    assert openai_illegal_flag(categories) is True
 
 
 def test_flag_allows_violence_harassment_without_sexual():
@@ -169,7 +169,7 @@ def test_flag_allows_violence_harassment_without_sexual():
     categories.violence = True
     categories.harassment = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_violence_sexual_without_harassment():
@@ -178,7 +178,7 @@ def test_flag_allows_violence_sexual_without_harassment():
     categories.violence = True
     categories.sexual = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False
 
 
 def test_flag_allows_harassment_sexual_without_violence():
@@ -187,4 +187,4 @@ def test_flag_allows_harassment_sexual_without_violence():
     categories.harassment = True
     categories.sexual = True
 
-    assert openai_flag(categories) is False
+    assert openai_illegal_flag(categories) is False

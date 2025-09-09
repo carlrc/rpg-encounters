@@ -1,13 +1,11 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
 
 class AccountBase(BaseModel):
     email: str
-    token: Optional[str] = None
-    elevenlabs_token: Optional[str] = None
+    elevenlabs_token: str | None = None
 
 
 class AccountCreate(AccountBase):
@@ -15,9 +13,8 @@ class AccountCreate(AccountBase):
 
 
 class AccountUpdate(BaseModel):
-    email: Optional[str] = None
-    token: Optional[str] = None
-    elevenlabs_token: Optional[str] = None
+    email: str | None = None
+    elevenlabs_token: str | None = None
 
 
 class Account(AccountBase):

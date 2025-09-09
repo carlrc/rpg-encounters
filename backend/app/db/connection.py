@@ -1,10 +1,11 @@
 import logging
-import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.utils import get_or_throw
 
 load_dotenv()
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 USERS_TABLE = "users"
 ACCOUNTS_TABLE = "accounts"
+MAGIC_LINKS_TABLE = "magic_links"
 MODERATIONS_TABLE = "moderations"
 PLAYERS_TABLE = "players"
 CHARACTERS_TABLE = "characters"
@@ -23,7 +25,7 @@ CONNECTIONS_TABLE = "connections"
 WORLDS_TABLE = "worlds"
 CONVERSATIONS_TABLE = "conversations"
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = get_or_throw("DATABASE_URL")
 
 
 def get_async_db_engine():
