@@ -3,33 +3,24 @@
 ## Magic Link Authentication Flow
 
 ### 1. Request Magic Link
-- **Route**: `POST /auth/request`
-- **Input**: Email address + redirect URL
+- **Route**: `POST /api/auth/request`
+- **Input**: Email address
 - **Process**:
+  - Rate limits: 2 requests per 10 minutes per email
   - Validates email exists in accounts table
-  - Generates device nonce cookie (for device binding)
-  - Creates magic link with SHA-256 hashed token
-  - Returns success (no user enumeration)
+  - Generates 32-byte URL-safe tokens (magic link + device nonce)
+  - Stores SHA-256 hashed tokens in database
+  - Sets device nonce cookie for device binding
+  - Returns 200 regardless of email validity (prevents user enumeration)
 
 ### 2. Consume Magic Link
-- **Route**: `POST /auth/consume`  
-- **Input**: Magic link token
+- **Route**: `GET /api/auth` 
+- **Input**: Magic link token (query parameter)
 - **Process**:
-  - Validates device nonce cookie matches
-  - Atomically validates + consumes token
-  - Creates authenticated session
-  - Returns redirect URL
+  - Validates device nonce cookie matches stored hash
+  - Atomically validates + consumes token (row-level locking)
+  - Creates authenticated session with user_id
+  - Handles specific error cases (expired, used, device mismatch)
 
 ### 3. Session Management
-- **Cookie-based sessions** using FastAPI SessionMiddleware
-- **7-day expiry** with automatic cleanup
-- **Secure defaults**: httpOnly, secure, SameSite=lax
-
-## Key Security Features
-
-- **Token Hashing**: Raw tokens never stored, only SHA-256 hashes
-- **Device Binding**: Soft binding via device nonce cookies
-- **Single Use**: Tokens consumed atomically, prevent race conditions
-- **No User Enumeration**: Same response for existing/non-existing emails
-- **Open Redirect Protection**: Only relative URLs allowed
-- **10-minute Expiry**: Magic links expire quickly
+- **Cookie-based sessions** using [Starlette SessionMiddleware](# https://www.starlette.io/middleware/#sessionmiddleware)
