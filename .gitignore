@@ -209,3 +209,6 @@ __marimo__/
 
 # System
 .DS_STORE
+
+# LLMs
+.claude
