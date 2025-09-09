@@ -1,3 +1,0 @@
-include:
-  - ../langfuse/docker-compose.yml
-  - backend/docker-compose.yml 

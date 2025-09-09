@@ -5,13 +5,13 @@ from app.utils import get_or_throw
 
 GOOGLE_TTS = "google"
 ELEVANLABS_TTS = "elevanlabs"
-TTS_PROVIDER = get_or_throw("TTS_PROVIDER")
+DEFAULT_TTS_PROVIDER = get_or_throw("DEFAULT_TTS_PROVIDER")
 
 
 def create_tts_provider(provider: str) -> TTSProvider:
     """Factory function to create TTS provider instances"""
 
-    service = provider if provider else TTS_PROVIDER
+    service = provider if provider else DEFAULT_TTS_PROVIDER
 
     if service == GOOGLE_TTS:
         return GoogleCloudTTS()

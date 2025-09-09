@@ -13,6 +13,7 @@ from app.routers import (
     characters,
     encounters,
     game,
+    health,
     memories,
     players,
     reveals,
@@ -48,6 +49,7 @@ app.add_middleware(
     https_only=SESSION_CONFIG.secure,
 )
 
+app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(players.router)
 app.include_router(characters.router)
