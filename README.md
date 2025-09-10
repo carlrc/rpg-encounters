@@ -7,7 +7,7 @@
 Launch backend services
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+sudo docker compose -f docker-compose.dev.yml up
 ```
 
 Stop backend services

@@ -33,9 +33,9 @@ if ! blkid "$DEV" >/dev/null 2>&1; then
   mkfs.xfs "$DEV"
 fi
 mount "$DEV" /data
-mkdir -p /data/postgres
-chown 999:999 /data/postgres
-chmod 700 /data/postgres
+mkdir -p "${POSTGRES_DATA_PATH}"
+chown 999:999 "${POSTGRES_DATA_PATH}"
+chmod 700 "${POSTGRES_DATA_PATH}"
 
 # --- App workspace and env ---
 mkdir -p /app
