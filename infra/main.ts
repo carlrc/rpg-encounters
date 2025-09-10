@@ -156,12 +156,14 @@ class EncountersApplicationStack extends TerraformStack {
     new S3Backend(this, {
       bucket: `rpg-encounters-state`,
       key: "terraform.tfstate",
+      region: REGION,
     });
 
     // -------- VPC (public subnets) and Security Group ----------
     const vpc = new Vpc(this, "vpc", {
       name: `${resource_prefix}-public`,
       cidr: "10.0.0.0/16",
+      azs: ["eu-central-1a"],
       publicSubnets: ["10.0.101.0/24"],
       enableNatGateway: false,
     });
@@ -255,7 +257,6 @@ class EncountersApplicationStack extends TerraformStack {
         arn: instanceProfile.arn
       },
       vpcSecurityGroupIds: [ec2Sg.id],
-      userData: userDataBase64,
     });
 
     const ec2 = new Instance(this, "app-ec2", {
@@ -264,10 +265,10 @@ class EncountersApplicationStack extends TerraformStack {
         version: "$Latest"
       },
       associatePublicIpAddress: true,
-      subnetId: vpc.publicSubnetsOutput,
+      subnetId: vpc.publicSubnetsOutput[0],
       vpcSecurityGroupIds: [ec2Sg.id],
       iamInstanceProfile: instanceProfile.name,
-      userData: userDataBase64,
+      userDataBase64: userDataBase64,
     });
 
     new VolumeAttachment(this, "db-attach", {
@@ -403,6 +404,7 @@ class EncountersApplicationStack extends TerraformStack {
 
     new TerraformOutput(this, "customDomain", {
       value: rootDomain.value,
+      sensitive: true,
     });
   }
 }
