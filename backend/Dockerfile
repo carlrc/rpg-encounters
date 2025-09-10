@@ -16,13 +16,6 @@ RUN apt-get update && apt-get install -y \
     g++ \
     make \
     curl \
-    debian-keyring \
-    debian-archive-keyring \
-    apt-transport-https \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update \
-    && apt-get install -y caddy \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
@@ -38,8 +31,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 
 # Create virtual environment and install dependencies
-RUN uv venv .venv
-RUN uv sync
+RUN uv venv .venv && uv sync
 
 # Stage 3: Runtime image
 FROM base AS runtime
@@ -56,24 +48,11 @@ ENV PATH="/app/.venv/bin:$PATH"
 # Copy application code
 COPY --chown=app:app app/ ./app/
 
-# Copy Caddy configuration and entrypoint script
-COPY --chown=app:app Caddyfile ./Caddyfile
-COPY --chown=app:app entrypoint.sh ./entrypoint.sh
-
-# Make entrypoint script executable
-USER root
-RUN chmod +x ./entrypoint.sh
-USER app
-
-# Switch to non-root user
-USER app
-
-# Expose ports (8000 for development, 443 for production HTTPS)
-EXPOSE 8000 443
+# Expose port for backend service
+EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Run the application via entrypoint script
-ENTRYPOINT ["./entrypoint.sh"]
+CMD ["python", "-m", "app.main:app"]

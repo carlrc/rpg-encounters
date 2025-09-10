@@ -5,6 +5,7 @@ __pycache__/
 *.pyd
 .Python
 .pytest_cache/
+.coverage
 .env
 .env.*
 !.env.example
@@ -17,3 +18,8 @@ README.md
 *.md
 .vscode/
 .DS_Store
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+scripts/

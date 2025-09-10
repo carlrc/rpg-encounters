@@ -1,9 +1,7 @@
 services:
   backend:
-    image: ${ECR_IMAGE_URL}
+    image: ${ECR_REPO_URL}
     container_name: rpg-backend
-    ports:
-      - "8000:8000"
     environment:
       # LLMs
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -70,9 +68,29 @@ services:
     networks:
       - rpg-network
 
+  caddy:
+    image: caddy:builder-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - ORIGIN_DOMAIN=${ORIGIN_DOMAIN}
+    depends_on:
+      - backend
+    networks:
+      - rpg-network
+
 networks:
   rpg-network:
     driver: bridge
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

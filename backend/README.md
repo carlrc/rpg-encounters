@@ -110,3 +110,17 @@ Stop docker
 ```bash
 docker compose down -v
 ```
+
+## Docker & ECR Deployment
+
+Build image:
+
+```bash
+./scripts/build.sh
+```
+
+Push to ECR:
+
+```bash
+./scripts/push.sh
+```
