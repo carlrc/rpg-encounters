@@ -210,8 +210,8 @@ class EncountersApplicationStack extends TerraformStack {
     });
 
     // -------- EC2 instance ----------
-    // Read .env.prd file and embed in user data
-    const envContent = fs.readFileSync(path.resolve(__dirname, ".env.prd"), "utf8");
+    // Read .env.production file and embed in user data
+    const envContent = fs.readFileSync(path.resolve(__dirname, "../backend/.env.production"), "utf8");
     const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
       .replace("{{ENV_CONTENT}}", Buffer.from(envContent).toString('base64'))
       .replace("{{COMPOSE_PATH}}", composeAsset.path);
@@ -295,7 +295,7 @@ class EncountersApplicationStack extends TerraformStack {
       },
       orderedCacheBehavior: [
         {
-          pathPattern: "/backend/*",
+          pathPattern: "/api/*",
           targetOriginId: BACKEND_ORIGIN_ID,
           allowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
           cachedMethods: ["GET", "HEAD"],
