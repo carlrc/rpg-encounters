@@ -3,13 +3,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: dependencies  # Use dependencies stage for dev
+      target: dependencies # Use dependencies stage for dev
     container_name: rpg-backend-dev
-    command: ["/app/.venv/bin/python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    command:
+      [
+        "/app/.venv/bin/python",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+      ]
     volumes:
-      - ./app:/app/app  # Mount code for hot reload
-      - ./.env:/app/.env:ro  # Mount your local .env file
-    user: root  # Override user for development to avoid permission issues with mounted volumes
+      - ./app:/app/app # Mount code for hot reload
+      - ./.env:/app/.env:ro # Mount your local .env file
+    user: root # Override user for development to avoid permission issues with mounted volumes
     networks:
       - rpg-network
     extra_hosts:

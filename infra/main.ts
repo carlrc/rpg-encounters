@@ -7,6 +7,7 @@ import { globSync } from "fs";
 import { S3Object } from "@cdktf/provider-aws/lib/s3-object";
 import { lookup as mime } from "mime-types";
 import path from "path";
+import * as fs from "fs";
 import { S3BucketPolicy } from "@cdktf/provider-aws/lib/s3-bucket-policy";
 import { Vpc } from "./.gen/modules/vpc";
 import { SecurityGroup } from "@cdktf/provider-aws/lib/security-group";
@@ -15,9 +16,13 @@ import { IamRolePolicyAttachment } from "@cdktf/provider-aws/lib/iam-role-policy
 import { IamInstanceProfile } from "@cdktf/provider-aws/lib/iam-instance-profile";
 import { DataAwsAmi } from "@cdktf/provider-aws/lib/data-aws-ami";
 import { Instance } from "@cdktf/provider-aws/lib/instance";
+import { LaunchTemplate } from "@cdktf/provider-aws/lib/launch-template";
 import { VolumeAttachment } from "@cdktf/provider-aws/lib/volume-attachment";
 import { EbsVolume } from "@cdktf/provider-aws/lib/ebs-volume";
 import { CloudfrontDistribution } from "@cdktf/provider-aws/lib/cloudfront-distribution";
+import { DataAwsSsmParameter } from "@cdktf/provider-aws/lib/data-aws-ssm-parameter"import { Route53Record } from "@cdktf/provider-aws/lib/route53-record";
+import { AcmCertificate } from "@cdktf/provider-aws/lib/acm-certificate";
+import { AcmCertificateValidation } from "@cdktf/provider-aws/lib/acm-certificate-validation";
 
 const S3_ORIGIN_ID = "s3Origin";
 const BACKEND_ORIGIN_ID = "backendOrigin";
@@ -83,8 +88,7 @@ class PublicS3Bucket extends Construct {
       });
     });
 
-    // TODO: Make sure this is correct
-    // allow read access to all elements within the S3Bucket
+    // Allow read access to all elements within the S3Bucket
     new S3BucketPolicy(this, `s3-policy`, {
       bucket: this.bucket.id,
       policy: JSON.stringify({
@@ -115,8 +119,15 @@ class EncountersApplicationStack extends TerraformStack {
 
     const resource_prefix = `encounters-${env}`
 
-    new AwsProvider(this, "aws", {
+    new AwsProvider(this, "aws-default", {
+      alias: "default",
       region: REGION,
+    });
+
+    // ACM certificates for CloudFront
+    const usEast1Provider = new AwsProvider(this, "aws-us-east-1", {
+      alias: "acm-provider",
+      region: "us-east-1",
     });
 
     new S3Backend(this, {
@@ -128,19 +139,17 @@ class EncountersApplicationStack extends TerraformStack {
     const vpc = new Vpc(this, "vpc", {
       name: `${resource_prefix}-public`,
       cidr: "10.0.0.0/16",
-      publicSubnets: ["10.0.101.0/24", "10.0.102.0/24"],
+      publicSubnets: ["10.0.101.0/24"],
       enableNatGateway: false,
     });
 
     const ec2Sg = new SecurityGroup(this, "ec2-sg", {
       name: `${resource_prefix}-public`,
-      vpcId: Fn.tostring(vpc.vpcIdOutput),
-      // TODO: Review these port mappings assuming https
-      // TODO: Should ssh be allowed at all? Is there an AWS service which we can leverage instead for that? 
+      vpcId: vpc.vpcIdOutput,
+      // Use AWS System Manager for SSH don't open ports
       ingress: [
         { fromPort: 80, toPort: 80, protocol: "TCP", cidrBlocks: ["0.0.0.0/0"] },
-        // optional SSH. Remove if not needed.
-        // { fromPort: 22, toPort: 22, protocol: "TCP", cidrBlocks: ["0.0.0.0/0"] },
+        { fromPort: 443, toPort: 443, protocol: "TCP", cidrBlocks: ["0.0.0.0/0"] },
       ],
       egress: [
         { fromPort: 0, toPort: 0, protocol: "-1", cidrBlocks: ["0.0.0.0/0"] },
@@ -177,7 +186,6 @@ class EncountersApplicationStack extends TerraformStack {
       role: role.name,
     });
 
-    // TODO: verify this isn't taking an outdated image should be latest
     // -------- AMI (Amazon Linux 2023) ----------
     const ami = new DataAwsAmi(this, "al2023", {
       mostRecent: true,
@@ -188,7 +196,7 @@ class EncountersApplicationStack extends TerraformStack {
       ],
     });
 
-    // -------- 20 GiB EBS for Postgres data ----------
+    // -------- EBS for Postgres data ----------
     const dbVolume = new EbsVolume(this, "db-ebs", {
       availabilityZone: `${REGION}a`,
       size: 20,
@@ -196,20 +204,45 @@ class EncountersApplicationStack extends TerraformStack {
       tags: { purpose: "postgres-data" },
     });
 
-    // -------- EC2 instance (t3.medium) ----------
+    // -------- Docker Compose Asset ----------
+    const composeAsset = new TerraformAsset(this, "docker-compose", {
+      path: path.resolve(__dirname, "../backend/docker-compose.yml")
+    });
+
+    // -------- EC2 instance ----------
+    // Read .env.prd file and embed in user data
+    const envContent = fs.readFileSync(path.resolve(__dirname, ".env.prd"), "utf8");
+    const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
+      .replace("{{ENV_CONTENT}}", Buffer.from(envContent).toString('base64'))
+      .replace("{{COMPOSE_PATH}}", composeAsset.path);
+
+    // -------- Launch Template ----------
+    const launchTemplate = new LaunchTemplate(this, "backend-lt", {
+      name: `${resource_prefix}-backend`,
+      imageId: ami.id,
+      instanceType: "t3.large",
+      iamInstanceProfile: {
+        arn: instanceProfile.arn
+      },
+      vpcSecurityGroupIds: [ec2Sg.id],
+      userData: Fn.base64encode(userDataScript),
+    });
+
     const ec2 = new Instance(this, "app-ec2", {
-      ami: ami.id,
-      instanceType: "t3.medium",
+      launchTemplate: {
+        id: launchTemplate.id,
+        version: "$Latest"
+      },
       associatePublicIpAddress: true,
-      subnetId: Fn.element(Fn.tolist(vpc.publicSubnetsOutput), 0),
+      subnetId: vpc.publicSubnetsOutput,
       vpcSecurityGroupIds: [ec2Sg.id],
       iamInstanceProfile: instanceProfile.name,
-      // TODO: a user script should be setup somewhere else and imported here
-      userData: "",
+      userData: Fn.base64encode(userDataScript),
     });
 
     new VolumeAttachment(this, "db-attach", {
-      deviceName: "/dev/sdf", // appears as /dev/xvdf
+      // appears as /dev/xvdf
+      deviceName: "/dev/sdf",
       instanceId: ec2.id,
       volumeId: dbVolume.id,
       skipDestroy: false,
@@ -222,24 +255,46 @@ class EncountersApplicationStack extends TerraformStack {
       path.resolve(__dirname, "../frontend/dist")
     );
 
-    // TODO: Setup route 53 hosted zone assuming SSM '/dns/root-domain/hosted-zone-id'
-    // TODO: Setup route 53 root domain assuming SSM '/dns/root-domain'
+    // -------- Route 53 Setup ----------
+    // Get hosted zone ID and root domain from SSM Parameter Store
+    const hostedZoneId = new DataAwsSsmParameter(this, "hosted-zone-id", {
+      name: "/dns/root-domain/hosted-zone-id",
+    });
+
+    const rootDomain = new DataAwsSsmParameter(this, "root-domain", {
+      name: "/dns/root-domain",
+    });
+
+    // -------- ACM Certificate (US East 1 for CloudFront) ----------
+    const sslCertificate = new AcmCertificate(this, "ssl-certificate", {
+      provider: usEast1Provider,
+      domainName: rootDomain.value,
+      validationMethod: "DNS",
+      lifecycle: {
+        createBeforeDestroy: true,
+      },
+    });
+
+    // Wait for certificate validation (CDKTF will automatically create validation records)
+    const certValidation = new AcmCertificateValidation(this, "cert-validation", {
+      provider: usEast1Provider,
+      certificateArn: sslCertificate.arn,
+    });
 
     const cdn = new CloudfrontDistribution(this, "cdn", {
       enabled: true,
       comment: "Frontend via S3, backend via EC2",
       defaultRootObject: "index.html",
+      aliases: [rootDomain.value],
       defaultCacheBehavior: {
         allowedMethods: ["GET", "HEAD", "OPTIONS"],
         cachedMethods: ["GET", "HEAD"],
         targetOriginId: S3_ORIGIN_ID,
         viewerProtocolPolicy: "redirect-to-https",
-        // TODO: Pretty sure we need to forward cookies for session cookies?
         forwardedValues: { queryString: true, cookies: { forward: "none" } },
       },
       orderedCacheBehavior: [
         {
-          // TODO: review this assuming caddy is setup
           pathPattern: "/backend/*",
           targetOriginId: BACKEND_ORIGIN_ID,
           allowedMethods: ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
@@ -255,13 +310,13 @@ class EncountersApplicationStack extends TerraformStack {
           },
         },
       ],
-      // TODO: update to https only assuming Caddy setup on EC2
       origin: [
         {
           originId: S3_ORIGIN_ID,
           domainName: frontend.websiteEndpoint,
           customOriginConfig: {
-            originProtocolPolicy: "https-only",
+            // S3 website endpoints only support HTTP
+            originProtocolPolicy: "http-only",
             httpPort: 80,
             httpsPort: 443,
             originSslProtocols: ["TLSv1.2"],
@@ -271,7 +326,8 @@ class EncountersApplicationStack extends TerraformStack {
           originId: BACKEND_ORIGIN_ID,
           domainName: ec2.publicDns,
           customOriginConfig: {
-            originProtocolPolicy: "http-only",
+            // Backend now serves HTTPS via Caddy
+            originProtocolPolicy: "https-only",
             httpPort: 80,
             httpsPort: 443,
             originSslProtocols: ["TLSv1.2"],
@@ -279,11 +335,44 @@ class EncountersApplicationStack extends TerraformStack {
         },
       ],
       restrictions: { geoRestriction: { restrictionType: "whitelist", locations: WHITE_LIST_COUNTRIES } },
-      viewerCertificate: { cloudfrontDefaultCertificate: true },
+      viewerCertificate: {
+        acmCertificateArn: certValidation.certificateArn,
+        sslSupportMethod: "sni-only",
+        minimumProtocolVersion: "TLSv1.2_2021",
+      },
+    });
+
+    // -------- Route 53 DNS Record ----------
+    // Create A record pointing to CloudFront distribution
+    new Route53Record(this, "root-domain-record", {
+      zoneId: hostedZoneId.value,
+      name: rootDomain.value,
+      type: "A",
+      alias: {
+        name: cdn.domainName,
+        zoneId: cdn.hostedZoneId,
+        evaluateTargetHealth: false,
+      },
+    });
+
+    // Create AAAA record (IPv6) pointing to CloudFront distribution
+    new Route53Record(this, "root-domain-record-ipv6", {
+      zoneId: hostedZoneId.value,
+      name: rootDomain.value,
+      type: "AAAA",
+      alias: {
+        name: cdn.domainName,
+        zoneId: cdn.hostedZoneId,
+        evaluateTargetHealth: false,
+      },
     });
 
     new TerraformOutput(this, "domainName", {
       value: cdn.domainName,
+    });
+
+    new TerraformOutput(this, "customDomain", {
+      value: rootDomain.value,
     });
   }
 }

@@ -1,8 +1,6 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${ECR_IMAGE_URL}
     container_name: rpg-backend
     ports:
       - "8000:8000"
@@ -35,6 +33,9 @@ services:
       - OPEN_AI_MODERATION_THRESHOLD=${OPEN_AI_MODERATION_THRESHOLD}
       # Session management
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
+      # HTTPS Configuration (disabled for local development)
+      - USE_HTTPS=true
+      - ORIGIN_DOMAIN=${ORIGIN_DOMAIN}
     depends_on:
       db:
         condition: service_healthy
@@ -52,7 +53,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 10s
