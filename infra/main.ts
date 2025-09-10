@@ -1,12 +1,12 @@
 import { Construct } from "constructs";
-import { App, TerraformStack, S3Backend, TerraformAsset, Fn, TerraformOutput } from "cdktf";
+import { App, TerraformStack, S3Backend, TerraformAsset, TerraformOutput } from "cdktf";
 import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { S3BucketWebsiteConfiguration } from "@cdktf/provider-aws/lib/s3-bucket-website-configuration";
 import { S3Bucket } from "@cdktf/provider-aws/lib/s3-bucket";
 import { globSync } from "fs";
 import { S3Object } from "@cdktf/provider-aws/lib/s3-object";
 import { lookup as mime } from "mime-types";
-import path from "path";
+import * as path from "path";
 import * as fs from "fs";
 import { S3BucketPolicy } from "@cdktf/provider-aws/lib/s3-bucket-policy";
 import { Vpc } from "./.gen/modules/vpc";
@@ -20,7 +20,8 @@ import { LaunchTemplate } from "@cdktf/provider-aws/lib/launch-template";
 import { VolumeAttachment } from "@cdktf/provider-aws/lib/volume-attachment";
 import { EbsVolume } from "@cdktf/provider-aws/lib/ebs-volume";
 import { CloudfrontDistribution } from "@cdktf/provider-aws/lib/cloudfront-distribution";
-import { DataAwsSsmParameter } from "@cdktf/provider-aws/lib/data-aws-ssm-parameter"import { Route53Record } from "@cdktf/provider-aws/lib/route53-record";
+import { DataAwsSsmParameter } from "@cdktf/provider-aws/lib/data-aws-ssm-parameter";
+import { Route53Record } from "@cdktf/provider-aws/lib/route53-record";
 import { AcmCertificate } from "@cdktf/provider-aws/lib/acm-certificate";
 import { AcmCertificateValidation } from "@cdktf/provider-aws/lib/acm-certificate-validation";
 
@@ -113,6 +114,27 @@ class PublicS3Bucket extends Construct {
 }
 
 
+class EncountersBootstrapStack extends TerraformStack {
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+
+    const resource_prefix = `rpg-encounters`;
+
+    new AwsProvider(this, "aws-default", {
+      region: REGION,
+    });
+
+    // Create S3 bucket for Terraform state
+    const stateBucket = new S3Bucket(this, "state-bucket", {
+      bucket: `${resource_prefix}-state`,
+    });
+
+    new TerraformOutput(this, "stateBucketName", {
+      value: stateBucket.bucket,
+    });
+  }
+}
+
 class EncountersApplicationStack extends TerraformStack {
   constructor(scope: Construct, id: string, env: string) {
     super(scope, id);
@@ -130,8 +152,9 @@ class EncountersApplicationStack extends TerraformStack {
       region: "us-east-1",
     });
 
+    // Use S3 backend for state storage
     new S3Backend(this, {
-      bucket: `${resource_prefix}-state`,
+      bucket: `rpg-encounters-state`,
       key: "terraform.tfstate",
     });
 
@@ -204,9 +227,13 @@ class EncountersApplicationStack extends TerraformStack {
       tags: { purpose: "postgres-data" },
     });
 
-    // -------- Docker Compose Asset ----------
+    // -------- Docker Compose and Caddy Assets ----------
     const composeAsset = new TerraformAsset(this, "docker-compose", {
       path: path.resolve(__dirname, "../backend/docker-compose.yml")
+    });
+
+    const caddyAsset = new TerraformAsset(this, "caddy-config", {
+      path: path.resolve(__dirname, "../backend/Caddyfile")
     });
 
     // -------- EC2 instance ----------
@@ -214,7 +241,10 @@ class EncountersApplicationStack extends TerraformStack {
     const envContent = fs.readFileSync(path.resolve(__dirname, "../backend/.env.production"), "utf8");
     const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
       .replace("{{ENV_CONTENT}}", Buffer.from(envContent).toString('base64'))
-      .replace("{{COMPOSE_PATH}}", composeAsset.path);
+      .replace("{{COMPOSE_PATH}}", composeAsset.path)
+      .replace("{{CADDY_PATH}}", caddyAsset.path);
+
+    const userDataBase64 = Buffer.from(userDataScript).toString('base64');
 
     // -------- Launch Template ----------
     const launchTemplate = new LaunchTemplate(this, "backend-lt", {
@@ -225,7 +255,7 @@ class EncountersApplicationStack extends TerraformStack {
         arn: instanceProfile.arn
       },
       vpcSecurityGroupIds: [ec2Sg.id],
-      userData: Fn.base64encode(userDataScript),
+      userData: userDataBase64,
     });
 
     const ec2 = new Instance(this, "app-ec2", {
@@ -237,7 +267,7 @@ class EncountersApplicationStack extends TerraformStack {
       subnetId: vpc.publicSubnetsOutput,
       vpcSecurityGroupIds: [ec2Sg.id],
       iamInstanceProfile: instanceProfile.name,
-      userData: Fn.base64encode(userDataScript),
+      userData: userDataBase64,
     });
 
     new VolumeAttachment(this, "db-attach", {
@@ -378,6 +408,7 @@ class EncountersApplicationStack extends TerraformStack {
 }
 
 const app = new App();
-new EncountersApplicationStack(app, "encounters-app", "prd");
+new EncountersBootstrapStack(app, "rpg-encounters-bootstrap");
+new EncountersApplicationStack(app, "rpg-encounters-app", "prd");
 
 app.synth();

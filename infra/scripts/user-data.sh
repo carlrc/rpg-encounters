@@ -33,9 +33,9 @@ if ! blkid "$DEV" >/dev/null 2>&1; then
   mkfs.xfs "$DEV"
 fi
 mount "$DEV" /data
-mkdir -p "${POSTGRES_DATA_PATH}"
-chown 999:999 "${POSTGRES_DATA_PATH}"
-chmod 700 "${POSTGRES_DATA_PATH}"
+mkdir -p "/data/postgres"
+chown 999:999 "/data/postgres"
+chmod 700 "/data/postgres"
 
 # --- App workspace and env ---
 mkdir -p /app
@@ -43,8 +43,9 @@ cd /app
 printf '%s' '{{ENV_CONTENT}}' | base64 -d > /app/.env
 chmod 600 /app/.env
 
-# Copy docker-compose.yml from Terraform asset
+# Copy docker-compose.yml and Caddyfile from Terraform assets
 cp {{COMPOSE_PATH}} /app/docker-compose.yml
+cp {{CADDY_PATH}} /app/Caddyfile
 
 # Start services with Docker Compose
 docker compose up -d

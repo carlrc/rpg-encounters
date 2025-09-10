@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ${ECR_REPO_URL}
+    image: ${ECR_REPO_URI}
     container_name: rpg-encounters-backend
     environment:
       # LLMs
@@ -52,7 +52,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+      - /data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
       interval: 10s
