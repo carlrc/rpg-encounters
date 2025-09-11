@@ -119,8 +119,20 @@ Build image:
 ./scripts/build.sh
 ```
 
-Push to ECR:
+Authenticate with ECR
 
 ```bash
-./scripts/push.sh
+aws ecr get-login-password --region eu-central-1 --profile build-admin | docker login --username AWS --password-stdin 255447701128.dkr.ecr.eu-central-1.amazonaws.com
+```
+
+Tag image
+
+```bash
+sudo docker tag <IMAGE_ID> 255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:latest
+```
+
+Push image
+
+```bash
+sudo docker push 255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:latest
 ```

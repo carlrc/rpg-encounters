@@ -2,6 +2,8 @@ services:
   backend:
     image: ${ECR_REPO_URI}
     container_name: rpg-encounters-backend
+    env_file:
+      - .env
     environment:
       # LLMs
       - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -45,6 +47,8 @@ services:
     image: postgres
     restart: always
     container_name: rpg-encounters-postgres
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -82,6 +86,8 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile
       - caddy_data:/data
       - caddy_config:/config
+    env_file:
+      - .env
     environment:
       - ORIGIN_DOMAIN=${ORIGIN_DOMAIN}
     depends_on:

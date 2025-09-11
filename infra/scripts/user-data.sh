@@ -1,13 +1,15 @@
 #!/bin/bash
 set -euxo pipefail
 
-# --- OS setup (AL2023) ---
+# Bring SSM up first so you can connect even if later steps fail
 dnf -y update
-dnf -y install docker docker-compose-plugin xfsprogs
+dnf -y install amazon-ssm-agent
+systemctl enable --now amazon-ssm-agent
 
+# Docker on AL2023: engine + compose V2 plugin
+dnf -y install docker docker-compose-plugin xfsprogs
 systemctl enable --now docker
 
-# Docker log rotation
 mkdir -p /etc/docker
 cat >/etc/docker/daemon.json <<'JSON'
 {
@@ -15,44 +17,27 @@ cat >/etc/docker/daemon.json <<'JSON'
   "log-opts": { "max-size": "50m", "max-file": "3" }
 }
 JSON
-
 systemctl restart docker
 
-# --- Data volume (/data) ---
-DEV="/dev/xvdf"
+# Data volume: detect device dynamically
+DEV="$(lsblk -ndo NAME,TYPE | awk '$2=="disk"{print "/dev/"$1}' | grep -E '(nvme|xvd)' | head -n1)"
+[ -b "$DEV" ] || { echo "ERROR: data volume not found" >&2; exit 1; }
 
-if [ ! -b "$DEV" ]; then
-  echo "ERROR: data volume not found at $DEV" >&2
-  exit 1
-fi
-
-# Format and mount the data volume
 mkdir -p /data
-# Only format if the volume doesn't have a filesystem
-if ! blkid "$DEV" >/dev/null 2>&1; then
-  mkfs.xfs "$DEV"
-fi
+if ! blkid "$DEV" >/dev/null 2>&1; then mkfs.xfs "$DEV"; fi
 mount "$DEV" /data
-mkdir -p "/data/postgres"
-chown 999:999 "/data/postgres"
-chmod 700 "/data/postgres"
+mkdir -p /data/postgres && chown 999:999 /data/postgres && chmod 700 /data/postgres
 
-# --- App workspace and env ---
+# App workspace
 mkdir -p /app
 cd /app
-printf '%s' '{{ENV_CONTENT}}' | base64 -d > /app/.env
-chmod 600 /app/.env
+# Only write .env if templated content is present
+if [ -n "${ENV_CONTENT:-}" ]; then printf '%s' "$ENV_CONTENT" | base64 -d > /app/.env && chmod 600 /app/.env; fi
 
-# Copy docker-compose.yml and Caddyfile from Terraform assets
 cp {{COMPOSE_PATH}} /app/docker-compose.yml
 cp {{CADDY_PATH}} /app/Caddyfile
 
-# Start services with Docker Compose
 docker compose up -d
-
-# Wait for services to be healthy
-echo "Waiting for services to start..."
 sleep 15
 docker compose ps
-
 echo "Setup complete"
