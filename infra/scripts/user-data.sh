@@ -45,10 +45,20 @@ sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-c
 sudo chmod +x /usr/local/bin/docker-compose
 docker-compose version
 
-# Pull latest image from ECR
-docker pull 255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:latest
+# Pull specific version from ECR using Git SHA
+GIT_SHA={{GIT_SHA}}
+ECR_REPO_URI=255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:$GIT_SHA
+
+echo "Pulling rpg-backend version: $GIT_SHA"
+docker pull $ECR_REPO_URI
+
+# Set environment variable for docker-compose
+export ECR_REPO_URI
 
 docker-compose up -d
 sleep 15
 docker-compose ps
+
+docker exec rpg-encounters-backend python tests/fixtures/seed_data.py --dev
+
 echo "Setup complete"

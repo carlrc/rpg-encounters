@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Set working directory to match local structure
 WORKDIR /app
 
 # Stage 2: Install Python dependencies
@@ -45,8 +45,11 @@ COPY --from=dependencies --chown=app:app /app/.venv /app/.venv
 # Add virtual environment to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy application code
+# Copy application code (maintain backend/ structure)
 COPY --chown=app:app app/ ./app/
+
+# Copy test fixtures for database seeding (maintain backend/ structure)
+COPY --chown=app:app tests/fixtures/ ./tests/fixtures/
 
 # Expose port for backend service
 EXPOSE 8000

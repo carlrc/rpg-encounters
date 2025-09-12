@@ -113,28 +113,22 @@ docker compose down -v
 
 ## Docker & ECR Deployment
 
-Build image:
-
-```bash
-sudo ./scripts/build.sh
-```
-
-Authenticate with ECR
+Authenticate
 
 ```bash
 aws ecr get-login-password --region eu-central-1 --profile build-admin | docker login --username AWS --password-stdin 255447701128.dkr.ecr.eu-central-1.amazonaws.com
 ```
 
-Tag image
+Build image
 
 ```bash
-sudo docker tag <IMAGE_ID> 255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:latest
+sudo ./scripts/build.sh
 ```
 
-Push image
+Tag and push with versioning
 
 ```bash
-sudo docker push 255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:latest
+sudo ./scripts/push.sh
 ```
 
 ## Debugging

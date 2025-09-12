@@ -8,6 +8,7 @@ import { S3Object } from "@cdktf/provider-aws/lib/s3-object";
 import { lookup as mime } from "mime-types";
 import * as path from "path";
 import * as fs from "fs";
+import { execSync } from "child_process";
 import { S3BucketPolicy } from "@cdktf/provider-aws/lib/s3-bucket-policy";
 import { S3BucketPublicAccessBlock } from "@cdktf/provider-aws/lib/s3-bucket-public-access-block";
 import { Vpc } from "./.gen/modules/vpc";
@@ -278,8 +279,12 @@ class EncountersApplicationStack extends TerraformStack {
     });
 
     // -------- EC2 instance ----------
+    // Get current Git SHA for versioned deployments
+    const gitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    
     const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
-      .replace(/\{\{STATE_BUCKET\}\}/g, stateBucketName);
+      .replace(/\{\{STATE_BUCKET\}\}/g, stateBucketName)
+      .replace(/\{\{GIT_SHA\}\}/g, gitSha);
 
     const userDataBase64 = Buffer.from(userDataScript).toString('base64');
 
@@ -360,6 +365,21 @@ class EncountersApplicationStack extends TerraformStack {
         forwardedValues: { queryString: true, cookies: { forward: "none" } },
       },
       orderedCacheBehavior: [
+        {
+          pathPattern: "/.well-known/acme-challenge/*",
+          targetOriginId: BACKEND_ORIGIN_ID,
+          allowedMethods: ["GET", "HEAD"],
+          cachedMethods: ["GET", "HEAD"],
+          viewerProtocolPolicy: "redirect-to-https",
+          minTtl: 0,
+          defaultTtl: 0,
+          maxTtl: 0,
+          forwardedValues: {
+            queryString: false,
+            headers: ["Host"],
+            cookies: { forward: "none" },
+          },
+        },
         {
           pathPattern: "/api/*",
           targetOriginId: BACKEND_ORIGIN_ID,

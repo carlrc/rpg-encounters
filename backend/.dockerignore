@@ -10,6 +10,7 @@ __pycache__/
 .env.*
 !.env.example
 tests/
+!tests/fixtures/
 *.log
 .git/
 .gitignore
