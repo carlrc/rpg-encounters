@@ -75,6 +75,9 @@ class PublicS3Bucket extends Construct {
 
       indexDocument: {
         suffix: "index.html",
+      },
+      errorDocument: {
+        key: "index.html",
       }
     });
 
@@ -151,7 +154,6 @@ class EncountersApplicationStack extends TerraformStack {
   private rootDomain: string;
   private ec2PublicIps: string[];
   private cdnDomainName: string;
-  private cdnHostedZoneId: string;
 
   constructor(scope: Construct, id: string, env: string) {
     super(scope, id);
@@ -340,6 +342,8 @@ class EncountersApplicationStack extends TerraformStack {
     });
 
 
+    // TODO: Create certificate in this stack
+    // ****IMPORTANT****: Certificate manually created in RPG Account and imported into DNS account as CNAME record
     // -------- ACM Certificate (US East 1 for CloudFront) ----------
     const sslCertificateArn = "arn:aws:acm:us-east-1:248190630760:certificate/7bc847d1-c196-41db-b44b-4268a5f79bd2";
 
@@ -397,6 +401,20 @@ class EncountersApplicationStack extends TerraformStack {
         },
       ],
       restrictions: { geoRestriction: { restrictionType: "whitelist", locations: WHITE_LIST_COUNTRIES } },
+      customErrorResponse: [
+        {
+          errorCode: 404,
+          responseCode: 200,
+          responsePagePath: "/index.html",
+          errorCachingMinTtl: 10,
+        },
+        {
+          errorCode: 403,
+          responseCode: 200,
+          responsePagePath: "/index.html",
+          errorCachingMinTtl: 10,
+        },
+      ],
       viewerCertificate: {
         acmCertificateArn: sslCertificateArn,
         sslSupportMethod: "sni-only",
@@ -423,8 +441,6 @@ class EncountersApplicationStack extends TerraformStack {
     this.hostedZoneId = hostedZoneId.value;
     this.ec2PublicIps = [ec2.publicIp];
     this.cdnDomainName = cdn.domainName;
-    // CloudFront distributions always use this hosted zone ID for ALIAS records
-    this.cdnHostedZoneId = "Z2FDTNDATAQYW2";
   }
 
   get ec2PublicIp(): string[] {
@@ -442,10 +458,6 @@ class EncountersApplicationStack extends TerraformStack {
   get cloudFrontDomainName(): string {
     return this.cdnDomainName;
   }
-
-  get cloudFrontHostedZoneId(): string {
-    return this.cdnHostedZoneId;
-  }
 }
 
 class EncountersDnsStack extends TerraformStack {
@@ -459,8 +471,6 @@ class EncountersDnsStack extends TerraformStack {
       }],
     });
 
-    // TODO: Use DNS stack to do this
-    // ****IMPORTANT****: Manually created in RPG Account and imported into DNS account as CNAME record
     // Create ALIAS record pointing to CloudFront distribution (using DNS account provider)
     new Route53Record(this, "a-record", {
       zoneId: appStack.hostedZoneIdValue,
@@ -468,7 +478,8 @@ class EncountersDnsStack extends TerraformStack {
       type: "A",
       alias: {
         name: appStack.cloudFrontDomainName,
-        zoneId: appStack.cloudFrontHostedZoneId,
+        // CloudFront distributions always use this hosted zone ID for ALIAS records
+        zoneId: "Z2FDTNDATAQYW2",
         evaluateTargetHealth: false,
       },
       provider: dnsAccountProvider,
