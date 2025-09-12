@@ -22,6 +22,7 @@ import { VolumeAttachment } from "@cdktf/provider-aws/lib/volume-attachment";
 import { EbsVolume } from "@cdktf/provider-aws/lib/ebs-volume";
 import { CloudfrontDistribution } from "@cdktf/provider-aws/lib/cloudfront-distribution";
 import { DataAwsSsmParameter } from "@cdktf/provider-aws/lib/data-aws-ssm-parameter";
+import { Route53Record } from "@cdktf/provider-aws/lib/route53-record";
 
 const S3_ORIGIN_ID = "s3Origin";
 const BACKEND_ORIGIN_ID = "backendOrigin";
@@ -94,6 +95,7 @@ class PublicS3Bucket extends Construct {
         // mime is an open source node.js tool to get mime types per extension
         contentType: mime(path.extname(f)) || "text/html",
         etag: `filemd5("${filePath}")`,
+        serverSideEncryption: "AES256"
       });
     });
 
@@ -155,9 +157,18 @@ class EncountersApplicationStack extends TerraformStack {
       region: REGION,
     });
 
+    // Provider for DNS account (core admin role)
+    const dnsAccountProvider = new AwsProvider(this, "aws-dns", {
+      region: REGION,
+      assumeRole: [{
+        roleArn: "arn:aws:iam::833083742566:role/domain-rpg-encounters.com-route53-update"
+      }],
+    });
+
+    const stateBucketName = `rpg-encounters-state`
     // Use S3 backend for state storage
     new S3Backend(this, {
-      bucket: `rpg-encounters-state`,
+      bucket: stateBucketName,
       key: "terraform.tfstate",
       region: REGION,
     });
@@ -203,6 +214,7 @@ class EncountersApplicationStack extends TerraformStack {
             Version: "2012-10-17",
             Statement: [
               { Effect: "Allow", Action: ["ssm:UpdateInstanceInformation"], Resource: "*" },
+              { Effect: "Allow", Action: ["s3:GetObject"], Resource: `arn:aws:s3:::${stateBucketName}/*` },
             ],
           }),
         },
@@ -239,25 +251,35 @@ class EncountersApplicationStack extends TerraformStack {
       availabilityZone: `${REGION}a`,
       size: 20,
       type: "gp3",
+      encrypted: true,
       tags: { purpose: "postgres-data" },
     });
 
-    // -------- Docker Compose and Caddy Assets ----------
-    const composeAsset = new TerraformAsset(this, "docker-compose", {
-      path: path.resolve(__dirname, "../backend/docker-compose.yml")
+    // -------- Upload config files to S3 for instance access ----------
+    new S3Object(this, "docker-compose-config", {
+      bucket: stateBucketName,
+      key: "docker-compose.yml",
+      source: path.resolve(__dirname, "../backend/docker-compose.yml"),
+      contentType: "text/yaml"
     });
 
-    const caddyAsset = new TerraformAsset(this, "caddy-config", {
-      path: path.resolve(__dirname, "../backend/Caddyfile")
+    new S3Object(this, "caddy-config", {
+      bucket: stateBucketName,
+      key: "Caddyfile",
+      source: path.resolve(__dirname, "../backend/Caddyfile"),
+      contentType: "text/plain"
+    });
+
+    new S3Object(this, "env-config", {
+      bucket: stateBucketName,
+      key: ".env.production",
+      source: path.resolve(__dirname, "../backend/.env.production"),
+      contentType: "text/plain"
     });
 
     // -------- EC2 instance ----------
-    // Read .env.production file and embed in user data
-    const envContent = fs.readFileSync(path.resolve(__dirname, "../backend/.env.production"), "utf8");
     const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
-      .replace("{{ENV_CONTENT}}", Buffer.from(envContent).toString('base64'))
-      .replace("{{COMPOSE_PATH}}", composeAsset.path)
-      .replace("{{CADDY_PATH}}", caddyAsset.path);
+      .replace(/\{\{STATE_BUCKET\}\}/g, stateBucketName);
 
     const userDataBase64 = Buffer.from(userDataScript).toString('base64');
 
@@ -269,6 +291,15 @@ class EncountersApplicationStack extends TerraformStack {
       iamInstanceProfile: {
         arn: instanceProfile.arn
       },
+      blockDeviceMappings: [{
+        deviceName: "/dev/xvda",
+        ebs: {
+          volumeSize: 10,
+          volumeType: "gp3",
+          encrypted: "true",
+          deleteOnTermination: "true",
+        }
+      }],
       networkInterfaces: [{
         associatePublicIpAddress: "true",
         subnetId: Fn.element(vpc.publicSubnetsOutput, 0),
@@ -303,6 +334,21 @@ class EncountersApplicationStack extends TerraformStack {
     // -------- Route 53 Setup ----------
     const rootDomain = new DataAwsSsmParameter(this, "root-domain", {
       name: "/dns/root-domain",
+    });
+
+    // Use existing hosted zone for the domain (in DNS account)
+    const hostedZoneId = new DataAwsSsmParameter(this, "root-domain-hosted-zone", {
+      name: "/dns/root-domain/hosted-zone-id",
+    });
+
+    // Create A record pointing to EC2 instance (using DNS account provider)
+    new Route53Record(this, "a-record", {
+      zoneId: hostedZoneId.value,
+      name: rootDomain.value,
+      type: "A",
+      ttl: 300,
+      records: [ec2.publicIp],
+      provider: dnsAccountProvider,
     });
 
     // -------- ACM Certificate (US East 1 for CloudFront) ----------
@@ -377,6 +423,11 @@ class EncountersApplicationStack extends TerraformStack {
     new TerraformOutput(this, "customDomain", {
       value: rootDomain.value,
       sensitive: true,
+    });
+
+    new TerraformOutput(this, "ec2PublicIp", {
+      value: ec2.publicIp,
+      description: "EC2 instance public IP address",
     });
   }
 }

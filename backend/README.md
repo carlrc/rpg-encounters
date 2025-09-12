@@ -116,7 +116,7 @@ docker compose down -v
 Build image:
 
 ```bash
-./scripts/build.sh
+sudo ./scripts/build.sh
 ```
 
 Authenticate with ECR

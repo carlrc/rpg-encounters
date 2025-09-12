@@ -75,7 +75,8 @@ services:
       - rpg-network
 
   caddy:
-    image: caddy:builder-alpine
+    image: caddy:alpine
+    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
     container_name: rpg-encounters-caddy
     restart: unless-stopped
     ports:
