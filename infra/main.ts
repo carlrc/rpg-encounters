@@ -147,6 +147,12 @@ class EncountersBootstrapStack extends TerraformStack {
 }
 
 class EncountersApplicationStack extends TerraformStack {
+  private hostedZoneId: string;
+  private rootDomain: string;
+  private ec2PublicIps: string[];
+  private cdnDomainName: string;
+  private cdnHostedZoneId: string;
+
   constructor(scope: Construct, id: string, env: string) {
     super(scope, id);
 
@@ -155,14 +161,6 @@ class EncountersApplicationStack extends TerraformStack {
     new AwsProvider(this, "aws-default", {
       alias: "default",
       region: REGION,
-    });
-
-    // Provider for DNS account (core admin role)
-    const dnsAccountProvider = new AwsProvider(this, "aws-dns", {
-      region: REGION,
-      assumeRole: [{
-        roleArn: "arn:aws:iam::833083742566:role/domain-rpg-encounters.com-route53-update"
-      }],
     });
 
     const stateBucketName = `rpg-encounters-state`
@@ -341,15 +339,6 @@ class EncountersApplicationStack extends TerraformStack {
       name: "/dns/root-domain/hosted-zone-id",
     });
 
-    // Create A record pointing to EC2 instance (using DNS account provider)
-    new Route53Record(this, "a-record", {
-      zoneId: hostedZoneId.value,
-      name: rootDomain.value,
-      type: "A",
-      ttl: 300,
-      records: [ec2.publicIp],
-      provider: dnsAccountProvider,
-    });
 
     // -------- ACM Certificate (US East 1 for CloudFront) ----------
     const sslCertificateArn = "arn:aws:acm:us-east-1:248190630760:certificate/7bc847d1-c196-41db-b44b-4268a5f79bd2";
@@ -429,11 +418,67 @@ class EncountersApplicationStack extends TerraformStack {
       value: ec2.publicIp,
       description: "EC2 instance public IP address",
     });
+
+    this.rootDomain = rootDomain.value;
+    this.hostedZoneId = hostedZoneId.value;
+    this.ec2PublicIps = [ec2.publicIp];
+    this.cdnDomainName = cdn.domainName;
+    // CloudFront distributions always use this hosted zone ID for ALIAS records
+    this.cdnHostedZoneId = "Z2FDTNDATAQYW2";
+  }
+
+  get ec2PublicIp(): string[] {
+    return this.ec2PublicIps;
+  }
+
+  get rootDomainValue(): string {
+    return this.rootDomain;
+  }
+
+  get hostedZoneIdValue(): string {
+    return this.hostedZoneId;
+  }
+
+  get cloudFrontDomainName(): string {
+    return this.cdnDomainName;
+  }
+
+  get cloudFrontHostedZoneId(): string {
+    return this.cdnHostedZoneId;
+  }
+}
+
+class EncountersDnsStack extends TerraformStack {
+  constructor(scope: Construct, id: string, appStack: EncountersApplicationStack) {
+    super(scope, id);
+
+    const dnsAccountProvider = new AwsProvider(this, "aws-dns", {
+      region: REGION,
+      assumeRole: [{
+        roleArn: "arn:aws:iam::833083742566:role/domain-rpg-encounters.com-route53-update"
+      }],
+    });
+
+    // TODO: Use DNS stack to do this
+    // ****IMPORTANT****: Manually created in RPG Account and imported into DNS account as CNAME record
+    // Create ALIAS record pointing to CloudFront distribution (using DNS account provider)
+    new Route53Record(this, "a-record", {
+      zoneId: appStack.hostedZoneIdValue,
+      name: appStack.rootDomainValue,
+      type: "A",
+      alias: {
+        name: appStack.cloudFrontDomainName,
+        zoneId: appStack.cloudFrontHostedZoneId,
+        evaluateTargetHealth: false,
+      },
+      provider: dnsAccountProvider,
+    });
   }
 }
 
 const app = new App();
 new EncountersBootstrapStack(app, "rpg-encounters-bootstrap");
-new EncountersApplicationStack(app, "rpg-encounters-app", "prd");
+const appStack = new EncountersApplicationStack(app, "rpg-encounters-app", "prd");
+new EncountersDnsStack(app, "rpg-encounters-dns", appStack);
 
 app.synth();
