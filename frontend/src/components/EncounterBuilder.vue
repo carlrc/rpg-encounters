@@ -216,6 +216,11 @@
   }
 
   const loadData = async () => {
+    // Triggered by state changes (even logout) where there is no world set
+    if (!worldStore.currentWorldId) {
+      return
+    }
+
     loading.value = true
     error.value = null
 

@@ -48,11 +48,6 @@
 
       <!-- Main Content Area -->
       <main class="content-area">
-        <!-- Success Toast -->
-        <div v-if="successMessage" class="success-toast">
-          {{ successMessage }}
-        </div>
-
         <slot />
       </main>
     </div>
@@ -64,7 +59,7 @@
 
 <script setup>
   import { computed, ref } from 'vue'
-  import { useRoute, useRouter } from 'vue-router'
+  import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
@@ -73,7 +68,6 @@
 
   const router = useRouter()
   const authStore = useAuthStore()
-  const successMessage = ref('')
   const showInstructions = ref(false)
 
   // Use auth store for authentication check
@@ -90,21 +84,16 @@
       }))
   })
 
-  const showSuccessMessage = (message) => {
-    successMessage.value = message
-    setTimeout(() => {
-      successMessage.value = ''
-    }, 1500)
-  }
-
   const handleLogout = async () => {
     try {
       await logout()
+      await authStore.logout()
       router.push('/login')
     } catch (error) {
       console.error('Logout failed:', error)
       // Force redirect anyway
-      window.location.href = '/login'
+      await authStore.logout()
+      router.push('/login')
     }
   }
 

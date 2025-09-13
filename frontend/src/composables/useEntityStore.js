@@ -23,6 +23,11 @@ export const createEntityStore = (entityName, apiMethods) => {
 
     // Actions
     const loadEntities = async () => {
+      // Triggered by state changes (even logout) where there is no world set
+      if (!worldStore.currentWorldId) {
+        return
+      }
+
       loading.value = true
       error.value = ''
       try {
@@ -31,7 +36,6 @@ export const createEntityStore = (entityName, apiMethods) => {
         const errorMessage = `Failed to load ${entityName.toLowerCase()}s. Please try again.`
         error.value = errorMessage
         showError(errorMessage)
-        console.error(`Error loading ${entityName.toLowerCase()}s:`, err)
       } finally {
         loading.value = false
       }
@@ -118,9 +122,12 @@ export const createEntityStore = (entityName, apiMethods) => {
     // Watch for world changes and automatically reload data
     watch(
       () => worldStore.currentWorldId,
-      () => {
+      (newWorldId) => {
         clearEntities()
-        loadEntities()
+        // Don't trigger load entities without valid world id
+        if (newWorldId) {
+          loadEntities()
+        }
       }
     )
 

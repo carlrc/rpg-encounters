@@ -301,11 +301,16 @@
       }
 
       const loadData = async () => {
+        // Triggered by state changes (even logout) where there is no world set
+        if (!worldStore.currentWorldId) {
+          return
+        }
+
         loading.value = true
         error.value = null
 
         try {
-          await Promise.all([loadPlayers()])
+          await loadPlayers()
         } catch (err) {
           error.value = 'Failed to load data'
         } finally {
