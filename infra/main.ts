@@ -87,7 +87,7 @@ class PublicS3Bucket extends Construct {
     });
 
     // Get all build files synchronously
-    const files = globSync("**/*.{json,js,html,png,ico,txt,map,css}", {
+    const files = globSync("**/*.{json,js,html,png,ico,txt,map,css,md}", {
       cwd: absoluteContentPath,
     });
 
@@ -323,7 +323,7 @@ class EncountersApplicationStack extends TerraformStack {
         unhealthyThreshold: 2,
         timeout: 5,
         interval: 30,
-        path: "/health",
+        path: "/api/health",
         matcher: "200",
         port: "traffic-port",
         protocol: "HTTP",

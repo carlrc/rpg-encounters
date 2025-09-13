@@ -66,5 +66,11 @@ setup_telemetry()
 
 if __name__ == "__main__":
     uvicorn.run(
-        "app.main:app", host="0.0.0.0", port=8000, reload=IS_LOCAL, loop="uvloop"
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=IS_LOCAL,
+        loop="uvloop",
+        proxy_headers=True,  # Enable proxy header support for CloudFront/ALB
+        forwarded_allow_ips="*",  # Trust forwarded headers from any IP
     )

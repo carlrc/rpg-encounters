@@ -99,6 +99,12 @@ Create and seed dev db with fixture data
 python -m tests.fixtures.seed_data --dev
 ```
 
+Trigger seed script inside docker container
+
+```bash
+docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py --dev
+```
+
 Drop docker volume
 
 ```bash
