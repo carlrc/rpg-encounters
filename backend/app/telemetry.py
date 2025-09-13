@@ -14,7 +14,7 @@ TelemetryFunc = Callable[[], None]
 def setup_telemetry():
     run_telemetry = get_or_throw("LANGFUSE_TRACING_ENABLED")
 
-    if run_telemetry == "false" or run_telemetry == "False":
+    if run_telemetry.lower() == "false":
         logger.info("Skipping telemetry setup...")
         return
 

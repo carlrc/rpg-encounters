@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.rate_limiter import check_email_rate_limit
 from app.auth.session import (
-    IS_LOCAL,
     SESSION_CONFIG,
     destroy_session,
 )
@@ -31,6 +30,7 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
+LOG_MAGIC_LINK = get_or_throw("LOG_MAGIC_LINK").lower() == "true"
 BACKEND_REDIRECT_URL = f"{FRONTEND_URL}/players"
 
 
@@ -71,7 +71,7 @@ async def request_magic_link(
         raw_token = MagicLinkStore.generate_token()
 
         # TODO: Raw token would be emailed to users here
-        if IS_LOCAL:
+        if LOG_MAGIC_LINK:
             # So you can login manually locally
             logger.info(f"Login link {FRONTEND_URL}/auth?token={raw_token}")
             logger.info(f"Device nonce {device_nonce}")

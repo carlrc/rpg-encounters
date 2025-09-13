@@ -4,8 +4,7 @@ import logging
 from dotenv import load_dotenv
 
 from app.utils import get_or_throw
-from sqlalchemy import Engine, create_engine, select
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from app.db.models.player import PlayerORM

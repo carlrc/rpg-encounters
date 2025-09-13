@@ -43,7 +43,7 @@
   onMounted(async () => {
     // Load the markdown content
     try {
-      const response = await fetch('/src/assets/instructions.md')
+      const response = await fetch('/instructions.md')
       instructionsContent.value = await response.text()
     } catch (error) {
       console.error('Failed to load instructions:', error)

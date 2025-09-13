@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# Set working directory to match local structure
 WORKDIR /app
 
 # Stage 2: Install Python dependencies
@@ -31,8 +31,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 
 # Create virtual environment and install dependencies
-RUN uv venv .venv
-RUN uv sync
+RUN uv venv .venv && uv sync
 
 # Stage 3: Runtime image
 FROM base AS runtime
@@ -46,18 +45,17 @@ COPY --from=dependencies --chown=app:app /app/.venv /app/.venv
 # Add virtual environment to PATH
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Copy application code
+# Copy application code (maintain backend/ structure)
 COPY --chown=app:app app/ ./app/
 
-# Switch to non-root user
-USER app
+# Copy test fixtures for database seeding (maintain backend/ structure)
+COPY --chown=app:app tests/fixtures/ ./tests/fixtures/
 
-# Expose port
+# Expose port for backend service
 EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
-# Run the application
-CMD ["python", "-m", "app.main"]
+CMD ["/app/.venv/bin/python", "-m", "app.main"]

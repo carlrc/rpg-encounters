@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world
+from app.dependencies import get_current_user_world, get_websocket_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.conversation import ConversationData
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
@@ -297,9 +297,8 @@ async def websocket_convo_endpoint(
     encounter_id: int,
     player_id: int,
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    user_id, world_id = user_world
+    user_id, world_id = await get_websocket_user_world(websocket)
     get_client().update_current_trace(
         user_id=user_id,
         tags=["conversation"],
@@ -325,9 +324,8 @@ async def websocket_challenge_endpoint(
     encounter_id: int,
     player_id: int,
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
-    user_id, world_id = user_world
+    user_id, world_id = await get_websocket_user_world(websocket)
     get_client().update_current_trace(
         user_id=user_id,
         tags=["challenge"],

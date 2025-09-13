@@ -119,11 +119,12 @@
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import { useConversationDataStore } from '../stores/conversationData.js'
+  import { useWorldStore } from '../stores/world.js'
   import { useAudioPlayer } from '../composables/useAudioPlayer.js'
   import { getPlayers } from '../services/api.js'
 
   // Constants to replace magic numbers
-  const WEBSOCKET_BASE_URL = 'ws://localhost:8000'
+  const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL
   const AUDIO_SAMPLE_RATE = 16000
   const AUDIO_CHANNEL_COUNT = 1
   const MEDIA_RECORDER_TIMESLICE = 250
@@ -152,6 +153,7 @@
     setup(props, { emit }) {
       const gameDataStore = useGameDataStore()
       const conversationDataStore = useConversationDataStore()
+      const worldStore = useWorldStore()
       const { data: gameData } = storeToRefs(gameDataStore)
       const router = useRouter()
       const route = useRoute()
@@ -407,8 +409,8 @@
         }
 
         const wsUrl = isChallengeMode.value
-          ? `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}`
-          : `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/conversation/${selectedPlayerId.value}/${props.character.id}`
+          ? `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}&world_id=${worldStore.currentWorldId}`
+          : `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/conversation/${selectedPlayerId.value}/${props.character.id}?world_id=${worldStore.currentWorldId}`
 
         try {
           websocket.value = new WebSocket(wsUrl)

@@ -5,10 +5,12 @@ __pycache__/
 *.pyd
 .Python
 .pytest_cache/
+.coverage
 .env
 .env.*
 !.env.example
 tests/
+!tests/fixtures/
 *.log
 .git/
 .gitignore
@@ -17,3 +19,8 @@ README.md
 *.md
 .vscode/
 .DS_Store
+.mypy_cache/
+*.egg-info/
+build/
+dist/
+scripts/

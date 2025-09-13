@@ -150,7 +150,7 @@ async def have_conversation(
 
             await InfluenceStore(
                 user_id=user_id, world_id=world_id, session=session
-            ).update_influence(influence=influence)
+            ).update(influence=influence)
 
             try:
                 await websocket.send_json(
