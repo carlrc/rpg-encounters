@@ -40,19 +40,16 @@ cd /app
 aws s3 cp s3://{{STATE_BUCKET}}/docker-compose.yml /app/docker-compose.yml
 aws s3 cp s3://{{STATE_BUCKET}}/.env.production /app/.env && chmod 600 /app/.env
 
+# Pull specific version from ECR using Git SHA
+GIT_SHA={{GIT_SHA}}
+
 sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 docker-compose version
 
-# Pull specific version from ECR using Git SHA
-GIT_SHA={{GIT_SHA}}
-ECR_REPO_URI=255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo:$GIT_SHA
 
 echo "Pulling rpg-backend version: $GIT_SHA"
 docker pull $ECR_REPO_URI
-
-# Set environment variable for docker-compose
-export ECR_REPO_URI
 
 docker-compose up -d
 sleep 15

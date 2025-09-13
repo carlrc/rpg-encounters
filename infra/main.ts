@@ -300,7 +300,8 @@ class EncountersApplicationStack extends TerraformStack {
     });
 
     // -------- Application Load Balancer ----------
-    const albCertificate = "arn:aws:acm:eu-central-1:248190630760:certificate/79db36ae-801c-4b8b-ba9d-21aae8241ca3"
+    // -------- ACM Certificate (EU Central 1 for ALB) ----------
+    const albSslCertificateArn = "arn:aws:acm:eu-central-1:248190630760:certificate/79db36ae-801c-4b8b-ba9d-21aae8241ca3"
     const alb = new Lb(this, "alb", {
       name: `${resource_prefix}-alb`,
       loadBalancerType: "application",
@@ -335,7 +336,7 @@ class EncountersApplicationStack extends TerraformStack {
       port: 443,
       protocol: "HTTPS",
       sslPolicy: "ELBSecurityPolicy-TLS-1-2-2017-01",
-      certificateArn: albCertificate,
+      certificateArn: albSslCertificateArn,
       defaultAction: [{
         type: "forward",
         targetGroupArn: targetGroup.arn,
@@ -358,10 +359,6 @@ class EncountersApplicationStack extends TerraformStack {
     });
 
     // -------- EC2 instance ----------
-    // Get current Git SHA for versioned deployments
-    const gitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
-
-    // -------- Launch Template ----------
     const launchTemplate = new LaunchTemplate(this, "backend-lt", {
       name: `${resource_prefix}-backend`,
       imageId: ami.id,
@@ -393,6 +390,7 @@ class EncountersApplicationStack extends TerraformStack {
       },
     });
 
+    // -------- EBS ----------
     new VolumeAttachment(this, "db-attach", {
       // appears as /dev/xvdf
       deviceName: "/dev/sdf",
@@ -416,10 +414,10 @@ class EncountersApplicationStack extends TerraformStack {
       path.resolve(__dirname, "../frontend/dist")
     );
 
-    // TODO: Create certificate in this stack
-    // ****IMPORTANT****: Certificate manually created in RPG Account and imported into DNS account as CNAME record
+
     // -------- ACM Certificate (US East 1 for CloudFront) ----------
-    const sslCertificateArn = "arn:aws:acm:us-east-1:248190630760:certificate/7bc847d1-c196-41db-b44b-4268a5f79bd2";
+    // ****IMPORTANT****: Certificate manually created in RPG Account and imported into DNS account as CNAME record
+    const cloudFrontSslCertificateArn = "arn:aws:acm:us-east-1:248190630760:certificate/7bc847d1-c196-41db-b44b-4268a5f79bd2";
 
     const cdn = new CloudfrontDistribution(this, "cdn", {
       enabled: true,
@@ -490,7 +488,7 @@ class EncountersApplicationStack extends TerraformStack {
         },
       ],
       viewerCertificate: {
-        acmCertificateArn: sslCertificateArn,
+        acmCertificateArn: cloudFrontSslCertificateArn,
         sslSupportMethod: "sni-only",
         minimumProtocolVersion: "TLSv1.2_2021",
       },
@@ -499,8 +497,7 @@ class EncountersApplicationStack extends TerraformStack {
     // Prepare user data script with CloudFront domain
     const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
       .replace(/\{\{STATE_BUCKET\}\}/g, stateBucketName)
-      .replace(/\{\{GIT_SHA\}\}/g, gitSha)
-      .replace(/\{\{CLOUDFRONT_DOMAIN\}\}/g, cdn.domainName);
+      .replace(/\{\{GIT_SHA\}\}/g, execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim())
 
     const userDataBase64 = Buffer.from(userDataScript).toString('base64');
 

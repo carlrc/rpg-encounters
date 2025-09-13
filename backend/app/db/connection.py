@@ -25,13 +25,11 @@ CONNECTIONS_TABLE = "connections"
 WORLDS_TABLE = "worlds"
 CONVERSATIONS_TABLE = "conversations"
 
-DATABASE_URL = get_or_throw("DATABASE_URL")
-
 
 def get_async_db_engine():
     """Get database engine, defaulting to test database for safety"""
-    if not DATABASE_URL:
-        raise ValueError("DATABASE_URL not set in env")
+    DATABASE_URL = get_or_throw("DATABASE_URL")
+
     # https://docs.sqlalchemy.org/en/20/core/pooling.html
     return create_async_engine(DATABASE_URL, pool_size=0)
 

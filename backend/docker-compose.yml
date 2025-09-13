@@ -28,6 +28,9 @@ services:
       - ENVIRONMENT=${ENVIRONMENT}
       - SERVICE=${SERVICE}
       - FRONTEND_URL=${FRONTEND_URL}
+      - GIT_SHA=${GIT_SHA}
+      - ECR_REPO_URI=${ECR_REPO_URI}
+      - LOG_MAGIC_LINK=${LOG_MAGIC_LINK}
       # Moderation
       - SKIP_MODERATION=${SKIP_MODERATION}
       - OPEN_AI_MODERATION_THRESHOLD=${OPEN_AI_MODERATION_THRESHOLD}
@@ -35,7 +38,6 @@ services:
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
       # HTTPS Configuration (disabled for local development)
       - USE_HTTPS=true
-      - ORIGIN_DOMAIN=${ORIGIN_DOMAIN}
     ports:
       - "8000:8000"
     depends_on:
@@ -48,7 +50,7 @@ services:
   db:
     image: postgres
     restart: always
-    container_name: rpg-encounters-postgres
+    container_name: rpg-encounters-data
     env_file:
       - .env
     environment:

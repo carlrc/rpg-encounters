@@ -61,18 +61,18 @@ If you don't want telemetry, you can disable tracing with Langfuse and by removi
 LANGFUSE_TRACING_ENABLED=false
 ```
 
-## Local Testing
+### DB Admin
 
-Run docker
+Create db
 
 ```bash
-docker compose up -d
+createdb -h localhost -p 5432 -U postgres '${POSTGRES_DB}'
 ```
 
 Create test db
 
 ```bash
-createdb -h localhost -p 5432 -U postgres dnd-postgres-test
+createdb -h localhost -p 5432 -U postgres '${POSTGRES_DB}-test'
 ```
 
 Create dev db tables
@@ -99,19 +99,15 @@ Create and seed dev db with fixture data
 python -m tests.fixtures.seed_data --dev
 ```
 
-Run backend
+Drop docker volume
 
 ```bash
-python -m app.main
+docker volume ls
+
+docker volume rm <volume_name>
 ```
 
-Stop docker
-
-```bash
-docker compose down -v
-```
-
-## Docker & ECR Deployment
+### Docker & ECR
 
 Authenticate
 
@@ -133,14 +129,14 @@ sudo ./scripts/push.sh
 
 ## Debugging
 
-Get Caddy service logs
+Get backend service logs
 
 ```bash
-docker logs -f rpg-encounters-caddy
+docker logs -f rpg-encounters-backend
 ```
 
-Restart Caddy
+Restart backend
 
 ```bash
-docker-compose restart caddy
+docker-compose restart backend
 ```
