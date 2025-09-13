@@ -24,6 +24,10 @@ import { EbsVolume } from "@cdktf/provider-aws/lib/ebs-volume";
 import { CloudfrontDistribution } from "@cdktf/provider-aws/lib/cloudfront-distribution";
 import { DataAwsSsmParameter } from "@cdktf/provider-aws/lib/data-aws-ssm-parameter";
 import { Route53Record } from "@cdktf/provider-aws/lib/route53-record";
+import { Lb } from "@cdktf/provider-aws/lib/lb";
+import { LbTargetGroup } from "@cdktf/provider-aws/lib/lb-target-group";
+import { LbListener } from "@cdktf/provider-aws/lib/lb-listener";
+import { LbTargetGroupAttachment } from "@cdktf/provider-aws/lib/lb-target-group-attachment";
 
 const S3_ORIGIN_ID = "s3Origin";
 const BACKEND_ORIGIN_ID = "backendOrigin";
@@ -178,8 +182,8 @@ class EncountersApplicationStack extends TerraformStack {
     const vpc = new Vpc(this, "vpc", {
       name: `${resource_prefix}-public`,
       cidr: "10.0.0.0/16",
-      azs: ["eu-central-1a"],
-      publicSubnets: ["10.0.101.0/24"],
+      azs: ["eu-central-1a", "eu-central-1b"],
+      publicSubnets: ["10.0.101.0/24", "10.0.102.0/24"],
       enableNatGateway: false,
       enableDnsHostnames: true,
       enableDnsSupport: true,
@@ -188,13 +192,26 @@ class EncountersApplicationStack extends TerraformStack {
 
     });
 
-    const ec2Sg = new SecurityGroup(this, "ec2-sg", {
-      name: `${resource_prefix}-public`,
+    // ALB Security Group - allows HTTP/HTTPS from internet
+    const albSg = new SecurityGroup(this, "alb-sg", {
+      name: `${resource_prefix}-alb`,
       vpcId: vpc.vpcIdOutput,
-      // Use AWS System Manager for SSH don't open ports
       ingress: [
         { fromPort: 80, toPort: 80, protocol: "TCP", cidrBlocks: ["0.0.0.0/0"] },
         { fromPort: 443, toPort: 443, protocol: "TCP", cidrBlocks: ["0.0.0.0/0"] },
+      ],
+      egress: [
+        { fromPort: 0, toPort: 0, protocol: "-1", cidrBlocks: ["0.0.0.0/0"] },
+      ],
+    });
+
+    // EC2 Security Group - allows port 8000 from ALB only
+    const ec2Sg = new SecurityGroup(this, "ec2-sg", {
+      name: `${resource_prefix}-ec2`,
+      vpcId: vpc.vpcIdOutput,
+      // Use AWS System Manager for SSH don't open ports
+      ingress: [
+        { fromPort: 8000, toPort: 8000, protocol: "TCP", securityGroups: [albSg.id] },
       ],
       egress: [
         { fromPort: 0, toPort: 0, protocol: "-1", cidrBlocks: ["0.0.0.0/0"] },
@@ -264,12 +281,6 @@ class EncountersApplicationStack extends TerraformStack {
       contentType: "text/yaml"
     });
 
-    new S3Object(this, "caddy-config", {
-      bucket: stateBucketName,
-      key: "Caddyfile",
-      source: path.resolve(__dirname, "../backend/Caddyfile"),
-      contentType: "text/plain"
-    });
 
     new S3Object(this, "env-config", {
       bucket: stateBucketName,
@@ -278,15 +289,77 @@ class EncountersApplicationStack extends TerraformStack {
       contentType: "text/plain"
     });
 
+    // -------- Route 53 Setup ----------
+    const rootDomain = new DataAwsSsmParameter(this, "root-domain", {
+      name: "/dns/root-domain",
+    });
+
+    // Use existing hosted zone for the domain (in DNS account)
+    const hostedZoneId = new DataAwsSsmParameter(this, "root-domain-hosted-zone", {
+      name: "/dns/root-domain/hosted-zone-id",
+    });
+
+    // -------- Application Load Balancer ----------
+    const albCertificate = "arn:aws:acm:eu-central-1:248190630760:certificate/79db36ae-801c-4b8b-ba9d-21aae8241ca3"
+    const alb = new Lb(this, "alb", {
+      name: `${resource_prefix}-alb`,
+      loadBalancerType: "application",
+      internal: false,
+      securityGroups: [albSg.id],
+      subnets: Fn.tolist(vpc.publicSubnetsOutput),
+      enableDeletionProtection: false,
+    });
+
+    const targetGroup = new LbTargetGroup(this, "alb-tg", {
+      name: `${resource_prefix}-tg`,
+      port: 8000,
+      protocol: "HTTP",
+      vpcId: vpc.vpcIdOutput,
+      targetType: "instance",
+      healthCheck: {
+        enabled: true,
+        healthyThreshold: 2,
+        unhealthyThreshold: 2,
+        timeout: 5,
+        interval: 30,
+        path: "/health",
+        matcher: "200",
+        port: "traffic-port",
+        protocol: "HTTP",
+      },
+    });
+
+    // HTTPS Listener
+    new LbListener(this, "alb-https-listener", {
+      loadBalancerArn: alb.arn,
+      port: 443,
+      protocol: "HTTPS",
+      sslPolicy: "ELBSecurityPolicy-TLS-1-2-2017-01",
+      certificateArn: albCertificate,
+      defaultAction: [{
+        type: "forward",
+        targetGroupArn: targetGroup.arn,
+      }],
+    });
+
+    // HTTP Listener (redirect to HTTPS)
+    new LbListener(this, "alb-http-listener", {
+      loadBalancerArn: alb.arn,
+      port: 80,
+      protocol: "HTTP",
+      defaultAction: [{
+        type: "redirect",
+        redirect: {
+          port: "443",
+          protocol: "HTTPS",
+          statusCode: "HTTP_301",
+        },
+      }],
+    });
+
     // -------- EC2 instance ----------
     // Get current Git SHA for versioned deployments
     const gitSha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
-    
-    const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
-      .replace(/\{\{STATE_BUCKET\}\}/g, stateBucketName)
-      .replace(/\{\{GIT_SHA\}\}/g, gitSha);
-
-    const userDataBase64 = Buffer.from(userDataScript).toString('base64');
 
     // -------- Launch Template ----------
     const launchTemplate = new LaunchTemplate(this, "backend-lt", {
@@ -318,7 +391,6 @@ class EncountersApplicationStack extends TerraformStack {
         id: launchTemplate.id,
         version: "$Latest"
       },
-      userDataBase64: userDataBase64,
     });
 
     new VolumeAttachment(this, "db-attach", {
@@ -329,23 +401,20 @@ class EncountersApplicationStack extends TerraformStack {
       skipDestroy: false,
     });
 
+    // Attach EC2 instance to ALB target group
+    new LbTargetGroupAttachment(this, "alb-tg-attachment", {
+      targetGroupArn: targetGroup.arn,
+      targetId: ec2.id,
+      port: 8000,
+    });
+
+
     // -------- Frontend S3 + CloudFront ----------
     const frontend = new PublicS3Bucket(
       this,
       `${resource_prefix}-frontend`,
       path.resolve(__dirname, "../frontend/dist")
     );
-
-    // -------- Route 53 Setup ----------
-    const rootDomain = new DataAwsSsmParameter(this, "root-domain", {
-      name: "/dns/root-domain",
-    });
-
-    // Use existing hosted zone for the domain (in DNS account)
-    const hostedZoneId = new DataAwsSsmParameter(this, "root-domain-hosted-zone", {
-      name: "/dns/root-domain/hosted-zone-id",
-    });
-
 
     // TODO: Create certificate in this stack
     // ****IMPORTANT****: Certificate manually created in RPG Account and imported into DNS account as CNAME record
@@ -365,21 +434,6 @@ class EncountersApplicationStack extends TerraformStack {
         forwardedValues: { queryString: true, cookies: { forward: "none" } },
       },
       orderedCacheBehavior: [
-        {
-          pathPattern: "/.well-known/acme-challenge/*",
-          targetOriginId: BACKEND_ORIGIN_ID,
-          allowedMethods: ["GET", "HEAD"],
-          cachedMethods: ["GET", "HEAD"],
-          viewerProtocolPolicy: "redirect-to-https",
-          minTtl: 0,
-          defaultTtl: 0,
-          maxTtl: 0,
-          forwardedValues: {
-            queryString: false,
-            headers: ["Host"],
-            cookies: { forward: "none" },
-          },
-        },
         {
           pathPattern: "/api/*",
           targetOriginId: BACKEND_ORIGIN_ID,
@@ -410,9 +464,9 @@ class EncountersApplicationStack extends TerraformStack {
         },
         {
           originId: BACKEND_ORIGIN_ID,
-          domainName: ec2.publicDns,
+          domainName: alb.dnsName,
           customOriginConfig: {
-            // Backend now serves HTTPS via Caddy
+            // Backend serves HTTPS via ALB
             originProtocolPolicy: "https-only",
             httpPort: 80,
             httpsPort: 443,
@@ -442,6 +496,16 @@ class EncountersApplicationStack extends TerraformStack {
       },
     });
 
+    // Prepare user data script with CloudFront domain
+    const userDataScript = fs.readFileSync(path.resolve(__dirname, "scripts/user-data.sh"), "utf8")
+      .replace(/\{\{STATE_BUCKET\}\}/g, stateBucketName)
+      .replace(/\{\{GIT_SHA\}\}/g, gitSha)
+      .replace(/\{\{CLOUDFRONT_DOMAIN\}\}/g, cdn.domainName);
+
+    const userDataBase64 = Buffer.from(userDataScript).toString('base64');
+
+    // Update EC2 instance with user data
+    ec2.addOverride('user_data_base64', userDataBase64);
 
     new TerraformOutput(this, "domainName", {
       value: cdn.domainName,

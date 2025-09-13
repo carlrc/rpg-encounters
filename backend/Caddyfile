@@ -1,4 +1,0 @@
-{$ORIGIN_DOMAIN} {
-    encode gzip
-    reverse_proxy backend:8000
-}

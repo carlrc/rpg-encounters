@@ -21,9 +21,5 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data # Use named volume instead of local path
 
-  caddy:
-    deploy:
-      replicas: 0 # Disabled
-
 volumes:
   pgdata:

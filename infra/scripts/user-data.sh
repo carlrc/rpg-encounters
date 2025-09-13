@@ -38,7 +38,6 @@ cd /app
 
 # Download config files from S3
 aws s3 cp s3://{{STATE_BUCKET}}/docker-compose.yml /app/docker-compose.yml
-aws s3 cp s3://{{STATE_BUCKET}}/Caddyfile /app/Caddyfile
 aws s3 cp s3://{{STATE_BUCKET}}/.env.production /app/.env && chmod 600 /app/.env
 
 sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose

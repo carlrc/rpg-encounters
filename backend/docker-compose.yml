@@ -36,6 +36,8 @@ services:
       # HTTPS Configuration (disabled for local development)
       - USE_HTTPS=true
       - ORIGIN_DOMAIN=${ORIGIN_DOMAIN}
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -74,32 +76,6 @@ services:
     networks:
       - rpg-network
 
-  caddy:
-    image: caddy:alpine
-    command: caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-    container_name: rpg-encounters-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    env_file:
-      - .env
-    environment:
-      - ORIGIN_DOMAIN=${ORIGIN_DOMAIN}
-    depends_on:
-      - backend
-    networks:
-      - rpg-network
-
 networks:
   rpg-network:
     driver: bridge
-
-volumes:
-  caddy_data:
-  caddy_config:
