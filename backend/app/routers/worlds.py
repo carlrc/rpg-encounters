@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.session import get_session_user_id
 from app.data.world_store import WorldStore
 from app.dependencies import get_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
@@ -14,9 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=List[World])
-async def get_worlds(user_world: tuple[int, int] = Depends(get_current_user_world)):
+async def get_worlds(user_id: int = Depends(get_session_user_id)):
     """Get all worlds for the current user"""
-    user_id, _ = user_world
     try:
         return await WorldStore(user_id=user_id).get_all()
     except HTTPException:
