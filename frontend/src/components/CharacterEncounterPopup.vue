@@ -124,7 +124,7 @@
   import { getPlayers } from '../services/api.js'
 
   // Constants to replace magic numbers
-  const WEBSOCKET_BASE_URL = 'ws://localhost:8000'
+  const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL
   const AUDIO_SAMPLE_RATE = 16000
   const AUDIO_CHANNEL_COUNT = 1
   const MEDIA_RECORDER_TIMESLICE = 250
