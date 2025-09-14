@@ -39,6 +39,15 @@ export function useAudioPlayer() {
 
   /**
    * MediaSource-based progressive audio player class
+   * Handles streaming audio playback from WebSocket chunks using MediaSource Extensions
+   *
+   * Flow:
+   * 1. Initialize MediaSource and Audio elements
+   * 2. Receive chunks via appendChunk() - queued or written immediately
+   * 3. Process chunk queue after each buffer update
+   * 4. Start playback once first chunk is received
+   * 5. Mark stream complete with markStreamComplete() when done
+   * 6. Finalize MediaSource once all chunks are processed
    */
   class MediaSourceAudioPlayer {
     constructor(onError, onLoadedData, onEnded, onPlaybackStart) {
@@ -50,7 +59,6 @@ export function useAudioPlayer() {
       this.audio = null
       this.mediaSource = null
       this.sourceBuffer = null
-      this.pendingChunks = []
       this.chunksReceived = 0
       this.hasStartedPlayback = false
       this.isSourceOpen = false
@@ -58,6 +66,10 @@ export function useAudioPlayer() {
       this.mimeType = 'audio/mp4; codecs="mp4a.40.2"'
     }
 
+    /**
+     * Initialize MediaSource and Audio elements with event handlers
+     * Must be called before using the player
+     */
     initialize() {
       this.mediaSource = new MediaSource()
       this.audio = new Audio()
@@ -67,6 +79,10 @@ export function useAudioPlayer() {
       this.setupAudioEvents()
     }
 
+    /**
+     * Set up MediaSource event handlers
+     * Creates source buffer when MediaSource opens
+     */
     setupMediaSourceEvents() {
       this.mediaSource.addEventListener('sourceopen', () => {
         this.isSourceOpen = true
@@ -78,6 +94,10 @@ export function useAudioPlayer() {
       })
     }
 
+    /**
+     * Set up Audio element event handlers
+     * Connects audio events to callback functions
+     */
     setupAudioEvents() {
       this.audio.onloadeddata = () => {
         this.onLoadedData()
@@ -92,21 +112,26 @@ export function useAudioPlayer() {
       }
     }
 
+    /**
+     * Create and configure the source buffer for audio data
+     */
     createSourceBuffer() {
       try {
         this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mimeType)
         this.setupSourceBufferEvents()
-        this.processPendingChunks()
       } catch (err) {
         this.onError('Failed to create audio buffer')
       }
     }
 
+    /**
+     * Set up source buffer event handlers
+     * After each chunk is processed, check if we can start playback or end stream
+     */
     setupSourceBufferEvents() {
       this.sourceBuffer.addEventListener('updateend', () => {
-        this.processPendingChunks()
         this.tryStartPlayback()
-        this.tryEndStream()
+        this.checkAndEndStream()
       })
 
       this.sourceBuffer.addEventListener('error', () => {
@@ -114,29 +139,30 @@ export function useAudioPlayer() {
       })
     }
 
-    processPendingChunks() {
-      if (this.pendingChunks.length > 0 && !this.sourceBuffer.updating) {
-        const nextChunk = this.pendingChunks.shift()
-        this.appendToBuffer(nextChunk)
-      }
-    }
-
+    /**
+     * Start audio playback once we have received the first chunk
+     * Only attempts to start once to avoid multiple play() calls
+     */
     tryStartPlayback() {
       if (!this.hasStartedPlayback && this.chunksReceived > 0) {
         this.startPlayback()
       }
     }
 
-    tryEndStream() {
-      if (
-        this.isEnded &&
-        this.pendingChunks.length === 0 &&
-        this.mediaSource.readyState === 'open'
-      ) {
-        this.endMediaSource()
+    /**
+     * Check if stream can be finalized and do so if all conditions are met
+     * Called after each buffer update to ensure timely finalization
+     */
+    checkAndEndStream() {
+      if (this.isEnded && this.mediaSource.readyState === 'open') {
+        this.finalizeMediaSource()
       }
     }
 
+    /**
+     * Actually start audio playback and notify callbacks
+     * Handles browser autoplay restrictions gracefully
+     */
     async startPlayback() {
       if (this.hasStartedPlayback || !this.audio) return
 
@@ -149,38 +175,65 @@ export function useAudioPlayer() {
       }
     }
 
-    appendToBuffer(chunk) {
-      try {
-        this.sourceBuffer.appendBuffer(chunk)
-      } catch (err) {
-        this.pendingChunks.push(chunk)
-      }
+    /**
+     * Write audio chunk directly to the source buffer
+     * Caller should handle any failures by retrying
+     */
+    writeToBuffer(chunk) {
+      this.sourceBuffer.appendBuffer(chunk)
     }
 
-    appendChunk(chunk) {
+    /**
+     * Public method to add audio chunks to the player
+     * Waits for buffer to be ready, then writes chunk immediately
+     */
+    async appendChunk(chunk) {
       this.chunksReceived++
 
-      if (this.isSourceOpen && this.sourceBuffer && !this.sourceBuffer.updating) {
-        this.appendToBuffer(chunk)
-      } else {
-        this.pendingChunks.push(chunk)
+      // Wait for MediaSource and buffer to be ready
+      while (!this.isSourceOpen || !this.sourceBuffer) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+
+      // Wait for buffer to not be updating
+      while (this.sourceBuffer.updating) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+
+      try {
+        this.writeToBuffer(chunk)
+      } catch (err) {
+        // If append fails, wait a bit and retry once
+        await new Promise((resolve) => setTimeout(resolve, 10))
+        try {
+          this.writeToBuffer(chunk)
+        } catch (retryErr) {
+          this.onError('Failed to process audio chunk')
+        }
       }
     }
 
-    endStream() {
+    /**
+     * Mark the audio stream as complete (no more chunks will be added)
+     * If buffer is not busy, immediately finalize the MediaSource
+     */
+    markStreamComplete() {
       this.isEnded = true
 
       if (
         this.sourceBuffer &&
         !this.sourceBuffer.updating &&
-        this.pendingChunks.length === 0 &&
         this.mediaSource.readyState === 'open'
       ) {
-        this.endMediaSource()
+        this.finalizeMediaSource()
       }
     }
 
-    endMediaSource() {
+    /**
+     * Finalize the MediaSource to signal end of stream
+     * This allows the audio element to know playback is complete
+     */
+    finalizeMediaSource() {
       try {
         this.mediaSource.endOfStream()
       } catch (err) {
@@ -188,6 +241,10 @@ export function useAudioPlayer() {
       }
     }
 
+    /**
+     * Get references to internal audio objects
+     * Used for external access to audio element and MediaSource
+     */
     getAudioData() {
       return {
         audio: this.audio,
@@ -225,7 +282,7 @@ export function useAudioPlayer() {
     activeAudio.value = {
       ...audioData,
       appendChunk: (chunk) => player.appendChunk(chunk),
-      endStream: () => player.endStream(),
+      endStream: () => player.markStreamComplete(),
     }
   }
 
