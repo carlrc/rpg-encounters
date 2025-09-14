@@ -3,6 +3,7 @@ import logging
 from fastapi import WebSocket, WebSocketDisconnect
 
 from app.clients.tts import TTSProvider
+from app.services.audio_processor import convert_ogg_to_mp4_stream
 
 logger = logging.getLogger(__name__)
 
@@ -49,18 +50,17 @@ async def stream_tts_audio(
     websocket: WebSocket, tts_provider: TTSProvider, text: str, voice_id: str
 ) -> None:
     """
-    Stream TTS audio chunks back to frontend through WebSocket.
+    Stream TTS audio by converting OGG_OPUS to MP4 using audio processor service.
 
     Args:
         websocket: The WebSocket connection to send audio through
         tts_provider: The TTS provider instance to use
         text: The text to convert to speech
         voice_id: The voice ID to use for TTS
-        send_completion_signal: Whether to send "AUDIO_COMPLETE" signal when done
     """
-    # Stream TTS audio chunks back to frontend
-    async for audio_chunk in tts_provider.text_to_speech_stream(
-        text=text, voice_id=voice_id
+    # Use audio processor to convert OGG to MP4 and stream chunks
+    async for audio_chunk in convert_ogg_to_mp4_stream(
+        tts_provider=tts_provider, text=text, voice_id=voice_id
     ):
         try:
             await websocket.send_bytes(audio_chunk)
