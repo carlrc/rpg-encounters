@@ -18,196 +18,216 @@ export function useAudioPlayer() {
    * Play audio progressively from WebSocket chunks using MediaSource Extensions
    */
   const playWebSocketAudio = (audioId = 'websocket') => {
-    console.log('playWebSocketAudio called with audioId:', audioId)
     try {
-      stopAudio() // Stop any currently playing audio first
+      stopAudio()
 
       isLoading.value = true
       error.value = null
       playingAudioId.value = audioId
 
-      // Use MediaSource for progressive playback
       if (supportsMediaSource()) {
-        playWebSocketAudioWithMediaSource(audioId)
+        playWebSocketAudioWithMediaSource()
       } else {
-        console.error(
-          'MediaSource Extensions not supported - progressive audio playback unavailable'
-        )
         error.value = 'Progressive audio playback not supported in this browser'
         isLoading.value = false
       }
     } catch (err) {
-      console.error('Progressive audio setup error:', err)
       error.value = 'Progressive audio setup failed'
       cleanup()
     }
   }
 
   /**
-   * MediaSource-based progressive audio player
+   * MediaSource-based progressive audio player class
    */
-  const playWebSocketAudioWithMediaSource = (audioId) => {
-    let chunksReceived = 0
-    let audio = null
-    let mediaSource = null
-    let sourceBuffer = null
-    let hasStartedPlayback = false
-    let isSourceOpen = false
-    let pendingChunks = []
-    let isEnded = false
+  class MediaSourceAudioPlayer {
+    constructor(onError, onLoadedData, onEnded, onPlaybackStart) {
+      this.onError = onError
+      this.onLoadedData = onLoadedData
+      this.onEnded = onEnded
+      this.onPlaybackStart = onPlaybackStart
 
-    const mimeType = 'audio/mp4; codecs="mp4a.40.2"'
+      this.audio = null
+      this.mediaSource = null
+      this.sour.ceBuffer = null
+      this.pendingChunks = []
+      this.chunksReceived = 0
+      this.hasStartedPlayback = false
+      this.isSourceOpen = false
+      this.isEnded = false
+      this.mimeType = 'audio/mp4; codecs="mp4a.40.2"'
+    }
 
-    const initializeMediaSource = () => {
-      mediaSource = new MediaSource()
-      audio = new Audio()
-      audio.src = URL.createObjectURL(mediaSource)
+    initialize() {
+      this.mediaSource = new MediaSource()
+      this.audio = new Audio()
+      this.audio.src = URL.createObjectURL(this.mediaSource)
 
-      mediaSource.addEventListener('sourceopen', () => {
-        console.log('MediaSource opened')
-        isSourceOpen = true
+      this.setupMediaSourceEvents()
+      this.setupAudioEvents()
+    }
 
-        try {
-          sourceBuffer = mediaSource.addSourceBuffer(mimeType)
-
-          sourceBuffer.addEventListener('updateend', () => {
-            // Process any pending chunks
-            if (pendingChunks.length > 0 && !sourceBuffer.updating) {
-              const nextChunk = pendingChunks.shift()
-              sourceBuffer.appendBuffer(nextChunk)
-            }
-
-            // Start playback after first chunk is processed
-            if (!hasStartedPlayback && chunksReceived > 0) {
-              startPlayback()
-            }
-
-            // End the stream if all chunks processed and stream ended
-            if (isEnded && pendingChunks.length === 0 && mediaSource.readyState === 'open') {
-              console.log('Ending MediaSource - all chunks processed')
-              try {
-                mediaSource.endOfStream()
-              } catch (err) {
-                console.log('Error ending MediaSource:', err)
-              }
-            }
-          })
-
-          sourceBuffer.addEventListener('error', (event) => {
-            console.error('SourceBuffer error:', event)
-            error.value = 'Audio buffer error'
-            cleanup()
-          })
-
-          // Process first pending chunk if available
-          if (pendingChunks.length > 0) {
-            const firstChunk = pendingChunks.shift()
-            sourceBuffer.appendBuffer(firstChunk)
-          }
-        } catch (err) {
-          console.error('Failed to create source buffer:', err)
-          error.value = 'Failed to create audio buffer'
-          cleanup()
-        }
+    setupMediaSourceEvents() {
+      this.mediaSource.addEventListener('sourceopen', () => {
+        this.isSourceOpen = true
+        this.createSourceBuffer()
       })
 
-      mediaSource.addEventListener('sourceended', () => {
-        console.log('MediaSource ended - stream complete, audio should continue playing')
-        // Don't cleanup here - let audio.onended handle cleanup when playback actually finishes
+      this.mediaSource.addEventListener('error', () => {
+        this.onError('Media source error')
       })
+    }
 
-      mediaSource.addEventListener('error', (event) => {
-        console.error('MediaSource error:', event)
-        error.value = 'Media source error'
-        cleanup()
-      })
-
-      audio.onloadeddata = () => {
-        console.log('Audio loaded via MediaSource')
-        isLoading.value = false
-        isPlaying.value = true
+    setupAudioEvents() {
+      this.audio.onloadeddata = () => {
+        this.onLoadedData()
       }
 
-      audio.onended = () => {
-        cleanup()
+      this.audio.onended = () => {
+        this.onEnded()
       }
 
-      audio.onerror = (event) => {
-        console.error('Audio playback error:', event, event.target?.error)
-        error.value = 'Audio playback failed'
-        cleanup()
+      this.audio.onerror = () => {
+        this.onError('Audio playback failed')
       }
     }
 
-    const startPlayback = () => {
-      if (hasStartedPlayback || !audio) return
+    createSourceBuffer() {
+      try {
+        this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mimeType)
+        this.setupSourceBufferEvents()
+        this.processPendingChunks()
+      } catch (err) {
+        this.onError('Failed to create audio buffer')
+      }
+    }
 
-      hasStartedPlayback = true
-      audio
+    setupSourceBufferEvents() {
+      this.sourceBuffer.addEventListener('updateend', () => {
+        this.processPendingChunks()
+        this.tryStartPlayback()
+        this.tryEndStream()
+      })
+
+      this.sourceBuffer.addEventListener('error', () => {
+        this.onError('Audio buffer error')
+      })
+    }
+
+    processPendingChunks() {
+      if (this.pendingChunks.length > 0 && !this.sourceBuffer.updating) {
+        const nextChunk = this.pendingChunks.shift()
+        this.appendToBuffer(nextChunk)
+      }
+    }
+
+    tryStartPlayback() {
+      if (!this.hasStartedPlayback && this.chunksReceived > 0) {
+        this.startPlayback()
+      }
+    }
+
+    tryEndStream() {
+      if (
+        this.isEnded &&
+        this.pendingChunks.length === 0 &&
+        this.mediaSource.readyState === 'open'
+      ) {
+        this.endMediaSource()
+      }
+    }
+
+    startPlayback() {
+      if (this.hasStartedPlayback || !this.audio) return
+
+      this.hasStartedPlayback = true
+      this.audio
         .play()
         .then(() => {
-          console.log('MediaSource audio playback started successfully')
+          this.onPlaybackStart()
         })
-        .catch((err) => {
-          console.error('MediaSource audio play failed:', err)
-          error.value = 'Audio play failed'
-          cleanup()
+        .catch(() => {
+          this.onError('Audio play failed')
         })
     }
 
-    const appendChunkToBuffer = (chunk) => {
-      if (!sourceBuffer || sourceBuffer.updating) {
-        pendingChunks.push(chunk)
-        return
-      }
-
+    appendToBuffer(chunk) {
       try {
-        sourceBuffer.appendBuffer(chunk)
+        this.sourceBuffer.appendBuffer(chunk)
       } catch (err) {
-        console.error('Failed to append chunk to buffer:', err)
-        pendingChunks.push(chunk)
+        this.pendingChunks.push(chunk)
       }
     }
 
-    initializeMediaSource()
+    appendChunk(chunk) {
+      this.chunksReceived++
 
-    // Store references for chunk appending
+      if (this.isSourceOpen && this.sourceBuffer && !this.sourceBuffer.updating) {
+        this.appendToBuffer(chunk)
+      } else {
+        this.pendingChunks.push(chunk)
+      }
+    }
+
+    endStream() {
+      this.isEnded = true
+
+      if (
+        this.sourceBuffer &&
+        !this.sourceBuffer.updating &&
+        this.pendingChunks.length === 0 &&
+        this.mediaSource.readyState === 'open'
+      ) {
+        this.endMediaSource()
+      }
+    }
+
+    endMediaSource() {
+      try {
+        this.mediaSource.endOfStream()
+      } catch (err) {
+        // Ignore endOfStream errors as they're usually harmless
+      }
+    }
+
+    getAudioData() {
+      return {
+        audio: this.audio,
+        url: this.audio?.src,
+        mediaSource: this.mediaSource,
+      }
+    }
+  }
+
+  /**
+   * Create and initialize MediaSource-based audio player
+   */
+  const playWebSocketAudioWithMediaSource = () => {
+    const player = new MediaSourceAudioPlayer(
+      (errorMessage) => {
+        error.value = errorMessage
+        cleanup()
+      },
+      () => {
+        isLoading.value = false
+        isPlaying.value = true
+      },
+      () => {
+        cleanup()
+      },
+      () => {
+        // Playback started successfully
+      }
+    )
+
+    player.initialize()
+    const audioData = player.getAudioData()
+
+    // Store references for external access
     activeAudio.value = {
-      audio,
-      url: audio.src,
-      mediaSource,
-      sourceBuffer,
-      appendChunk: (chunk) => {
-        chunksReceived++
-        console.log('Received chunk', chunksReceived, 'size:', chunk.byteLength, 'bytes')
-
-        if (isSourceOpen) {
-          appendChunkToBuffer(chunk)
-        } else {
-          pendingChunks.push(chunk)
-        }
-      },
-      endStream: () => {
-        isEnded = true
-        console.log('Stream ended, total chunks received:', chunksReceived)
-
-        // End the stream if source buffer is ready and no pending chunks
-        if (
-          sourceBuffer &&
-          !sourceBuffer.updating &&
-          pendingChunks.length === 0 &&
-          mediaSource.readyState === 'open'
-        ) {
-          console.log('Ending MediaSource immediately - no pending operations')
-          try {
-            mediaSource.endOfStream()
-          } catch (err) {
-            console.log('Error ending MediaSource in endStream:', err)
-          }
-        } else {
-          console.log('Deferring MediaSource end - waiting for buffer updates to complete')
-        }
-      },
+      ...audioData,
+      appendChunk: (chunk) => player.appendChunk(chunk),
+      endStream: () => player.endStream(),
     }
   }
 

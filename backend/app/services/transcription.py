@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class WhisperTranscriptionService:
-    def __init__(self, model_size: str = "base"):
+    def __init__(self, model_size: str = "turbo"):
         """Initialize Whisper transcription service
 
         Args:
