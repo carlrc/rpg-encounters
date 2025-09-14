@@ -49,7 +49,7 @@ export function useAudioPlayer() {
 
       this.audio = null
       this.mediaSource = null
-      this.sour.ceBuffer = null
+      this.sourceBuffer = null
       this.pendingChunks = []
       this.chunksReceived = 0
       this.hasStartedPlayback = false
@@ -137,18 +137,16 @@ export function useAudioPlayer() {
       }
     }
 
-    startPlayback() {
+    async startPlayback() {
       if (this.hasStartedPlayback || !this.audio) return
 
       this.hasStartedPlayback = true
-      this.audio
-        .play()
-        .then(() => {
-          this.onPlaybackStart()
-        })
-        .catch(() => {
-          this.onError('Audio play failed')
-        })
+      try {
+        await this.audio.play()
+        this.onPlaybackStart()
+      } catch (error) {
+        this.onError('Audio play failed')
+      }
     }
 
     appendToBuffer(chunk) {
