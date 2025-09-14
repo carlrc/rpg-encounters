@@ -5,6 +5,7 @@ from typing import AsyncGenerator
 import httpx
 
 from app.clients.tts_base import TTSProvider, VoicesResponse
+from app.services.audio_processor import convert_mp3_to_mp4_stream
 from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,15 @@ class ElevenLabs(TTSProvider):
         except Exception as e:
             logger.error(f"ElevenLabs TTS streaming failed: {type(e).__name__}: {e}")
             raise
+
+    async def text_to_speech_mp4_stream(
+        self, text: str, voice_id: str
+    ) -> AsyncGenerator[bytes, None]:
+        """Stream text-to-speech audio chunks converted to MP4 format"""
+        async for mp4_chunk in convert_mp3_to_mp4_stream(
+            tts_provider=self, text=text, voice_id=voice_id
+        ):
+            yield mp4_chunk
 
     async def search_voices(
         self,

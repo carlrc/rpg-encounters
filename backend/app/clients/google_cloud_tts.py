@@ -1,8 +1,10 @@
 import logging
+from typing import AsyncGenerator
 
 from google.cloud import texttospeech
 
 from app.clients.tts_base import TTSProvider, Voice, VoiceLabels, VoicesResponse
+from app.services.audio_processor import convert_ogg_to_mp4_stream
 from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
@@ -48,6 +50,15 @@ class GoogleCloudTTS(TTSProvider):
         except Exception as e:
             logger.error(f"Google Cloud TTS error: {e}")
             raise
+
+    async def text_to_speech_mp4_stream(
+        self, text: str, voice_id: str
+    ) -> AsyncGenerator[bytes, None]:
+        """Stream text-to-speech audio chunks converted to MP4 format"""
+        async for mp4_chunk in convert_ogg_to_mp4_stream(
+            tts_provider=self, text=text, voice_id=voice_id
+        ):
+            yield mp4_chunk
 
     async def search_voices(self, search_term: str, next_page_token: str | None = None):
         request = texttospeech.ListVoicesRequest(language_code=search_term)
