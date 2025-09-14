@@ -164,6 +164,7 @@
         stopAudio,
         isLoading: audioLoading,
         error: audioError,
+        activeAudio,
       } = useAudioPlayer()
 
       // Use existing data from API (same as EncountersPage.vue)
@@ -177,7 +178,6 @@
       const isProcessing = ref(false)
       const websocket = ref(null)
       const mediaRecorder = ref(null)
-      const audioChunks = ref([])
 
       // NEW: Conversation data state
       const influenceScore = ref(null)
@@ -362,9 +362,10 @@
 
       const CONTROL = {
         AUDIO_COMPLETE: () => {
-          // Use the standardized audio player for WebSocket chunks
-          playWebSocketAudio(audioChunks.value, `encounter-${props.encounterId}`)
-          audioChunks.value = [] // Clear chunks after playing
+          // Signal end of stream for progressive playback
+          if (activeAudio.value?.endStream) {
+            activeAudio.value.endStream()
+          }
           isProcessing.value = false
           closeWebSocket()
         },
@@ -444,8 +445,19 @@
         }
       }
 
-      const processAudioChunk = (audioBlob) => {
-        audioChunks.value.push(audioBlob)
+      const processAudioChunk = async (audioBlob) => {
+        // Convert blob to ArrayBuffer for progressive playback
+        const arrayBuffer = await audioBlob.arrayBuffer()
+
+        // If this is the first chunk, initialize progressive playback
+        if (!activeAudio.value) {
+          playWebSocketAudio(`encounter-${props.encounterId}`)
+        }
+
+        // Append chunk to the progressive player
+        if (activeAudio.value?.appendChunk) {
+          activeAudio.value.appendChunk(arrayBuffer)
+        }
       }
 
       const checkMicrophoneAccess = async () => {
@@ -672,8 +684,6 @@
 
         // Stop any playing audio when component unmounts
         stopAudio()
-
-        audioChunks.value = []
       })
 
       return {

@@ -55,10 +55,10 @@ export const searchVoices = (searchTerm, ttsProvider, pageToken = null) => {
 }
 
 export const getVoiceSample = async (voiceId, ttsProvider) => {
-  // Use the http client which already includes world ID headers
   const response = await fetch(
     `${import.meta.env.VITE_BACKEND_URL}/voices/${voiceId}/sample?tts_provider=${ttsProvider}`,
     {
+      credentials: 'include',
       headers: {
         'X-World-Id': await getCurrentWorldIdFromStore(),
       },
