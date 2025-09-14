@@ -26,7 +26,9 @@ class WhisperTranscriptionService:
         try:
             device = self._get_device()
             logger.info(f"Loading Whisper model: {self.model_size} with {device}")
-            self.model = whisper.load_model(self.model_size).to(device)
+            self.model = whisper.load_model(
+                name=self.model_size, device=device, in_memory=True
+            )
         except Exception as e:
             logger.error(f"Failed to load Whisper model {self.model_size}: {e}")
             raise
@@ -59,7 +61,10 @@ class WhisperTranscriptionService:
             # Run transcription in thread pool to avoid blocking
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
-                None, functools.partial(self.model.transcribe, wav_file_path)
+                None,
+                functools.partial(
+                    self.model.transcribe, audio=wav_file_path, fp16=False
+                ),
             )
 
             transcription = result["text"].strip()
