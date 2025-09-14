@@ -49,17 +49,16 @@ async def stream_tts_audio(
     websocket: WebSocket, tts_provider: TTSProvider, text: str, voice_id: str
 ) -> None:
     """
-    Stream TTS audio chunks back to frontend through WebSocket.
+    Stream TTS audio in MP4 format directly from TTS provider.
 
     Args:
         websocket: The WebSocket connection to send audio through
         tts_provider: The TTS provider instance to use
         text: The text to convert to speech
         voice_id: The voice ID to use for TTS
-        send_completion_signal: Whether to send "AUDIO_COMPLETE" signal when done
     """
-    # Stream TTS audio chunks back to frontend
-    async for audio_chunk in tts_provider.text_to_speech_stream(
+    # Use TTS provider's MP4 stream method
+    async for audio_chunk in tts_provider.text_to_speech_mp4_stream(
         text=text, voice_id=voice_id
     ):
         try:

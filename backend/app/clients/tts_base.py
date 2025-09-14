@@ -45,6 +45,13 @@ class TTSProvider(ABC):
         pass
 
     @abstractmethod
+    async def text_to_speech_mp4_stream(
+        self, text: str, voice_id: str
+    ) -> AsyncGenerator[bytes, None]:
+        """Stream text-to-speech audio chunks converted to MP4 format"""
+        pass
+
+    @abstractmethod
     async def search_voices(
         self,
         search_term: str | None = None,
