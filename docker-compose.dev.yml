@@ -1,5 +1,4 @@
 include:
-  - ../langfuse/docker-compose.yml
   - path:
       - backend/docker-compose.yml
       - backend/docker-compose.dev.yml

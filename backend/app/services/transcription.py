@@ -78,7 +78,11 @@ class WhisperTranscriptionService:
             result = await loop.run_in_executor(
                 None,
                 functools.partial(
-                    self.model.transcribe, audio=wav_file_path, fp16=False
+                    self.model.transcribe,
+                    audio=wav_file_path,
+                    fp16=False,
+                    temperature=0.0,
+                    beam_size=None,
                 ),
             )
 

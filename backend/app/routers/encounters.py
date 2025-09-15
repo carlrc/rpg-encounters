@@ -254,7 +254,6 @@ async def get_encounter_connections(
     "/{encounter_id}/conversation/{player_id}/{character_id}",
     response_model=ConversationData,
 )
-@observe
 async def get_conversation_data(
     encounter_id: int,
     player_id: int,
