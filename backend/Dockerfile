@@ -30,8 +30,8 @@ RUN pip install uv
 # Copy only dependency files first (for better caching)
 COPY pyproject.toml uv.lock ./
 
-# Create virtual environment and install dependencies
-RUN uv venv .venv && uv sync
+# Create virtual environment and install dependencies (CPU PyTorch, no dev deps)
+RUN uv venv && uv sync --extra cpu --no-dev
 
 # Stage 3: Runtime image
 FROM base AS runtime

@@ -1,7 +1,7 @@
 [project]
 name = "rpg-encounters"
 version = "0.1.0"
-description = "AI Scenario Helper"
+description = "RPG AI Encounters"
 readme = "README.md"
 requires-python = "==3.11.13"
 dependencies = [
@@ -13,9 +13,6 @@ dependencies = [
     "pydantic-ai==1.0.1",
     "pydantic[email]==2.11.7",
     "pre-commit==4.2.0",
-    "torch==2.8.0",
-    "torchaudio==2.8.0",
-    "torchvision==0.23.0",
     "SQLAlchemy[asyncio]==2.0.43",
     "python-jose[cryptography]==3.5.0",
     "langfuse==3.3.4",
@@ -28,6 +25,18 @@ dependencies = [
     "itsdangerous==2.2.0"
 ]
 
+[project.optional-dependencies]
+cpu = [
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "torchvision==0.23.0"
+]
+gpu = [
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "torchvision==0.23.0"
+]
+
 [tool.uv]
 dev-dependencies = [
     "pytest==8.3.4",
@@ -36,20 +45,35 @@ dev-dependencies = [
     "inline-snapshot==0.15.0"
 ]
 
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "gpu" },
+  ]
+]
+
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
 [tool.uv.sources]
 torch = [
-  { index = "pytorch-cpu" },
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu129", extra = "gpu" },
 ]
 torchvision = [
-  { index = "pytorch-cpu" },
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu129", extra = "gpu" },
 ]
 torchaudio = [
-  { index = "pytorch-cpu" },
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu129", extra = "gpu" },
 ]
 
 [pytest]

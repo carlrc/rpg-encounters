@@ -21,10 +21,14 @@ brew install ffmpeg
 Install PostgreSQL
 
 ```bash
+# Ubuntu
 apt install postgresql
+
+# MacOS
+brew install postgresql
 ```
 
-Install [Docker](https://docs.docker.com/engine/install/) and verify
+Install [Docker](https://docs.docker.com/engine/install/) and verify installation
 
 ```bash
 docker
@@ -36,10 +40,14 @@ Activate `venv`
 source .venv/bin/activate
 ```
 
-Sync project dependencies
+Install project dependencies. Specify either `cpu` or `gpu`.
 
 ```bash
-uv sync
+# Pytorch w/ CPU
+uv sync --extra cpu
+
+# Pytorch w/ GPU
+uv sync --extra gpu
 ```
 
 Install pre commit hooks and format files
@@ -49,19 +57,31 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-Setup telemetry backend by cloning [langfuse](https://github.com/langfuse/langfuse) alongside this repo
-
-```bash
-git clone https://github.com/langfuse/langfuse.git
-```
-
-If you don't want telemetry, you can disable tracing with Langfuse and by removing it from the root docker compose file
+If you don't want telemetry with [langfuse](https://github.com/langfuse/langfuse), you can disable using the following `.env` variable
 
 ```bash
 LANGFUSE_TRACING_ENABLED=false
 ```
 
-### DB Admin
+## Usage
+
+Launch backend services
+
+```bash
+sudo docker compose -f docker-compose.dev.yml up
+```
+
+Stop backend services
+
+```bash
+sudo docker compose -f docker-compose.dev.yml down
+```
+
+## Admin
+<details>
+<summary>Click for helpful test & debugging commands</summary>
+
+### DB Commands
 
 Create db
 
@@ -75,27 +95,23 @@ Create test db
 createdb -h localhost -p 5432 -U postgres '${POSTGRES_DB}-test'
 ```
 
-Create dev db tables
+Manage db tables
 
 ```bash
+# Create
 python -m app.db.init_db
-```
 
-Drop dev db tables
-
-```bash
+# Delete
 python -m app.db.init_db --drop
 ```
 
-Create and seed test db with fixture data
+Create and seed db with fixture data
 
 ```bash
+# Test Db
 python -m tests.fixtures.seed_data
-```
 
-Create and seed dev db with fixture data
-
-```bash
+# Dev Db
 python -m tests.fixtures.seed_data --dev
 ```
 
@@ -103,34 +119,6 @@ Trigger seed script inside docker container
 
 ```bash
 docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py --dev
-```
-
-Drop docker volume
-
-```bash
-docker volume ls
-
-docker volume rm <volume_name>
-```
-
-### Docker & ECR
-
-Authenticate
-
-```bash
-aws ecr get-login-password --region eu-central-1 --profile build-admin | docker login --username AWS --password-stdin 255447701128.dkr.ecr.eu-central-1.amazonaws.com
-```
-
-Build image
-
-```bash
-sudo ./scripts/build.sh
-```
-
-Tag and push with versioning
-
-```bash
-sudo ./scripts/push.sh
 ```
 
 ## Debugging
@@ -141,14 +129,26 @@ Re-install local packages
 sudo docker build --no-cache -f Dockerfile -t rpg-encounters-backend .
 ```
 
-Get backend service logs
+Drop docker volume
 
 ```bash
-docker logs -f rpg-encounters-backend
+docker volume ls
+
+docker volume rm <volume_name>
 ```
 
-Restart backend
+Reset docker env
 
 ```bash
-docker-compose restart backend
+# Stop all containers
+sudo docker stop $(sudo docker ps -aq)
+
+# Remove all containers
+sudo docker rm $(sudo docker ps -aq)
+
+# Remove all images
+sudo docker rmi $(sudo docker images -q) --force
+
+# Remove all volumes
+sudo docker volume prune -f
 ```
