@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from pydantic_ai.agent import ModelSettings
+from pydantic_ai.agent import AgentRunResult, ModelSettings
 from pydantic_ai.messages import (
     ModelMessage,
     ModelRequest,
@@ -21,7 +21,13 @@ MAX_MESSAGE_HISTORY = 20
 MAX_RETRIES = 3
 
 
-def get_latest_user_message(run_result) -> ModelRequest:
+class AgentHistoryError(RuntimeError):
+    """This should not happen in normal operation"""
+
+    pass
+
+
+def get_latest_user_message(run_result: AgentRunResult) -> ModelRequest:
     """Get the latest user message, handling pydantic bug where new_messages() can be empty."""
     # Try new_messages() first (normal case)
     new_messages = run_result.new_messages()
@@ -40,8 +46,7 @@ def get_latest_user_message(run_result) -> ModelRequest:
         ):
             return message
 
-    # This should not happen in normal operation
-    raise ValueError("No user message found in message history")
+    raise AgentHistoryError("Could not find latest user message")
 
 
 class AgentDeps(BaseModel):

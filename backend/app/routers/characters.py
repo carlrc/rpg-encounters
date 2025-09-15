@@ -26,31 +26,12 @@ router = APIRouter(prefix="/api/characters", tags=["characters"])
 logger = logging.getLogger(__name__)
 
 
-def _generate_communication_style_task(character):
-    """Generate communication style task if not custom style type."""
-
-    if character.communication_style_type == CommunicationStyle.CUSTOM.value:
-        return None
-
-    system_prompt = render_prompt(
-        "communication_style_agent",
-        {
-            "character": character,
-            "style_profile": COMMUNICATION_STYLE_PROFILES[
-                character.communication_style_type
-            ],
-            "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
-        },
-    )
-    return CommunicationStyleAgent(system_prompt=system_prompt).generate(character)
-
-
 async def _generate_personality_background(
     character_id: int,
     character_data: Union[CharacterCreate, CharacterUpdate],
     user_id: int,
     world_id: int,
-):
+) -> None:
     """Generate personality in background and update character"""
     try:
         # Generate personality
@@ -65,7 +46,7 @@ async def _generate_personality_background(
         logger.info(f"Created personality for user {user_id} in background task...")
     except Exception as e:
         logger.error(
-            f"Background personality generation for user {user_id} failed: {e}"
+            f"Background personality generation task for user {user_id} error: {e}"
         )
         raise
 
@@ -75,30 +56,42 @@ async def _generate_communication_style_background(
     character_data: Union[CharacterCreate, CharacterUpdate],
     user_id: int,
     world_id: int,
-):
+) -> None:
     """Generate communication style in background and update character"""
     try:
-        # Generate communication style if not custom
-        communication_task = _generate_communication_style_task(character_data)
-        if not communication_task:
+        if character_data.communication_style_type == CommunicationStyle.CUSTOM.value:
             return
 
-        communication_style = await communication_task
+        system_prompt = render_prompt(
+            "communication_style_agent",
+            {
+                "character": character_data,
+                "style_profile": COMMUNICATION_STYLE_PROFILES[
+                    character_data.communication_style_type
+                ],
+                "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
+            },
+        )
 
-        # Update character with generated communication style
-        character_store = CharacterStore(user_id=user_id, world_id=world_id)
+        communication_style = await CommunicationStyleAgent(
+            system_prompt=system_prompt
+        ).generate()
+
         update_data = CharacterUpdate(
             communication_style=communication_style.style_summary,
             communication_style_examples=communication_style.examples,
         )
 
-        await character_store.update(character_id, update_data)
-        logger.debug(
+        await CharacterStore(user_id=user_id, world_id=world_id).update(
+            character_id, update_data
+        )
+
+        logger.info(
             f"Created communication style for user {user_id} in background task..."
         )
     except Exception as e:
         logger.error(
-            f"Background communication style generation for user {user_id} failed: {e}"
+            f"Background communication style generation task for user {user_id} error: {e}"
         )
         raise
 

@@ -1,13 +1,12 @@
 import logging
 from typing import Dict, List
 
-from langfuse import get_client, observe
 from pydantic import BaseModel, Field
 from pydantic_ai import UnexpectedModelBehavior
 
 from app.agents.base_agent import BaseAgent
 from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
-from app.models.character import CharacterCreate, CommunicationStyle
+from app.models.character import CommunicationStyle
 
 logger = logging.getLogger(__name__)
 
@@ -113,15 +112,10 @@ class CommunicationStyleAgent(BaseAgent):
         # Set after decorators
         self.agent = agent
 
-    @observe
-    async def generate(
-        self, character: CharacterCreate
-    ) -> CommunicationStyleAgentOutput:
+    async def generate(self) -> CommunicationStyleAgentOutput:
         try:
-            run_result = await self.agent.run("Generate the communication style.")
-
-            get_client().update_current_trace(
-                name="communication-style-agent", metadata=self.metadata
+            run_result = await self.agent.run(
+                "Generate a communication style summary for this character."
             )
 
             return run_result.output

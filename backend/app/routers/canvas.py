@@ -1,7 +1,6 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
-from langfuse import observe
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.connection_store import ConnectionStore
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("", response_model=CanvasResponse)
-@observe(capture_output=False, capture_input=False)
 async def get_canvas(
     user_world: tuple[int, int] = Depends(get_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
@@ -45,7 +43,6 @@ async def get_canvas(
 
 
 @router.post("", response_model=CanvasResponse)
-@observe(capture_output=False, capture_input=False)
 async def save_canvas(
     request: CanvasSaveRequest,
     user_world: tuple[int, int] = Depends(get_current_user_world),

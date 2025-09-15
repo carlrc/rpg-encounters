@@ -5,7 +5,7 @@ from langfuse import observe
 from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.messages import ModelResponse, TextPart
 
-from app.agents.base_agent import AgentDeps, BaseAgent
+from app.agents.base_agent import AgentDeps, BaseAgent, get_latest_user_message
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.data.conversation_store import ConversationStore
 from app.models.influence import Influence
@@ -60,7 +60,7 @@ class NegativeConvoAgent(BaseAgent):
             deps.context.influence.earned += influence_result.score
 
             # User model request
-            model_request = run_result.new_messages()[0]
+            model_request = get_latest_user_message(run_result)
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=run_result.output)])
             await self.conversation_store.add_messages(

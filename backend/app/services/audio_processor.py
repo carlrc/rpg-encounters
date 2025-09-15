@@ -60,7 +60,6 @@ async def save_chunks_to_wav(chunks: List[bytes]) -> str:
         raise
 
 
-@observe
 def cleanup_files(*file_paths: str) -> None:
     for path in file_paths:
         if path and os.path.exists(path):

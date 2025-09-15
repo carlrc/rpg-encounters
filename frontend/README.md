@@ -13,3 +13,9 @@ Run development server
 ```bash
 npm run dev
 ```
+
+Build
+
+```bash
+NODE_ENV=production npm run build
+```

@@ -2,9 +2,7 @@ import logging
 
 from langfuse import observe
 from pydantic_ai import UnexpectedModelBehavior
-from pydantic_ai.agent import AgentRunResult
 
-from app.agents.agent_output import StandardAgentOutput
 from app.agents.base_agent import AgentDeps, BaseAgent
 from app.models.encounter import Encounter
 
@@ -21,18 +19,15 @@ class ChallengeAgent(BaseAgent):
         self.agent = self._generate_agent(
             system_prompt=system_prompt, instructions=instructions
         )
-        self.run_result: AgentRunResult[StandardAgentOutput] = None
 
     @observe(as_type="generation")
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
-            self.run_result = await self.agent.run(
-                user_prompt=player_transcript, deps=deps
-            )
+            run_result = await self.agent.run(user_prompt=player_transcript, deps=deps)
 
             deps.telemetry()
 
-            return self.run_result.output
+            return run_result.output
         except UnexpectedModelBehavior as e:
             logger.error(f"Agent failure. {e.message}")
             raise
