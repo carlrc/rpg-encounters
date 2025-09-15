@@ -196,8 +196,7 @@ async def seed_character_data(engine: AsyncEngine, user_ids: list[int], world_id
                             "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
                         }
                     )
-                    communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
-                    communication_style = await communication_style_agent.generate(character=character_copy)
+                    communication_style = await CommunicationStyleAgent(system_prompt=system_prompt).generate()
                     character_copy.communication_style = communication_style.style_summary
                     character_copy.communication_style_examples = communication_style.examples
 

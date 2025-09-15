@@ -43,4 +43,4 @@ async def get_websocket_user_world(websocket: WebSocket) -> Tuple[int, int]:
 @lru_cache(maxsize=1)
 def get_transcription_service() -> WhisperTranscriptionService:
     """Factory function for transcription service"""
-    return WhisperTranscriptionService(model_size="base")
+    return WhisperTranscriptionService()

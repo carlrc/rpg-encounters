@@ -13,9 +13,9 @@ dependencies = [
     "pydantic-ai==1.0.1",
     "pydantic[email]==2.11.7",
     "pre-commit==4.2.0",
-    "torch==2.7.1",
-    "torchaudio==2.7.1",
-    "torchvision==0.22.1",
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "torchvision==0.23.0",
     "SQLAlchemy[asyncio]==2.0.43",
     "python-jose[cryptography]==3.5.0",
     "langfuse==3.3.4",
@@ -36,6 +36,16 @@ dev-dependencies = [
     "inline-snapshot==0.15.0"
 ]
 
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu129" }
+torchaudio = { index = "pytorch-cu129" }
+torchvision = { index = "pytorch-cu129" }
+
 [pytest]
 timeout = 60
 
@@ -46,22 +56,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-explicit = true
-
-[tool.uv.sources]
-torch = [
-  { index = "pytorch-cpu" },
-]
-torchvision = [
-  { index = "pytorch-cpu" },
-]
-torchaudio = [
-  { index = "pytorch-cpu" },
-]
 
 [tool.isort]
 profile = "black"

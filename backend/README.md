@@ -135,6 +135,12 @@ sudo ./scripts/push.sh
 
 ## Debugging
 
+Re-install local packages
+
+```bash
+sudo docker build --no-cache -f Dockerfile -t rpg-encounters-backend .
+```
+
 Get backend service logs
 
 ```bash
