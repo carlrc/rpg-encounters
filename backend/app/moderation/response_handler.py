@@ -33,25 +33,26 @@ async def handle_moderation_response(
     """
     # Save the flagged text to the moderation table for auditing
     try:
-        await ModerationStore().create(
+        record = await ModerationStore().create(
             moderation_data=ModerationCreate(
                 user_id=user_id, text=text, openai_id=response.id
             )
         )
-        logger.info(f"Saved moderation record for user {user_id}")
+        logger.warning(f"Saved moderation record {record.id} for user {user_id}")
     except Exception as e:
         logger.error(f"Failed to save moderation record for user {user_id}: {e}")
         raise e
 
-    logger.warning(f"User {user_id} msg violated TOS. Using default replies...")
+    logger.info(f"User {user_id} msg violated TOS. Using default replies...")
     default_response = get_random_moderation_response()
-    get_client().update_current_trace(
+    telem_client = get_client()
+    telem_client.update_current_trace(input=f"MODERATED MESSAGE {record.id}")
+    telem_client.update_current_trace(
         output=default_response,
         tags=["moderation"],
         metadata={
-            "mod_response_id": response.id,
-            "mod_response_model": response.model,
-            "mod_text": text,
+            "moderated_response_id": response.id,
+            "moderated_response_model": response.model,
         },
     )
     await stream_tts_audio(

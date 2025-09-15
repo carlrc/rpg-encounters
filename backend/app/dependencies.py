@@ -1,10 +1,8 @@
-from functools import lru_cache
 from typing import Tuple
 
 from fastapi import Header, HTTPException, Request, WebSocket, status
 
 from app.auth.session import get_session_user_id
-from app.services.transcription import WhisperTranscriptionService
 
 
 def get_current_user_world(
@@ -38,9 +36,3 @@ async def get_websocket_user_world(websocket: WebSocket) -> Tuple[int, int]:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
     return int(user_id), int(world_id)
-
-
-@lru_cache(maxsize=1)
-def get_transcription_service() -> WhisperTranscriptionService:
-    """Factory function for transcription service"""
-    return WhisperTranscriptionService()

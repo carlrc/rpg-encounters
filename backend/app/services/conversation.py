@@ -19,16 +19,13 @@ from app.clients.tts import create_tts_provider
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
 from app.db.connection import get_async_db_session
-from app.dependencies import (
-    get_transcription_service,
-)
 from app.models.conversation import ConversationData
 from app.models.reveal import REVEAL_DEFAULT_THRESHOLDS, RevealLayer
-from app.moderation.check import moderation_pipe
 from app.moderation.response_handler import handle_moderation_response
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.context import get_conversation_context
 from app.services.reveal_progress import calculate_reveal_progress
+from app.services.transcription import transcribe_and_moderate
 from app.services.websocket import get_audio_chunks, stream_tts_audio
 
 logger = logging.getLogger(__name__)
@@ -45,15 +42,10 @@ async def have_conversation(
 ) -> None:
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(chunks=audio_chunks)
-    transcription = await get_transcription_service().transcribe_audio(
-        wav_file_path=wav_path
-    )
-    # Set user input as overall trace input
-    get_client().update_current_trace(input=transcription)
 
     try:
         async with get_async_db_session() as session:
-            ctx, is_blocked = await asyncio.gather(
+            ctx, (transcription, is_blocked) = await asyncio.gather(
                 get_conversation_context(
                     world_id=world_id,
                     user_id=user_id,
@@ -62,7 +54,7 @@ async def have_conversation(
                     encounter_id=encounter_id,
                     session=session,
                 ),
-                moderation_pipe(user_id=user_id, text=transcription),
+                transcribe_and_moderate(user_id=user_id, wav_file_path=wav_path),
             )
 
             if is_blocked:
@@ -75,6 +67,9 @@ async def have_conversation(
                     voice_id=ctx.character.voice_id,
                 )
                 return
+
+            # Set user message as overall trace input
+            get_client().update_current_trace(input=transcription)
 
             # Common template context for both conversation agents
             template_ctx = {

@@ -7,7 +7,22 @@ import torch
 import whisper
 from langfuse import observe
 
+from app.clients.openai_moderation import ModerationResponse
+from app.moderation.check import moderation_pipe
+
 logger = logging.getLogger(__name__)
+
+
+@observe
+async def transcribe_and_moderate(
+    user_id: int, wav_file_path: str
+) -> tuple[str, ModerationResponse | None]:
+    transcription = await get_transcription_service().transcribe_audio(
+        wav_file_path=wav_file_path
+    )
+    is_blocked = await moderation_pipe(user_id=user_id, text=transcription)
+
+    return transcription, is_blocked
 
 
 class WhisperTranscriptionService:
@@ -74,3 +89,9 @@ class WhisperTranscriptionService:
         except Exception as e:
             logger.error(f"Transcription failed for {wav_file_path}: {e}")
             raise
+
+
+@functools.lru_cache(maxsize=1)
+def get_transcription_service() -> WhisperTranscriptionService:
+    """Factory function for transcription service"""
+    return WhisperTranscriptionService()

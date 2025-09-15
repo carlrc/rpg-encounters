@@ -12,9 +12,7 @@ from app.agents.prompts.limits import (
 )
 from app.clients.tts import create_tts_provider
 from app.db.connection import get_async_db_session
-from app.dependencies import get_transcription_service
 from app.models.conversation import ConversationData
-from app.moderation.check import moderation_pipe
 from app.moderation.response_handler import handle_moderation_response
 from app.services.ability_challenge import (
     D20Outcomes,
@@ -24,6 +22,7 @@ from app.services.ability_challenge import (
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.context import get_conversation_context
 from app.services.reveal_progress import calculate_reveal_progress
+from app.services.transcription import transcribe_and_moderate
 from app.services.websocket import get_audio_chunks, stream_tts_audio
 
 logger = logging.getLogger(__name__)
@@ -82,12 +81,10 @@ async def challenge_character(
 ):
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(audio_chunks)
-    transcription = await get_transcription_service().transcribe_audio(wav_path)
-    get_client().update_current_trace(input=transcription)
 
     try:
         async with get_async_db_session() as session:
-            ctx, is_blocked = await asyncio.gather(
+            ctx, (transcription, is_blocked) = await asyncio.gather(
                 get_conversation_context(
                     world_id=world_id,
                     user_id=user_id,
@@ -96,7 +93,7 @@ async def challenge_character(
                     encounter_id=encounter_id,
                     session=session,
                 ),
-                moderation_pipe(user_id=user_id, text=transcription),
+                transcribe_and_moderate(user_id=user_id, wav_file_path=wav_path),
             )
 
             if is_blocked:
@@ -110,57 +107,63 @@ async def challenge_character(
                 )
                 return
 
-        # Calculate skill check and filter reveals outside of session
-        total_roll = calculate_skill_check(
-            skill=skill, player=ctx.player, d20_roll=d20_roll, influence=ctx.influence
-        )
+            # Set user message as overall trace input
+            get_client().update_current_trace(input=transcription)
 
-        try:
-            # TODO: Need to send the modifier (e.g., influence) in this case to make it clear whats happening
-            await websocket.send_json(
-                ConversationData(
-                    influence=total_roll,
-                    reveals=[
-                        calculate_reveal_progress(reveal, total_roll)
-                        for reveal in ctx.reveals
-                    ],
-                ).model_dump()
+            # Calculate skill check and filter reveals outside of session
+            total_roll = calculate_skill_check(
+                skill=skill,
+                player=ctx.player,
+                d20_roll=d20_roll,
+                influence=ctx.influence,
             )
-        except Exception as e:
-            logger.error(f"Failed to send challenge data: {e}")
 
-        # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render prompt
-        rendered_prompt, rendered_instructions = render_challenge_prompts(
-            ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll)
-        )
-        agent = ChallengeAgent(
-            system_prompt=rendered_prompt,
-            # In the case of critical failure there are no instructions
-            instructions=rendered_instructions if rendered_instructions else None,
-        )
+            try:
+                # TODO: Need to include the modifier (e.g., influence being added to roll) in this case to make it clear whats happening
+                await websocket.send_json(
+                    ConversationData(
+                        influence=total_roll,
+                        reveals=[
+                            calculate_reveal_progress(reveal, total_roll)
+                            for reveal in ctx.reveals
+                        ],
+                    ).model_dump()
+                )
+            except Exception as e:
+                logger.error(f"Failed to send challenge data: {e}")
 
-        # Generate LLM response
-        response = await agent.chat(
-            player_transcript=transcription,
-            deps=ChallengeAgentDeps(
-                encounter=ctx.encounter,
-                telemetry=lambda: get_client().update_current_span(
-                    name="challenge-agent",
-                    metadata=agent.metadata,
+            # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render prompt
+            rendered_prompt, rendered_instructions = render_challenge_prompts(
+                ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll)
+            )
+            agent = ChallengeAgent(
+                system_prompt=rendered_prompt,
+                # In the case of critical failure there are no instructions
+                instructions=rendered_instructions if rendered_instructions else None,
+            )
+
+            # Generate LLM response
+            response = await agent.chat(
+                player_transcript=transcription,
+                deps=ChallengeAgentDeps(
+                    encounter=ctx.encounter,
+                    telemetry=lambda: get_client().update_current_span(
+                        name="challenge-agent",
+                        metadata=agent.metadata,
+                    ),
                 ),
-            ),
-        )
+            )
 
-        # Force overall trace output to be LLM response
-        get_client().update_current_trace(output=response)
+            # Force overall trace output to be LLM response
+            get_client().update_current_trace(output=response)
 
-        # Stream TTS audio chunks back to frontend
-        await stream_tts_audio(
-            websocket=websocket,
-            tts_provider=create_tts_provider(provider=ctx.character.tts_provider),
-            text=response,
-            voice_id=ctx.character.voice_id,
-        )
+            # Stream TTS audio chunks back to frontend
+            await stream_tts_audio(
+                websocket=websocket,
+                tts_provider=create_tts_provider(provider=ctx.character.tts_provider),
+                text=response,
+                voice_id=ctx.character.voice_id,
+            )
 
     except Exception as e:
         logger.error(f"Processing challenge failed: {e}")
