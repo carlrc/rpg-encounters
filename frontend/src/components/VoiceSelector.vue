@@ -215,6 +215,7 @@
         isLoading: audioLoading,
         playingAudioId,
         error: audioError,
+        stopAudio,
       } = useAudioPlayer()
 
       // State management
@@ -340,6 +341,9 @@
         try {
           playingVoiceId.value = voiceId
           manualVoiceError.value = null
+
+          // Stop any current audio before playing new sample
+          await stopAudio()
 
           const response = await getVoiceSample(voiceId, selectedProvider.value)
           await playStreamingResponse(response, voiceId)

@@ -410,7 +410,7 @@
 
   const gameDataStore = useGameDataStore()
   const { data: gameData } = storeToRefs(gameDataStore)
-  const { playStreamingResponse, isLoading: previewLoading } = useAudioPlayer()
+  const { playStreamingResponse, isLoading: previewLoading, stopAudio } = useAudioPlayer()
   const isEditing = ref(false)
 
   const editForm = reactive({
@@ -650,6 +650,9 @@
     if (previewLoading.value) return
 
     try {
+      // Stop any current audio before playing new sample
+      await stopAudio()
+
       const response = await getVoiceSample(props.character.voice_id, props.character.tts_provider)
       await playStreamingResponse(response, `character-${props.character.id}`)
     } catch (err) {

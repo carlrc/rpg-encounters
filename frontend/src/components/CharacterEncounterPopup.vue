@@ -159,13 +159,7 @@
       const route = useRoute()
 
       // Use the standardized audio player composable
-      const {
-        playWebSocketAudio,
-        stopAudio,
-        isLoading: audioLoading,
-        error: audioError,
-        activeAudio,
-      } = useAudioPlayer()
+      const { playWebSocketAudio, stopAudio, activeAudio } = useAudioPlayer()
 
       // Use existing data from API (same as EncountersPage.vue)
       const players = ref([])
@@ -255,10 +249,6 @@
           total_layers: totalLayers,
         }
       }
-
-      const challengePreviewScore = computed(() => {
-        return isChallengeMode.value && !isRecording.value && !isProcessing.value ? 0 : null
-      })
 
       const challengePreviewReveals = computed(() => {
         if (
@@ -431,7 +421,7 @@
           websocket.value.onmessage = (event) => handleWSMessage(event.data)
 
           websocket.value.onerror = (error) => {
-            console.error('WebSocket connection error')
+            console.error(`WebSocket connection error: ${error}`)
             isProcessing.value = false
             closeWebSocket()
           }
@@ -440,7 +430,7 @@
             websocket.value = null
           }
         } catch (error) {
-          console.error('WebSocket creation failed')
+          console.error(`WebSocket creation failed: ${error}`)
           isProcessing.value = false
         }
       }
@@ -454,10 +444,7 @@
           playWebSocketAudio(`encounter-${props.encounterId}`)
         }
 
-        // Append chunk to the progressive player
-        if (activeAudio.value?.appendChunk) {
-          activeAudio.value.appendChunk(arrayBuffer)
-        }
+        await activeAudio.value.appendChunk(arrayBuffer)
       }
 
       const checkMicrophoneAccess = async () => {
@@ -630,7 +617,7 @@
       // Automatically reset conversation data when character changes
       watch(
         () => props.character?.id,
-        (newCharacterId, oldCharacterId) => {
+        (_, oldCharacterId) => {
           influenceScore.value = null
           revealsData.value = []
           rawRevealsData.value = []
@@ -675,7 +662,7 @@
         }
       })
 
-      onUnmounted(() => {
+      onUnmounted(async () => {
         closeWebSocket()
 
         if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
@@ -683,7 +670,7 @@
         }
 
         // Stop any playing audio when component unmounts
-        stopAudio()
+        await stopAudio()
       })
 
       return {
