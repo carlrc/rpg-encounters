@@ -2,40 +2,49 @@ import { reactive, computed, onUnmounted } from 'vue'
 
 /**
  * Audio player composable for handling progressive WebSocket audio and streaming responses
- * Provides unified state management and proper cleanup for audio playback
+ * Refactored to:
+ * - Separate buffering from playback
+ * - Use event-driven SourceBuffer flow (no polling loops)
+ * - Unify lifecycle/cleanup
+ * - Provide a clear progressive StreamHandle API
  */
 export function useAudioPlayer() {
-  // Consolidated state management
+  // Consolidated state management (UI-facing)
   const state = reactive({
-    activeAudio: null,
     playingAudioId: null,
     isLoading: false,
     isPlaying: false,
     error: null,
-    currentSessionId: null,
     isInitialized: false,
+    // Back-compat exposure (legacy shape; will be null unless progressive stream is active)
+    activeAudio: null,
   })
+
+  // Internal mutable runtime objects (not reactive)
+  let generation = 0
+  let token = null
+  /** @type {null | { generation: number, aborted: boolean }} */
+  let current = {
+    type: null, // 'progressive' | 'sample' | null
+    // Progressive
+    player: null, // Player instance
+    handle: null, // StreamHandle
+    // Sample
+    sampleAudio: null, // HTMLAudioElement
+    sampleUrl: null, // objectURL string
+  }
 
   /**
    * Check if MediaSource Extensions are supported
    * @returns {boolean} True if MediaSource is supported
    */
   const supportsMediaSource = () => {
-    return window.MediaSource && MediaSource.isTypeSupported('audio/mp4; codecs="mp4a.40.2"')
+    return !!(window.MediaSource && MediaSource.isTypeSupported('audio/mp4; codecs="mp4a.40.2"'))
   }
 
   /**
-   * Validates if the current session is still active
-   * @param {string} sessionId - Session ID to validate
-   * @returns {boolean} True if session is valid
-   */
-  const isSessionValid = (sessionId) => {
-    return sessionId && sessionId === state.currentSessionId
-  }
-
-  /**
-   * Safely sets error state with proper cleanup
-   * @param {string} errorMessage - Error message to set
+   * Central error setter with safe UI state flip
+   * @param {string} errorMessage
    */
   const setError = (errorMessage) => {
     state.error = errorMessage
@@ -44,524 +53,530 @@ export function useAudioPlayer() {
   }
 
   /**
-   * Play audio progressively from WebSocket chunks using MediaSource Extensions
-   * @param {string} audioId - Unique identifier for this audio stream
-   * @returns {Promise<void>}
+   * Simple abort token factory for session invalidation
+   * @returns {{ generation: number, aborted: boolean }}
    */
-  const playWebSocketAudio = async (audioId = 'websocket') => {
-    try {
-      // Only stop existing audio if we're switching to a different stream
-      if (state.playingAudioId && state.playingAudioId !== audioId) {
-        await stopAudio()
-      }
-
-      // Always initialize when called - caller knows this is needed
-      state.currentSessionId = crypto.randomUUID()
-      state.isLoading = true
-      state.error = null
-      state.playingAudioId = audioId
-
-      if (supportsMediaSource()) {
-        await playWebSocketAudioWithMediaSource()
-      } else {
-        setError('Progressive audio playback not supported in this browser')
-      }
-    } catch (err) {
-      console.error('Failed to initialize progressive audio:', err)
-      setError('Progressive audio setup failed')
-      await cleanup()
-    }
-  }
+  const newToken = () => ({ generation: ++generation, aborted: false })
 
   /**
-   * MediaSource-based progressive audio player class
-   * Handles streaming audio playback from WebSocket chunks using MediaSource Extensions
-   *
-   * Flow:
-   * 1. Initialize MediaSource and Audio elements
-   * 2. Receive chunks via appendChunk() - queued or written immediately
-   * 3. Process chunk queue after each buffer update
-   * 4. Start playback once first chunk is received
-   * 5. Mark stream complete with markStreamComplete() when done
-   * 6. Finalize MediaSource once all chunks are processed
-   *
-   * @class MediaSourceAudioPlayer
+   * Buffer controller that manages a queued, event-driven append flow to SourceBuffer
+   * No polling; driven by 'updateend' events and readiness signals.
    */
-  class MediaSourceAudioPlayer {
+  class MediaSourceBufferController {
     /**
-     * Creates a new MediaSourceAudioPlayer instance
-     * @param {Function} onError - Callback for error handling
-     * @param {Function} onLoadedData - Callback when audio data is loaded
-     * @param {Function} onEnded - Callback when playback ends
-     * @param {Function} onPlaybackStart - Callback when playback starts
-     * @param {string} sessionId - Unique session identifier
+     * @param {MediaSource} mediaSource
+     * @param {string} mimeType
+     * @param {{ generation: number, aborted: boolean }} tokenRef
+     * @param {(msg: string) => void} onError
+     * @param {() => void} onUpdateEnd
      */
-    constructor(onError, onLoadedData, onEnded, onPlaybackStart, sessionId) {
+    constructor(mediaSource, mimeType, tokenRef, onError, onUpdateEnd) {
+      this.mediaSource = mediaSource
+      this.mimeType = mimeType
+      this.token = tokenRef
       this.onError = onError
-      this.onLoadedData = onLoadedData
-      this.onEnded = onEnded
-      this.onPlaybackStart = onPlaybackStart
-      this.sessionId = sessionId
+      this.onUpdateEnd = onUpdateEnd
 
-      this.audio = null
-      this.mediaSource = null
       this.sourceBuffer = null
-      this.hasStartedPlayback = false
-      this.isSourceOpen = false
-      this.isEnded = false
-      this.isValid = true
-      this.mimeType = 'audio/mp4; codecs="mp4a.40.2"'
-    }
+      this.queue = []
+      this.ready = false
+      this.finalized = false
+      this.streamEnded = false
 
-    /**
-     * Initialize MediaSource and Audio elements with event handlers
-     * Must be called before using the player
-     * @returns {void}
-     */
-    initialize() {
-      this.mediaSource = new MediaSource()
-      this.audio = new Audio()
-      this.audio.src = URL.createObjectURL(this.mediaSource)
+      this._onSourceOpen = this._onSourceOpen.bind(this)
+      this._onBufferUpdateEnd = this._onBufferUpdateEnd.bind(this)
+      this._onBufferError = this._onBufferError.bind(this)
 
-      this.setupMediaSourceEvents()
-      this.setupAudioEvents()
-    }
-
-    /**
-     * Set up MediaSource event handlers
-     * Creates source buffer when MediaSource opens
-     * @private
-     */
-    setupMediaSourceEvents() {
-      this.mediaSource.addEventListener('sourceopen', () => {
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.isSourceOpen = true
-          this.createSourceBuffer()
-        }
-      })
-
+      this.mediaSource.addEventListener('sourceopen', this._onSourceOpen)
       this.mediaSource.addEventListener('error', () => {
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.onError('Media source error')
-        }
+        if (!this._valid()) return
+        this.onError('Media source error')
       })
     }
 
-    /**
-     * Set up Audio element event handlers
-     * Connects audio events to callback functions
-     * @private
-     */
-    setupAudioEvents() {
-      this.audio.onloadeddata = () => {
-        this.onLoadedData()
-      }
-
-      this.audio.onended = () => {
-        this.onEnded()
-      }
-
-      this.audio.onerror = () => {
-        this.onError('Audio playback failed')
-      }
+    _valid() {
+      return this.token && !this.token.aborted
     }
 
-    /**
-     * Create and configure the source buffer for audio data
-     * @private
-     */
-    createSourceBuffer() {
+    _onSourceOpen() {
+      if (!this._valid()) return
       try {
         this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mimeType)
-        this.setupSourceBufferEvents()
+        this.sourceBuffer.addEventListener('updateend', this._onBufferUpdateEnd)
+        this.sourceBuffer.addEventListener('error', this._onBufferError)
+        this.ready = true
+        // Try appending immediately if there are queued chunks
+        this._maybeAppend()
       } catch (err) {
         this.onError('Failed to create audio buffer')
       }
     }
 
-    /**
-     * Set up source buffer event handlers
-     * After each chunk is processed, check if we can start playback or end stream
-     * @private
-     */
-    setupSourceBufferEvents() {
-      this.sourceBuffer.addEventListener('updateend', () => {
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.tryStartPlayback()
-          this.checkAndEndStream()
-        }
-      })
-
-      this.sourceBuffer.addEventListener('error', () => {
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.onError('Audio buffer error')
-        }
-      })
+    _onBufferError() {
+      if (!this._valid()) return
+      this.onError('Audio buffer error')
     }
 
-    /**
-     * Start audio playback once we have received the first chunk
-     * Only attempts to start once to avoid multiple play() calls
-     * @private
-     */
-    tryStartPlayback() {
-      if (!this.hasStartedPlayback) {
-        this.startPlayback()
+    _onBufferUpdateEnd() {
+      if (!this._valid()) return
+      // Component that wraps controller can use this to tryPlay on first data, etc.
+      this.onUpdateEnd()
+      // Continue draining queue or finalize when needed
+      if (!this._maybeAppend()) {
+        this._maybeFinalize()
       }
     }
 
     /**
-     * Check if stream can be finalized and do so if all conditions are met
-     * Called after each buffer update to ensure timely finalization
-     * @private
+     * Enqueue a chunk to append (ArrayBuffer). If ready and not updating, append now.
+     * @param {ArrayBuffer} chunk
      */
-    checkAndEndStream() {
-      if (this.isEnded && this.mediaSource.readyState === 'open') {
-        this.finalizeMediaSource()
-      }
+    async write(chunk) {
+      if (!this._valid()) return
+      this.queue.push(chunk)
+      this._maybeAppend()
     }
 
     /**
-     * Actually start audio playback and notify callbacks
-     * Handles browser autoplay restrictions gracefully
-     * @private
-     * @returns {Promise<void>}
+     * Mark no more chunks will come; when queue is empty and not updating, endOfStream.
      */
-    async startPlayback() {
-      if (this.hasStartedPlayback || !this.audio || !this.isValid) return
+    async end() {
+      if (!this._valid()) return
+      this.streamEnded = true
+      this._maybeFinalize()
+    }
 
-      // Final session check before starting playback
-      if (!isSessionValid(this.sessionId)) {
-        return
+    /**
+     * Abort further operations; the Player handles ultimate disposal.
+     */
+    abort() {
+      if (!this.token) return
+      this.queue = []
+      this.token.aborted = true
+    }
+
+    /**
+     * Attempt to append next queued chunk if ready and not updating.
+     * @returns {boolean} true if appended something, false otherwise
+     */
+    _maybeAppend() {
+      if (!this._valid()) return false
+      if (!this.ready || !this.sourceBuffer || this.sourceBuffer.updating) return false
+      if (this.queue.length === 0) return false
+
+      const next = this.queue.shift()
+      try {
+        this.sourceBuffer.appendBuffer(next)
+        return true
+      } catch (err) {
+        this.onError('Failed to process audio chunk')
+        return false
       }
+    }
+
+    _maybeFinalize() {
+      if (!this._valid()) return
+      if (!this.streamEnded) return
+      if (this.finalized) return
+      if (this.mediaSource.readyState !== 'open') return
+      if (this.sourceBuffer && this.sourceBuffer.updating) return
+      if (this.queue.length > 0) return
+
+      try {
+        this.mediaSource.endOfStream()
+        this.finalized = true
+      } catch (err) {
+        // Safe to ignore finalize races
+        // console.debug('endOfStream race (ignored):', err)
+      }
+    }
+  }
+
+  /**
+   * Player wraps Audio element and MediaSourceBufferController, coordinating playback and cleanup.
+   */
+  class Player {
+    /**
+     * @param {{
+     *  mimeType: string,
+     *  autostart: boolean,
+     *  token: { generation: number, aborted: boolean },
+     *  onError: (msg: string) => void,
+     *  onLoadedData: () => void,
+     *  onEnded: () => void,
+     *  onPlaybackStart: () => void
+     * }} opts
+     */
+    constructor(opts) {
+      this.mimeType = opts.mimeType
+      this.autostart = opts.autostart
+      this.token = opts.token
+      this.onError = opts.onError
+      this.onLoadedData = opts.onLoadedData
+      this.onEnded = opts.onEnded
+      this.onPlaybackStart = opts.onPlaybackStart
+
+      this.mediaSource = null
+      this.audio = null
+      this.url = null
+      this.controller = null
+
+      this.hasStartedPlayback = false
+      this.disposed = false
+
+      this._onAudioLoadedData = this._onAudioLoadedData.bind(this)
+      this._onAudioEnded = this._onAudioEnded.bind(this)
+      this._onAudioError = this._onAudioError.bind(this)
+      this._onControllerUpdateEnd = this._onControllerUpdateEnd.bind(this)
+    }
+
+    _valid() {
+      return this.token && !this.token.aborted && !this.disposed
+    }
+
+    initialize() {
+      this.mediaSource = new MediaSource()
+      this.audio = new Audio()
+      this.url = URL.createObjectURL(this.mediaSource)
+      this.audio.src = this.url
+
+      // Audio events
+      this.audio.onloadeddata = this._onAudioLoadedData
+      this.audio.onended = this._onAudioEnded
+      this.audio.onerror = this._onAudioError
+
+      // Buffer controller
+      this.controller = new MediaSourceBufferController(
+        this.mediaSource,
+        this.mimeType,
+        this.token,
+        (msg) => {
+          if (this._valid()) this.onError(msg)
+        },
+        this._onControllerUpdateEnd
+      )
+    }
+
+    _onAudioLoadedData() {
+      if (!this._valid()) return
+      this.onLoadedData()
+    }
+
+    _onAudioEnded() {
+      if (!this._valid()) return
+      this.onEnded()
+    }
+
+    _onAudioError() {
+      if (!this._valid()) return
+      this.onError('Audio playback failed')
+    }
+
+    async _tryStartPlayback() {
+      if (!this._valid()) return
+      if (this.hasStartedPlayback) return
+      if (!this.autostart) return
 
       this.hasStartedPlayback = true
       try {
         await this.audio.play()
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.onPlaybackStart()
-        }
-      } catch (error) {
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.onError('Audio play failed')
-        }
-      }
-    }
-
-    /**
-     * Write audio chunk directly to the source buffer
-     * Caller should handle any failures by retrying
-     * @private
-     * @param {ArrayBuffer} chunk - Audio chunk to write
-     */
-    writeToBuffer(chunk) {
-      this.sourceBuffer.appendBuffer(chunk)
-    }
-
-    /**
-     * Public method to add audio chunks to the player
-     * Waits for buffer to be ready, then writes chunk immediately
-     * @param {ArrayBuffer} chunk - Audio chunk to append
-     */
-    async appendChunk(chunk) {
-      // Check if this player is still valid/active
-      if (!this.isValid || !isSessionValid(this.sessionId)) {
-        return // Ignore chunks for inactive sessions
-      }
-
-      // Wait for MediaSource and buffer to be ready
-      while (!this.isSourceOpen || !this.sourceBuffer || this.sourceBuffer.updating) {
-        await new Promise((resolve) => setTimeout(resolve, 10))
-      }
-
-      try {
-        this.writeToBuffer(chunk)
+        if (this._valid()) this.onPlaybackStart()
       } catch (err) {
-        console.error('Failed to write audio chunk:', err)
-        if (this.isValid && isSessionValid(this.sessionId)) {
-          this.onError('Failed to process audio chunk')
-        }
+        if (this._valid()) this.onError('Audio play failed')
       }
     }
 
-    /**
-     * Mark the audio stream as complete (no more chunks will be added)
-     * Wait for buffer to finish updating, then finalize MediaSource
-     * @returns {Promise<void>}
-     */
-    async markStreamComplete() {
-      // Check if this player is still valid/active
-      if (!this.isValid || !isSessionValid(this.sessionId)) {
-        return // Ignore end stream for inactive sessions
-      }
-
-      this.isEnded = true
-
-      if (this.sourceBuffer && this.mediaSource && this.mediaSource.readyState === 'open') {
-        // Simple wait for buffer to stop updating
-        while (this.sourceBuffer.updating) {
-          await new Promise((resolve) => setTimeout(resolve, 10))
-        }
-        this.finalizeMediaSource()
-      }
+    _onControllerUpdateEnd() {
+      if (!this._valid()) return
+      // Start playback on first appended data
+      this._tryStartPlayback()
     }
 
     /**
-     * Invalidate this player instance to prevent further operations
-     * Also cleans up any remaining resources
-     * @returns {void}
+     * Append chunk to buffer
+     * @param {ArrayBuffer} chunk
      */
-    invalidate() {
-      this.isValid = false
+    async write(chunk) {
+      if (!this._valid()) return
+      await this.controller.write(chunk)
+    }
 
-      // Clean up audio element
+    /**
+     * Signal end-of-stream
+     */
+    async end() {
+      if (!this._valid()) return
+      await this.controller.end()
+    }
+
+    /**
+     * Dispose and cleanup resources
+     */
+    dispose() {
+      if (this.disposed) return
+      this.disposed = true
+      if (this.controller) {
+        this.controller.abort()
+      }
       if (this.audio) {
-        this.audio.pause()
-        this.audio.removeAttribute('src')
-        this.audio.load()
+        try {
+          this.audio.pause()
+        } catch {}
+        try {
+          // Keep a brief delay before revoking URL to avoid "Empty src" issues on some browsers
+          const urlToRevoke = this.url
+          this.audio.removeAttribute('src')
+          this.audio.load()
+          if (urlToRevoke) {
+            setTimeout(() => {
+              try {
+                URL.revokeObjectURL(urlToRevoke)
+              } catch {}
+            }, 150)
+          }
+        } catch {}
       }
-
-      // Clean up MediaSource
+      // End the media source if still open
       if (this.mediaSource && this.mediaSource.readyState === 'open') {
         try {
           this.mediaSource.endOfStream()
-        } catch (err) {
-          // Ignore errors during cleanup
-        }
+        } catch {}
       }
-    }
-
-    /**
-     * Finalize the MediaSource to signal end of stream
-     * This allows the audio element to know playback is complete
-     * @private
-     * @returns {Promise<void>}
-     */
-    async finalizeMediaSource() {
-      try {
-        if (!this.mediaSource || this.mediaSource.readyState !== 'open' || !this.isValid) {
-          return
-        }
-
-        // Check session validity before finalizing
-        if (!isSessionValid(this.sessionId)) {
-          return
-        }
-
-        // Simple wait for all buffers to stop updating
-        if (this.mediaSource.sourceBuffers.length > 0) {
-          while (Array.from(this.mediaSource.sourceBuffers).some((buffer) => buffer.updating)) {
-            await new Promise((resolve) => setTimeout(resolve, 10))
-          }
-        }
-
-        // Final validation before ending stream
-        if (
-          this.isValid &&
-          isSessionValid(this.sessionId) &&
-          this.mediaSource.readyState === 'open'
-        ) {
-          this.mediaSource.endOfStream()
-        }
-      } catch (err) {
-        console.log('MediaSource finalization error (safe to ignore):', err.message)
-      }
-    }
-
-    /**
-     * Get references to internal audio objects
-     * Used for external access to audio element and MediaSource
-     * @returns {Object} Audio data object
-     */
-    getAudioData() {
-      return {
-        audio: this.audio,
-        url: this.audio?.src,
-        mediaSource: this.mediaSource,
-        isValid: this.isValid,
-        sessionId: this.sessionId,
+      // Invalidate token to stop any further actions
+      if (this.token) {
+        this.token.aborted = true
       }
     }
   }
 
   /**
-   * Create and initialize MediaSource-based audio player
-   * @returns {Promise<void>}
+   * Reset UI state to idle
    */
-  const playWebSocketAudioWithMediaSource = async () => {
-    // Invalidate any existing player before creating a new one
-    if (state.activeAudio?.player) {
-      state.activeAudio.player.invalidate()
+  const resetUiState = () => {
+    Object.assign(state, {
+      playingAudioId: null,
+      isPlaying: false,
+      isLoading: false,
+      isInitialized: false,
+      error: null,
+      activeAudio: null,
+    })
+  }
+
+  /**
+   * Stop any active audio (progressive or sample) and cleanup
+   */
+  const stop = async () => {
+    // Progressive
+    if (current.player) {
+      try {
+        current.player.dispose()
+      } catch {}
     }
 
-    const player = new MediaSourceAudioPlayer(
-      (errorMessage) => {
-        setError(errorMessage)
-        cleanup()
+    // Sample
+    if (current.sampleAudio) {
+      try {
+        current.sampleAudio.pause()
+        current.sampleAudio.removeAttribute('src')
+        current.sampleAudio.load()
+      } catch {}
+    }
+    if (current.sampleUrl) {
+      const urlToRevoke = current.sampleUrl
+      setTimeout(() => {
+        try {
+          URL.revokeObjectURL(urlToRevoke)
+        } catch {}
+      }, 150)
+    }
+
+    // Invalidate current token
+    if (token) token.aborted = true
+
+    // Clear runtime refs
+    current = {
+      type: null,
+      player: null,
+      handle: null,
+      sampleAudio: null,
+      sampleUrl: null,
+    }
+
+    resetUiState()
+  }
+
+  /**
+   * Create a progressive stream handle for chunked audio (WebSocket or any chunk source).
+   * Returns an object with write(arrayBuffer), end(), abort().
+   * @param {{ id: string, mimeType?: string, autostart?: boolean }} opts
+   * @returns {Promise<{ id: string, write: (chunk: ArrayBuffer|Blob) => Promise<void>, end: () => Promise<void>, abort: () => void }>}
+   */
+  const createProgressiveStream = async (opts) => {
+    const { id, mimeType = 'audio/mp4; codecs="mp4a.40.2"', autostart = true } = opts || {}
+
+    // Only one active stream at a time
+    await stop()
+
+    if (!supportsMediaSource()) {
+      setError('Progressive audio playback not supported in this browser')
+      throw new Error('MediaSource not supported')
+    }
+
+    token = newToken()
+    state.isLoading = true
+    state.error = null
+    state.playingAudioId = id
+
+    const player = new Player({
+      mimeType,
+      autostart,
+      token,
+      onError: (msg) => {
+        setError(msg)
+        // Ensure cleanup of player
+        try {
+          player.dispose()
+        } catch {}
       },
-      () => {
+      onLoadedData: () => {
         state.isLoading = false
         state.isPlaying = true
       },
-      () => {
-        cleanup()
+      onEnded: () => {
+        // End of playback; cleanup everything and reset UI
+        stop()
       },
-      () => {
-        // Playback started successfully
+      onPlaybackStart: () => {
+        // no-op, but could be used to flip UI on first audio
       },
-      state.currentSessionId
-    )
+    })
 
     player.initialize()
-    const audioData = player.getAudioData()
 
-    // Store references for external access
+    const handle = {
+      id,
+      write: async (chunk) => {
+        if (chunk instanceof Blob) {
+          chunk = await chunk.arrayBuffer()
+        }
+        await player.write(chunk)
+      },
+      end: async () => {
+        await player.end()
+      },
+      abort: () => {
+        player.dispose()
+      },
+    }
+
+    current.type = 'progressive'
+    current.player = player
+    current.handle = handle
+
+    // Back-compat legacy exposure (activeAudio) for existing callers
     state.activeAudio = {
-      ...audioData,
-      player: player,
-      sessionId: state.currentSessionId,
-      appendChunk: (chunk) => player.appendChunk(chunk),
-      endStream: () => player.markStreamComplete(),
+      audio: player.audio,
+      mediaSource: player.mediaSource,
+      url: player.url,
+      player: {
+        invalidate: () => handle.abort(),
+      },
+      sessionId: token.generation, // indicative only
+      appendChunk: (chunk) => handle.write(chunk),
+      endStream: () => handle.end(),
     }
 
     state.isInitialized = true
+    return handle
   }
 
   /**
-   * Play audio from REST streaming response (voice samples)
-   * @param {Response} response - Fetch response containing audio data
-   * @param {string} audioId - Unique identifier for this audio stream
-   * @returns {Promise<void>}
+   * Play audio from REST streaming response (voice samples) in buffered mode.
+   * Keeps simple blob approach but shares unified cleanup and UI state.
+   * @param {Response} response
+   * @param {string} audioId
    */
-  const playStreamingResponse = async (response, audioId = 'stream') => {
+  const playSampleResponse = async (response, audioId = 'sample') => {
     try {
-      await stopAudio()
+      await stop()
 
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const audio = new Audio(url)
+
+      token = newToken()
       state.isLoading = true
       state.error = null
       state.playingAudioId = audioId
-      state.currentSessionId = crypto.randomUUID()
-
-      // Convert streaming response to blob
-      const audioBlob = await response.blob()
-      const audioUrl = URL.createObjectURL(audioBlob)
-      const audio = new Audio(audioUrl)
 
       audio.onloadeddata = () => {
-        if (isSessionValid(state.currentSessionId)) {
-          state.isLoading = false
-          state.isPlaying = true
-        }
+        if (!token || token.aborted) return
+        state.isLoading = false
+        state.isPlaying = true
       }
 
       audio.onended = () => {
-        URL.revokeObjectURL(audioUrl)
-        cleanup()
+        // Cleanup and reset
+        stop()
       }
 
       audio.onerror = () => {
-        console.error('Audio playback error')
-        URL.revokeObjectURL(audioUrl)
+        try {
+          URL.revokeObjectURL(url)
+        } catch {}
         setError('Audio playback failed')
-        cleanup()
+        stop()
       }
 
-      state.activeAudio = {
-        audio,
-        url: audioUrl,
-        sessionId: state.currentSessionId,
-      }
+      current.type = 'sample'
+      current.sampleAudio = audio
+      current.sampleUrl = url
       state.isInitialized = true
 
       await audio.play()
     } catch (err) {
-      console.error('Failed to play streaming audio:', err)
+      console.error('Failed to play sample audio:', err)
       setError('Failed to play streaming audio')
-      await cleanup()
+      await stop()
     }
   }
 
   /**
-   * Stop currently playing audio
-   * @returns {Promise<void>}
+   * Backward-compat shim: progressive audio from WebSocket chunks.
+   * Initializes progressive stream and exposes legacy activeAudio.appendChunk/endStream.
+   * @param {string} audioId
+   */
+  const playWebSocketAudio = async (audioId = 'websocket') => {
+    try {
+      // Always set up a fresh progressive stream for the given id
+      await createProgressiveStream({ id: audioId })
+    } catch (err) {
+      console.error('Failed to initialize progressive audio:', err)
+      setError('Progressive audio setup failed')
+      await stop()
+    }
+  }
+
+  /**
+   * Backward-compat shim name: preserved alias for buffered sample playback
+   * @param {Response} response
+   * @param {string} audioId
+   */
+  const playStreamingResponse = async (response, audioId = 'stream') => {
+    return playSampleResponse(response, audioId)
+  }
+
+  /**
+   * Backward-compat name for stopping audio
    */
   const stopAudio = async () => {
-    if (state.activeAudio?.audio) {
-      state.activeAudio.audio.pause()
-      state.activeAudio.audio.currentTime = 0
-    }
-    await cleanup()
-  }
-
-  /**
-   * Clean up audio resources including MediaSource objects
-   * @returns {Promise<void>}
-   */
-  const cleanup = async () => {
-    // Invalidate any existing player first to prevent new operations
-    if (state.activeAudio?.player) {
-      state.activeAudio.player.invalidate()
-    }
-
-    if (state.activeAudio?.audio) {
-      try {
-        state.activeAudio.audio.pause()
-        // Don't clear src immediately if using MediaSource - causes "Empty src" errors
-        if (!state.activeAudio.mediaSource) {
-          state.activeAudio.audio.removeAttribute('src')
-          state.activeAudio.audio.load()
-        }
-      } catch (err) {
-        // Ignore audio cleanup errors
-      }
-    }
-
-    if (state.activeAudio?.mediaSource) {
-      try {
-        if (state.activeAudio.mediaSource.readyState === 'open') {
-          state.activeAudio.mediaSource.endOfStream()
-        }
-      } catch (err) {
-        // Safe to ignore MediaSource finalization errors
-      }
-    }
-
-    // Clean up URLs with proper timing
-    if (state.activeAudio?.url) {
-      const urlToRevoke = state.activeAudio.url
-      if (state.activeAudio.mediaSource) {
-        // Delay URL cleanup for MediaSource to prevent "Empty src" errors
-        setTimeout(() => {
-          try {
-            URL.revokeObjectURL(urlToRevoke)
-          } catch (err) {
-            // Ignore URL cleanup errors
-          }
-        }, 150)
-      } else {
-        try {
-          URL.revokeObjectURL(urlToRevoke)
-        } catch (err) {
-          // Ignore URL cleanup errors
-        }
-      }
-    }
-
-    // Reset all state atomically
-    Object.assign(state, {
-      activeAudio: null,
-      playingAudioId: null,
-      isPlaying: false,
-      isLoading: false,
-      currentSessionId: null,
-      isInitialized: false,
-      error: null,
-    })
+    await stop()
   }
 
   // Cleanup on component unmount
   onUnmounted(async () => {
-    await stopAudio()
+    await stop()
   })
 
   return {
@@ -573,14 +588,17 @@ export function useAudioPlayer() {
     activeAudio: computed(() => state.activeAudio),
     isInitialized: computed(() => state.isInitialized),
 
-    // Methods - all properly async
-    playWebSocketAudio, // For conversation/challenge audio (WebSocket chunks)
-    playStreamingResponse, // For voice samples (REST streaming response)
-    stopAudio,
-    cleanup, // Expose cleanup for manual resource management
+    // New API
+    createProgressiveStream, // For conversation/challenge audio (WebSocket chunks)
+    playSampleResponse, // For voice samples (REST response blob)
+    stop, // Unified stop
 
-    // Utility methods
-    isSessionValid: (sessionId) => isSessionValid(sessionId),
+    // Back-compat API (kept to avoid breaking current consumers)
+    playWebSocketAudio,
+    playStreamingResponse,
+    stopAudio,
+
+    // Utility
     supportsMediaSource,
   }
 }

@@ -211,11 +211,11 @@
       const { data: gameData } = storeToRefs(gameDataStore)
       // Audio player composable
       const {
-        playStreamingResponse,
+        playSampleResponse,
         isLoading: audioLoading,
         playingAudioId,
         error: audioError,
-        stopAudio,
+        stop,
       } = useAudioPlayer()
 
       // State management
@@ -343,10 +343,10 @@
           manualVoiceError.value = null
 
           // Stop any current audio before playing new sample
-          await stopAudio()
+          await stop()
 
           const response = await getVoiceSample(voiceId, selectedProvider.value)
-          await playStreamingResponse(response, voiceId)
+          await playSampleResponse(response, voiceId)
         } catch (err) {
           if (voiceId === manualVoiceId.value.trim()) {
             manualVoiceError.value = 'Invalid voice ID or failed to play sample'
@@ -362,6 +362,12 @@
         await gameDataStore.load()
         selectedProvider.value = props.currentProvider
         loadAllVoices()
+      })
+
+      onUnmounted(async () => {
+        try {
+          await stop()
+        } catch {}
       })
 
       return {

@@ -410,7 +410,7 @@
 
   const gameDataStore = useGameDataStore()
   const { data: gameData } = storeToRefs(gameDataStore)
-  const { playStreamingResponse, isLoading: previewLoading, stopAudio } = useAudioPlayer()
+  const { playSampleResponse, isLoading: previewLoading, stop } = useAudioPlayer()
   const isEditing = ref(false)
 
   const editForm = reactive({
@@ -651,10 +651,10 @@
 
     try {
       // Stop any current audio before playing new sample
-      await stopAudio()
+      await stop()
 
       const response = await getVoiceSample(props.character.voice_id, props.character.tts_provider)
-      await playStreamingResponse(response, `character-${props.character.id}`)
+      await playSampleResponse(response, `character-${props.character.id}`)
     } catch (err) {
       console.error('Failed to play character voice sample:', err)
     }
@@ -736,6 +736,13 @@
   // Clean up on unmount to prevent memory leaks
   onUnmounted(() => {
     cleanupFunctions.forEach((cleanup) => cleanup())
+  })
+
+  // Ensure any playing audio is stopped when component unmounts
+  onUnmounted(async () => {
+    try {
+      await stop()
+    } catch {}
   })
 
   // Watch communication style type changes to clear custom input
