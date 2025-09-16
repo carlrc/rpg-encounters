@@ -6,18 +6,18 @@ REGION="eu-central-1"
 DOCKER_CONTAINER="rpg-encounters-backend"
 
 usage() {
-    echo "Usage: $0 <instance-id> <operation> <email>"
-    echo "Operations: create-user, seed-user, create-and-seed"
+    echo "Usage: $0 <instance-id> <operation> [email]"
+    echo "Operations: create-user, seed-user, create-and-seed, seed-default"
 }
 
-if [[ $# -lt 3 ]]; then
+if [[ $# -lt 2 ]]; then
     usage
     exit 1
 fi
 
 INSTANCE_ID="$1"
 OPERATION="$2"
-EMAIL="$3"
+EMAIL="${3:-}"
 
 case "$OPERATION" in
     "create-user")
@@ -28,6 +28,9 @@ case "$OPERATION" in
         ;;
     "create-and-seed")
         COMMAND="cd /app && docker exec $DOCKER_CONTAINER python app/data/utils.py create-user '$EMAIL' && docker exec $DOCKER_CONTAINER python tests/fixtures/seed_data.py --email '$EMAIL'"
+        ;;
+    "seed-default")
+        COMMAND="cd /app && docker exec $DOCKER_CONTAINER python tests/fixtures/seed_data.py"
         ;;
     *)
         echo "Unknown operation: $OPERATION"

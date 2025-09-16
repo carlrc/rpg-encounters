@@ -422,7 +422,7 @@ async def seed_all_data(engine: AsyncEngine, user_ids: list[int] = None, world_i
         if user_ids is None:
             user_ids = await seed_user_data(engine=engine, num_users=2)
             await seed_account_data(engine=engine, user_ids=user_ids)
-        elif world_ids is None:
+        if world_ids is None:
             world_ids = await seed_world_data(engine=engine, user_ids=user_ids)
 
         # Seed in dependency order, passing user_ids and world_ids

@@ -372,7 +372,7 @@ class EncountersApplicationStack extends TerraformStack {
     const launchTemplate = new LaunchTemplate(this, "backend-lt", {
       name: `${resource_prefix}-backend`,
       imageId: ami.id,
-      instanceType: "t3.large",
+      instanceType: "c7a.xlarge",
       iamInstanceProfile: {
         arn: instanceProfile.arn
       },
