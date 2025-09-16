@@ -211,12 +211,7 @@
       const { data: gameData } = storeToRefs(gameDataStore)
       // Local HTTP audio player for previews
       const audioLoading = ref(false)
-      const httpPlayer = new HttpAudioPlayer({
-        onError: (msg) => console.error('Voice sample error:', msg),
-        onLoadedData: () => {},
-        onEnded: () => {},
-        onPlaybackStart: () => {},
-      })
+      const httpPlayer = new HttpAudioPlayer()
 
       // State management
       const allVoices = ref([])

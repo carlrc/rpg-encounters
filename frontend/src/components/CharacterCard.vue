@@ -410,12 +410,7 @@
 
   const gameDataStore = useGameDataStore()
   const { data: gameData } = storeToRefs(gameDataStore)
-  const httpPlayer = new HttpAudioPlayer({
-    onError: (msg) => console.error('Character voice sample error:', msg),
-    onLoadedData: () => {},
-    onEnded: () => {},
-    onPlaybackStart: () => {},
-  })
+  const httpPlayer = new HttpAudioPlayer()
   const previewLoading = ref(false)
   const isEditing = ref(false)
 

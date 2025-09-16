@@ -446,15 +446,7 @@
 
       const processAudioChunk = async (audioBlob) => {
         if (!streamPlayer) {
-          streamPlayer = new WebSocketStreamPlayer({
-            onError: (msg) => console.error('Audio error:', msg),
-            onLoadedData: () => {},
-            onEnded: () => {},
-            onPlaybackStart: () => {},
-          })
-          await streamPlayer.initWithFirstChunk(audioBlob)
-          await streamPlayer.play()
-          return
+          streamPlayer = new WebSocketStreamPlayer()
         }
         await streamPlayer.append(audioBlob)
       }

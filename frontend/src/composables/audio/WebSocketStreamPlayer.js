@@ -1,31 +1,19 @@
+import { useNotification } from '../useNotification.js'
+
 /**
  * WebSocketStreamPlayer
- * Progressive playback of MPEG-4 AAC chunks over MediaSource with explicit control.
+ * Progressive playback of MPEG-4 AAC chunks over MediaSource with auto-play and minimal API.
  *
  * Public API:
- * - constructor({ mimeType = 'audio/mp4; codecs=mp4a.40.2', onError, onLoadedData, onEnded, onPlaybackStart })
- * - initWithFirstChunk(chunk: ArrayBuffer|Blob): Promise<void>
+ * - constructor(mimeType?: string)
  * - append(chunk: ArrayBuffer|Blob): Promise<void>
- * - play(): Promise<void>
  * - end(): Promise<void>
  * - stop(): Promise<void>
  */
+
 export default class WebSocketStreamPlayer {
-  /**
-   * @param {{
-   *   mimeType?: string,
-   *   onError?: (msg: string) => void,
-   *   onLoadedData?: () => void,
-   *   onEnded?: () => void,
-   *   onPlaybackStart?: () => void
-   * }} opts
-   */
-  constructor(opts = {}) {
-    this.mimeType = opts.mimeType || 'audio/mp4; codecs=mp4a.40.2'
-    this.onError = opts.onError
-    this.onLoadedData = opts.onLoadedData
-    this.onEnded = opts.onEnded
-    this.onPlaybackStart = opts.onPlaybackStart
+  constructor(mimeType = 'audio/mp4; codecs=mp4a.40.2') {
+    this.mimeType = mimeType
 
     // Core objects
     this.audio = null
@@ -39,17 +27,12 @@ export default class WebSocketStreamPlayer {
     this.firstChunkAppended = false
     this.stopped = false
     this.endedSignal = false
-    this.shouldAutoplay = false
     this.playingStarted = false
 
     // Bound handlers
     this._onSourceOpen = this._onSourceOpen.bind(this)
     this._onSourceError = this._onSourceError.bind(this)
     this._onUpdateEnd = this._onUpdateEnd.bind(this)
-
-    this._onAudioLoadedData = this._onAudioLoadedData.bind(this)
-    this._onAudioEnded = this._onAudioEnded.bind(this)
-    this._onAudioError = this._onAudioError.bind(this)
   }
 
   static isSupported(mimeType = 'audio/mp4; codecs=mp4a.40.2') {
@@ -62,20 +45,20 @@ export default class WebSocketStreamPlayer {
 
   _ensureSupported() {
     if (!WebSocketStreamPlayer.isSupported(this.mimeType)) {
-      const msg = 'Progressive audio playback not supported in this browser'
-      this.onError(msg)
-      throw new Error(msg)
+      const { showError } = useNotification()
+      showError(
+        'Streaming audio playback not supported in this browser. Try updating or switching to Chrome.'
+      )
     }
   }
 
   _attachAudio() {
     if (this.audio) return
     this.audio = new Audio()
-
-    // Audio events
-    this.audio.onloadeddata = this._onAudioLoadedData
-    this.audio.onended = this._onAudioEnded
-    this.audio.onerror = this._onAudioError
+    this.audio.onerror = (error) => {
+      if (this.stopped) return
+      console.error('WebSocketStreamPlayer audio error', error)
+    }
   }
 
   _createMediaSource() {
@@ -89,40 +72,12 @@ export default class WebSocketStreamPlayer {
     this.audio.src = this.objectUrl
   }
 
-  async initWithFirstChunk(chunk) {
-    this._ensureSupported()
-    if (this.stopped) return
-    if (this.initialized) return
-
-    const first = await this._toArrayBuffer(chunk)
-
-    this._attachAudio()
-    this._createMediaSource()
-
-    // Enqueue first chunk; it will be appended when sourceopen fires
-    this.queue.push(first)
-    this.initialized = true
-  }
-
   async append(chunk) {
     if (this.stopped) return
-    if (!this.initialized) {
-      // If not initialized, treat this as first chunk
-      return this.initWithFirstChunk(chunk)
-    }
+    await this._ensureReady()
     const ab = await this._toArrayBuffer(chunk)
     this.queue.push(ab)
-    this._maybeAppend()
-  }
-
-  async play() {
-    if (this.stopped) return
-    // Explicit start requested; if first chunk already appended, try play now; else defer
-    if (this.firstChunkAppended && !this.playingStarted) {
-      await this._tryPlay()
-    } else {
-      this.shouldAutoplay = true
-    }
+    this._drainQueue()
   }
 
   async end() {
@@ -135,54 +90,53 @@ export default class WebSocketStreamPlayer {
     if (this.stopped) return
     this.stopped = true
 
-    // Abort any pending appends
     try {
+      // Detach listeners first to avoid further handler invocations
+      this._detachAllListeners()
+
+      // Abort any pending appends
       if (this.sourceBuffer && this.sourceBuffer.updating) {
         try {
           this.sourceBuffer.abort()
-        } catch {}
+        } catch (e) {}
       }
-    } catch {}
 
-    // Cleanup media source
-    try {
+      // Cleanup media source
       if (this.mediaSource && this.mediaSource.readyState === 'open') {
-        try {
-          this.mediaSource.endOfStream()
-        } catch {}
+        this.mediaSource.endOfStream()
       }
-    } catch {}
 
-    // Cleanup audio
-    if (this.audio) {
-      try {
+      // Cleanup audio
+      if (this.audio) {
         this.audio.pause()
-      } catch {}
-      try {
         this.audio.removeAttribute('src')
         this.audio.load()
-      } catch {}
-    }
+      }
 
-    // Revoke URL after a brief delay to avoid empty-src issues
-    if (this.objectUrl) {
-      const url = this.objectUrl
-      setTimeout(() => {
-        try {
+      // Revoke URL after a brief delay to avoid empty-src issues
+      if (this.objectUrl) {
+        const url = this.objectUrl
+        this.objectUrl = null
+        setTimeout(() => {
           URL.revokeObjectURL(url)
-        } catch {}
-      }, 150)
+        }, 150)
+      }
+    } catch (error) {
+      console.error('WebSocketStreamPlayer stop action failed', error)
+    } finally {
+      this.queue = []
+      this.sourceBuffer = null
+      this.mediaSource = null
+      // keep audio instance; it's inert now
     }
+  }
 
-    // Detach listeners
-    this._detachAllListeners()
-
-    // Reset references
-    this.queue = []
-    this.objectUrl = null
-    this.sourceBuffer = null
-    this.mediaSource = null
-    // keep audio instance for reuse if needed, but it's inert now
+  async _ensureReady() {
+    if (this.initialized) return
+    this._ensureSupported()
+    this._attachAudio()
+    this._createMediaSource()
+    this.initialized = true
   }
 
   async _tryPlay() {
@@ -190,9 +144,8 @@ export default class WebSocketStreamPlayer {
     try {
       await this.audio.play()
       this.playingStarted = true
-      this.onPlaybackStart()
-    } catch (err) {
-      this.onError('Audio play failed')
+    } catch (error) {
+      console.error('WebSocketStreamPlayer play action failed', error)
     }
   }
 
@@ -204,16 +157,15 @@ export default class WebSocketStreamPlayer {
       this.sourceBuffer.addEventListener('updateend', this._onUpdateEnd)
       this.sourceBuffer.addEventListener('error', this._onSourceError)
     } catch (err) {
-      this.onError('Failed to create audio buffer')
-      return
+      console.error('WebSocketStreamPlayer failed to create audio buffer', err)
     }
     // Start appending any queued chunks
-    this._maybeAppend()
+    this._drainQueue()
   }
 
-  _onSourceError() {
+  _onSourceError(error) {
     if (this.stopped) return
-    this.onError('Media source error')
+    console.error('WebSocketStreamPlayer media source error', error)
   }
 
   _onUpdateEnd() {
@@ -221,46 +173,31 @@ export default class WebSocketStreamPlayer {
     // First appended chunk detected
     if (!this.firstChunkAppended) {
       this.firstChunkAppended = true
-      // If play() was called earlier, start now
-      if (this.shouldAutoplay && !this.playingStarted) {
+      // Always auto-play on first chunk
+      if (!this.playingStarted) {
         this._tryPlay()
       }
     }
 
-    // Continue draining queue or finalize if ended
-    if (!this._maybeAppend()) {
-      this._maybeFinalize()
-    }
+    // Continue draining queue and maybe finalize
+    this._drainQueue()
+    this._maybeFinalize()
   }
 
-  _onAudioLoadedData() {
+  _drainQueue() {
     if (this.stopped) return
-    this.onLoadedData()
-  }
+    if (!this.sourceBuffer) return
+    if (this.sourceBuffer.updating) return
+    if (this.queue.length === 0) return
 
-  _onAudioEnded() {
-    if (this.stopped) return
-    this.onEnded()
-  }
-
-  _onAudioError() {
-    if (this.stopped) return
-    this.onError('Audio playback failed')
-  }
-
-  _maybeAppend() {
-    if (this.stopped) return false
-    if (!this.sourceBuffer) return false
-    if (this.sourceBuffer.updating) return false
-    if (this.queue.length === 0) return false
-
-    const next = this.queue.shift()
-    try {
-      this.sourceBuffer.appendBuffer(next)
-      return true
-    } catch (err) {
-      this.onError('Failed to process audio chunk')
-      return false
+    while (this.queue.length > 0 && !this.sourceBuffer.updating) {
+      const next = this.queue.shift()
+      try {
+        this.sourceBuffer.appendBuffer(next)
+      } catch (error) {
+        console.error('WebSocketStreamPlayer: Failed to process audio chunk', error)
+        throw error
+      }
     }
   }
 
@@ -272,30 +209,27 @@ export default class WebSocketStreamPlayer {
     if (this.queue.length > 0) return
     try {
       this.mediaSource.endOfStream()
-    } catch {
-      // Ignore finalize races
+    } catch (error) {
+      console.error('WebSocketStreamPlayer: Failed to finalize stream', error)
     }
   }
 
   _detachAllListeners() {
-    if (this.sourceBuffer) {
-      try {
+    try {
+      if (this.sourceBuffer) {
         this.sourceBuffer.removeEventListener('updateend', this._onUpdateEnd)
         this.sourceBuffer.removeEventListener('error', this._onSourceError)
-      } catch {}
-    }
-    if (this.mediaSource) {
-      try {
+      }
+      if (this.mediaSource) {
         this.mediaSource.removeEventListener('sourceopen', this._onSourceOpen)
         this.mediaSource.removeEventListener('error', this._onSourceError)
-      } catch {}
-    }
-    if (this.audio) {
-      try {
-        this.audio.onloadeddata = null
-        this.audio.onended = null
+      }
+
+      if (this.audio) {
         this.audio.onerror = null
-      } catch {}
+      }
+    } catch (error) {
+      console.error('WebSocketStreamPlayer: Failed detaching listeners', error)
     }
   }
 
