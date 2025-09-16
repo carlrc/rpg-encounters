@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS
+from app.clients.tts import GOOGLE_TTS
 from app.db.limits import (
     CHARACTER_BACKGROUND_LIMIT,
     CHARACTER_COMMUNICATION_LIMIT,
@@ -70,7 +70,7 @@ def get_game_data(
                 step=5,
                 min_gap=5,
             ),
-            tts_providers=[GOOGLE_TTS, ELEVANLABS_TTS],
+            tts_providers=[GOOGLE_TTS],
         )
     except Exception as e:
         logger.error(f"Could not return game data: {e}")

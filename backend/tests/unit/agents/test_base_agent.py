@@ -3,7 +3,7 @@ from unittest.mock import Mock
 import pytest
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
-from app.agents.base_agent import get_latest_user_message
+from app.agents.base_agent import AgentHistoryError, get_latest_user_message
 
 
 def test_get_latest_user_message_happy_path():
@@ -79,7 +79,7 @@ def test_get_latest_user_message_multiple_user_messages():
 
 
 def test_get_latest_user_message_no_user_messages():
-    """Test get_latest_user_message raises ValueError when no user messages exist."""
+    """Test get_latest_user_message raises AgentHistoryError when no user messages exist."""
     run_result = Mock()
     run_result.new_messages.return_value = []
 
@@ -90,17 +90,17 @@ def test_get_latest_user_message_no_user_messages():
 
     run_result.all_messages.return_value = [system_message]
 
-    with pytest.raises(ValueError, match="No user message found in message history"):
+    with pytest.raises(AgentHistoryError, match="Could not find latest user message"):
         get_latest_user_message(run_result)
 
 
 def test_get_latest_user_message_empty_history():
-    """Test get_latest_user_message raises ValueError when message history is empty."""
+    """Test get_latest_user_message raises AgentHistoryError when message history is empty."""
     run_result = Mock()
     run_result.new_messages.return_value = []
     run_result.all_messages.return_value = []
 
-    with pytest.raises(ValueError, match="No user message found in message history"):
+    with pytest.raises(AgentHistoryError, match="Could not find latest user message"):
         get_latest_user_message(run_result)
 
 

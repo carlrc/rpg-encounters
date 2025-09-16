@@ -36,6 +36,7 @@ CONTEXT = ConvoContext(
     messages=None,
     player=PLAYER,
     character=CHARACTER,
+    elevenlabs_token=None,
 )
 
 DEPENDENCIES = ConversationAgentDeps(
