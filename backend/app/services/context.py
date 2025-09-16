@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.account_store import AccountStore
 from app.data.character_store import CharacterStore
 from app.data.conversation_store import ConversationStore
 from app.data.encounter_store import EncounterStore
@@ -36,6 +37,7 @@ class ConvoContext(BaseModel):
     character: Character
     player: Player
     messages: List[ModelMessage] | None
+    elevenlabs_token: str | None
 
 
 # We don't want to have DB records in telemetry
@@ -75,12 +77,14 @@ async def get_conversation_context(
         influence_store = InfluenceStore(
             user_id=user_id, world_id=world_id, session=session
         )
+        account_store = AccountStore(user_id=user_id, session=session)
 
         # Get character and player data
         character = await character_store.get_by_id(character_id)
         player = await player_store.get_by_id(player_id)
+        user_account = await account_store.get_account_by_user_id(user_id=user_id)
 
-        if not character or not player:
+        if not character or not player or not user_account:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
         base_influence = calculate_base_influence(character=character, player=player)
@@ -90,13 +94,13 @@ async def get_conversation_context(
         if not encounter:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
 
-        # Auto-add character to encounter if not already present
+        # Auto-add character to encounter if not already present (e.g., canvas not saved but character added)
         if character_id not in encounter.character_ids:
             await encounter_store.add_character_to_encounter(encounter_id, character_id)
             # Refresh encounter data after adding character
             encounter = await encounter_store.get_by_id(encounter_id)
 
-        # Get all related data using shared session
+        # Get all related data
         reveals = await reveal_store.get_by_character_id(character_id)
         memories = await memory_store.get_by_character_id(character_id)
 
@@ -131,6 +135,7 @@ async def get_conversation_context(
             messages=messages,
             character=character,
             player=player,
+            elevenlabs_token=user_account.elevenlabs_token,
         )
     except Exception as e:
         logger.error(f"Failed to get conversation context: {e}")

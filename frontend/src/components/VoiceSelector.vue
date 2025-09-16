@@ -63,17 +63,16 @@
 
       <!-- Provider Selection -->
       <div v-if="!initialLoading" class="voice-search">
+        <div v-if="providersError" class="provider-error">
+          {{ providersError }}
+        </div>
         <select
           v-model="selectedProvider"
           class="shared-select voice-provider-select"
           @change="handleProviderChange"
           :disabled="disabled"
         >
-          <option
-            v-for="provider in gameData?.tts_providers || []"
-            :key="provider"
-            :value="provider"
-          >
+          <option v-for="provider in availableProviders" :key="provider" :value="provider">
             {{ formatProviderName(provider) }}
           </option>
         </select>
@@ -182,7 +181,7 @@
   import { storeToRefs } from 'pinia'
   import { useGameDataStore } from '../stores/gameData.js'
   import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer.js'
-  import { searchVoices, getVoiceSample } from '../services/api.js'
+  import { searchVoices, getVoiceSample, getTTSProviders } from '../services/api.js'
 
   export default {
     name: 'VoiceSelector',
@@ -228,6 +227,8 @@
 
       // Provider state
       const selectedProvider = ref(props.currentProvider || '')
+      const availableProviders = ref([])
+      const providersError = ref(null)
 
       // Computed properties
       const filteredVoices = computed(() => {
@@ -261,7 +262,14 @@
         })
       })
 
-      // Methods
+      const loadProviders = async () => {
+        const providers = await getTTSProviders()
+        availableProviders.value = providers
+
+        selectedProvider.value = 'google'
+        emit('select-provider', selectedProvider.value)
+      }
+
       const loadAllVoices = async () => {
         if (!selectedProvider.value) {
           allVoices.value = []
@@ -357,7 +365,7 @@
       // Lifecycle
       onMounted(async () => {
         await gameDataStore.load()
-        selectedProvider.value = props.currentProvider
+        await loadProviders()
         loadAllVoices()
       })
 
@@ -378,12 +386,15 @@
         manualVoiceError,
         searchTerm,
         selectedProvider,
+        availableProviders,
+        providersError,
         gameData,
 
         // Computed
         filteredVoices,
 
         // Methods
+        loadProviders,
         loadAllVoices,
         selectVoice,
         setManualVoice,
@@ -457,6 +468,13 @@
 
   .voice-error {
     margin-top: 8px;
+    color: var(--danger-color);
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  .provider-error {
+    margin-bottom: 8px;
     color: var(--danger-color);
     font-size: 0.8rem;
     font-style: italic;

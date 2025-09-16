@@ -102,8 +102,7 @@ async def challenge_character(
                     user_id=user_id,
                     text=transcription,
                     response=is_blocked,
-                    tts_provider_name=ctx.character.tts_provider,
-                    voice_id=ctx.character.voice_id,
+                    ctx=ctx,
                 )
                 return
 
@@ -160,7 +159,10 @@ async def challenge_character(
             # Stream TTS audio chunks back to frontend
             await stream_tts_audio(
                 websocket=websocket,
-                tts_provider=create_tts_provider(provider=ctx.character.tts_provider),
+                tts_provider=create_tts_provider(
+                    provider=ctx.character.tts_provider,
+                    elevenlabs_user_api_key=ctx.elevenlabs_token,
+                ),
                 text=response,
                 voice_id=ctx.character.voice_id,
             )

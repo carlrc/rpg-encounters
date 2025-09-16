@@ -45,6 +45,8 @@ export const createWorld = () => http.post('/worlds')
 export const deleteWorld = (worldId) => http.delete(`/worlds/${worldId}`)
 
 // Voice operations
+export const getTTSProviders = () => http.get('/voices/tts_providers')
+
 export const searchVoices = (searchTerm, ttsProvider, pageToken = null) => {
   const params = new URLSearchParams({
     search_term: searchTerm,

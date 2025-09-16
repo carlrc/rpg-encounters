@@ -6,7 +6,6 @@ import httpx
 
 from app.clients.tts_base import TTSProvider, VoicesResponse
 from app.services.audio_processor import convert_mp3_to_mp4_stream
-from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +19,9 @@ class VoiceType(Enum):
 
 
 class ElevenLabs(TTSProvider):
-    def __init__(self, page_size: int = 40):
+    def __init__(self, api_key: str, page_size: int = 40):
         super().__init__()
-        self.api_key = get_or_throw("ELEVENLABS_API_KEY")
+        self.api_key = api_key
         self.base_url = "https://api.elevenlabs.io"
         self.output_format = "mp3_44100_128"
         self.model = "eleven_flash_v2_5"

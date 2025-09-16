@@ -1,10 +1,12 @@
 import logging
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from app.clients.tts import create_tts_provider
+from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS, create_tts_provider
 from app.clients.tts_base import VoicesResponse
+from app.data.account_store import AccountStore
 from app.dependencies import get_current_user_world
 from app.http import INTERNAL_SERVER_ERROR
 
@@ -13,6 +15,35 @@ router = APIRouter(prefix="/api/voices", tags=["voices"])
 logger = logging.getLogger(__name__)
 
 VOICE_SAMPLE_TEXT = "This is a character voice sample"
+
+
+async def get_user_elevenlabs_token(user_id: int) -> str | None:
+    """Check if user has ElevenLabs token configured - with LRU cache"""
+    try:
+        account = await AccountStore(user_id=user_id).get_account_by_user_id(user_id)
+        return account.elevenlabs_token
+    except Exception as e:
+        logger.error(f"Failed to check ElevenLabs token for user {user_id}: {e}")
+        return None
+
+
+@router.get("/tts_providers", response_model=List[str])
+async def get_tts_providers(
+    user_world: tuple[int, int] = Depends(get_current_user_world),
+):
+    """Get available TTS providers for the current user"""
+    user_id, _ = user_world
+
+    try:
+        providers = [GOOGLE_TTS]
+
+        if await get_user_elevenlabs_token(user_id=user_id):
+            providers.append(ELEVANLABS_TTS)
+
+        return providers
+    except Exception as e:
+        logger.error(f"Failed to get TTS providers for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
 @router.get("/search", response_model=VoicesResponse)
@@ -25,14 +56,22 @@ async def search_voices(
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Search for available voices"""
-    user_id, world_id = user_world
+    user_id, _ = user_world
+
     try:
-        return await create_tts_provider(provider=tts_provider).search_voices(
+        elevanlabs_token = await get_user_elevenlabs_token(user_id=user_id)
+        tts_client = create_tts_provider(
+            provider=tts_provider, elevenlabs_user_api_key=elevanlabs_token
+        )
+
+        return await tts_client.search_voices(
             search_term=search_term, next_page_token=next_page_token
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
-            f"Failed to search voices for user {user_id}, world {world_id}, term '{search_term}'. {e}"
+            f"Failed to search voices for user {user_id} and term '{search_term}'. {e}"
         )
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
@@ -44,13 +83,18 @@ async def get_voice_sample(
     user_world: tuple[int, int] = Depends(get_current_user_world),
 ):
     """Generate and stream a voice sample using static text"""
-    user_id, world_id = user_world
+    user_id, _ = user_world
+
     try:
+        elevanlabs_token = await get_user_elevenlabs_token(user_id)
+        tts_client = create_tts_provider(
+            provider=tts_provider, elevenlabs_user_api_key=elevanlabs_token
+        )
 
         async def generate_sample():
-            async for chunk in create_tts_provider(
-                provider=tts_provider
-            ).text_to_speech_stream(VOICE_SAMPLE_TEXT, voice_id):
+            async for chunk in tts_client.text_to_speech_stream(
+                VOICE_SAMPLE_TEXT, voice_id
+            ):
                 yield chunk
 
         return StreamingResponse(
@@ -61,8 +105,10 @@ async def get_voice_sample(
                 "Cache-Control": "no-cache",
             },
         )
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(
-            f"Failed to generate voice sample {voice_id} for user {user_id}, world {world_id}. {e}"
+            f"Failed to generate voice sample {voice_id} for user {user_id}. {e}"
         )
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)

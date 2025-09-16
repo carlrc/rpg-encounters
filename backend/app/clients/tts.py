@@ -8,12 +8,12 @@ ELEVANLABS_TTS = "elevanlabs"
 DEFAULT_TTS_PROVIDER = get_or_throw("DEFAULT_TTS_PROVIDER")
 
 
-def create_tts_provider(provider: str) -> TTSProvider:
+def create_tts_provider(
+    provider: str, elevenlabs_user_api_key: str | None = None
+) -> TTSProvider:
     """Factory function to create TTS provider instances"""
 
-    service = provider if provider else DEFAULT_TTS_PROVIDER
-
-    if service == GOOGLE_TTS:
-        return GoogleCloudTTS()
+    if provider == ELEVANLABS_TTS and elevenlabs_user_api_key:
+        return ElevenLabs(api_key=elevenlabs_user_api_key)
     else:
-        return ElevenLabs()
+        return GoogleCloudTTS()

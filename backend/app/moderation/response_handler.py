@@ -7,6 +7,7 @@ from app.clients.tts import create_tts_provider
 from app.data.moderation_store import ModerationStore
 from app.models.moderation import ModerationCreate
 from app.moderation.check import ModerationResponse, get_random_moderation_response
+from app.services.context import ConvoContext
 from app.services.websocket import stream_tts_audio
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,8 @@ async def handle_moderation_response(
     websocket: WebSocket,
     user_id: int,
     text: str,
+    ctx: ConvoContext,
     response: ModerationResponse,
-    tts_provider_name: str,
-    voice_id: str,
 ) -> None:
     """
     Handle moderation response when content is blocked.
@@ -57,7 +57,9 @@ async def handle_moderation_response(
     )
     await stream_tts_audio(
         websocket=websocket,
-        tts_provider=create_tts_provider(provider=tts_provider_name),
+        tts_provider=create_tts_provider(
+            provider=ctx.tts_provider_name, elevenlabs_user_api_key=ctx.elevenlabs_token
+        ),
         text=default_response,
-        voice_id=voice_id,
+        voice_id=ctx.character.voice_id,
     )
