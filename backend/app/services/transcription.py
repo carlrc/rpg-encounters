@@ -2,6 +2,7 @@ import asyncio
 import functools
 import logging
 import os
+import random
 
 import torch
 import whisper
@@ -9,6 +10,7 @@ from langfuse import observe
 
 from app.clients.openai_moderation import ModerationResponse
 from app.moderation.check import moderation_pipe
+from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +98,12 @@ class WhisperTranscriptionService:
 
 
 @functools.lru_cache(maxsize=1)
+def _get_transcription_pool() -> list[WhisperTranscriptionService]:
+    """Create pool of transcription services"""
+    pool_size = int(get_or_throw("TRANSCRIPTION_POOL_SIZE"))
+    return [WhisperTranscriptionService() for _ in range(pool_size)]
+
+
 def get_transcription_service() -> WhisperTranscriptionService:
-    """Factory function for transcription service"""
-    return WhisperTranscriptionService()
+    """Factory function for transcription service - returns random instance from pool"""
+    return random.choice(_get_transcription_pool())
