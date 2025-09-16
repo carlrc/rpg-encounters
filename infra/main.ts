@@ -233,6 +233,16 @@ class EncountersApplicationStack extends TerraformStack {
             Statement: [
               { Effect: "Allow", Action: ["ssm:UpdateInstanceInformation"], Resource: "*" },
               { Effect: "Allow", Action: ["s3:GetObject"], Resource: `arn:aws:s3:::${stateBucketName}/*` },
+              {
+                Effect: "Allow",
+                Action: [
+                  "ses:SendEmail",
+                  "ses:SendRawEmail",
+                  "ses:GetSendQuota",
+                  "ses:GetSendStatistics"
+                ],
+                Resource: "*"
+              },
             ],
           }),
         },
