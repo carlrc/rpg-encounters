@@ -383,7 +383,7 @@
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
+  import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
@@ -410,7 +410,13 @@
 
   const gameDataStore = useGameDataStore()
   const { data: gameData } = storeToRefs(gameDataStore)
-  const { playSampleResponse, isLoading: previewLoading, stop } = useAudioPlayer()
+  const httpPlayer = new HttpAudioPlayer({
+    onError: (msg) => console.error('Character voice sample error:', msg),
+    onLoadedData: () => {},
+    onEnded: () => {},
+    onPlaybackStart: () => {},
+  })
+  const previewLoading = ref(false)
   const isEditing = ref(false)
 
   const editForm = reactive({
@@ -650,13 +656,16 @@
     if (previewLoading.value) return
 
     try {
+      previewLoading.value = true
       // Stop any current audio before playing new sample
-      await stop()
+      await httpPlayer.stop()
 
       const response = await getVoiceSample(props.character.voice_id, props.character.tts_provider)
-      await playSampleResponse(response, `character-${props.character.id}`)
+      await httpPlayer.playResponse(response)
     } catch (err) {
       console.error('Failed to play character voice sample:', err)
+    } finally {
+      previewLoading.value = false
     }
   }
 
@@ -741,7 +750,7 @@
   // Ensure any playing audio is stopped when component unmounts
   onUnmounted(async () => {
     try {
-      await stop()
+      await httpPlayer.stop()
     } catch {}
   })
 

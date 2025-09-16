@@ -181,7 +181,7 @@
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { storeToRefs } from 'pinia'
   import { useGameDataStore } from '../stores/gameData.js'
-  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
+  import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer.js'
   import { searchVoices, getVoiceSample } from '../services/api.js'
 
   export default {
@@ -209,14 +209,14 @@
       // Game data store
       const gameDataStore = useGameDataStore()
       const { data: gameData } = storeToRefs(gameDataStore)
-      // Audio player composable
-      const {
-        playSampleResponse,
-        isLoading: audioLoading,
-        playingAudioId,
-        error: audioError,
-        stop,
-      } = useAudioPlayer()
+      // Local HTTP audio player for previews
+      const audioLoading = ref(false)
+      const httpPlayer = new HttpAudioPlayer({
+        onError: (msg) => console.error('Voice sample error:', msg),
+        onLoadedData: () => {},
+        onEnded: () => {},
+        onPlaybackStart: () => {},
+      })
 
       // State management
       const allVoices = ref([])
@@ -339,14 +339,15 @@
         if (audioLoading.value || !selectedProvider.value) return
 
         try {
+          audioLoading.value = true
           playingVoiceId.value = voiceId
           manualVoiceError.value = null
 
           // Stop any current audio before playing new sample
-          await stop()
+          await httpPlayer.stop()
 
           const response = await getVoiceSample(voiceId, selectedProvider.value)
-          await playSampleResponse(response, voiceId)
+          await httpPlayer.playResponse(response)
         } catch (err) {
           if (voiceId === manualVoiceId.value.trim()) {
             manualVoiceError.value = 'Invalid voice ID or failed to play sample'
@@ -354,6 +355,7 @@
           console.error('Voice sample playback failed:', err)
         } finally {
           playingVoiceId.value = null
+          audioLoading.value = false
         }
       }
 
@@ -366,7 +368,7 @@
 
       onUnmounted(async () => {
         try {
-          await stop()
+          await httpPlayer.stop()
         } catch {}
       })
 

@@ -120,7 +120,7 @@
   import { useGameDataStore } from '../stores/gameData.js'
   import { useConversationDataStore } from '../stores/conversationData.js'
   import { useWorldStore } from '../stores/world.js'
-  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
+  import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
   import { getPlayers } from '../services/api.js'
 
   // Constants to replace magic numbers
@@ -158,8 +158,8 @@
       const router = useRouter()
       const route = useRoute()
 
-      // Use the standardized audio player composable
-      const { createProgressiveStream, stop } = useAudioPlayer()
+      // Local WebSocket progressive audio player (explicit control)
+      let streamPlayer = null
 
       // Use existing data from API (same as EncountersPage.vue)
       const players = ref([])
@@ -172,7 +172,6 @@
       const isProcessing = ref(false)
       const websocket = ref(null)
       const mediaRecorder = ref(null)
-      let progressiveStream = null
 
       // NEW: Conversation data state
       const influenceScore = ref(null)
@@ -318,8 +317,10 @@
         closeWebSocket()
 
         // Stop any playing audio
-        stop()
-        progressiveStream = null
+        if (streamPlayer) {
+          streamPlayer.stop()
+          streamPlayer = null
+        }
 
         // Reset state
         selectedPlayerId.value = ''
@@ -355,13 +356,13 @@
       const CONTROL = {
         AUDIO_COMPLETE: async () => {
           // Signal end of stream for progressive playback
-          if (progressiveStream) {
+          if (streamPlayer) {
             try {
-              await progressiveStream.end()
+              await streamPlayer.end()
             } catch (e) {
-              console.error('Failed to end progressive stream', e)
+              console.error('Failed to close audio stream', e)
             } finally {
-              progressiveStream = null
+              streamPlayer = null
             }
           }
           isProcessing.value = false
@@ -444,15 +445,18 @@
       }
 
       const processAudioChunk = async (audioBlob) => {
-        const arrayBuffer = await audioBlob.arrayBuffer()
-
-        if (!progressiveStream) {
-          progressiveStream = await createProgressiveStream({
-            id: `encounter-${props.encounterId}`,
+        if (!streamPlayer) {
+          streamPlayer = new WebSocketStreamPlayer({
+            onError: (msg) => console.error('Audio error:', msg),
+            onLoadedData: () => {},
+            onEnded: () => {},
+            onPlaybackStart: () => {},
           })
+          await streamPlayer.initWithFirstChunk(audioBlob)
+          await streamPlayer.play()
+          return
         }
-
-        await progressiveStream.write(arrayBuffer)
+        await streamPlayer.append(audioBlob)
       }
 
       const checkMicrophoneAccess = async () => {
@@ -678,8 +682,10 @@
         }
 
         // Stop any playing audio when component unmounts
-        await stop()
-        progressiveStream = null
+        if (streamPlayer) {
+          await streamPlayer.stop()
+          streamPlayer = null
+        }
       })
 
       return {
