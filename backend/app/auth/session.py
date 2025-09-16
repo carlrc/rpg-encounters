@@ -23,7 +23,7 @@ class SessionConfig(BaseModel):
         frozen=True,
     )
     session_cookie_name: str = Field(default=SESSION_COOKIE, frozen=True)
-    max_age: int = Field(default=60 * 60 * 5, frozen=True)  # 5 hours
+    max_age: int = Field(default=60 * 60 * 2, frozen=True)  # 2 hours
     secure: bool = Field(default=not IS_LOCAL, frozen=True)
     httponly: bool = Field(default=not IS_LOCAL, frozen=True)
 

@@ -1,4 +1,5 @@
 import logging
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,7 @@ from app.auth.session import (
     SESSION_CONFIG,
     destroy_session,
 )
+from app.clients.ses import SimpleEmailService
 from app.data.account_store import AccountStore
 from app.data.magic_link_store import (
     DeviceMismatchError,
@@ -24,6 +26,7 @@ from app.models.magic_link import (
     MagicLinkCreate,
     MagicLinkRequest,
 )
+from app.templates.render_template import render_email_template
 from app.utils import get_or_throw
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
@@ -31,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
 LOG_MAGIC_LINK = get_or_throw("LOG_MAGIC_LINK").lower() == "true"
+SEND_EMAIL = get_or_throw("SEND_EMAIL").lower() == "true"
+EMAIL_SUBJECT = os.getenv("EMAIL_SUBJECT", "Login to RPG Encounters")
 BACKEND_REDIRECT_URL = f"{FRONTEND_URL}/players"
 
 
@@ -70,11 +75,31 @@ async def request_magic_link(
         # Create magic link
         raw_token = MagicLinkStore.generate_token()
 
-        # TODO: Raw token would be emailed to users here
+        # Send magic link email to user
         if LOG_MAGIC_LINK:
             # So you can login manually locally
-            logger.info(f"Login link {FRONTEND_URL}/auth?token={raw_token}")
-            logger.info(f"Device nonce {device_nonce}")
+            logger.info(
+                f"{body.email} login link: {FRONTEND_URL}/auth?token={raw_token}"
+            )
+
+        if SEND_EMAIL:
+            try:
+                await SimpleEmailService().send(
+                    subject=EMAIL_SUBJECT,
+                    recipient_email="carl.richmond@pm.me",
+                    body_html=render_email_template(
+                        "login-email-template.jinja.html",
+                        {
+                            "MAGIC_LINK": f"{FRONTEND_URL}/auth?token={raw_token}",
+                            "LOGO_PATH": f"{FRONTEND_URL}/logo.png",
+                        },
+                    ),
+                    body_text="Login link for RPG Encounters.",
+                )
+                logger.info(f"Login email sent successfully to {account.email}")
+            except Exception as e:
+                logger.error(f"Failed to send login email to {account.email}: {e}")
+                raise
 
         magic_link_data = MagicLinkCreate(
             user_id=account.user_id,

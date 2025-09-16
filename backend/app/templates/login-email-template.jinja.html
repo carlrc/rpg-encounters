@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login to RPG Encounters</title>
+    <style>
+        /* Email-safe CSS using your design system */
+        body {
+            font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            font-weight: 400;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #080808;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .email-header {
+            background-color: #ffffff;
+            padding: 24px 30px;
+            border-bottom: 1px solid #a0a0a0;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            height: 50px;
+            width: auto;
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #080808;
+            margin: 0;
+        }
+
+        .email-body {
+            padding: 30px;
+        }
+
+        .greeting {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            color: #080808;
+        }
+
+        .message {
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+            color: #666666;
+            line-height: 1.6;
+        }
+
+        .login-button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .login-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #0d0d0d, #080808);
+            color: white;
+            text-decoration: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(13, 13, 13, 0.3);
+        }
+
+        .login-button:hover {
+            background: linear-gradient(135deg, #080808, #000000);
+            box-shadow: 0 4px 8px rgba(13, 13, 13, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .security-notice {
+            background-color: #f5f5f5;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 20px 0;
+            font-size: 0.875rem;
+            color: #666666;
+        }
+
+        .fallback-link {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            font-size: 0.875rem;
+            color: #666666;
+        }
+
+        .fallback-link a {
+            color: #0d0d0d;
+            word-break: break-all;
+        }
+
+        .email-footer {
+            padding: 20px 30px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #a0a0a0;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #666666;
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 480px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 6px;
+            }
+
+            .email-header,
+            .email-body,
+            .email-footer {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+
+            .brand-section {
+                gap: 16px;
+            }
+
+            .logo {
+                height: 40px;
+            }
+
+            .brand-title {
+                font-size: 1.25rem;
+            }
+
+            .login-button {
+                padding: 14px 24px;
+                width: 80%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="email-container">
+        <!-- Header with your branding -->
+        <div class="email-header">
+            <div class="brand-section">
+                <img src="{{LOGO_PATH}}" alt="RPG Encounters Logo" class="logo" />
+                <h1 class="brand-title">RPG Encounters</h1>
+            </div>
+        </div>
+
+        <!-- Email body -->
+        <div class="email-body">
+
+            <div class="message">
+                Click the button below to log in.
+            </div>
+
+            <div class="login-button-container">
+                <a href="{{MAGIC_LINK}}" class="login-button">
+                    Login
+                </a>
+            </div>
+
+            <div class="fallback-link">
+                <strong>Having trouble?</strong><br>
+                Make sure you are using the same device that you requested the link with.<br>
+
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="email-footer">
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+
+</html>
