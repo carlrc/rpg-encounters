@@ -120,7 +120,7 @@
   import { useGameDataStore } from '../stores/gameData.js'
   import { useConversationDataStore } from '../stores/conversationData.js'
   import { useWorldStore } from '../stores/world.js'
-  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
+  import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
   import { getPlayers } from '../services/api.js'
 
   // Constants to replace magic numbers
@@ -158,14 +158,8 @@
       const router = useRouter()
       const route = useRoute()
 
-      // Use the standardized audio player composable
-      const {
-        playWebSocketAudio,
-        stopAudio,
-        isLoading: audioLoading,
-        error: audioError,
-        activeAudio,
-      } = useAudioPlayer()
+      // Local WebSocket progressive audio player (explicit control)
+      let streamPlayer = null
 
       // Use existing data from API (same as EncountersPage.vue)
       const players = ref([])
@@ -256,10 +250,6 @@
         }
       }
 
-      const challengePreviewScore = computed(() => {
-        return isChallengeMode.value && !isRecording.value && !isProcessing.value ? 0 : null
-      })
-
       const challengePreviewReveals = computed(() => {
         if (
           !isChallengeMode.value ||
@@ -327,7 +317,10 @@
         closeWebSocket()
 
         // Stop any playing audio
-        stopAudio()
+        if (streamPlayer) {
+          streamPlayer.stop()
+          streamPlayer = null
+        }
 
         // Reset state
         selectedPlayerId.value = ''
@@ -361,10 +354,16 @@
         v && v.type === 'conversation_data' && 'influence' in v && 'reveals' in v
 
       const CONTROL = {
-        AUDIO_COMPLETE: () => {
+        AUDIO_COMPLETE: async () => {
           // Signal end of stream for progressive playback
-          if (activeAudio.value?.endStream) {
-            activeAudio.value.endStream()
+          if (streamPlayer) {
+            try {
+              await streamPlayer.end()
+            } catch (e) {
+              console.error('Failed to close audio stream', e)
+            } finally {
+              streamPlayer = null
+            }
           }
           isProcessing.value = false
           closeWebSocket()
@@ -431,7 +430,7 @@
           websocket.value.onmessage = (event) => handleWSMessage(event.data)
 
           websocket.value.onerror = (error) => {
-            console.error('WebSocket connection error')
+            console.error(`WebSocket connection error: ${error}`)
             isProcessing.value = false
             closeWebSocket()
           }
@@ -440,24 +439,16 @@
             websocket.value = null
           }
         } catch (error) {
-          console.error('WebSocket creation failed')
+          console.error(`WebSocket creation failed: ${error}`)
           isProcessing.value = false
         }
       }
 
       const processAudioChunk = async (audioBlob) => {
-        // Convert blob to ArrayBuffer for progressive playback
-        const arrayBuffer = await audioBlob.arrayBuffer()
-
-        // If this is the first chunk, initialize progressive playback
-        if (!activeAudio.value) {
-          playWebSocketAudio(`encounter-${props.encounterId}`)
+        if (!streamPlayer) {
+          streamPlayer = new WebSocketStreamPlayer()
         }
-
-        // Append chunk to the progressive player
-        if (activeAudio.value?.appendChunk) {
-          activeAudio.value.appendChunk(arrayBuffer)
-        }
+        await streamPlayer.append(audioBlob)
       }
 
       const checkMicrophoneAccess = async () => {
@@ -630,7 +621,7 @@
       // Automatically reset conversation data when character changes
       watch(
         () => props.character?.id,
-        (newCharacterId, oldCharacterId) => {
+        (_, oldCharacterId) => {
           influenceScore.value = null
           revealsData.value = []
           rawRevealsData.value = []
@@ -675,7 +666,7 @@
         }
       })
 
-      onUnmounted(() => {
+      onUnmounted(async () => {
         closeWebSocket()
 
         if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
@@ -683,7 +674,10 @@
         }
 
         // Stop any playing audio when component unmounts
-        stopAudio()
+        if (streamPlayer) {
+          await streamPlayer.stop()
+          streamPlayer = null
+        }
       })
 
       return {

@@ -383,7 +383,7 @@
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import { useAudioPlayer } from '../composables/useAudioPlayer.js'
+  import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer.js'
   import { getInitials } from '../utils/avatarUtils.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
@@ -410,7 +410,8 @@
 
   const gameDataStore = useGameDataStore()
   const { data: gameData } = storeToRefs(gameDataStore)
-  const { playStreamingResponse, isLoading: previewLoading } = useAudioPlayer()
+  const httpPlayer = new HttpAudioPlayer()
+  const previewLoading = ref(false)
   const isEditing = ref(false)
 
   const editForm = reactive({
@@ -650,10 +651,16 @@
     if (previewLoading.value) return
 
     try {
+      previewLoading.value = true
+      // Stop any current audio before playing new sample
+      await httpPlayer.stop()
+
       const response = await getVoiceSample(props.character.voice_id, props.character.tts_provider)
-      await playStreamingResponse(response, `character-${props.character.id}`)
+      await httpPlayer.playResponse(response)
     } catch (err) {
       console.error('Failed to play character voice sample:', err)
+    } finally {
+      previewLoading.value = false
     }
   }
 
@@ -733,6 +740,13 @@
   // Clean up on unmount to prevent memory leaks
   onUnmounted(() => {
     cleanupFunctions.forEach((cleanup) => cleanup())
+  })
+
+  // Ensure any playing audio is stopped when component unmounts
+  onUnmounted(async () => {
+    try {
+      await httpPlayer.stop()
+    } catch {}
   })
 
   // Watch communication style type changes to clear custom input
