@@ -86,7 +86,7 @@ async def request_magic_link(
             try:
                 await SimpleEmailService().send(
                     subject=EMAIL_SUBJECT,
-                    recipient_email="carl.richmond@pm.me",
+                    recipient_email=account.email,
                     body_html=render_email_template(
                         "login-email-template.jinja.html",
                         {
