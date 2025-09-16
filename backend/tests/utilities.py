@@ -35,8 +35,8 @@ async def setup_test_database():
     url = get_or_throw("TEST_DATABASE_URL")
     async_engine = create_async_engine(url)
     await create_tables(engine=async_engine)
-    await seed_user_data(engine=async_engine)
-    await seed_world_data(engine=async_engine)
+    user_ids = await seed_user_data(engine=async_engine)
+    await seed_world_data(user_ids=user_ids, engine=async_engine)
     return async_engine
 
 
