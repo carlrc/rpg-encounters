@@ -16,9 +16,9 @@ characters_db = [
     communication_style_type=CommunicationStyle.PROFANE.value,
     background="Born into a minor noble family that lost its fortune, Elias Thorne turned to the sea to reclaim his family's honor and wealth. He is a stern and pragmatic leader, respected and feared by his crew. He runs a tight ship and has no tolerance for nonsense.",
     motivation="To restore his family's name and fortune, and to prove his worth as a captain and a nobleman. He is secretly transporting a valuable and ancient artifact to a wealthy collector in Waterdeep.",
-    voice_id="froLDspwCiytX4g1Pobg",
+    voice_id="en-US-Chirp3-HD-Zubenelgenubi",
     voice_name="Default",
-    tts_provider="elevanlabs",
+    tts_provider="google",
     race_preferences={
       Race.HIGH_ELF.value: -2,
       Race.WOOD_ELF.value: -2,

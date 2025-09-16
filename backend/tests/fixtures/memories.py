@@ -27,7 +27,7 @@ memories_db = [
         user_id=1,
         world_id=1,
         title="Whispers in the Rigging",
-        content="Word is the captain's been acting more secretive than usual this voyage. Keeps checking on a particular crate in the hold, won't let anyone near it. Old Salty says he saw strange markings on it - ancient looking. Mara heard from the quartermaster that we're getting triple rates for this run, which ain't normal for textiles and spices.",
+        content="Word is the captain's been acting more secretive than usual this voyage. Keeps checking on a particular crate in the hold, won't let anyone near it. Mara heard from the quartermaster that we're getting triple rates for this run, which ain't normal for textiles and spices.",
         character_ids=[0, 1, 2, 3, 4, 5, 6]  # All crew members
     ),
     MemoryCreate(
@@ -57,14 +57,7 @@ memories_db = [
         content="Captain Thorne gave me a second chance when the city watch cast me out. I was nobody - just another thug who hit too hard. Now I'm quartermaster on a proper merchant vessel. I'd die before I let anyone threaten the captain or his cargo.",
         character_ids=[1]  # Barthus only
     ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Suspicious Passengers",
-        content="Those adventurers we took on... I don't like how they've been nosing around. Caught the halfling near the cargo hold yesterday. The elf wizard's been asking too many questions about our route and schedule. I've doubled the watch on the hold.",
-        character_ids=[1]  # Barthus only
-    ),
-    
+
     # Mara Stone (character_id: 4)
     MemoryCreate(
         user_id=1,

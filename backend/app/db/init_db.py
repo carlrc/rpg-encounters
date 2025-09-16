@@ -32,6 +32,7 @@ from app.db.models.world import WorldORM  # noqa: F401
 
 async def create_tables(engine: AsyncEngine):
     """Create all database tables asynchronously"""
+    print("🟢 Creating tables...")
     async with engine.begin() as conn:
         await conn.run_sync(SimpleBase.metadata.create_all)
         await conn.run_sync(UnifiedBase.metadata.create_all)
@@ -39,6 +40,7 @@ async def create_tables(engine: AsyncEngine):
 
 async def drop_tables(engine: AsyncEngine):
     """Drop all database tables asynchronously"""
+    print("🔴 Dropping tables...")
     async with engine.begin() as conn:
         await conn.run_sync(UnifiedBase.metadata.drop_all)
         await conn.run_sync(SimpleBase.metadata.drop_all)
@@ -48,10 +50,8 @@ async def main():
     engine = get_async_db_engine()
 
     if "--drop" in sys.argv:
-        print("🔴 Dropping tables...")
         await drop_tables(engine)
     else:
-        print("🟢 Creating tables...")
         await create_tables(engine)
 
 

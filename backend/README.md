@@ -86,13 +86,11 @@ sudo docker compose -f docker-compose.dev.yml down
 Create db
 
 ```bash
-createdb -h localhost -p 5432 -U postgres '${POSTGRES_DB}'
-```
+# Dev db
+createdb -h localhost -p 5432 -U postgres 'rpg-encounters'
 
-Create test db
-
-```bash
-createdb -h localhost -p 5432 -U postgres '${POSTGRES_DB}-test'
+# Test db
+createdb -h localhost -p 5432 -U postgres 'rpg-encounters-test'
 ```
 
 Manage db tables
@@ -108,33 +106,22 @@ python -m app.db.init_db --drop
 Create and seed db with fixture data
 
 ```bash
-# Test Db
+# Seed db with default users
 python -m tests.fixtures.seed_data
 
-# Dev Db
-python -m tests.fixtures.seed_data --dev
-```
+# Seed defaults to user
+python -m tests.fixtures.seed_data --email <USER_EMAIL>
 
-Trigger seed script inside docker container
-
-```bash
-docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py --dev
+# Seed in docker container
+sudo docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py
 ```
 
 ## Debugging
 
-Re-install local packages
+Re-install local packages (e.g., .venv changes)
 
 ```bash
 sudo docker build --no-cache -f Dockerfile -t rpg-encounters-backend .
-```
-
-Drop docker volume
-
-```bash
-docker volume ls
-
-docker volume rm <volume_name>
 ```
 
 Reset docker env

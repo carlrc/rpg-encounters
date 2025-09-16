@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import argparse
 import logging
 from dotenv import load_dotenv
 
@@ -41,6 +42,40 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+async def get_user_by_email(engine: AsyncEngine, email: str) -> tuple[int, int]:
+    """Get user ID and first world ID by email address"""
+    AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
+
+    try:
+        async with AsyncSession() as session:
+            result = await session.execute(
+                select(AccountORM).where(AccountORM.email == email)
+            )
+            account = result.scalar_one_or_none()
+
+            if not account:
+                raise ValueError(f"No user found with email: {email}")
+
+            # Get the first world for this user
+            world_result = await session.execute(
+                select(WorldORM).where(WorldORM.user_id == account.user_id).order_by(WorldORM.id)
+            )
+            world = world_result.scalar_one_or_none()
+
+            if not world:
+                raise ValueError(f"No world found for user with email: {email}")
+
+            logger.info(f"Found user ID {account.user_id} and world ID {world.id} for email: {email}")
+            return account.user_id, world.id
+
+    except SQLAlchemyError as e:
+        logger.error(f"Error querying user by email: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error querying user by email: {e}")
+        raise
+
+
 async def seed_user_data(engine: AsyncEngine, num_users: int = 2) -> list[int]:
     """Create specified number of users for testing and return their IDs"""
     AsyncSession = async_sessionmaker(bind=engine, expire_on_commit=False)
@@ -78,13 +113,6 @@ async def seed_world_data(engine: AsyncEngine, user_ids: list[int]) -> list[int]
 
     try:
         async with AsyncSession() as session:
-            # Check if any worlds already exist
-            result = await session.execute(select(WorldORM))
-            existing_worlds = result.scalars().all()
-            if existing_worlds:
-                logger.info(f"Worlds already exist ({len(existing_worlds)}). Returning existing IDs.")
-                return [world.id for world in existing_worlds]
-
             # Create world for each user
             world_ids = []
             for user_id in user_ids:
@@ -109,14 +137,6 @@ async def seed_account_data(engine: AsyncEngine, user_ids: list[int]):
 
     try:
         async with AsyncSession() as session:
-            # Check if accounts already exist
-            result = await session.execute(select(AccountORM))
-            existing_accounts = result.scalars().all()
-            if existing_accounts:
-                logger.info(f"Accounts already exist ({len(existing_accounts)}). Skipping account creation.")
-                return
-
-
             for i, user_id in enumerate(user_ids):
                 email = f"test{i+1}@example.com"
                 account = AccountORM(
@@ -142,12 +162,6 @@ async def seed_player_data(engine: AsyncEngine, user_ids: list[int], world_ids: 
 
     try:
         async with AsyncSession() as session:
-            result = await session.execute(select(PlayerORM))
-            existing_count = len(result.scalars().all())
-            if existing_count > 0:
-                logger.info(f"Database already contains {existing_count} players. Skipping migration.")
-                return
-
             # Apply same fixture data to each user
             for i, (user_id, world_id) in enumerate(zip(user_ids, world_ids)):
                 for player in players_db:
@@ -173,13 +187,6 @@ async def seed_character_data(engine: AsyncEngine, user_ids: list[int], world_id
 
     try:
         async with AsyncSession() as session:
-            # Check if data already exists
-            result = await session.execute(select(CharacterORM))
-            existing_count = len(result.scalars().all())
-            if existing_count > 0:
-                logger.info(f"Database already contains {existing_count} characters. Skipping seeding...")
-                return
-
             # Prepare all character generation tasks for concurrent execution
             async def generate_character_for_user(character, user_id, world_id, user_index):
                 """Generate a single character with AI agents for a specific user"""
@@ -239,13 +246,6 @@ async def seed_encounter_data(engine: AsyncEngine, user_ids: list[int], world_id
 
     try:
         async with AsyncSession() as session:
-            # Check if data already exists
-            result = await session.execute(select(EncounterORM))
-            existing_count = len(result.scalars().all())
-            if existing_count > 0:
-                logger.info(f"Database already contains {existing_count} encounters. Skipping migration.")
-                return
-
             # Apply same fixture data to each user
             for i, (user_id, world_id) in enumerate(zip(user_ids, world_ids)):
                 # Get characters for this specific user
@@ -290,13 +290,6 @@ async def seed_memory_data(engine: AsyncEngine, user_ids: list[int], world_ids: 
 
     try:
         async with AsyncSession() as session:
-            # Check if data already exists
-            result = await session.execute(select(MemoryORM))
-            existing_count = len(result.scalars().all())
-            if existing_count > 0:
-                logger.info(f"Database already contains {existing_count} memories. Skipping migration.")
-                return
-
             # Apply same fixture data to each user
             for i, (user_id, world_id) in enumerate(zip(user_ids, world_ids)):
                 # Get characters for this specific user
@@ -341,13 +334,6 @@ async def seed_reveal_data(engine: AsyncEngine, user_ids: list[int], world_ids: 
 
     try:
         async with AsyncSession() as session:
-            # Check if data already exists
-            result = await session.execute(select(RevealORM))
-            existing_count = len(result.scalars().all())
-            if existing_count > 0:
-                logger.info(f"Database already contains {existing_count} reveals. Skipping migration.")
-                return
-
             # Apply same fixture data to each user
             for i, (user_id, world_id) in enumerate(zip(user_ids, world_ids)):
                 # Get characters for this specific user
@@ -392,13 +378,6 @@ async def seed_connection_data(engine: AsyncEngine, user_ids: list[int], world_i
 
     try:
         async with AsyncSession() as session:
-            # Check if data already exists
-            result = await session.execute(select(ConnectionORM))
-            existing_count = len(result.scalars().all())
-            if existing_count > 0:
-                logger.info(f"Database already contains {existing_count} connections. Skipping migration.")
-                return
-
             # Apply same fixture data to each user
             for i, (user_id, world_id) in enumerate(zip(user_ids, world_ids)):
                 # Get encounters for this specific user
@@ -436,13 +415,15 @@ async def seed_connection_data(engine: AsyncEngine, user_ids: list[int], world_i
         logger.error(f"Unexpected error seeding connection data: {e}")
         raise
 
-async def seed_all_data(engine: AsyncEngine):
+async def seed_all_data(engine: AsyncEngine, user_ids: list[int] = None, world_ids: list[int] = None):
     """Seed all fixture data to database in the correct order"""
     try:
         # Seed required user and world data first
-        user_ids = await seed_user_data(engine=engine, num_users=2)
-        world_ids = await seed_world_data(engine=engine, user_ids=user_ids)
-        await seed_account_data(engine=engine, user_ids=user_ids)
+        if user_ids is None:
+            user_ids = await seed_user_data(engine=engine, num_users=2)
+            await seed_account_data(engine=engine, user_ids=user_ids)
+        elif world_ids is None:
+            world_ids = await seed_world_data(engine=engine, user_ids=user_ids)
 
         # Seed in dependency order, passing user_ids and world_ids
         await seed_player_data(engine=engine, user_ids=user_ids, world_ids=world_ids)
@@ -454,26 +435,41 @@ async def seed_all_data(engine: AsyncEngine):
 
         logger.info(f"✅ All data seeded for {len(user_ids)} users!")
     except Exception as e:
-        logger.error(f"Migration failed: {e}")
-        await drop_tables(engine=engine)
+        logger.error(f"Seeding failed: {e}")
+        raise
+
+
+async def seed_by_email(engine: AsyncEngine, email: str):
+    """Seed all fixture data for a specific user identified by email"""
+    try:
+        user_id, world_id = await get_user_by_email(engine=engine, email=email)
+        await seed_all_data(engine=engine, user_ids=[user_id], world_ids=[world_id])
+
+        logger.info(f"✅ All data seeded for user with email: {email} (user_id: {user_id}, world_id: {world_id})!")
+    except Exception as e:
+        logger.error(f"Migration failed for email {email}: {e}")
         raise
 
 async def main():
-    # Check for --prod flag to use live database
-    use_dev = "--dev" not in sys.argv
-    
-    if not use_dev:
-        print("🔴 Seeding to DEV database")
-        url = get_or_throw("DATABASE_URL")
-    else:
-        print("🟢 Seeding to TEST database (default)")
-        url = get_or_throw("TEST_DATABASE_URL")
+    parser = argparse.ArgumentParser(description="Seed database with fixture data")
+    parser.add_argument(
+        "--email",
+        type=str,
+        help="Email address of user to seed data for (if not provided, seeds default users)"
+    )
+    args = parser.parse_args()
 
-    engine = create_async_engine(url)
-    await drop_tables(engine=engine)
-    await create_tables(engine=engine)
-    setup_telemetry()
-    await seed_all_data(engine=engine)
+    print("Seeding database...")
+    engine = create_async_engine(get_or_throw("DATABASE_URL"))
+    if args.email:
+        # Don't drop tables when seeding for specific user
+        await seed_by_email(engine=engine, email=args.email)
+    else:
+        # Full database reset and seeding
+        await drop_tables(engine=engine)
+        await create_tables(engine=engine)
+        await seed_all_data(engine=engine)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

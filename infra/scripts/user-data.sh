@@ -51,6 +51,6 @@ docker-compose up -d
 sleep 15
 docker-compose ps
 
-docker exec rpg-encounters-backend python tests/fixtures/seed_data.py --dev
+docker exec rpg-encounters-backend python tests/fixtures/seed_data.py
 
 echo "Setup complete"
