@@ -18,7 +18,7 @@ fi
 INSTANCE_ID="$1"
 OPERATION="$2"
 PARAM="${3:-}"  # Can be email or user_id depending on operation
-AWS_PROFILE="$4"
+AWS_PROFILE="${4:-}"
 
 case "$OPERATION" in
     "create-user")

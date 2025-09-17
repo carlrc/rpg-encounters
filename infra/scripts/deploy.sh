@@ -6,11 +6,11 @@ REGION="eu-central-1"
 ECR_REPO="255447701128.dkr.ecr.eu-central-1.amazonaws.com/crc-cicd-ecr-prd-repo"
 
 usage() {
-    echo "Usage: $0 <instance-id> <ecr-tag>"
-    echo "Example: $0 i-1234567890abcdef0 abc123f"
+    echo "Usage: $0 <instance-id> <ecr-tag> <aws-profile>"
+    echo "Example: $0 i-1234567890abcdef0 abc123f default"
 }
 
-if [[ $# -ne 2 ]]; then
+if [[ $# -ne 3 ]]; then
     usage
     exit 1
 fi

@@ -74,12 +74,7 @@ async def get_account_by_email(email: str) -> Account | None:
         account_store = AccountStore(user_id=None)
         account = await account_store.get_by_email(email)
 
-        if account:
-            logger.info(f"Found account for email {email}: {account.id}")
-            return account
-        else:
-            logger.info(f"No account found for email {email}")
-            return None
+        return account
 
     except SQLAlchemyError as e:
         logger.error(f"Error getting account for email {email}: {e}")
