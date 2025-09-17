@@ -1,7 +1,44 @@
 <template>
-  <div class="filter-multiselect">
+  <div :class="['filter-multiselect', { expanded }]">
     <label v-if="label" class="filter-label">{{ label }}</label>
-    <div class="multiselect-wrapper" ref="wrapperRef">
+    <div v-if="expanded" class="expanded-panel">
+      <div class="dropdown-header">
+        <button
+          v-if="showSelectAll"
+          @click="selectAll"
+          class="header-btn"
+          type="button"
+          :disabled="disableSelectAll"
+        >
+          Select All
+        </button>
+        <button
+          @click="clearAll"
+          class="header-btn"
+          type="button"
+          :disabled="selectedItems.length === 0"
+        >
+          Clear
+        </button>
+      </div>
+
+      <div class="options-list">
+        <label
+          v-for="(option, index) in normalizedOptions"
+          :key="optionKey(option, index)"
+          class="option-item"
+        >
+          <input
+            type="checkbox"
+            :value="option.value"
+            :checked="isSelected(option.value)"
+            @change="toggleOption(option.value)"
+          />
+          <span class="option-text">{{ option.label }}</span>
+        </label>
+      </div>
+    </div>
+    <div v-else class="multiselect-wrapper" ref="wrapperRef">
       <button
         @click="toggleDropdown"
         class="multiselect-trigger"
@@ -17,10 +54,11 @@
       <div v-if="isOpen" class="multiselect-dropdown">
         <div class="dropdown-header">
           <button
+            v-if="showSelectAll"
             @click="selectAll"
             class="header-btn"
             type="button"
-            :disabled="selectedItems.length === options.length"
+            :disabled="disableSelectAll"
           >
             Select All
           </button>
@@ -35,14 +73,18 @@
         </div>
 
         <div class="options-list">
-          <label v-for="option in options" :key="option" class="option-item">
+          <label
+            v-for="(option, index) in normalizedOptions"
+            :key="optionKey(option, index)"
+            class="option-item"
+          >
             <input
               type="checkbox"
-              :value="option"
-              :checked="selectedItems.includes(option)"
-              @change="toggleOption(option)"
+              :value="option.value"
+              :checked="isSelected(option.value)"
+              @change="toggleOption(option.value)"
             />
-            <span class="option-text">{{ option }}</span>
+            <span class="option-text">{{ option.label }}</span>
           </label>
         </div>
       </div>
@@ -72,24 +114,98 @@
         type: String,
         default: 'Select options',
       },
+      expanded: {
+        type: Boolean,
+        default: false,
+      },
+      optionLabelKey: {
+        type: String,
+        default: 'label',
+      },
+      optionValueKey: {
+        type: String,
+        default: 'value',
+      },
+      excludeFromSelectAllKey: {
+        type: String,
+        default: 'excludeFromSelectAll',
+      },
+      showSelectAll: {
+        type: Boolean,
+        default: true,
+      },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
       const isOpen = ref(false)
       const wrapperRef = ref(null)
 
+      const normalizeValue = (value) => {
+        if (typeof value === 'number') return value
+        if (typeof value === 'string') {
+          const parsed = Number(value)
+          return Number.isNaN(parsed) ? value : parsed
+        }
+        return value
+      }
+
+      const normalizedOptions = computed(() => {
+        return (props.options || []).map((option, index) => {
+          if (option && typeof option === 'object' && !Array.isArray(option)) {
+            const label = option[props.optionLabelKey]
+            const value = option[props.optionValueKey]
+            const exclude = Boolean(option[props.excludeFromSelectAllKey])
+            return {
+              label: typeof label === 'undefined' ? String(value ?? '') : String(label),
+              value: typeof value === 'undefined' ? index : value,
+              excludeFromSelectAll: exclude,
+            }
+          }
+
+          const label = option
+          return {
+            label: String(label),
+            value: option,
+            excludeFromSelectAll: false,
+          }
+        })
+      })
+
       const selectedItems = computed(() => props.modelValue || [])
+
+      const selectableOptions = computed(() =>
+        normalizedOptions.value.filter((option) => !option.excludeFromSelectAll)
+      )
+
+      const labelMap = computed(() => {
+        const map = new Map()
+        normalizedOptions.value.forEach((option) => {
+          map.set(normalizeValue(option.value), option.label)
+        })
+        return map
+      })
+
+      const isSelected = (value) => {
+        return selectedItems.value.some((item) => normalizeValue(item) === normalizeValue(value))
+      }
 
       const displayText = computed(() => {
         if (selectedItems.value.length === 0) {
           return props.placeholder
         }
+
         if (selectedItems.value.length === 1) {
-          return selectedItems.value[0]
+          const first = normalizeValue(selectedItems.value[0])
+          return labelMap.value.get(first) ?? props.placeholder
         }
-        if (selectedItems.value.length === props.options.length) {
+
+        if (
+          selectableOptions.value.length > 0 &&
+          selectableOptions.value.every((option) => isSelected(option.value))
+        ) {
           return 'All selected'
         }
+
         return `${selectedItems.value.length} selected`
       })
 
@@ -99,7 +215,9 @@
 
       const toggleOption = (option) => {
         const newSelection = [...selectedItems.value]
-        const index = newSelection.indexOf(option)
+        const index = newSelection.findIndex(
+          (item) => normalizeValue(item) === normalizeValue(option)
+        )
 
         if (index > -1) {
           newSelection.splice(index, 1)
@@ -111,11 +229,24 @@
       }
 
       const selectAll = () => {
-        emit('update:modelValue', [...props.options])
+        if (selectableOptions.value.length === 0) return
+        const values = selectableOptions.value.map((option) => option.value)
+        emit('update:modelValue', values)
       }
 
       const clearAll = () => {
         emit('update:modelValue', [])
+      }
+
+      const disableSelectAll = computed(() => {
+        if (!props.showSelectAll) return true
+        if (selectableOptions.value.length === 0) return true
+        return selectableOptions.value.every((option) => isSelected(option.value))
+      })
+
+      const optionKey = (option, index) => {
+        const key = option.value ?? index
+        return `${String(key)}-${index}`
       }
 
       const handleClickOutside = (event) => {
@@ -125,11 +256,15 @@
       }
 
       onMounted(() => {
-        document.addEventListener('click', handleClickOutside)
+        if (!props.expanded) {
+          document.addEventListener('click', handleClickOutside)
+        }
       })
 
       onUnmounted(() => {
-        document.removeEventListener('click', handleClickOutside)
+        if (!props.expanded) {
+          document.removeEventListener('click', handleClickOutside)
+        }
       })
 
       return {
@@ -141,6 +276,10 @@
         toggleOption,
         selectAll,
         clearAll,
+        normalizedOptions,
+        optionKey,
+        isSelected,
+        disableSelectAll,
       }
     },
   }
@@ -150,6 +289,11 @@
   .filter-multiselect {
     position: relative;
     min-width: 200px;
+  }
+
+  .filter-multiselect.expanded {
+    width: 100%;
+    min-width: unset;
   }
 
   .filter-label {
@@ -224,11 +368,26 @@
     overflow: hidden;
   }
 
+  .filter-multiselect.expanded .expanded-panel {
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-white);
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+
   .dropdown-header {
     display: flex;
     padding: 0.5rem;
     border-bottom: 1px solid var(--border-default);
     background: var(--bg-light);
+  }
+
+  .filter-multiselect.expanded .dropdown-header {
+    border-radius: var(--radius-md);
+    background: var(--bg-white);
   }
 
   .header-btn {
@@ -259,6 +418,14 @@
   .options-list {
     max-height: 180px;
     overflow-y: auto;
+  }
+
+  .filter-multiselect.expanded .options-list {
+    max-height: none;
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-white);
+    border-radius: var(--radius-md);
+    overflow-y: visible;
   }
 
   .option-item {

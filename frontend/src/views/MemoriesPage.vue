@@ -62,9 +62,11 @@
   import { useWorldStore } from '@/stores/world'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
   import { getCharacters } from '../services/api.js'
+  import { useGameDataStore } from '../stores/gameData.js'
 
   // Initialize stores
   const memoryStore = useMemoryStore()
+  const gameDataStore = useGameDataStore()
   const worldStore = useWorldStore()
 
   // Reactive refs from stores
@@ -136,6 +138,7 @@
 
   onMounted(async () => {
     await loadEntities()
+    await gameDataStore.load()
     await loadCharacters()
   })
 

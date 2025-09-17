@@ -25,7 +25,7 @@
       </div>
 
       <!-- Collapsible filter panel -->
-      <div v-if="showFilterPanel" class="filter-panel-container">
+      <div v-if="showFilterPanel" class="filter-panel-container" @click.self="toggleFilterPanel">
         <!-- Character filter panel (for memories/reveals) -->
         <div v-if="enableCharacterFilter && !enableAttributeFilter" class="filter-panel">
           <div class="filter-header">
@@ -38,6 +38,7 @@
             >
               Clear
             </button>
+            <button class="close-btn" type="button" @click="toggleFilterPanel">×</button>
           </div>
 
           <!-- Reuse CharacterSelector in filter mode -->
@@ -53,6 +54,10 @@
 
         <!-- Attribute filter panel (for characters page) -->
         <div v-else-if="enableAttributeFilter" class="attribute-filter-panel">
+          <div class="filter-header">
+            <span>Filters</span>
+            <button class="close-btn" type="button" @click="toggleFilterPanel">×</button>
+          </div>
           <slot name="filter-content" />
         </div>
       </div>
@@ -313,17 +318,36 @@
   }
 
   .filter-panel-container {
-    background: var(--bg-white);
-    border-bottom: 2px solid var(--border-default);
-    animation: slideDown var(--transition-fast);
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+    z-index: var(--z-modal);
   }
 
   .filter-panel {
-    padding: var(--spacing-md) var(--spacing-lg);
+    width: min(520px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: var(--spacing-xl);
+    background: var(--bg-white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card-hover);
+    border: 1px solid var(--border-light);
   }
 
   .attribute-filter-panel {
-    padding: var(--spacing-md) var(--spacing-lg);
+    width: min(520px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: var(--spacing-xl);
+    background: var(--bg-white);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card-hover);
+    border: 1px solid var(--border-light);
   }
 
   .filter-header {
@@ -335,15 +359,24 @@
     color: var(--text-secondary);
   }
 
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: var(--font-size-xl);
+    cursor: pointer;
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-round);
+    transition: var(--transition-fast);
+  }
+
+  .close-btn:hover {
+    background: var(--bg-light);
+    color: var(--text-primary);
   }
 
   .list-content {
@@ -429,6 +462,7 @@
   .detail-pane {
     flex: 1;
     padding: var(--spacing-xl);
+    padding-bottom: calc(var(--spacing-xl) + var(--spacing-lg));
     overflow-y: auto;
     background: var(--bg-white);
   }
@@ -495,6 +529,18 @@
     .split-view {
       flex-direction: column;
       min-width: unset; /* Allow full collapse only on very small screens */
+    }
+
+    .filter-panel-container {
+      padding: var(--spacing-md);
+    }
+
+    .filter-panel,
+    .attribute-filter-panel {
+      width: 100%;
+      max-height: 95vh;
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
     }
 
     .list-pane {

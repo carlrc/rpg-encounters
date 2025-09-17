@@ -45,7 +45,7 @@ def get_game_data(
             alignments=VALID_ALIGNMENTS,
             skills=VALID_SKILLS,
             communication_styles=[style.value for style in CommunicationStyle],
-            sizes=SizeOptions(player=VALID_SIZES, character=VALID_SIZES + ["Large"]),
+            sizes=SizeOptions(player=VALID_SIZES, character=VALID_SIZES),
             difficulty_classes={dc.name: dc.value for dc in DifficultyClass},
             default_thresholds=DefaultThresholds(
                 standard=REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD],

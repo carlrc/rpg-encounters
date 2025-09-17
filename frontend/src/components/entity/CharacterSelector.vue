@@ -27,54 +27,23 @@
     </div>
 
     <div class="character-selection">
-      <!-- ALL option -->
-      <div v-if="showAllOption" class="character-checkbox all-option">
-        <label class="character-option">
-          <input
-            type="checkbox"
-            :checked="isAllSelected"
-            :indeterminate="isIndeterminate"
-            @change="toggleAll"
-            ref="allCheckbox"
-          />
-          <span>ALL - Select all characters</span>
-        </label>
-      </div>
-
-      <!-- No Characters option -->
-      <div v-if="showNoCharactersOption" class="character-checkbox all-option">
-        <label class="character-option">
-          <input
-            type="checkbox"
-            :value="'no-characters'"
-            :checked="currentShowUnassigned"
-            @change="toggleNoCharacters"
-          />
-          <span>NONE - Select items with no assignments</span>
-        </label>
-      </div>
-
-      <!-- Separator -->
-      <div v-if="showAllOption || showNoCharactersOption" class="separator"></div>
-
-      <!-- Individual characters -->
-      <div v-for="character in filteredCharacters" :key="character.id" class="character-checkbox">
-        <label class="character-option">
-          <input
-            type="checkbox"
-            :value="character.id"
-            :checked="isCharacterSelected(character.id)"
-            @change="toggleCharacter(character.id)"
-          />
-          <span>{{ character.name }}</span>
-        </label>
-      </div>
+      <FilterMultiSelect
+        v-model="selectionProxy"
+        :options="characterOptions"
+        :expanded="true"
+        :option-label-key="'label'"
+        :option-value-key="'value'"
+        :exclude-from-select-all-key="'excludeFromSelectAll'"
+        :show-select-all="showAllOption"
+        placeholder="Select characters..."
+        label=""
+      />
     </div>
   </div>
 </template>
 
 <script>
-  import { ref, computed, watchEffect } from 'vue'
+  import { ref, computed } from 'vue'
   import FilterMultiSelect from '../filters/FilterMultiSelect.vue'
   import { storeToRefs } from 'pinia'
   import { useGameDataStore } from '../../stores/gameData.js'
@@ -113,7 +82,6 @@
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
-      const allCheckbox = ref(null)
       const gameDataStore = useGameDataStore()
       const { data: gameData } = storeToRefs(gameDataStore)
 
@@ -170,77 +138,61 @@
         return (props.modelValue || []).includes('no-characters')
       })
 
-      // Helper function to check if character is selected with proper type handling
-      const isCharacterSelected = (characterId) => {
-        // Ensure both values are numbers for comparison
-        const normalizedCharId = Number(characterId)
-        return currentCharacterIds.value.some((id) => {
-          const normalizedId = Number(id)
-          return normalizedId === normalizedCharId
-        })
-      }
+      const NO_CHAR_SENTINEL = 'no-characters'
 
-      // Computed properties - based on visible filtered characters
-      const isAllSelected = computed(() => {
-        return (
-          filteredCharacters.value.length > 0 &&
-          filteredCharacters.value.every((char) => isCharacterSelected(char.id))
-        )
+      const characterOptions = computed(() => {
+        const options = []
+        const seen = new Set()
+
+        if (props.showNoCharactersOption) {
+          options.push({
+            label: 'NONE - Select items with no assignments',
+            value: NO_CHAR_SENTINEL,
+            excludeFromSelectAll: true,
+          })
+        }
+
+        const addCharacter = (character) => {
+          if (!character) return
+          const id = character.id
+          if (seen.has(id)) return
+          seen.add(id)
+          options.push({ label: character.name || `Character ${id}`, value: id })
+        }
+
+        filteredCharacters.value.forEach(addCharacter)
+
+        // Ensure previously selected characters remain visible even if filtered out
+        props.characters
+          .filter((char) => currentCharacterIds.value.includes(Number(char.id)))
+          .forEach(addCharacter)
+
+        return options
       })
 
-      const isIndeterminate = computed(() => {
-        const visibleSelectedCount = filteredCharacters.value.filter((char) =>
-          isCharacterSelected(char.id)
-        ).length
-        return visibleSelectedCount > 0 && visibleSelectedCount < filteredCharacters.value.length
+      const selectionProxy = computed({
+        get() {
+          const selection = [...currentCharacterIds.value]
+          if (currentShowUnassigned.value) {
+            selection.push(NO_CHAR_SENTINEL)
+          }
+          return selection
+        },
+        set(newSelection) {
+          const includeNone = newSelection.some((value) => value === NO_CHAR_SENTINEL)
+          const normalizedIds = newSelection
+            .filter((value) => value !== NO_CHAR_SENTINEL)
+            .map((value) => Number(value))
+            .filter((value) => !Number.isNaN(value))
+
+          const uniqueIds = Array.from(new Set(normalizedIds))
+          if (includeNone) {
+            emit('update:modelValue', [...uniqueIds, NO_CHAR_SENTINEL])
+          } else {
+            emit('update:modelValue', uniqueIds)
+          }
+        },
       })
-
-      // Watch for indeterminate state changes
-      watchEffect(() => {
-        if (allCheckbox.value) {
-          allCheckbox.value.indeterminate = isIndeterminate.value
-        }
-      })
-
-      // Methods
-      const toggleAll = () => {
-        if (isAllSelected.value) {
-          emit('update:modelValue', [])
-        } else {
-          // Select all visible filtered characters
-          const allIds = filteredCharacters.value.map((char) => char.id)
-          emit('update:modelValue', allIds)
-        }
-      }
-
-      const toggleCharacter = (characterId) => {
-        // Ensure characterId is a number for consistent handling
-        const normalizedCharId = Number(characterId)
-
-        const currentSelection = [...currentCharacterIds.value]
-        const index = currentSelection.findIndex((id) => Number(id) === normalizedCharId)
-
-        if (index > -1) {
-          currentSelection.splice(index, 1)
-        } else {
-          currentSelection.push(normalizedCharId)
-        }
-
-        emit('update:modelValue', currentSelection)
-      }
-
-      const toggleNoCharacters = () => {
-        const currentSelection = [...currentCharacterIds.value]
-        const showUnassigned = currentShowUnassigned.value
-
-        if (showUnassigned) {
-          // Remove no-characters
-          emit('update:modelValue', currentSelection)
-        } else {
-          // Add no-characters
-          emit('update:modelValue', [...currentSelection, 'no-characters'])
-        }
-      }
 
       return {
         gameData,
@@ -249,15 +201,10 @@
         hasActiveFilters,
         activeFilterCount,
         clearAllFilters,
-        allCheckbox,
         currentCharacterIds,
         currentShowUnassigned,
-        isCharacterSelected,
-        isAllSelected,
-        isIndeterminate,
-        toggleAll,
-        toggleCharacter,
-        toggleNoCharacters,
+        characterOptions,
+        selectionProxy,
       }
     },
   }
@@ -323,87 +270,10 @@
   }
 
   .character-selection {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    max-height: 150px;
-    overflow-y: auto;
-    padding: var(--spacing-md);
-    border: 2px solid var(--border-default);
-    border-radius: var(--radius-lg);
-    background: var(--bg-light);
+    margin-top: var(--spacing-md);
   }
 
-  .character-checkbox {
-    display: flex;
-    align-items: center;
-  }
-
-  .character-option {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    cursor: pointer;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border-radius: var(--radius-sm);
-    transition: var(--transition-fast);
+  .character-selection :deep(.filter-multiselect.expanded) {
     width: 100%;
-    font-size: var(--font-size-base);
-  }
-
-  .character-option:hover {
-    background-color: var(--border-light);
-  }
-
-  .character-option input[type='checkbox'] {
-    margin: 0;
-    transform: scale(0.9);
-  }
-
-  .character-option span {
-    font-weight: var(--font-weight-medium);
-    color: var(--text-secondary);
-  }
-
-  /* ALL option specific styles */
-  .all-option {
-    background-color: var(--bg-white);
-    margin-bottom: 0;
-    padding: var(--spacing-xs) 0;
-    border: 1px solid var(--border-default);
-    border-radius: var(--radius-sm);
-  }
-
-  .all-option .character-option {
-    font-weight: var(--font-weight-semibold);
-    color: var(--text-label);
-  }
-
-  .all-option .character-option:hover {
-    background-color: var(--bg-light);
-  }
-
-  /* Separator */
-  .separator {
-    height: 1px;
-    background-color: var(--border-default);
-    margin: var(--spacing-sm) 0;
-  }
-
-  /* Indeterminate checkbox styling */
-  input[type='checkbox']:indeterminate {
-    opacity: 0.6;
-    position: relative;
-  }
-
-  input[type='checkbox']:indeterminate::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 8px;
-    height: 2px;
-    background-color: var(--primary-color);
   }
 </style>
