@@ -63,6 +63,7 @@ class PublicS3Bucket extends Construct {
 
     this.bucket = new S3Bucket(this, `bucket`, {
       bucketPrefix: `${resource_prefix}`,
+      forceDestroy: true,
     });
 
     // Configure public access block settings for static website
