@@ -53,21 +53,19 @@ echo ""
 echo "📤 Uploading files to S3..."
 
 # Upload all files except HTML and JSON with long cache
-echo "  📁 Uploading assets with long cache (1 year)..."
+echo "  📁 Uploading assets..."
 aws s3 sync dist/ "s3://$BUCKET_NAME/" \
+  --profile default \
   --delete \
-  --cache-control "public,max-age=31536000" \
   --exclude "*.html" \
   --exclude "*.json" \
-  --quiet
 
 # Upload HTML and JSON files with short cache (for SPA routing)
-echo "  📄 Uploading HTML/JSON with short cache..."
+echo "  📄 Uploading HTML/JSON..."
 aws s3 sync dist/ "s3://$BUCKET_NAME/" \
-  --cache-control "public,max-age=0,must-revalidate" \
+  --profile default \
   --include "*.html" \
   --include "*.json" \
-  --quiet
 
 echo "✅ Files uploaded to S3"
 echo ""
@@ -76,6 +74,7 @@ echo ""
 if [[ -n "$DISTRIBUTION_ID" ]]; then
     echo "🔄 Creating CloudFront invalidation..."
     INVALIDATION_ID=$(aws cloudfront create-invalidation \
+        --profile default \
         --distribution-id "$DISTRIBUTION_ID" \
         --paths "/*" \
         --query 'Invalidation.Id' \
