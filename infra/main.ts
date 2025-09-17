@@ -368,6 +368,7 @@ class EncountersApplicationStack extends TerraformStack {
       }],
     });
 
+    // https://instances.vantage.sh/
     // -------- EC2 instance ----------
     const launchTemplate = new LaunchTemplate(this, "backend-lt", {
       name: `${resource_prefix}-backend`,
