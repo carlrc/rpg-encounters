@@ -55,11 +55,9 @@ COMMAND_ID=$(aws ssm send-command \
     --query 'Command.CommandId')
 
 echo "Command ID: $COMMAND_ID"
-echo "Waiting for command to complete..."
 
-# Wait for command to complete and get results
 echo "Waiting for command to complete..."
-sleep 3  # Give it a moment to start
+sleep 10 # Seeding can take some time
 
 # Get output and errors
 echo "=========================="
