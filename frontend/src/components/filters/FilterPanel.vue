@@ -322,18 +322,16 @@
     background: var(--bg-white);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-xl);
-    overflow: hidden;
     box-shadow: var(--shadow-card);
-    max-height: 400px;
     display: flex;
     flex-direction: column;
+    gap: var(--spacing-lg);
   }
 
   .filter-panel-content {
     padding: var(--spacing-lg);
     flex: 1;
-    overflow-y: auto;
-    min-height: 0;
+    overflow-y: visible;
   }
 
   .filter-panel-content.simple {
