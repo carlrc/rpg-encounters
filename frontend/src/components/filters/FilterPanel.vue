@@ -152,7 +152,7 @@
 </template>
 
 <script>
-  import { ref, computed, watch } from 'vue'
+  import { ref, computed, watch, nextTick } from 'vue'
   import { storeToRefs } from 'pinia'
   import FilterTabs from './FilterTabs.vue'
   import FilterMultiSelect from './FilterMultiSelect.vue'
@@ -193,19 +193,30 @@
 
       const activeTab = ref(props.availableTabs[0]?.id || 'race')
 
-      const filters = ref({
-        race: props.modelValue.race || [],
-        alignment: props.modelValue.alignment || [],
-        size: props.modelValue.size || [],
-        gender: props.modelValue.gender || [],
-        class: props.modelValue.class || [],
-        characterIds: props.modelValue.characterIds || [],
-        showUnassigned: props.modelValue.showUnassigned || false,
+      // Normalize and clone incoming filter state to avoid shared references
+      // between parent/child and to keep consistent shapes for comparison.
+      // This prevents identity churn and accidental mutation loops.
+      const buildFilterState = (value = {}) => ({
+        race: Array.isArray(value.race) ? [...value.race] : [],
+        alignment: Array.isArray(value.alignment) ? [...value.alignment] : [],
+        size: Array.isArray(value.size) ? [...value.size] : [],
+        gender: Array.isArray(value.gender) ? [...value.gender] : [],
+        class: Array.isArray(value.class) ? [...value.class] : [],
+        characterIds: Array.isArray(value.characterIds) ? [...value.characterIds] : [],
+        showUnassigned: value.showUnassigned === true,
       })
+
+      // Local reactive copy of the filters used by the panel UI
+      const filters = ref(buildFilterState(props.modelValue))
+
+      // Guard flag: when we are syncing from props -> local state,
+      // do not emit updates back to the parent to avoid loops.
+      let syncingFromModelValue = false
 
       const charactersFromParent = computed(() => props.characters)
 
-      // Computed property to handle character selector v-model
+      // Computed helper used to v-model the CharacterSelector while
+      // mapping the 'no-characters' sentinel to/from our boolean flag.
       const characterSelectorValue = computed({
         get() {
           const value = [...filters.value.characterIds]
@@ -220,28 +231,27 @@
         },
       })
 
-      // Watch for changes and emit updates
+      // Deep-watch local filters and emit normalized updates to the parent.
+      // Skip while we are applying a prop-driven sync to prevent ping-pong.
       watch(
         filters,
         () => {
-          emit('update:modelValue', { ...filters.value })
+          if (syncingFromModelValue) return
+          emit('update:modelValue', buildFilterState(filters.value))
         },
         { deep: true }
       )
 
-      // Watch for external changes to modelValue
+      // Sync down external changes from v-model (parent -> child).
+      // Use a microtask deferral to re-enable emissions after assignment.
       watch(
         () => props.modelValue,
         (newValue) => {
-          filters.value = {
-            race: newValue.race || [],
-            alignment: newValue.alignment || [],
-            size: newValue.size || [],
-            gender: newValue.gender || [],
-            class: newValue.class || [],
-            characterIds: newValue.characterIds || [],
-            showUnassigned: newValue.showUnassigned || false,
-          }
+          syncingFromModelValue = true
+          filters.value = buildFilterState(newValue)
+          nextTick(() => {
+            syncingFromModelValue = false
+          })
         },
         { deep: true }
       )
