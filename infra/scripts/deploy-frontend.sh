@@ -23,6 +23,7 @@ fi
 
 BUCKET_NAME="$1"
 DISTRIBUTION_ID="${2:-}"
+AWS_PROFILE="${3}"
 FRONTEND_DIR="$(dirname "$0")/../../frontend"
 SCRIPT_DIR="$(dirname "$0")"
 
@@ -55,7 +56,7 @@ echo "📤 Uploading files to S3..."
 # Upload all files except HTML and JSON with long cache
 echo "  📁 Uploading assets..."
 aws s3 sync dist/ "s3://$BUCKET_NAME/" \
-  --profile default \
+  --profile $AWS_PROFILE \
   --delete \
   --exclude "*.html" \
   --exclude "*.json" \
@@ -63,7 +64,7 @@ aws s3 sync dist/ "s3://$BUCKET_NAME/" \
 # Upload HTML and JSON files with short cache (for SPA routing)
 echo "  📄 Uploading HTML/JSON..."
 aws s3 sync dist/ "s3://$BUCKET_NAME/" \
-  --profile default \
+  --profile $AWS_PROFILE \
   --include "*.html" \
   --include "*.json" \
 
@@ -74,7 +75,7 @@ echo ""
 if [[ -n "$DISTRIBUTION_ID" ]]; then
     echo "🔄 Creating CloudFront invalidation..."
     INVALIDATION_ID=$(aws cloudfront create-invalidation \
-        --profile default \
+        --profile $AWS_PROFILE \
         --distribution-id "$DISTRIBUTION_ID" \
         --paths "/*" \
         --query 'Invalidation.Id' \

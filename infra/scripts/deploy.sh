@@ -32,13 +32,38 @@ docker-compose up -d
 EOF
 )
 
-aws ssm send-command \
+# Send command and capture the command ID
+echo "Sending deployment command to instance $INSTANCE_ID..."
+COMMAND_ID=$(aws ssm send-command \
     --profile "$AWS_PROFILE" \
     --region "$REGION" \
     --instance-ids "$INSTANCE_ID" \
     --document-name "AWS-RunShellScript" \
     --parameters "commands=[$COMMANDS]" \
-    --output table
+    --output text \
+    --query 'Command.CommandId')
 
-echo "Deployment command sent to instance ${INSTANCE_ID}"
-echo "Monitor deployment status in AWS Systems Manager Console"
+echo "Command ID: $COMMAND_ID"
+echo "Waiting for deployment to complete..."
+sleep 5  # Give it a moment to start
+
+# Get output and errors
+echo "=========================="
+echo "Output:"
+aws ssm get-command-invocation \
+    --profile "$AWS_PROFILE" \
+    --region "$REGION" \
+    --command-id "$COMMAND_ID" \
+    --instance-id "$INSTANCE_ID" \
+    --query 'StandardOutputContent' \
+    --output text
+
+echo "=========================="
+echo "Errors:"
+aws ssm get-command-invocation \
+    --profile "$AWS_PROFILE" \
+    --region "$REGION" \
+    --command-id "$COMMAND_ID" \
+    --instance-id "$INSTANCE_ID" \
+    --query 'StandardErrorContent' \
+    --output text
