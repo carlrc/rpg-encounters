@@ -515,18 +515,19 @@ class EncountersApplicationStack extends TerraformStack {
     // Update EC2 instance with user data
     ec2.addOverride('user_data_base64', userDataBase64);
 
-    new TerraformOutput(this, "domainName", {
-      value: cdn.domainName,
-    });
-
-    new TerraformOutput(this, "customDomain", {
-      value: rootDomain.value,
+    new TerraformOutput(this, "frontendBucket", {
+      value: frontend.bucket.bucket,
       sensitive: true,
     });
 
-    new TerraformOutput(this, "ec2PublicIp", {
-      value: ec2.publicIp,
-      description: "EC2 instance public IP address",
+    new TerraformOutput(this, "ec2InstanceId", {
+      value: ec2.id,
+      description: "EC2 instance Id",
+    });
+
+    new TerraformOutput(this, "cloudfrontDistributionId", {
+      value: cdn.id,
+      description: "CloudFront distribution ID for cache invalidation",
     });
 
     this.rootDomain = rootDomain.value;

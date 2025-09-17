@@ -1,6 +1,7 @@
 <template>
   <div v-if="isOpen" class="encounter-popup-overlay" @click="closePopup">
     <div class="encounter-popup" @click.stop>
+      <audio ref="streamAudio" playsinline style="display: none"></audio>
       <div class="popup-header">
         <h3>Encounter with {{ character?.name }}</h3>
         <button class="close-button" @click="closePopup">&times;</button>
@@ -165,6 +166,7 @@
       const players = ref([])
       const loading = ref(true)
       const error = ref(null)
+      const streamAudio = ref(null)
 
       // Encounter state (copied from EncountersPage.vue)
       const selectedPlayerId = ref('')
@@ -446,7 +448,9 @@
 
       const processAudioChunk = async (audioBlob) => {
         if (!streamPlayer) {
-          streamPlayer = new WebSocketStreamPlayer()
+          streamPlayer = new WebSocketStreamPlayer({
+            audioEl: streamAudio.value || undefined,
+          })
         }
         await streamPlayer.append(audioBlob)
       }
@@ -524,6 +528,10 @@
         } else {
           if (isChallengeMode.value) {
             prepareChallengeMode()
+          }
+
+          if (streamPlayer) {
+            void streamPlayer.prepare({ fromUserGesture: true })
           }
 
           // Check microphone access before opening WebSocket
@@ -709,6 +717,7 @@
         getProgressClass,
         navigateToReveal,
         fetchConversationData,
+        streamAudio,
       }
     },
   }

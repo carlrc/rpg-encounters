@@ -12,11 +12,11 @@ import { useNotification } from '../useNotification.js'
  */
 
 export default class WebSocketStreamPlayer {
-  constructor(mimeType = 'audio/mp4; codecs=mp4a.40.2') {
+  constructor({ mimeType = 'audio/mp4; codecs=mp4a.40.2', audioEl = null } = {}) {
     this.mimeType = mimeType
 
     // Core objects
-    this.audio = null
+    this.audio = audioEl || null
     this.mediaSource = null
     this.sourceBuffer = null
     this.objectUrl = null
@@ -28,6 +28,9 @@ export default class WebSocketStreamPlayer {
     this.stopped = false
     this.endedSignal = false
     this.playingStarted = false
+    this.unlocked = false
+    // Tracks an in-flight unlock attempt so we don't fire `play()` twice for a single gesture.
+    this._unlockPromise = null
 
     // Bound handlers
     this._onSourceOpen = this._onSourceOpen.bind(this)
@@ -53,8 +56,12 @@ export default class WebSocketStreamPlayer {
   }
 
   _attachAudio() {
-    if (this.audio) return
-    this.audio = new Audio()
+    if (!this.audio) {
+      this.audio = new Audio()
+    }
+
+    this.audio.preload = 'auto'
+    this.audio.playsInline = true
     this.audio.onerror = (error) => {
       if (this.stopped) return
       console.error('WebSocketStreamPlayer audio error', error)
@@ -70,6 +77,7 @@ export default class WebSocketStreamPlayer {
     // Link the media source to audio
     this.objectUrl = URL.createObjectURL(this.mediaSource)
     this.audio.src = this.objectUrl
+    this.audio.playsInline = true
   }
 
   async append(chunk) {
@@ -137,6 +145,32 @@ export default class WebSocketStreamPlayer {
     this._attachAudio()
     this._createMediaSource()
     this.initialized = true
+  }
+
+  prepare({ fromUserGesture = false } = {}) {
+    // Unlock the audio element during a user gesture so iOS/iPadOS will allow later autoplay of streamed chunks.
+    this._ensureReady()
+    if (!fromUserGesture) return
+    if (!this.audio || this.unlocked) return
+    if (this._unlockPromise) return this._unlockPromise
+
+    const previousMuted = this.audio.muted
+    this.audio.muted = true
+
+    this._unlockPromise = (async () => {
+      try {
+        await this.audio.play()
+        this.unlocked = true
+        this.playingStarted = true
+      } catch (error) {
+        console.warn('WebSocketStreamPlayer audio unlock failed', error)
+      } finally {
+        this.audio.muted = previousMuted
+        this._unlockPromise = null
+      }
+    })()
+
+    return this._unlockPromise
   }
 
   async _tryPlay() {
