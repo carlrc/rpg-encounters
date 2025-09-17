@@ -78,6 +78,7 @@ sudo docker compose -f docker-compose.dev.yml down
 ```
 
 ## Admin
+
 <details>
 <summary>Click for helpful test & debugging commands</summary>
 
@@ -116,7 +117,13 @@ python -m tests.fixtures.seed_data --email <USER_EMAIL>
 sudo docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py
 ```
 
-## Debugging
+Launch only the database
+
+```bash
+docker-compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up db
+```
+
+### Debugging
 
 Re-install local packages (e.g., .venv changes)
 
