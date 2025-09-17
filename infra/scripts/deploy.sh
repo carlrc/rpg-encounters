@@ -17,6 +17,7 @@ fi
 
 INSTANCE_ID="$1"
 ECR_TAG="$2"
+AWS_PROFILE="$3"
 ECR_IMAGE_URI="${ECR_REPO}:${ECR_TAG}"
 
 echo "Deploying ${ECR_IMAGE_URI} to instance ${INSTANCE_ID}..."
@@ -32,6 +33,7 @@ EOF
 )
 
 aws ssm send-command \
+    --profile "$AWS_PROFILE" \
     --region "$REGION" \
     --instance-ids "$INSTANCE_ID" \
     --document-name "AWS-RunShellScript" \

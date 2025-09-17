@@ -4,12 +4,10 @@ set -euo pipefail
 
 REGION="eu-central-1"
 DOCKER_CONTAINER="rpg-encounters-backend"
-AWS_PROFILE="default"
 
 usage() {
     echo "Usage: $0 <instance-id> <operation> [email] [aws-profile]"
     echo "Operations: create-user, seed-user, create-and-seed, seed-default"
-    echo "AWS Profile: defaults to 'default'"
 }
 
 if [[ $# -lt 2 ]]; then
@@ -20,7 +18,7 @@ fi
 INSTANCE_ID="$1"
 OPERATION="$2"
 EMAIL="${3:-}"
-AWS_PROFILE="${4:-default}"
+AWS_PROFILE="$4"
 
 case "$OPERATION" in
     "create-user")

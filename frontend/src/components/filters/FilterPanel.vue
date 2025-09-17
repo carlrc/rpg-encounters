@@ -14,14 +14,6 @@
         <div v-if="activeTab === 'race'" class="filter-section">
           <div class="filter-section-header">
             <h4>Filter by Race</h4>
-            <button
-              v-if="filters.race?.length > 0"
-              @click="clearFilter('race')"
-              class="clear-filter-btn"
-              type="button"
-            >
-              Clear
-            </button>
           </div>
           <FilterMultiSelect
             v-if="gameData"
@@ -37,14 +29,6 @@
         <div v-if="activeTab === 'alignment'" class="filter-section">
           <div class="filter-section-header">
             <h4>Filter by Alignment</h4>
-            <button
-              v-if="filters.alignment?.length > 0"
-              @click="clearFilter('alignment')"
-              class="clear-filter-btn"
-              type="button"
-            >
-              Clear
-            </button>
           </div>
           <FilterMultiSelect
             v-if="gameData"
@@ -60,14 +44,6 @@
         <div v-if="activeTab === 'size'" class="filter-section">
           <div class="filter-section-header">
             <h4>Filter by Size</h4>
-            <button
-              v-if="filters.size?.length > 0"
-              @click="clearFilter('size')"
-              class="clear-filter-btn"
-              type="button"
-            >
-              Clear
-            </button>
           </div>
           <FilterMultiSelect
             v-if="gameData"
@@ -83,14 +59,6 @@
         <div v-if="activeTab === 'gender'" class="filter-section">
           <div class="filter-section-header">
             <h4>Filter by Gender</h4>
-            <button
-              v-if="filters.gender?.length > 0"
-              @click="clearFilter('gender')"
-              class="clear-filter-btn"
-              type="button"
-            >
-              Clear
-            </button>
           </div>
           <FilterMultiSelect
             v-if="genders"
@@ -106,14 +74,6 @@
         <div v-if="activeTab === 'class'" class="filter-section">
           <div class="filter-section-header">
             <h4>Filter by Class</h4>
-            <button
-              v-if="filters.class?.length > 0"
-              @click="clearFilter('class')"
-              class="clear-filter-btn"
-              type="button"
-            >
-              Clear
-            </button>
           </div>
           <FilterMultiSelect
             v-if="gameData"
@@ -129,21 +89,13 @@
         <div v-if="activeTab === 'characters'" class="filter-section">
           <div class="filter-section-header">
             <h4>Filter by Characters</h4>
-            <button
-              v-if="filters.characterIds?.length > 0 || filters.showUnassigned"
-              @click="clearCharactersFilter"
-              class="clear-filter-btn"
-              type="button"
-            >
-              Clear
-            </button>
           </div>
-          <CharacterSelector
+          <FilterMultiSelect
             v-model="characterSelectorValue"
-            :characters="charactersFromParent"
+            :options="characterOptions"
+            placeholder="Select characters..."
+            :expanded="true"
             :label="''"
-            :show-all-option="true"
-            :show-no-characters-option="true"
           />
         </div>
       </div>
@@ -161,7 +113,6 @@
   import { storeToRefs } from 'pinia'
   import FilterTabs from './FilterTabs.vue'
   import FilterMultiSelect from './FilterMultiSelect.vue'
-  import CharacterSelector from '../entity/CharacterSelector.vue'
   import { useGameDataStore } from '../../stores/gameData.js'
   import { useDropdownOptions } from '../../composables/useDropdownOptions.js'
 
@@ -170,7 +121,6 @@
     components: {
       FilterTabs,
       FilterMultiSelect,
-      CharacterSelector,
     },
     props: {
       modelValue: {
@@ -220,7 +170,28 @@
 
       const charactersFromParent = computed(() => props.characters)
 
-      // Computed helper used to v-model the CharacterSelector while
+      // Character options for FilterMultiSelect
+      const characterOptions = computed(() => {
+        const options = []
+
+        // Add "no characters" option
+        options.push({
+          label: 'NONE - Select items with no assignments',
+          value: 'no-characters',
+        })
+
+        // Add character options
+        charactersFromParent.value.forEach((character) => {
+          options.push({
+            label: character.name || `Character ${character.id}`,
+            value: character.id,
+          })
+        })
+
+        return options
+      })
+
+      // Computed helper for character filter values while
       // mapping the 'no-characters' sentinel to/from our boolean flag.
       const characterSelectorValue = computed({
         get() {
@@ -308,6 +279,7 @@
         gameData,
         genders,
         charactersFromParent,
+        characterOptions,
         characterSelectorValue,
         activeTab,
         filters,
@@ -377,11 +349,6 @@
     background: var(--bg-light);
     border-color: var(--text-muted);
     color: var(--text-primary);
-  }
-
-  /* Character filter section */
-  .character-filter-section {
-    padding: 0;
   }
 
   @keyframes fadeIn {

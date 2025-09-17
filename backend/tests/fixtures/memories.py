@@ -39,16 +39,6 @@ memories_db = [
     ),
     
     # Individual character memories
-    
-    # Captain Elias Thorne (character_id: 0)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Noble Obligations",
-        content="My cousin in Waterdeep writes that the family estate may go to auction if I cannot produce 5,000 gold pieces by summer's end. This cargo run must succeed. I've staked everything on it, including taking on those adventurers as passengers despite my misgivings about their intentions.",
-        character_ids=[0]  # Captain only
-    ),
-    
     # Barthus 'The Bull' Ironhand (character_id: 1)
     MemoryCreate(
         user_id=1,
@@ -56,15 +46,6 @@ memories_db = [
         title="Loyalty to the Captain",
         content="Captain Thorne gave me a second chance when the city watch cast me out. I was nobody - just another thug who hit too hard. Now I'm quartermaster on a proper merchant vessel. I'd die before I let anyone threaten the captain or his cargo.",
         character_ids=[1]  # Barthus only
-    ),
-
-    # Mara Stone (character_id: 4)
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
-        title="Feeding the Crew",
-        content="Twenty souls to feed, three meals a day, and supplies running lower than I'd like. We should have restocked more in Neverwinter, but the captain was in a hurry to sail. I'll make do - always have. But if we hit bad weather and delays, we'll be on half rations before Waterdeep.",
-        character_ids=[4]  # Mara only
-    ),
+    )
 
 ]
