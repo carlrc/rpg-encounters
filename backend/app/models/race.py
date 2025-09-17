@@ -20,6 +20,7 @@ class Race(Enum):
 class Size(Enum):
     SMALL = "Small"
     MEDIUM = "Medium"
+    LARGE = "Large"
 
 
 class Gender(Enum):

@@ -28,6 +28,7 @@
             :options="gameData.races || []"
             v-model="filters.race"
             placeholder="Select races..."
+            :expanded="true"
             :label="''"
           />
         </div>
@@ -50,6 +51,7 @@
             :options="gameData.alignments || []"
             v-model="filters.alignment"
             placeholder="Select alignments..."
+            :expanded="true"
             :label="''"
           />
         </div>
@@ -72,6 +74,7 @@
             :options="gameData.sizes?.character || []"
             v-model="filters.size"
             placeholder="Select sizes..."
+            :expanded="true"
             :label="''"
           />
         </div>
@@ -94,6 +97,7 @@
             :options="genders"
             v-model="filters.gender"
             placeholder="Select genders..."
+            :expanded="true"
             :label="''"
           />
         </div>
@@ -116,6 +120,7 @@
             :options="gameData.classes || []"
             v-model="filters.class"
             placeholder="Select classes..."
+            :expanded="true"
             :label="''"
           />
         </div>
