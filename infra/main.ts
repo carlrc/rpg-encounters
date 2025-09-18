@@ -1,5 +1,6 @@
 import { Construct } from "constructs";
 import { App, TerraformStack, S3Backend, TerraformAsset, TerraformOutput, Fn } from "cdktf";
+import { randomUUID } from "crypto";
 import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { S3BucketWebsiteConfiguration } from "@cdktf/provider-aws/lib/s3-bucket-website-configuration";
 import { S3Bucket } from "@cdktf/provider-aws/lib/s3-bucket";
@@ -27,6 +28,7 @@ import { Route53Record } from "@cdktf/provider-aws/lib/route53-record";
 import { Lb } from "@cdktf/provider-aws/lib/lb";
 import { LbTargetGroup } from "@cdktf/provider-aws/lib/lb-target-group";
 import { LbListener } from "@cdktf/provider-aws/lib/lb-listener";
+import { LbListenerRule } from "@cdktf/provider-aws/lib/lb-listener-rule";
 import { LbTargetGroupAttachment } from "@cdktf/provider-aws/lib/lb-target-group-attachment";
 
 const S3_ORIGIN_ID = "s3Origin";
@@ -45,6 +47,7 @@ const WHITE_LIST_COUNTRIES = [
   // Oceania
   "AU", "NZ"
 ]
+const EDGE_AUTH_TOKEN = randomUUID();
 
 class PublicS3Bucket extends Construct {
   bucket: S3Bucket;
@@ -334,7 +337,7 @@ class EncountersApplicationStack extends TerraformStack {
         unhealthyThreshold: 2,
         timeout: 5,
         interval: 30,
-        path: "/api/health",
+        path: "/internal/health",
         matcher: "200",
         port: "traffic-port",
         protocol: "HTTP",
@@ -342,16 +345,44 @@ class EncountersApplicationStack extends TerraformStack {
     });
 
     // HTTPS Listener
-    new LbListener(this, "alb-https-listener", {
+    const httpsListener = new LbListener(this, "alb-https-listener", {
       loadBalancerArn: alb.arn,
       port: 443,
       protocol: "HTTPS",
       sslPolicy: "ELBSecurityPolicy-TLS-1-2-2017-01",
       certificateArn: albSslCertificateArn,
       defaultAction: [{
-        type: "forward",
-        targetGroupArn: targetGroup.arn,
+        type: "fixed-response",
+        fixedResponse: {
+          contentType: "text/plain",
+          messageBody: "Forbidden",
+          statusCode: "403",
+        },
       }],
+    });
+
+    new LbListenerRule(this, "alb-https-edge-auth-rule", {
+      listenerArn: httpsListener.arn,
+      priority: 10,
+      action: [
+        {
+          type: "forward",
+          targetGroupArn: targetGroup.arn,
+        },
+      ],
+      condition: [
+        {
+          httpHeader: {
+            httpHeaderName: "X-Edge-Auth",
+            values: [EDGE_AUTH_TOKEN],
+          },
+        },
+        {
+          pathPattern: {
+            values: ["/api/*"],
+          },
+        },
+      ],
     });
 
     // HTTP Listener (redirect to HTTPS)
@@ -482,6 +513,12 @@ class EncountersApplicationStack extends TerraformStack {
             httpsPort: 443,
             originSslProtocols: ["TLSv1.2"],
           },
+          customHeader: [
+            {
+              name: "X-Edge-Auth",
+              value: EDGE_AUTH_TOKEN,
+            },
+          ],
         },
       ],
       restrictions: { geoRestriction: { restrictionType: "whitelist", locations: WHITE_LIST_COUNTRIES } },

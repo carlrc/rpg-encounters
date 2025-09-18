@@ -2,7 +2,7 @@ import logging
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -13,7 +13,6 @@ from app.routers import (
     characters,
     encounters,
     game,
-    health,
     memories,
     players,
     reveals,
@@ -28,7 +27,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="RPG Encounters")
+app = FastAPI(title="RPG Encounters", docs_url=None, openapi_url=None, redoc_url=None)
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
 
@@ -49,7 +48,6 @@ app.add_middleware(
     https_only=SESSION_CONFIG.secure,
 )
 
-app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(players.router)
 app.include_router(characters.router)
@@ -60,6 +58,12 @@ app.include_router(canvas.router)
 app.include_router(game.router)
 app.include_router(voices.router)
 app.include_router(worlds.router)
+
+
+@app.get("/internal/health", include_in_schema=False)
+async def internal_health_check() -> Response:
+    return Response(status_code=200)
+
 
 setup_telemetry()
 
