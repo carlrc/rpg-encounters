@@ -40,11 +40,9 @@ def destroy_session(request: Request) -> None:
 def get_session_user_id(request: Request) -> int:
     """
     Get user_id from trusted session - no DB lookup needed.
-    The session is signed/encrypted, so we trust its contents.
+    The session is signed, so we trust its contents.
     """
     user_id = request.session.get("user_id")
     if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     return user_id

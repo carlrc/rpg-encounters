@@ -5,6 +5,8 @@ import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
 import { S3BucketWebsiteConfiguration } from "@cdktf/provider-aws/lib/s3-bucket-website-configuration";
 import { S3Bucket } from "@cdktf/provider-aws/lib/s3-bucket";
 import { globSync } from "fs";
+// Required on mac
+// import { globSync } from "glob"; 
 import { S3Object } from "@cdktf/provider-aws/lib/s3-object";
 import { lookup as mime } from "mime-types";
 import * as path from "path";
@@ -48,6 +50,7 @@ const WHITE_LIST_COUNTRIES = [
   "AU", "NZ"
 ]
 const EDGE_AUTH_TOKEN = randomUUID();
+const EDGE_AUTH_HEADER = "X-Origin-Auth"
 
 class PublicS3Bucket extends Construct {
   bucket: S3Bucket;
@@ -373,7 +376,7 @@ class EncountersApplicationStack extends TerraformStack {
       condition: [
         {
           httpHeader: {
-            httpHeaderName: "X-Edge-Auth",
+            httpHeaderName: EDGE_AUTH_HEADER,
             values: [EDGE_AUTH_TOKEN],
           },
         },
@@ -515,7 +518,7 @@ class EncountersApplicationStack extends TerraformStack {
           },
           customHeader: [
             {
-              name: "X-Edge-Auth",
+              name: EDGE_AUTH_HEADER,
               value: EDGE_AUTH_TOKEN,
             },
           ],

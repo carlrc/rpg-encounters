@@ -6,8 +6,6 @@ export function useRevealValidation(form) {
   const { gameData } = useGameData()
 
   const isFormValid = computed(() => {
-    if (!gameData.value?.validation_limits) return false
-
     const titleLimit = getValidationLimit('title', 'REVEAL', gameData.value)
     const contentLimit = getValidationLimit('level_1_content', 'REVEAL', gameData.value)
 
