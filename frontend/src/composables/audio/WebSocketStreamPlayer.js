@@ -1,4 +1,5 @@
 import { useNotification } from '../useNotification.js'
+import { serializeError } from 'serialize-error'
 
 /**
  * WebSocketStreamPlayer
@@ -64,7 +65,7 @@ export default class WebSocketStreamPlayer {
     this.audio.playsInline = true
     this.audio.onerror = (error) => {
       if (this.stopped) return
-      console.error('WebSocketStreamPlayer audio error', error)
+      console.error('WebSocketStreamPlayer audio error', JSON.stringify(serializeError(error)))
     }
   }
 
@@ -106,7 +107,12 @@ export default class WebSocketStreamPlayer {
       if (this.sourceBuffer && this.sourceBuffer.updating) {
         try {
           this.sourceBuffer.abort()
-        } catch (e) {}
+        } catch (error) {
+          console.error(
+            'WebSocketStreamPlayer sourceBuffer.abort failed',
+            JSON.stringify(serializeError(error))
+          )
+        }
       }
 
       // Cleanup media source
@@ -130,7 +136,10 @@ export default class WebSocketStreamPlayer {
         }, 150)
       }
     } catch (error) {
-      console.error('WebSocketStreamPlayer stop action failed', error)
+      console.error(
+        'WebSocketStreamPlayer stop action failed',
+        JSON.stringify(serializeError(error))
+      )
     } finally {
       this.queue = []
       this.sourceBuffer = null
@@ -163,7 +172,10 @@ export default class WebSocketStreamPlayer {
         this.unlocked = true
         this.playingStarted = true
       } catch (error) {
-        console.warn('WebSocketStreamPlayer audio unlock failed', error)
+        console.warn(
+          'WebSocketStreamPlayer audio unlock failed',
+          JSON.stringify(serializeError(error))
+        )
       } finally {
         this.audio.muted = previousMuted
         this._unlockPromise = null
@@ -179,7 +191,10 @@ export default class WebSocketStreamPlayer {
       await this.audio.play()
       this.playingStarted = true
     } catch (error) {
-      console.error('WebSocketStreamPlayer play action failed', error)
+      console.error(
+        'WebSocketStreamPlayer play action failed',
+        JSON.stringify(serializeError(error))
+      )
     }
   }
 
@@ -190,8 +205,11 @@ export default class WebSocketStreamPlayer {
       this.sourceBuffer = this.mediaSource.addSourceBuffer(this.mimeType)
       this.sourceBuffer.addEventListener('updateend', this._onUpdateEnd)
       this.sourceBuffer.addEventListener('error', this._onSourceError)
-    } catch (err) {
-      console.error('WebSocketStreamPlayer failed to create audio buffer', err)
+    } catch (error) {
+      console.error(
+        'WebSocketStreamPlayer failed to create audio buffer',
+        JSON.stringify(serializeError(error))
+      )
     }
     // Start appending any queued chunks
     this._drainQueue()
@@ -199,7 +217,7 @@ export default class WebSocketStreamPlayer {
 
   _onSourceError(error) {
     if (this.stopped) return
-    console.error('WebSocketStreamPlayer media source error', error)
+    console.error('WebSocketStreamPlayer media source error', JSON.stringify(serializeError(error)))
   }
 
   _onUpdateEnd() {
@@ -229,7 +247,10 @@ export default class WebSocketStreamPlayer {
       try {
         this.sourceBuffer.appendBuffer(next)
       } catch (error) {
-        console.error('WebSocketStreamPlayer: Failed to process audio chunk', error)
+        console.error(
+          'WebSocketStreamPlayer failed to process audio chunk',
+          JSON.stringify(serializeError(error))
+        )
         throw error
       }
     }
@@ -243,8 +264,50 @@ export default class WebSocketStreamPlayer {
     if (this.queue.length > 0) return
     try {
       this.mediaSource.endOfStream()
+
+      // Soft-reset so this instance can be reused on the next loop
+      try {
+        this._detachAllListeners()
+      } catch (error) {
+        console.error(
+          'WebSocketStreamPlayer failed detaching listeners during finalize',
+          JSON.stringify(serializeError(error))
+        )
+      }
+
+      if (this.objectUrl) {
+        const prev = this.objectUrl
+        this.objectUrl = null
+        try {
+          URL.revokeObjectURL(prev)
+        } catch (error) {
+          console.error(
+            'WebSocketStreamPlayer revokeObjectURL failed',
+            JSON.stringify(serializeError(error))
+          )
+        }
+      }
+
+      // Reset internal state; keep the audio element and unlock state
+      this.sourceBuffer = null
+      this.mediaSource = null
+      this.initialized = false
+      this.firstChunkAppended = false
+      this.playingStarted = false
+      this.endedSignal = false
+      this.stopped = false
+      // Intentionally NOT resetting certain fields:
+      // - this.unlocked: preserve prior user-gesture unlock so iOS/iPadOS autoplay
+      //   continues to work across loops without requiring another gesture.
+      // - this._unlockPromise: only non-null transiently during prepare(); it
+      //   clears in prepare()'s finally, so no action needed here.
+      // - this.queue: _maybeFinalize() runs only when the queue is already empty
+      //   (guard above), so explicit clearing is unnecessary.
     } catch (error) {
-      console.error('WebSocketStreamPlayer: Failed to finalize stream', error)
+      console.error(
+        'WebSocketStreamPlayer failed to finalize stream',
+        JSON.stringify(serializeError(error))
+      )
     }
   }
 
@@ -263,7 +326,10 @@ export default class WebSocketStreamPlayer {
         this.audio.onerror = null
       }
     } catch (error) {
-      console.error('WebSocketStreamPlayer: Failed detaching listeners', error)
+      console.error(
+        'WebSocketStreamPlayer failed detaching listeners',
+        JSON.stringify(serializeError(error))
+      )
     }
   }
 
