@@ -115,7 +115,7 @@
 
 <script>
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-  import { useRouter, useRoute } from 'vue-router'
+  import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
   import { storeToRefs } from 'pinia'
   import { getInitials } from '../utils/avatarUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
@@ -123,6 +123,7 @@
   import { useWorldStore } from '../stores/world.js'
   import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
   import { getPlayers } from '../services/api.js'
+  import { serializeError } from 'serialize-error'
 
   // Constants to replace magic numbers
   const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL
@@ -288,7 +289,7 @@
           players.value = await getPlayers()
         } catch (err) {
           error.value = 'Failed to load players'
-          console.error('Player loading failed')
+          console.error('Player loading failed', JSON.stringify(serializeError(err)))
         }
       }
 
@@ -305,6 +306,7 @@
           await loadPlayers()
         } catch (err) {
           error.value = 'Failed to load data'
+          console.error('Failed to load data', JSON.stringify(serializeError(err)))
         } finally {
           loading.value = false
         }
@@ -362,7 +364,7 @@
             try {
               await streamPlayer.end()
             } catch (e) {
-              console.error('Failed to close audio stream', e)
+              console.error('Failed to close audio stream', JSON.stringify(serializeError(e)))
             } finally {
               streamPlayer = null
             }
@@ -432,7 +434,7 @@
           websocket.value.onmessage = (event) => handleWSMessage(event.data)
 
           websocket.value.onerror = (error) => {
-            console.error(`WebSocket connection error: ${error}`)
+            console.error('WebSocket connection error', JSON.stringify(serializeError(error)))
             isProcessing.value = false
             closeWebSocket()
           }
@@ -441,17 +443,12 @@
             websocket.value = null
           }
         } catch (error) {
-          console.error(`WebSocket creation failed: ${error}`)
+          console.error('WebSocket creation failed', JSON.stringify(serializeError(error)))
           isProcessing.value = false
         }
       }
 
       const processAudioChunk = async (audioBlob) => {
-        if (!streamPlayer) {
-          streamPlayer = new WebSocketStreamPlayer({
-            audioEl: streamAudio.value || undefined,
-          })
-        }
         await streamPlayer.append(audioBlob)
       }
 
@@ -498,8 +495,8 @@
           mediaRecorder.value.start(MEDIA_RECORDER_TIMESLICE)
           isRecording.value = true
         } catch (error) {
-          console.error('Microphone access failed')
-          alert('Could not access microphone. Please check permissions.')
+          console.error('Audio recording failed', JSON.stringify(serializeError(error)))
+          alert('Could not record audio. Refresh the page and try again.')
         }
       }
 
@@ -530,9 +527,10 @@
             prepareChallengeMode()
           }
 
-          if (streamPlayer) {
-            void streamPlayer.prepare({ fromUserGesture: true })
-          }
+          streamPlayer = new WebSocketStreamPlayer({
+            audioEl: streamAudio.value || undefined,
+          })
+          void streamPlayer.prepare({ fromUserGesture: true })
 
           // Check microphone access before opening WebSocket
           const microphoneAvailable = await checkMicrophoneAccess()
@@ -685,6 +683,41 @@
         if (streamPlayer) {
           await streamPlayer.stop()
           streamPlayer = null
+        }
+
+        // Wipe the audio element to avoid stale state on mobile
+        if (streamAudio.value) {
+          try {
+            streamAudio.value.pause()
+            streamAudio.value.removeAttribute('src')
+            streamAudio.value.load()
+          } catch (error) {
+            console.warn(
+              'Unmounted encounter popup audio element cleanup failed',
+              JSON.stringify(serializeError(error))
+            )
+          }
+        }
+      })
+
+      // Also reset audio/websocket when navigating away to avoid mobile Safari quirks
+      onBeforeRouteLeave(async () => {
+        closeWebSocket()
+        if (streamPlayer) {
+          await streamPlayer.stop()
+          streamPlayer = null
+        }
+        if (streamAudio.value) {
+          try {
+            streamAudio.value.pause()
+            streamAudio.value.removeAttribute('src')
+            streamAudio.value.load()
+          } catch (error) {
+            console.warn(
+              'Encounter popup audio element cleanup failed (route-leave)',
+              JSON.stringify(serializeError(error))
+            )
+          }
         }
       })
 

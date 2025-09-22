@@ -81,6 +81,11 @@ export default class WebSocketStreamPlayer {
     this.audio.playsInline = true
   }
 
+  /**
+   * Append an audio chunk for progressive playback
+   * @param {ArrayBuffer|Blob} chunk - Audio data chunk to append
+   * @returns {Promise<void>}
+   */
   async append(chunk) {
     if (this.stopped) return
     await this._ensureReady()
@@ -89,12 +94,24 @@ export default class WebSocketStreamPlayer {
     this._drainQueue()
   }
 
+  /**
+   * Signal that no more chunks will be appended and finalize the stream
+   * Triggers graceful completion and soft-reset for instance reuse
+   * Preserves unlock state for continued autoplay functionality
+   * @returns {Promise<void>}
+   */
   async end() {
     if (this.stopped) return
     this.endedSignal = true
     this._maybeFinalize()
   }
 
+  /**
+   * Immediately stop playback and perform complete cleanup
+   * Resets all state including autoplay permissions (unlocked state)
+   * Use for navigation cleanup or when instance will be discarded
+   * @returns {Promise<void>}
+   */
   async stop() {
     if (this.stopped) return
     this.stopped = true
@@ -156,6 +173,14 @@ export default class WebSocketStreamPlayer {
     this.initialized = true
   }
 
+  /**
+   * Prepare audio for autoplay by unlocking during a user gesture
+   * Required for iOS/iPadOS and browsers with strict autoplay policies
+   * Must be called with fromUserGesture=true during user interaction
+   * @param {Object} options - Configuration options
+   * @param {boolean} options.fromUserGesture - Whether called during user gesture
+   * @returns {Promise<void>|undefined} Promise if unlocking, undefined otherwise
+   */
   prepare({ fromUserGesture = false } = {}) {
     // Unlock the audio element during a user gesture so iOS/iPadOS will allow later autoplay of streamed chunks.
     this._ensureReady()

@@ -25,20 +25,26 @@ services:
       - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
       - LANGFUSE_HOST=${LANGFUSE_HOST}
       # System
-      - ENVIRONMENT=${ENVIRONMENT}
+      - ENVIRONMENT=${ENVIRONMENT} # local, production
       - SERVICE=${SERVICE}
       - FRONTEND_URL=${FRONTEND_URL}
       - GIT_SHA=${GIT_SHA}
       - ECR_REPO_URI=${ECR_REPO_URI}
-      - LOG_MAGIC_LINK=${LOG_MAGIC_LINK}
       - GRPC_VERBOSITY=${GRPC_VERBOSITY}
+      - AWS_REGION=${AWS_REGION}
       # Moderation
       - SKIP_MODERATION=${SKIP_MODERATION}
       - OPEN_AI_MODERATION_THRESHOLD=${OPEN_AI_MODERATION_THRESHOLD}
       # Session management
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
       # HTTPS Configuration (disabled for local development)
-      - USE_HTTPS=true
+      - USE_HTTPS=${USE_HTTPS}
+      # Transcription
+      - TRANSCRIPTION_POOL_SIZE=${TRANSCRIPTION_POOL_SIZE}
+      # Email
+      - LOG_MAGIC_LINK=${LOG_MAGIC_LINK} # For getting raw login token and avoid email
+      - SEND_EMAIL=${SEND_EMAIL}
+      - SES_IDENTITY=${SES_IDENTITY}
     ports:
       - "8000:8000"
     depends_on:
