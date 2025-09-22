@@ -2,53 +2,50 @@
   <div class="shared-card">
     <div v-if="!isEditing" class="reveal-display">
       <!-- Title -->
-      <h2 class="shared-title">{{ reveal.title }}</h2>
+      <h3 class="shared-title">{{ reveal.title }}</h3>
 
-      <!-- Influence Level Display -->
-      <div class="shared-field-columns">
-        <div class="shared-field-column">
-          <div class="shared-field">
-            <div class="shared-field-label">
-              Level 1: Standard (DC {{ getEffectiveThreshold('standard') }})
-            </div>
-            <div class="shared-field-value">
-              <div class="shared-text-display">{{ reveal.level_1_content }}</div>
-            </div>
-          </div>
-
-          <div v-if="reveal.level_2_content" class="shared-field">
-            <div class="shared-field-label">
-              Level 2: Privileged (DC {{ getEffectiveThreshold('privileged') }})
-            </div>
-            <div class="shared-field-value">
-              <div class="shared-text-display">{{ reveal.level_2_content }}</div>
-            </div>
-          </div>
+      <!-- Level 1 Content -->
+      <div class="shared-field shared-field-full-width">
+        <div class="shared-field-label">
+          Level 1: Standard (DC {{ getEffectiveThreshold('standard') }})
         </div>
+        <div class="shared-field-value">
+          <div class="shared-text-display">{{ reveal.level_1_content }}</div>
+        </div>
+      </div>
 
-        <div class="shared-field-column">
-          <div v-if="reveal.level_3_content" class="shared-field">
-            <div class="shared-field-label">
-              Level 3: Exclusive (DC {{ getEffectiveThreshold('exclusive') }})
-            </div>
-            <div class="shared-field-value">
-              <div class="shared-text-display">{{ reveal.level_3_content }}</div>
-            </div>
-          </div>
+      <!-- Level 2 Content -->
+      <div v-if="reveal.level_2_content" class="shared-field shared-field-full-width">
+        <div class="shared-field-label">
+          Level 2: Privileged (DC {{ getEffectiveThreshold('privileged') }})
+        </div>
+        <div class="shared-field-value">
+          <div class="shared-text-display">{{ reveal.level_2_content }}</div>
+        </div>
+      </div>
 
-          <div class="shared-field">
-            <div class="shared-field-label">Assigned Characters</div>
-            <div class="shared-field-value">
-              <div class="shared-tags-display">
-                <span
-                  v-for="characterId in reveal.character_ids"
-                  :key="characterId"
-                  class="shared-tag-bubble"
-                >
-                  {{ getCharacterName(characterId) }}
-                </span>
-              </div>
-            </div>
+      <!-- Level 3 Content -->
+      <div v-if="reveal.level_3_content" class="shared-field shared-field-full-width">
+        <div class="shared-field-label">
+          Level 3: Exclusive (DC {{ getEffectiveThreshold('exclusive') }})
+        </div>
+        <div class="shared-field-value">
+          <div class="shared-text-display">{{ reveal.level_3_content }}</div>
+        </div>
+      </div>
+
+      <!-- Assigned Characters -->
+      <div class="shared-field shared-field-full-width">
+        <div class="shared-field-label">Assigned Characters</div>
+        <div class="shared-field-value">
+          <div class="shared-tags-display">
+            <span
+              v-for="characterId in reveal.character_ids"
+              :key="characterId"
+              class="shared-tag-bubble"
+            >
+              {{ getCharacterName(characterId) }}
+            </span>
           </div>
         </div>
       </div>
@@ -170,4 +167,7 @@
 
 <style scoped>
   /* Styles for the reveal display view only - form styles are now in RevealForm.vue */
+  .reveal-display {
+    flex: 1;
+  }
 </style>
