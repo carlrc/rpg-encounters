@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.connection import ENCOUNTERS_TABLE
 from app.db.limits import ENCOUNTER_DESCRIPTION_LIMIT, TITLE_LIMIT
-from app.db.models.associations import encounter_characters
+from app.db.models.associations import encounter_characters, encounter_players
 from app.db.models.base import UnifiedBase
 
 # Import all ORM models to ensure they are registered with SQLAlchemy
@@ -24,9 +24,13 @@ class EncounterORM(UnifiedBase):
     position_x: Mapped[float] = mapped_column(Float)
     position_y: Mapped[float] = mapped_column(Float)
 
-    # Direct many-to-many relationship
+    # Direct many-to-many relationships
     characters: Mapped[List["CharacterORM"]] = relationship(  # noqa: F821
         secondary=encounter_characters, back_populates="encounters"
+    )
+
+    players: Mapped[List["PlayerORM"]] = relationship(  # noqa: F821
+        secondary=encounter_players, back_populates="encounters"
     )
 
     # One-to-many relationships with connections

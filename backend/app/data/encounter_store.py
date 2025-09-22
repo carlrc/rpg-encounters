@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.data.base_store import BaseStore
 from app.db.models.character import CharacterORM
 from app.db.models.encounter import EncounterORM
+from app.db.models.player import PlayerORM
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,10 @@ class EncounterStore(BaseStore):
             async with self.get_session() as session:
                 result = await session.execute(
                     select(EncounterORM)
-                    .options(selectinload(EncounterORM.characters))
+                    .options(
+                        selectinload(EncounterORM.characters),
+                        selectinload(EncounterORM.players),
+                    )
                     .where(
                         EncounterORM.user_id == self.user_id,
                         EncounterORM.world_id == self.world_id,
@@ -52,7 +56,10 @@ class EncounterStore(BaseStore):
             async with self.get_session() as session:
                 result = await session.execute(
                     select(EncounterORM)
-                    .options(selectinload(EncounterORM.characters))
+                    .options(
+                        selectinload(EncounterORM.characters),
+                        selectinload(EncounterORM.players),
+                    )
                     .where(
                         EncounterORM.id == encounter_id,
                         EncounterORM.user_id == self.user_id,
@@ -73,8 +80,10 @@ class EncounterStore(BaseStore):
         """Create a new encounter"""
         try:
             async with self.get_session() as session:
-                # Create the encounter without character_ids - much cleaner!
-                encounter_dict = encounter_data.model_dump(exclude={"character_ids"})
+                # Create the encounter without character_ids at first
+                encounter_dict = encounter_data.model_dump(
+                    exclude={"character_ids", "player_ids"}
+                )
                 encounter_orm = EncounterORM(
                     **encounter_dict, user_id=self.user_id, world_id=self.world_id
                 )
@@ -92,6 +101,17 @@ class EncounterStore(BaseStore):
                     encounter_orm.characters = (
                         []
                     )  # Set empty list to avoid lazy loading
+
+                if encounter_data.player_ids:
+                    result = await session.execute(
+                        select(PlayerORM).where(
+                            PlayerORM.id.in_(encounter_data.player_ids)
+                        )
+                    )
+                    players = result.scalars().all()
+                    encounter_orm.players = players
+                else:
+                    encounter_orm.players = []
 
                 session.add(encounter_orm)
                 await session.flush()
@@ -111,7 +131,10 @@ class EncounterStore(BaseStore):
             async with self.get_session() as session:
                 result = await session.execute(
                     select(EncounterORM)
-                    .options(selectinload(EncounterORM.characters))
+                    .options(
+                        selectinload(EncounterORM.characters),
+                        selectinload(EncounterORM.players),
+                    )
                     .where(
                         EncounterORM.id == encounter_id,
                         EncounterORM.user_id == self.user_id,
@@ -125,7 +148,7 @@ class EncounterStore(BaseStore):
 
                 # Update basic fields
                 update_data = encounter_update.model_dump(
-                    exclude={"character_ids"}, exclude_unset=True
+                    exclude={"character_ids", "player_ids"}, exclude_unset=True
                 )
                 for key, value in update_data.items():
                     setattr(encounter_orm, key, value)
@@ -139,6 +162,16 @@ class EncounterStore(BaseStore):
                     )
                     characters = result.scalars().all()
                     encounter_orm.characters = characters
+
+                # Update player relationships
+                if encounter_update.player_ids is not None:
+                    result = await session.execute(
+                        select(PlayerORM).where(
+                            PlayerORM.id.in_(encounter_update.player_ids)
+                        )
+                    )
+                    players = result.scalars().all()
+                    encounter_orm.players = players
 
                 await session.flush()
                 await session.refresh(encounter_orm)
@@ -229,4 +262,5 @@ class EncounterStore(BaseStore):
             position_x=encounter_orm.position_x,
             position_y=encounter_orm.position_y,
             character_ids=[char.id for char in encounter_orm.characters],
+            player_ids=[player.id for player in encounter_orm.players],
         )
