@@ -56,6 +56,9 @@
   /* Legacy support */
   --secondary-dark: #252525;
   --secondary-darker: #1a1a1a;
+  /* Light variants for secondary accents */
+  --secondary-light: #cfcfcf; /* light gray for subtle accents */
+  --secondary-lighter: #e6e6e6; /* very light gray backgrounds */
 
   /* Standardized Gray Scale - Replaces hardcoded grays across components */
   --gray-50: #f8f9fa;

@@ -920,12 +920,12 @@
 
   /* Player dropdown avatars use secondary accents */
   .player-dropdown .option-avatar-image {
-    border-color: var(--secondary-color);
+    border-color: var(--secondary-light);
   }
 
   .player-dropdown .option-avatar-placeholder {
-    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
-    border-color: var(--secondary-darker);
+    background: linear-gradient(135deg, var(--secondary-light), var(--gray-200));
+    border-color: var(--gray-300);
   }
 
   .option-avatar-initials {
@@ -1027,12 +1027,16 @@
 
   /* Player chips use secondary accents */
   .player-chip .avatar-image {
-    border-color: var(--secondary-color);
+    border-color: var(--secondary-light);
+    border-width: 3px;
+    box-shadow: 0 0 0 1px var(--secondary-light);
   }
 
   .player-chip .avatar-placeholder {
-    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
-    border-color: var(--secondary-darker);
+    background: linear-gradient(135deg, var(--secondary-light), var(--gray-200));
+    border-color: var(--gray-300);
+    border-width: 3px;
+    box-shadow: 0 0 0 1px var(--secondary-light);
   }
 
   .avatar-initials {
