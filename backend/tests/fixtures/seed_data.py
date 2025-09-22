@@ -256,11 +256,20 @@ async def seed_encounter_data(engine: AsyncEngine, user_ids: list[int], world_id
                 )
                 user_characters = result.scalars().all()
 
+                # Get players for this specific user
+                player_result = await session.execute(
+                    select(PlayerORM)
+                    .where(PlayerORM.user_id == user_id)
+                    .order_by(PlayerORM.id)
+                )
+                user_players = player_result.scalars().all()
+
                 for encounter in encounters_db:
                     encounter_data = encounter.model_dump()
                     encounter_data.pop('id', None)  # Remove ID to let autoincrement handle it
-                    # Extract character_ids (these are array indices)
+                    # Extract character_ids/player_ids (these are array indices)
                     character_indices = encounter_data.pop('character_ids', [])
+                    player_indices = encounter_data.pop('player_ids', [])
 
                     encounter_orm = EncounterORM(**encounter_data, user_id=user_id, world_id=world_id)
                     session.add(encounter_orm)
@@ -272,6 +281,12 @@ async def seed_encounter_data(engine: AsyncEngine, user_ids: list[int], world_id
                         await session.run_sync(lambda sync_session: setattr(encounter_orm, 'characters', selected_characters))
                     else:
                         await session.run_sync(lambda sync_session: setattr(encounter_orm, 'characters', []))
+
+                    if player_indices:
+                        selected_players = [user_players[idx] for idx in player_indices if idx < len(user_players)]
+                        await session.run_sync(lambda sync_session: setattr(encounter_orm, 'players', selected_players))
+                    else:
+                        await session.run_sync(lambda sync_session: setattr(encounter_orm, 'players', []))
 
                     logger.info(f"Creating encounter '{encounter_data['name']}' for user {i+1} with user_id={user_id}, world_id={world_id}")
 

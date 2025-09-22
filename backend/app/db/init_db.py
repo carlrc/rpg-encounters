@@ -12,6 +12,7 @@ from app.db.models.account import AccountORM  # noqa: F401
 # Import association tables to ensure they are registered with SQLAlchemy
 from app.db.models.associations import (  # noqa: F401
     encounter_characters,
+    encounter_players,
     memory_characters,
     reveal_characters,
 )

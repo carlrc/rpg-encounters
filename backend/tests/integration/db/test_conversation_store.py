@@ -36,6 +36,7 @@ async def test_conversation_store():
         encounter = default_encounter()
         encounter_data = EncounterCreate(**encounter.model_dump(exclude={"id"}))
         encounter_data.character_ids = [created_character.id]
+        encounter_data.player_ids = [created_player.id]
         created_encounter = await encounter_store.create(encounter_data)
 
         user_message = ModelRequest.user_text_prompt(

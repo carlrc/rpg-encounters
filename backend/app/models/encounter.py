@@ -17,6 +17,9 @@ class EncounterBase(BaseModel):
     character_ids: List[int] | None = Field(
         default=None, description="Character IDs in this encounter"
     )
+    player_ids: List[int] | None = Field(
+        default=None, description="Player IDs in this encounter"
+    )
 
     @field_validator("position_x", "position_y")
     @classmethod
@@ -44,6 +47,7 @@ class EncounterUpdate(EncounterBase):
     position_x: float | None = None
     position_y: float | None = None
     character_ids: List[int] | None = None
+    player_ids: List[int] | None = None
 
 
 class Encounter(EncounterBase):

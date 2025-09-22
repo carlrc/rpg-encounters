@@ -128,8 +128,13 @@ def create_default_influence(
     )
 
 
-def create_test_encounter(encounter_id: int, character_id: int) -> Encounter:
+def create_test_encounter(
+    encounter_id: int,
+    character_id: int,
+    player_id: int | None = None,
+) -> Encounter:
     """Create a basic test encounter."""
+    player_ids = [player_id] if player_id is not None else []
     return Encounter(
         id=encounter_id,
         name="test",
@@ -137,6 +142,7 @@ def create_test_encounter(encounter_id: int, character_id: int) -> Encounter:
         position_x=0.1,
         position_y=0.2,
         character_ids=[character_id],
+        player_ids=player_ids,
     )
 
 # Lambda factories for creating default instances with custom IDs
@@ -145,7 +151,7 @@ default_player = lambda player_id=100: create_default_bard_player(player_id=play
 default_reveals = lambda character_id=100: [create_inn_secrets_reveal(character_id=character_id)]
 default_memories = lambda character_id=100: [create_inn_memory(character_id=character_id)]
 default_influence = lambda character_id=100, player_id=100, base=BASE_INFLUENCE_MAX - 2, earned=0: create_default_influence(character_id=character_id, player_id=player_id, base=base, earned=earned)
-default_encounter = lambda encounter_id=1, character_id=100: create_test_encounter(encounter_id=encounter_id, character_id=character_id)
+default_encounter = lambda encounter_id=1, character_id=100, player_id=None: create_test_encounter(encounter_id=encounter_id, character_id=character_id, player_id=player_id)
 
 # Pre-created default instances
 DEFAULT_CHARACTER = default_character()
@@ -154,4 +160,3 @@ DEFAULT_REVEALS = default_reveals()
 DEFAULT_MEMORIES = default_memories()
 DEFAULT_INFLUENCE = default_influence()
 DEFAULT_ENCOUNTER = default_encounter()
-
