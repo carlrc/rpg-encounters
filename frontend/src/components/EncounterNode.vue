@@ -504,7 +504,7 @@
         const gapBetweenItems = 12
         const playerBaseHeight = 110
         const playerExpandedHeight = 140
-        const characterRowBaseHeight = 150
+        const characterRowBaseHeight = 170
         const characterRowAdditionalHeight = 130
 
         const charactersCount = this.encounter.characters?.length || 0
@@ -790,10 +790,10 @@
   .players-scroll {
     display: flex;
     gap: var(--spacing-md);
-    align-items: stretch;
+    align-items: flex-start;
     overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: var(--spacing-xs);
+    overflow-y: visible;
+    padding: var(--spacing-sm);
   }
 
   .player-chip {
