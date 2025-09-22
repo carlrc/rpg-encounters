@@ -913,6 +913,16 @@
     border: 1px solid var(--primary-darker);
   }
 
+  /* Player dropdown avatars use secondary accents */
+  .player-dropdown .option-avatar-image {
+    border-color: var(--secondary-color);
+  }
+
+  .player-dropdown .option-avatar-placeholder {
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+    border-color: var(--secondary-darker);
+  }
+
   .option-avatar-initials {
     color: white;
     font-size: var(--font-size-xs);
@@ -1010,6 +1020,16 @@
     margin-bottom: 2px;
   }
 
+  /* Player chips use secondary accents */
+  .player-chip .avatar-image {
+    border-color: var(--secondary-color);
+  }
+
+  .player-chip .avatar-placeholder {
+    background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
+    border-color: var(--secondary-darker);
+  }
+
   .avatar-initials {
     color: white;
     font-size: var(--font-size-xs);
@@ -1048,14 +1068,15 @@
     text-overflow: ellipsis;
   }
 
-  /* Add Encounter Button (reused from EncounterBuilder) */
+  /* Add buttons for player/character assignments */
   .add-encounter-btn {
     width: 32px;
     height: 32px;
     border: none;
     border-radius: var(--radius-round);
-    background: var(--success-color);
-    color: white;
+    background: var(--addition-alpha-15);
+    color: var(--addition-dark);
+    border: 1px solid var(--addition-color);
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
     cursor: pointer;
@@ -1063,22 +1084,34 @@
     align-items: center;
     justify-content: center;
     transition: all var(--transition-fast);
-    box-shadow: var(--shadow-success);
+    box-shadow: var(--shadow-secondary);
   }
 
   .add-encounter-btn:hover {
-    background: var(--success-dark);
+    background: var(--addition-alpha-20);
+    border-color: var(--addition-dark);
     transform: scale(1.1);
-    box-shadow: var(--shadow-success-hover);
+    box-shadow: var(--shadow-secondary-hover);
   }
 
   .add-character-btn.active {
-    background: var(--danger-color);
+    background: var(--addition-alpha-20);
+    border-color: var(--addition-dark);
+    transform: rotate(45deg);
+  }
+
+  .add-player-btn.active {
+    background: var(--addition-alpha-20);
+    border-color: var(--addition-dark);
     transform: rotate(45deg);
   }
 
   .add-character-btn.active:hover {
-    background: var(--danger-dark);
+    background: var(--addition-alpha-20);
+  }
+
+  .add-player-btn.active:hover {
+    background: var(--addition-alpha-20);
   }
 
   /* Scrollbar styling for dropdown */

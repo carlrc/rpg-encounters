@@ -32,14 +32,23 @@
   --danger-dark: #b8102e;
   --danger-darker: #9e1a2a;
 
-  --color-warning: #ffb300;
-  --warning-color: #ffb300;
+  --color-warning: #c49100; /* Muted amber */
+  --warning-color: #c49100; /* Muted amber */
   /* Legacy support */
-  --warning-dark: #e0a800;
+  --warning-dark: #9a6f00; /* Deeper brass */
 
   --color-info: #2c2c2c;
   --info-color: #2c2c2c;
   /* Legacy support */
+
+  /* Addition Accent - soft green, very transparent variants */
+  --color-addition: #22a66f; /* base green */
+  --addition-color: #22a66f; /* alias */
+  --addition-dark: #1a8a5c; /* deeper green */
+  --addition-alpha-05: rgba(34, 166, 111, 0.05);
+  --addition-alpha-10: rgba(34, 166, 111, 0.1);
+  --addition-alpha-15: rgba(34, 166, 111, 0.15); /* very transparent */
+  --addition-alpha-20: rgba(34, 166, 111, 0.2);
 
   /* Neutral Colors - Stronger contrast for better hierarchy */
   --color-secondary: #2f2f2f;
