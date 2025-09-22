@@ -793,7 +793,7 @@
     align-items: flex-start;
     overflow-x: auto;
     overflow-y: visible;
-    padding: var(--spacing-sm);
+    padding: var(--spacing-sm) 0 var(--spacing-xs);
   }
 
   .player-chip {
