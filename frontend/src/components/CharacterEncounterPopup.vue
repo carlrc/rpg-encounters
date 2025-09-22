@@ -62,9 +62,10 @@
                 id="player-select"
                 v-model="selectedPlayerId"
                 class="shared-select"
-                :disabled="isRecording || isProcessing"
+                :disabled="isRecording || isProcessing || players.length === 0"
               >
-                <option value="">Select a player</option>
+                <option v-if="players.length === 0" value="" disabled>No players assigned</option>
+                <option v-else value="">Select a player</option>
                 <option v-for="player in players" :key="player.id" :value="player.id">
                   {{ player.rl_name }}
                 </option>
@@ -122,7 +123,6 @@
   import { useConversationDataStore } from '../stores/conversationData.js'
   import { useWorldStore } from '../stores/world.js'
   import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
-  import { getPlayers } from '../services/api.js'
   import { serializeError } from 'serialize-error'
 
   // Constants to replace magic numbers
@@ -150,6 +150,10 @@
         type: [String, Number],
         default: null,
       },
+      assignedPlayers: {
+        type: Array,
+        default: () => [],
+      },
     },
     emits: ['close'],
     setup(props, { emit }) {
@@ -163,10 +167,7 @@
       // Local WebSocket progressive audio player (explicit control)
       let streamPlayer = null
 
-      // Use existing data from API (same as EncountersPage.vue)
-      const players = ref([])
-      const loading = ref(true)
-      const error = ref(null)
+      const players = computed(() => props.assignedPlayers || [])
       const streamAudio = ref(null)
 
       // Encounter state (copied from EncountersPage.vue)
@@ -282,35 +283,6 @@
           challengePreviewReveals.value.length > 0
         )
       })
-
-      // Load data functions (same as EncountersPage.vue)
-      const loadPlayers = async () => {
-        try {
-          players.value = await getPlayers()
-        } catch (err) {
-          error.value = 'Failed to load players'
-          console.error('Player loading failed', JSON.stringify(serializeError(err)))
-        }
-      }
-
-      const loadData = async () => {
-        // Triggered by state changes (even logout) where there is no world set
-        if (!worldStore.currentWorldId) {
-          return
-        }
-
-        loading.value = true
-        error.value = null
-
-        try {
-          await loadPlayers()
-        } catch (err) {
-          error.value = 'Failed to load data'
-          console.error('Failed to load data', JSON.stringify(serializeError(err)))
-        } finally {
-          loading.value = false
-        }
-      }
 
       // Encounter functions (simplified from EncountersPage.vue)
       const closePopup = () => {
@@ -638,6 +610,28 @@
         }
       )
 
+      watch(
+        () => props.assignedPlayers,
+        (newPlayers) => {
+          const playersList = newPlayers || []
+
+          if (selectedPlayerId.value) {
+            const selectedId = String(selectedPlayerId.value)
+            if (!playersList.some((player) => String(player.id) === selectedId)) {
+              selectedPlayerId.value = ''
+            }
+            return
+          }
+
+          if (props.initialPlayerId) {
+            const initialId = String(props.initialPlayerId)
+            if (playersList.some((player) => String(player.id) === initialId)) {
+              selectedPlayerId.value = props.initialPlayerId
+            }
+          }
+        }
+      )
+
       // Fetch conversation data when player selection changes (only in conversation mode)
       watch(
         () => selectedPlayerId.value,
@@ -664,9 +658,7 @@
 
       onMounted(async () => {
         await gameDataStore.load()
-        loadData()
 
-        // Set initial player selection from prop if provided
         if (props.initialPlayerId) {
           selectedPlayerId.value = props.initialPlayerId
         }
@@ -723,8 +715,6 @@
 
       return {
         players,
-        loading,
-        error,
         selectedPlayerId,
         isRecording,
         isProcessing,

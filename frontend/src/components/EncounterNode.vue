@@ -101,86 +101,172 @@
       />
     </div>
 
-    <!-- Add Character Dropdown -->
-    <div v-if="showAddCharacter" class="add-character-dropdown" @click.stop>
-      <div class="dropdown-header">Add Character:</div>
-      <div
-        class="character-options"
-        @wheel.stop
-        @scroll.stop
-        @mousedown.stop
-        @mousemove.stop
-        @mouseup.stop
-      >
+    <div class="players-section">
+      <div class="section-header">Players</div>
+      <div class="players-scroll">
         <div
-          v-for="character in availableCharacters"
-          :key="character.id"
-          class="character-option"
-          @click="addCharacter(character.id)"
+          v-for="player in encounter.players || []"
+          :key="player.id"
+          class="character-avatar player-chip"
+          :title="player.rl_name || player.name"
         >
-          <div class="option-avatar">
-            <img
-              v-if="character.avatar"
-              :src="character.avatar"
-              :alt="character.name"
-              class="option-avatar-image"
-            />
-            <div v-else class="option-avatar-placeholder">
-              <span class="option-avatar-initials">{{ getInitials(character.name) }}</span>
-            </div>
+          <button
+            class="remove-character-btn"
+            @click.stop="removePlayer(player.id)"
+            title="Remove player"
+          >
+            ×
+          </button>
+          <img
+            v-if="player.avatar"
+            :src="player.avatar"
+            :alt="player.rl_name || player.name"
+            class="avatar-image"
+          />
+          <div v-else class="avatar-placeholder">
+            <span class="avatar-initials">{{ getInitials(player.rl_name || player.name) }}</span>
           </div>
-          <div class="option-info">
-            <div class="option-name">{{ character.name }}</div>
-            <div class="option-profession">{{ character.profession }}</div>
+          <div class="character-info">
+            <span class="character-profession">{{ player.rl_name || 'Unknown Player' }}</span>
+            <span class="character-name">{{ player.name }}</span>
+          </div>
+        </div>
+
+        <div
+          v-if="availablePlayers.length > 0"
+          class="character-avatar player-chip add-player-chip"
+          title="Add player to encounter"
+        >
+          <button
+            @click="toggleAddPlayerDropdown"
+            class="add-encounter-btn add-player-btn add-assignee-btn"
+            :class="{ active: showAddPlayer }"
+          >
+            +
+          </button>
+          <span class="player-add-label">Add Player</span>
+        </div>
+      </div>
+
+      <div v-if="showAddPlayer" class="add-assignee-dropdown player-dropdown" @click.stop>
+        <div class="dropdown-header">Add Player:</div>
+        <div
+          class="character-options"
+          @wheel.stop
+          @scroll.stop
+          @mousedown.stop
+          @mousemove.stop
+          @mouseup.stop
+        >
+          <div
+            v-for="player in availablePlayers"
+            :key="player.id"
+            class="character-option"
+            @click="addPlayer(player.id)"
+          >
+            <div class="option-avatar">
+              <img
+                v-if="player.avatar"
+                :src="player.avatar"
+                :alt="player.rl_name || player.name"
+                class="option-avatar-image"
+              />
+              <div v-else class="option-avatar-placeholder">
+                <span class="option-avatar-initials">{{
+                  getInitials(player.rl_name || player.name)
+                }}</span>
+              </div>
+            </div>
+            <div class="option-info">
+              <div class="option-name">{{ player.rl_name || player.name }}</div>
+              <div class="option-profession">{{ player.name }}</div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="character-grid">
-      <div
-        v-for="character in encounter.characters"
-        :key="character.id"
-        class="character-avatar"
-        @click="$emit('open-encounter', character, encounter.id)"
-        :title="character.name"
-      >
-        <button
-          class="remove-character-btn"
-          @click.stop="removeCharacter(character.id)"
-          title="Remove character"
+    <div class="characters-section">
+      <div class="section-header">Characters</div>
+      <div class="character-grid">
+        <div
+          v-for="character in encounter.characters"
+          :key="character.id"
+          class="character-avatar"
+          @click="$emit('open-encounter', character, encounter.id)"
+          :title="character.name"
         >
-          ×
-        </button>
-        <img
-          v-if="character.avatar"
-          :src="character.avatar"
-          :alt="character.name"
-          class="avatar-image"
-        />
-        <div v-else class="avatar-placeholder">
-          <span class="avatar-initials">{{ getInitials(character.name) }}</span>
+          <button
+            class="remove-character-btn"
+            @click.stop="removeCharacter(character.id)"
+            title="Remove character"
+          >
+            ×
+          </button>
+          <img
+            v-if="character.avatar"
+            :src="character.avatar"
+            :alt="character.name"
+            class="avatar-image"
+          />
+          <div v-else class="avatar-placeholder">
+            <span class="avatar-initials">{{ getInitials(character.name) }}</span>
+          </div>
+          <div class="character-info">
+            <span class="character-profession">{{ character.profession }}</span>
+            <span class="character-name">{{ character.name }}</span>
+          </div>
         </div>
-        <div class="character-info">
-          <span class="character-profession">{{ character.profession }}</span>
-          <span class="character-name">{{ character.name }}</span>
+
+        <div
+          v-if="availableCharacters.length > 0"
+          class="character-avatar add-character-tile"
+          title="Add character to encounter"
+        >
+          <button
+            @click="toggleAddCharacterDropdown"
+            class="add-encounter-btn add-character-btn add-assignee-btn"
+            :class="{ active: showAddCharacter }"
+          >
+            +
+          </button>
+          <span class="character-name">Add Character</span>
         </div>
       </div>
 
-      <!-- Add Character Button (reusing add encounter button styling) -->
-      <div
-        v-if="availableCharacters.length > 0"
-        class="character-avatar"
-        title="Add character to encounter"
-      >
-        <button
-          @click="showAddCharacter = !showAddCharacter"
-          class="add-encounter-btn add-character-btn"
-          :class="{ active: showAddCharacter }"
+      <div v-if="showAddCharacter" class="add-assignee-dropdown character-dropdown" @click.stop>
+        <div class="dropdown-header">Add Character:</div>
+        <div
+          class="character-options"
+          @wheel.stop
+          @scroll.stop
+          @mousedown.stop
+          @mousemove.stop
+          @mouseup.stop
         >
-          +
-        </button>
-        <span class="character-name">Add Character</span>
+          <div
+            v-for="character in availableCharacters"
+            :key="character.id"
+            class="character-option"
+            @click="addCharacter(character.id)"
+          >
+            <div class="option-avatar">
+              <img
+                v-if="character.avatar"
+                :src="character.avatar"
+                :alt="character.name"
+                class="option-avatar-image"
+              />
+              <div v-else class="option-avatar-placeholder">
+                <span class="option-avatar-initials">{{ getInitials(character.name) }}</span>
+              </div>
+            </div>
+            <div class="option-info">
+              <div class="option-name">{{ character.name }}</div>
+              <div class="option-profession">{{ character.profession }}</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -207,17 +293,24 @@
         type: Array,
         default: () => [],
       },
+      availablePlayers: {
+        type: Array,
+        default: () => [],
+      },
     },
     emits: [
       'open-encounter',
       'add-character',
       'remove-character',
+      'add-player',
+      'remove-player',
       'update-encounter-name',
       'update-encounter-description',
       'clear-auto-open-description',
     ],
     setup(props, { emit }) {
       const showAddCharacter = ref(false)
+      const showAddPlayer = ref(false)
       const showDescription = ref(false)
       const isEditingName = ref(false)
       const editingName = ref('')
@@ -233,6 +326,29 @@
 
       const removeCharacter = (characterId) => {
         emit('remove-character', props.encounter.id, characterId)
+      }
+
+      const addPlayer = (playerId) => {
+        emit('add-player', props.encounter.id, playerId)
+        showAddPlayer.value = false
+      }
+
+      const removePlayer = (playerId) => {
+        emit('remove-player', props.encounter.id, playerId)
+      }
+
+      const toggleAddCharacterDropdown = () => {
+        showAddCharacter.value = !showAddCharacter.value
+        if (showAddCharacter.value) {
+          showAddPlayer.value = false
+        }
+      }
+
+      const toggleAddPlayerDropdown = () => {
+        showAddPlayer.value = !showAddPlayer.value
+        if (showAddPlayer.value) {
+          showAddCharacter.value = false
+        }
       }
 
       const startEditingName = () => {
@@ -269,6 +385,13 @@
         const encounterNode = event.target.closest('.encounter-node')
         const isInfoButton = event.target.closest('.info-btn')
         const isDescriptionSection = event.target.closest('.encounter-description-section')
+        const isDropdown = event.target.closest('.add-assignee-dropdown')
+        const isAddButton = event.target.closest('.add-assignee-btn')
+
+        if (!isDropdown && !isAddButton) {
+          showAddCharacter.value = false
+          showAddPlayer.value = false
+        }
 
         if (!encounterNode && !isInfoButton && !isDescriptionSection && showDescription.value) {
           showDescription.value = false
@@ -349,6 +472,7 @@
 
       return {
         showAddCharacter,
+        showAddPlayer,
         showDescription,
         isEditingName,
         editingName,
@@ -358,10 +482,14 @@
         descriptionInput,
         addCharacter,
         removeCharacter,
+        addPlayer,
+        removePlayer,
         startEditingName,
         saveEncounterName,
         cancelEditingName,
         toggleDescription,
+        toggleAddCharacterDropdown,
+        toggleAddPlayerDropdown,
         startEditingDescription,
         saveEncounterDescription,
         cancelEditingDescription,
@@ -370,39 +498,36 @@
     },
     computed: {
       encounterStyle() {
-        const baseHeight = 150
-        const charWidth = 120 // Fixed character width from CSS
-        const encounterPadding = 24 // 12px padding on each side
-        const gapBetweenChars = 12 // Gap between characters
+        const cardWidth = 450
+        const horizontalPadding = 24
+        const charWidth = 120
+        const gapBetweenItems = 12
+        const playerBaseHeight = 110
+        const playerExpandedHeight = 140
+        const characterRowBaseHeight = 150
+        const characterRowAdditionalHeight = 130
 
-        // Count characters + add character button if available
-        const totalItems =
-          (this.encounter.characters?.length || 0) + (this.availableCharacters.length > 0 ? 1 : 0)
+        const charactersCount = this.encounter.characters?.length || 0
+        const hasAddCharacterTile = this.availableCharacters.length > 0
+        const totalCharacterTiles = charactersCount + (hasAddCharacterTile ? 1 : 0)
 
-        if (totalItems === 0) {
-          return {
-            width: `300px`,
-            height: `${baseHeight}px`,
-            minHeight: `${baseHeight}px`,
-          }
-        }
+        const hasPlayers = (this.encounter.players?.length || 0) > 0
+        const hasAddPlayerTile = this.availablePlayers.length > 0
+        const playersHeight =
+          hasPlayers || hasAddPlayerTile ? playerExpandedHeight : playerBaseHeight
 
-        // Calculate encounter width to fit at least 2 items per row
-        const minWidthFor2Items = charWidth * 2 + gapBetweenChars + encounterPadding
-        const calculatedWidth = Math.max(minWidthFor2Items, 300)
+        const contentWidth = Math.max(0, cardWidth - horizontalPadding)
+        const itemsPerRow = Math.max(1, Math.floor(contentWidth / (charWidth + gapBetweenItems)))
+        const characterRows = Math.max(1, Math.ceil(totalCharacterTiles / itemsPerRow))
+        const characterHeight =
+          characterRowBaseHeight + (characterRows - 1) * characterRowAdditionalHeight
 
-        // Calculate dynamic height based on number of items (characters + add button)
-        const availableWidth = calculatedWidth - encounterPadding
-        const itemsPerRow = Math.floor(availableWidth / (charWidth + gapBetweenChars))
-        const rows = Math.ceil(totalItems / Math.max(1, itemsPerRow))
-
-        // Add extra height for each row of items (80px per row)
-        const extraHeight = Math.max(0, (rows - 1) * 80)
+        const totalHeight = playersHeight + characterHeight
 
         return {
-          width: `${calculatedWidth}px`,
-          height: `${baseHeight + extraHeight}px`,
-          minHeight: `${baseHeight}px`,
+          width: `${cardWidth}px`,
+          height: `${totalHeight}px`,
+          minHeight: `${playerBaseHeight + characterRowBaseHeight}px`,
         }
       },
     },
@@ -641,9 +766,79 @@
     font-weight: var(--font-weight-semibold);
   }
 
-  .add-character-dropdown {
+  .players-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    position: relative;
+  }
+
+  .characters-section {
+    position: relative;
+  }
+
+  .section-header {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .players-scroll {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: stretch;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: var(--spacing-xs);
+  }
+
+  .player-chip {
+    flex: 0 0 auto;
+    cursor: default;
+  }
+
+  .player-chip:hover {
+    background: var(--bg-light);
+  }
+
+  .add-player-chip {
+    align-items: center;
+    justify-content: center;
+    min-width: 100px;
+  }
+
+  .add-player-btn {
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .player-add-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .character-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    justify-content: flex-start;
+    align-items: flex-start;
+    min-height: 80px;
+    margin-top: var(--spacing-sm);
+  }
+
+  .add-character-tile {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .add-assignee-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + var(--spacing-xs));
     left: 0;
     right: 0;
     background: var(--bg-white);
@@ -653,6 +848,14 @@
     z-index: 1000;
     max-height: 200px;
     overflow-y: auto;
+  }
+
+  .player-dropdown {
+    top: calc(100% + var(--spacing-xs));
+  }
+
+  .character-dropdown {
+    top: calc(100% + var(--spacing-xs));
   }
 
   .dropdown-header {
@@ -736,16 +939,6 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  .character-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--spacing-md);
-    justify-content: flex-start;
-    align-items: flex-start;
-    min-height: 60px;
-    margin-top: var(--spacing-sm);
   }
 
   .character-avatar {

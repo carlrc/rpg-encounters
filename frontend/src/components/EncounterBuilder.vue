@@ -61,9 +61,12 @@
           <EncounterNode
             :encounter="{ ...data, id }"
             :available-characters="getAvailableCharactersForEncounter(data)"
+            :available-players="getAvailablePlayersForEncounter(data)"
             @open-encounter="openCharacterEncounter"
             @add-character="addCharacterToEncounter"
             @remove-character="removeCharacterFromEncounter"
+            @add-player="addPlayerToEncounter"
+            @remove-player="removePlayerFromEncounter"
             @update-encounter-name="updateEncounterName"
             @update-encounter-description="updateEncounterDescription"
             @clear-auto-open-description="clearAutoOpenDescription"
@@ -77,6 +80,7 @@
         :encounter-id="parseInt(selectedEncounterId) || 0"
         :initial-player-id="route.query.playerId"
         :is-open="showEncounterPopup"
+        :assigned-players="popupAssignedPlayers"
         @close="closeEncounterPopup"
       />
     </div>
@@ -99,19 +103,23 @@
   } from '../services/api.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import { useWorldStore } from '@/stores/world'
+  import { usePlayerStore } from '@/stores/players'
   import { useNotification } from '../composables/useNotification.js'
   import { isTemporaryId } from '../utils/idUtils.js'
   import { saveViewport, getViewport } from '../utils/viewportState.js'
 
   const gameDataStore = useGameDataStore()
   const worldStore = useWorldStore()
+  const playerStore = usePlayerStore()
   const { data: gameData } = storeToRefs(gameDataStore)
+  const { entities: playerEntities } = storeToRefs(playerStore)
   const { showSuccess, showError } = useNotification()
   const router = useRouter()
   const route = useRoute()
 
   // State
   const characters = ref([])
+  const players = computed(() => playerEntities.value || [])
   const loading = ref(true)
   const error = ref(null)
   const selectedCharacter = ref(null)
@@ -121,6 +129,19 @@
   const isSaving = ref(false)
 
   const elements = ref([])
+
+  const selectedEncounter = computed(() => {
+    if (!selectedEncounterId.value) {
+      return null
+    }
+
+    const encounterId = String(selectedEncounterId.value)
+    return (
+      elements.value.find((el) => el.type === 'encounter' && String(el.id) === encounterId) || null
+    )
+  })
+
+  const popupAssignedPlayers = computed(() => selectedEncounter.value?.data.players || [])
 
   // Deletion tracking
   const deletedEncounterIds = ref([])
@@ -132,6 +153,13 @@
 
     const encounterCharacterIds = new Set(encounterData.characters.map((char) => char.id))
     return characters.value.filter((char) => !encounterCharacterIds.has(char.id))
+  }
+
+  const getAvailablePlayersForEncounter = (encounterData) => {
+    if (!encounterData || !encounterData.players) return players.value
+
+    const encounterPlayerIds = new Set(encounterData.players.map((player) => player.id))
+    return players.value.filter((player) => !encounterPlayerIds.has(player.id))
   }
 
   // Load characters from API
@@ -164,6 +192,7 @@
         name: encounter.name,
         description: encounter.description || '',
         characters: getCharactersForEncounter(encounter.character_ids || []),
+        players: getPlayersForEncounter(encounter.player_ids || []),
         isNew: false, // Existing encounters from database
       },
     }))
@@ -215,6 +244,14 @@
     return characters.value.filter((character) => characterIds.includes(character.id))
   }
 
+  const getPlayersForEncounter = (playerIds) => {
+    if (!playerIds) {
+      return []
+    }
+
+    return players.value.filter((player) => playerIds.includes(player.id))
+  }
+
   const loadData = async () => {
     // Triggered by state changes (even logout) where there is no world set
     if (!worldStore.currentWorldId) {
@@ -228,6 +265,7 @@
       // Load characters first, then encounters (encounters need characters for associations)
       await gameDataStore.load()
       await loadCharacters()
+      await playerStore.loadEntities()
       await loadEncounters()
     } catch (err) {
       const errorMessage = err.message || 'Failed to load world data'
@@ -240,64 +278,42 @@
 
   // Character management
   const addCharacterToEncounter = (encounterId, characterId) => {
-    // Validate inputs
-    if (!encounterId || !characterId) {
-      console.warn('Invalid encounterId or characterId provided to addCharacterToEncounter')
-      return
-    }
-
     const character = characters.value.find((c) => c.id === characterId)
-    if (!character) {
-      console.warn(`Character with id ${characterId} not found`)
-      return
-    }
+    const encounter = elements.value.find((el) => el.id === encounterId)
 
-    // Find the encounter and add the character
-    const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
-    if (encounterIndex === -1) {
-      console.warn(`Encounter with id ${encounterId} not found`)
-      return
-    }
+    encounter.data.characters = encounter.data.characters || []
 
-    const encounter = elements.value[encounterIndex]
-
-    // Ensure encounter.data.characters exists
-    if (!Array.isArray(encounter.data.characters)) {
-      encounter.data.characters = []
-    }
-
-    // Check if character is already in this encounter
     const isAlreadyInEncounter = encounter.data.characters.some((char) => char.id === characterId)
 
     if (!isAlreadyInEncounter) {
-      // Simply add character to the encounter (can be in multiple encounters)
       encounter.data.characters.push(character)
     }
   }
 
   const removeCharacterFromEncounter = (encounterId, characterId) => {
-    // Validate inputs
-    if (!encounterId || !characterId) {
-      console.warn('Invalid encounterId or characterId provided to removeCharacterFromEncounter')
-      return
+    const encounter = elements.value.find((el) => el.id === encounterId)
+    encounter.data.characters = (encounter.data.characters || []).filter(
+      (char) => char.id !== characterId
+    )
+  }
+
+  const addPlayerToEncounter = (encounterId, playerId) => {
+    const player = players.value.find((p) => p.id === playerId)
+    const encounter = elements.value.find((el) => el.id === encounterId)
+
+    encounter.data.players = encounter.data.players || []
+
+    const isAlreadyAssigned = encounter.data.players.some((assigned) => assigned.id === playerId)
+    if (!isAlreadyAssigned) {
+      encounter.data.players.push(player)
     }
+  }
 
-    // Find the encounter and remove the character
-    const encounterIndex = elements.value.findIndex((el) => el.id === encounterId)
-    if (encounterIndex === -1) {
-      console.warn(`Encounter with id ${encounterId} not found`)
-      return
-    }
-
-    const encounter = elements.value[encounterIndex]
-
-    // Ensure encounter.data.characters exists
-    if (!Array.isArray(encounter.data.characters)) {
-      encounter.data.characters = []
-      return
-    }
-
-    encounter.data.characters = encounter.data.characters.filter((char) => char.id !== characterId)
+  const removePlayerFromEncounter = (encounterId, playerId) => {
+    const encounter = elements.value.find((el) => el.id === encounterId)
+    encounter.data.players = (encounter.data.players || []).filter(
+      (assigned) => assigned.id !== playerId
+    )
   }
 
   // Character encounter handlers
@@ -409,6 +425,7 @@
         position_x: centerX,
         position_y: centerY,
         character_ids: [],
+        player_ids: [],
       }
 
       const createdEncounter = await createEncounter(encounterData)
@@ -425,6 +442,7 @@
           name: createdEncounter.name,
           description: createdEncounter.description,
           characters: [],
+          players: [],
           isNew: false, // Already saved to database
           autoOpenDescription: true,
         },
@@ -602,6 +620,7 @@
           position_x: item.position.x,
           position_y: item.position.y,
           character_ids: item.data.characters?.map((char) => char.id) || [],
+          player_ids: item.data.players?.map((player) => player.id) || [],
         }
       }
     })
