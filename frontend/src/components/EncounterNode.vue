@@ -815,6 +815,11 @@
     margin-bottom: var(--spacing-xs);
   }
 
+  /* Match spacing under "+ Add Player" for consistency */
+  .add-character-btn {
+    margin-bottom: var(--spacing-xs);
+  }
+
   .player-add-label {
     font-size: var(--font-size-xs);
     color: var(--text-muted);

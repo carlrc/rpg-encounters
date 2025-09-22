@@ -299,14 +299,19 @@
 
   const addPlayerToEncounter = (encounterId, playerId) => {
     const player = players.value.find((p) => p.id === playerId)
-    const encounter = elements.value.find((el) => el.id === encounterId)
+    if (!player) return
 
-    encounter.data.players = encounter.data.players || []
+    // Rebuild elements: remove player from all encounters, add to target
+    elements.value = elements.value.map((el) => {
+      if (el.type !== 'encounter') return el
 
-    const isAlreadyAssigned = encounter.data.players.some((assigned) => assigned.id === playerId)
-    if (!isAlreadyAssigned) {
-      encounter.data.players.push(player)
-    }
+      const isTarget = String(el.id) === String(encounterId)
+      const current = el.data?.players ?? []
+      const filtered = current.filter((p) => p.id !== playerId)
+      const nextPlayers = isTarget ? [...filtered, player] : filtered
+
+      return { ...el, data: { ...el.data, players: nextPlayers } }
+    })
   }
 
   const removePlayerFromEncounter = (encounterId, playerId) => {
