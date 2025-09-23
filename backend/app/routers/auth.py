@@ -1,5 +1,4 @@
 import logging
-import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +34,6 @@ logger = logging.getLogger(__name__)
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
 LOG_MAGIC_LINK = get_or_throw("LOG_MAGIC_LINK").lower() == "true"
 SEND_EMAIL = get_or_throw("SEND_EMAIL").lower() == "true"
-EMAIL_SUBJECT = os.getenv("EMAIL_SUBJECT", "Login to RPG Encounters")
 BACKEND_REDIRECT_URL = f"{FRONTEND_URL}/players"
 
 
@@ -85,7 +83,7 @@ async def request_magic_link(
         if SEND_EMAIL:
             try:
                 await SimpleEmailService().send(
-                    subject=EMAIL_SUBJECT,
+                    subject="Login to RPG Encounters",
                     recipient_email=account.email,
                     body_html=render_email_template(
                         "login-email-template.jinja.html",
