@@ -11,7 +11,7 @@ from app.agents.personality_agent import PersonalityAgent
 from app.agents.prompts.import_prompts import render_prompt
 from app.data.character_store import CharacterStore
 from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.character import (
     Character,
@@ -98,7 +98,7 @@ async def _generate_communication_style_background(
 
 @router.get("", response_model=List[Character])
 async def get_characters(
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Get all characters"""
     user_id, world_id = user_world
@@ -116,7 +116,7 @@ async def get_characters(
 @router.get("/{character_id}", response_model=Character)
 async def get_character(
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Get a specific character by ID"""
     user_id, world_id = user_world
@@ -140,7 +140,7 @@ async def get_character(
 async def create_character(
     character_data: CharacterCreate,
     background_tasks: BackgroundTasks,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Create a new character and generate AI content in background"""
     user_id, world_id = user_world
@@ -193,7 +193,7 @@ async def update_character(
     character_id: int,
     character_update: CharacterUpdate,
     background_tasks: BackgroundTasks,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Update an existing character and regenerate AI content in background if needed"""
     user_id, world_id = user_world
@@ -263,7 +263,7 @@ async def update_character(
 @router.delete("/{character_id}", status_code=204)
 async def delete_character(
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Delete a character"""
     user_id, world_id = user_world

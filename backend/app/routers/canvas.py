@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.canvas import CanvasResponse, CanvasSaveRequest
 from app.models.encounter import EncounterCreate, EncounterUpdate
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @router.get("", response_model=CanvasResponse)
 async def get_canvas(
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get complete canvas state - all encounters with connections"""
@@ -45,7 +45,7 @@ async def get_canvas(
 @router.post("", response_model=CanvasResponse)
 async def save_canvas(
     request: CanvasSaveRequest,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Save entire canvas state - handles new, existing, and deleted items"""

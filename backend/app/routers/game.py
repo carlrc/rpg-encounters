@@ -14,7 +14,7 @@ from app.db.limits import (
     REVEAL_CONTENT_LIMIT,
     TITLE_LIMIT,
 )
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.models.alignment import VALID_ALIGNMENTS
 from app.models.character import CommunicationStyle
 from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
@@ -35,7 +35,7 @@ router = APIRouter(prefix="/api/game", tags=["games"])
 
 @router.get("/", response_model=GameDataResponse)
 def get_game_data(
-    _: tuple[int, int] = Depends(get_current_user_world),
+    _: tuple[int, int] = Depends(validate_current_user_world),
 ) -> GameDataResponse:
     """Get all game data constants for frontend caching"""
     try:

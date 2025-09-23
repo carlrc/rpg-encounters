@@ -3,7 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rate_limiter import check_email_rate_limit
+from app.auth.rate_limiter import check_rate_limit
 from app.auth.session import (
     SESSION_CONFIG,
     destroy_session,
@@ -18,7 +18,7 @@ from app.data.magic_link_store import (
     TokenNotFoundError,
 )
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import DEVICE_MISMATCH, DEVICE_NONCE_COOKIE
 from app.models.magic_link import (
     AuthCheckResponse,
@@ -50,7 +50,7 @@ async def request_magic_link(
     Returns empty 200 response to prevent user enumeration.
     """
 
-    if not await check_email_rate_limit(body.email):
+    if not await check_rate_limit(body.email, max_count=2, window_minutes=10):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     try:
@@ -73,12 +73,12 @@ async def request_magic_link(
         # Create magic link
         raw_token = MagicLinkStore.generate_token()
 
-        # Send magic link email to user
+        # Login link
+        magic_link = f"{FRONTEND_URL}/auth?token={raw_token}"
+
+        # So you can login manually locally
         if LOG_MAGIC_LINK:
-            # So you can login manually locally
-            logger.info(
-                f"{body.email} login link: {FRONTEND_URL}/auth?token={raw_token}"
-            )
+            logger.info(f"{body.email} login link: {magic_link}")
 
         if SEND_EMAIL:
             try:
@@ -88,7 +88,7 @@ async def request_magic_link(
                     body_html=render_email_template(
                         "login-email-template.jinja.html",
                         {
-                            "MAGIC_LINK": f"{FRONTEND_URL}/auth?token={raw_token}",
+                            "MAGIC_LINK": f"{magic_link}",
                             "LOGO_PATH": f"{FRONTEND_URL}/logo.png",
                         },
                     ),
@@ -180,7 +180,7 @@ async def check_auth(request: Request) -> AuthCheckResponse:
 
 @router.post("/logout")
 async def logout(
-    request: Request, _: tuple[int, int] = Depends(get_current_user_world)
+    request: Request, _: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Logout by destroying the session"""
     destroy_session(request)

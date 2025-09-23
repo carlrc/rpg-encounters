@@ -162,3 +162,53 @@ async def test_encounter_store():
             len(remaining_encounters) == 1
         )  # Only the one without characters should remain
         assert remaining_encounters[0].player_ids == []
+
+
+async def test_encounter_store_get_by_player():
+    """Test the get_by_player method"""
+    url = get_or_throw("TEST_DATABASE_URL")
+    async with get_async_db_session(url) as session:
+        encounter_store = EncounterStore(user_id=1, world_id=1, session=session)
+        character_store = CharacterStore(user_id=1, world_id=1, session=session)
+        player_store = PlayerStore(user_id=1, world_id=1, session=session)
+
+        # Create test character
+        character = default_character(character_id=1)
+        character_data = CharacterCreate(**character.model_dump(exclude={"id"}))
+        created_character = await character_store.create(character_data)
+
+        # Create test player
+        player = default_player(player_id=1)
+        player_data = PlayerCreate(**player.model_dump(exclude={"id"}))
+        created_player = await player_store.create(player_data)
+
+        # Create another player without an encounter
+        player2 = default_player(player_id=2)
+        player2_data = PlayerCreate(**player2.model_dump(exclude={"id"}))
+        created_player2 = await player_store.create(player2_data)
+
+        # Create encounter with player assigned
+        encounter_data = EncounterCreate(
+            name="Test Encounter",
+            description="A test encounter",
+            position_x=100.0,
+            position_y=200.0,
+            character_ids=[created_character.id],
+            player_ids=[created_player.id],
+        )
+        created_encounter = await encounter_store.create(encounter_data)
+
+        # Test get_by_player for player with encounter
+        player_encounter = await encounter_store.get_by_player(created_player.id)
+        assert player_encounter is not None
+        assert player_encounter.id == created_encounter.id
+        assert player_encounter.name == created_encounter.name
+        assert created_player.id in player_encounter.player_ids
+
+        # Test get_by_player for player without encounter
+        no_encounter = await encounter_store.get_by_player(created_player2.id)
+        assert no_encounter is None
+
+        # Test get_by_player for non-existent player
+        non_existent_player = await encounter_store.get_by_player(99999)
+        assert non_existent_player is None

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world, get_websocket_user_world
+from app.dependencies import get_websocket_user_world, validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.conversation import ConversationData
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 @router.get("/{encounter_id}", response_model=Encounter)
 async def get_encounter(
     encounter_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Get a specific encounter by ID"""
     user_id, world_id = user_world
@@ -54,7 +54,7 @@ async def get_encounter(
 @router.post("/", response_model=Encounter, status_code=201)
 async def create_encounter(
     encounter_data: EncounterCreate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Create a new encounter"""
     user_id, world_id = user_world
@@ -75,7 +75,7 @@ async def create_encounter(
 async def update_encounter(
     encounter_id: int,
     encounter_update: EncounterUpdate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Update an existing encounter"""
     user_id, world_id = user_world
@@ -100,7 +100,7 @@ async def update_encounter(
 @router.delete("/{encounter_id}", status_code=204)
 async def delete_encounter(
     encounter_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Delete an encounter"""
     user_id, world_id = user_world
@@ -123,7 +123,7 @@ async def delete_encounter(
 @router.post("/connections", response_model=Connection, status_code=201)
 async def create_connection(
     connection_data: ConnectionCreate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Create a new connection between encounters"""
@@ -156,7 +156,7 @@ async def create_connection(
 async def update_connection(
     connection_id: int,
     connection_update: ConnectionUpdate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update an existing connection"""
@@ -200,7 +200,7 @@ async def update_connection(
 @router.delete("/connections/{connection_id}", status_code=204)
 async def delete_connection(
     connection_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Delete a connection"""
     user_id, world_id = user_world
@@ -223,7 +223,7 @@ async def delete_connection(
 @router.get("/{encounter_id}/connections", response_model=List[Connection])
 async def get_encounter_connections(
     encounter_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get all connections for a specific encounter"""
@@ -258,7 +258,7 @@ async def get_conversation_data(
     encounter_id: int,
     player_id: int,
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ) -> Dict:
     """Get current influence and reveals data for a player/character combination"""
     user_id, world_id = user_world

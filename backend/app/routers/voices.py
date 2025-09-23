@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS, create_tts_provider
 from app.clients.tts_base import VoicesResponse
 from app.data.account_store import AccountStore
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import INTERNAL_SERVER_ERROR
 
 router = APIRouter(prefix="/api/voices", tags=["voices"])
@@ -29,7 +29,7 @@ async def get_user_elevenlabs_token(user_id: int) -> str | None:
 
 @router.get("/tts_providers", response_model=List[str])
 async def get_tts_providers(
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Get available TTS providers for the current user"""
     user_id, _ = user_world
@@ -53,7 +53,7 @@ async def search_voices(
         None, description="Pagination token for next page"
     ),
     tts_provider: str = Query(..., description="TTS provider"),
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Search for available voices"""
     user_id, _ = user_world
@@ -80,7 +80,7 @@ async def search_voices(
 async def get_voice_sample(
     voice_id: str,
     tts_provider: str = Query(..., description="TTS provider"),
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Generate and stream a voice sample using static text"""
     user_id, _ = user_world

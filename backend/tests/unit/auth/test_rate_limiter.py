@@ -1,4 +1,4 @@
-from app.auth.rate_limiter import check_email_rate_limit
+from app.auth.rate_limiter import check_rate_limit
 
 
 async def test_rate_limiter_happy_path():
@@ -6,6 +6,6 @@ async def test_rate_limiter_happy_path():
     test_email = "test@example.com"
 
     # First two attempts succeed
-    assert await check_email_rate_limit(test_email)
-    assert await check_email_rate_limit(test_email)
-    assert not await check_email_rate_limit(test_email)
+    assert await check_rate_limit(key=test_email, max_count=2, window_minutes=10)
+    assert await check_rate_limit(key=test_email, max_count=2, window_minutes=10)
+    assert not await check_rate_limit(key=test_email, max_count=2, window_minutes=10)

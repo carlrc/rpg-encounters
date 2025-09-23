@@ -1,7 +1,7 @@
 import logging
 
 from dotenv import load_dotenv
-from fastapi import HTTPException, Request, status
+from fastapi import Request
 from pydantic import BaseModel, Field
 
 from app.http import SESSION_COOKIE
@@ -37,12 +37,15 @@ def destroy_session(request: Request) -> None:
     request.session.clear()
 
 
-def get_session_user_id(request: Request) -> int:
+def get_session_user_id(request: Request) -> str | None:
     """
-    Get user_id from trusted session - no DB lookup needed.
-    The session is signed, so we trust its contents.
+    Get user_id from session if it exists.
     """
-    user_id = request.session.get("user_id")
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return user_id
+    return request.session.get("user_id")
+
+
+def get_session_player_id(request: Request) -> str | None:
+    """
+    Get player_id from session if it exists.
+    """
+    return request.session.get("player_id")

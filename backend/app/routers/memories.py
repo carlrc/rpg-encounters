@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.data.character_store import CharacterStore
 from app.data.memory_store import MemoryStore
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.memory import Memory, MemoryCreate, MemoryUpdate
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @router.get("", response_model=List[Memory])
 async def get_all_memories(
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Get all memories across all characters"""
     user_id, world_id = user_world
@@ -35,7 +35,7 @@ async def get_all_memories(
 
 @router.get("/{memory_id}", response_model=Memory)
 async def get_memory(
-    memory_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    memory_id: int, user_world: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Get a specific memory by ID"""
     user_id, world_id = user_world
@@ -58,7 +58,7 @@ async def get_memory(
 @router.post("", response_model=Memory)
 async def create_memory(
     memory_data: MemoryCreate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Create a memory for multiple characters"""
@@ -88,7 +88,7 @@ async def create_memory(
 async def update_memory(
     memory_id: int,
     memory_update: MemoryUpdate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update a memory"""
@@ -120,7 +120,7 @@ async def update_memory(
 
 @router.delete("/{memory_id}")
 async def delete_memory(
-    memory_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    memory_id: int, user_world: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Delete a memory"""
     user_id, world_id = user_world

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.data.base_store import BaseStore
+from app.db.models.associations import encounter_players
 from app.db.models.character import CharacterORM
 from app.db.models.encounter import EncounterORM
 from app.db.models.player import PlayerORM
@@ -248,6 +249,33 @@ class EncounterStore(BaseStore):
         except SQLAlchemyError as e:
             logger.error(
                 f"Error in add_character_to_encounter for user {self.user_id}, world {self.world_id}, encounter {encounter_id}, character {character_id}: {e}"
+            )
+            raise
+
+    async def get_by_player(self, player_id: int) -> Encounter | None:
+        """Get the encounter assigned to a specific player"""
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(EncounterORM)
+                    .options(
+                        selectinload(EncounterORM.characters),
+                        selectinload(EncounterORM.players),
+                    )
+                    .join(encounter_players)
+                    .where(
+                        encounter_players.c.player_id == player_id,
+                        EncounterORM.user_id == self.user_id,
+                        EncounterORM.world_id == self.world_id,
+                    )
+                )
+                encounter_orm = result.scalars().first()
+                if encounter_orm:
+                    return self._orm_to_encounter(encounter_orm)
+                return None
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error in get_by_player for user {self.user_id}, world {self.world_id}, player {player_id}: {e}"
             )
             raise
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.data.character_store import CharacterStore
 from app.data.reveal_store import RevealStore
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.reveal import Reveal, RevealCreate, RevealUpdate
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 @router.get("", response_model=List[Reveal])
 async def get_all_reveals(
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
 ):
     """Get all reveals across all characters"""
     user_id, world_id = user_world
@@ -34,7 +34,7 @@ async def get_all_reveals(
 @router.post("", response_model=Reveal)
 async def create_reveal(
     reveal_data: RevealCreate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Create a reveal for multiple characters"""
@@ -62,7 +62,7 @@ async def create_reveal(
 
 @router.get("/{reveal_id}", response_model=Reveal)
 async def get_reveal(
-    reveal_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    reveal_id: int, user_world: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Get a specific reveal by ID"""
     user_id, world_id = user_world
@@ -85,7 +85,7 @@ async def get_reveal(
 @router.get("/character/{character_id}", response_model=List[Reveal])
 async def get_character_reveals(
     character_id: int,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get all reveals for a character"""
@@ -114,7 +114,7 @@ async def get_character_reveals(
 async def update_reveal(
     reveal_id: int,
     reveal_update: RevealUpdate,
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update a reveal"""
@@ -146,7 +146,7 @@ async def update_reveal(
 
 @router.delete("/{reveal_id}")
 async def delete_reveal(
-    reveal_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    reveal_id: int, user_world: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Delete a reveal"""
     user_id, world_id = user_world

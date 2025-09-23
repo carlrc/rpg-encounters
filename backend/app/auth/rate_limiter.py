@@ -13,29 +13,28 @@ class RateLimitEntry(BaseModel):
     first_request_time: datetime
 
 
-_EMAIL_REQUESTS: Dict[str, RateLimitEntry] = {}
+_RATE_LIMIT_REQUESTS: Dict[str, RateLimitEntry] = {}
 _LOCK = asyncio.Lock()
 _CLEANUP_COUNTER = 0
 _CLEANUP_INTERVAL = 100
-_EMAIL_COUNT_MAX = 2
 
 
-def _cleanup_expired_entries() -> None:
+def _cleanup_expired_entries(window_minutes: int) -> None:
     """Remove expired entries from the rate limit dictionary."""
     current_time = datetime.now()
-    expired_emails = []
+    expired_keys = []
 
-    for email, entry in _EMAIL_REQUESTS.items():
+    for key, entry in _RATE_LIMIT_REQUESTS.items():
         time_since_first = current_time - entry.first_request_time
-        if time_since_first >= timedelta(minutes=10):
-            expired_emails.append(email)
+        if time_since_first >= timedelta(minutes=window_minutes):
+            expired_keys.append(key)
 
-    for email in expired_emails:
-        del _EMAIL_REQUESTS[email]
+    for key in expired_keys:
+        del _RATE_LIMIT_REQUESTS[key]
 
 
-async def check_email_rate_limit(email: str) -> bool:
-    """Check if email is rate limited. Raises HTTPException if rate limit exceeded."""
+async def check_rate_limit(key: str, max_count: int, window_minutes: int) -> bool:
+    """Check if key is rate limited. Returns False if rate limit exceeded."""
 
     async with _LOCK:
         global _CLEANUP_COUNTER
@@ -44,31 +43,31 @@ async def check_email_rate_limit(email: str) -> bool:
         # Periodic cleanup to prevent unbounded memory growth
         _CLEANUP_COUNTER += 1
         if _CLEANUP_COUNTER % _CLEANUP_INTERVAL == 0:
-            logger.info("Cleaning up email cache...")
-            _cleanup_expired_entries()
+            logger.info("Cleaning up rate limit cache...")
+            _cleanup_expired_entries(window_minutes)
 
-        email_limit = _EMAIL_REQUESTS.get(email)
+        key_limit = _RATE_LIMIT_REQUESTS.get(key)
 
         # Doesn't exist - create entry
-        if not email_limit:
-            _EMAIL_REQUESTS[email] = RateLimitEntry(
+        if not key_limit:
+            _RATE_LIMIT_REQUESTS[key] = RateLimitEntry(
                 count=1, first_request_time=current_time
             )
             return True
 
         # Calculate window
-        time_since_first = current_time - email_limit.first_request_time
+        time_since_first = current_time - key_limit.first_request_time
 
         # Window expired, reset counter
-        if time_since_first >= timedelta(minutes=10):
-            _EMAIL_REQUESTS[email] = RateLimitEntry(
+        if time_since_first >= timedelta(minutes=window_minutes):
+            _RATE_LIMIT_REQUESTS[key] = RateLimitEntry(
                 count=1, first_request_time=current_time
             )
             return True
 
         # Within window, check count
-        if email_limit.count >= _EMAIL_COUNT_MAX:
+        if key_limit.count >= max_count:
             return False
         else:
-            email_limit.count += 1
+            key_limit.count += 1
             return True

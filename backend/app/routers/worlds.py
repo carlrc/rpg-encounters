@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth.session import get_session_user_id
 from app.data.world_store import WorldStore
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.world import World
 
@@ -28,7 +28,7 @@ async def get_worlds(user_id: int = Depends(get_session_user_id)):
 
 @router.get("/{world_id}", response_model=World)
 async def get_world(
-    world_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    world_id: int, user_world: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Get a specific world by ID"""
     user_id, _ = user_world
@@ -45,7 +45,9 @@ async def get_world(
 
 
 @router.post("", response_model=World, status_code=201)
-async def create_world(user_world: tuple[int, int] = Depends(get_current_user_world)):
+async def create_world(
+    user_world: tuple[int, int] = Depends(validate_current_user_world),
+):
     """Create a new world for the current user"""
     user_id, _ = user_world
     try:
@@ -59,7 +61,7 @@ async def create_world(user_world: tuple[int, int] = Depends(get_current_user_wo
 
 @router.delete("/{world_id}", status_code=204)
 async def delete_world(
-    world_id: int, user_world: tuple[int, int] = Depends(get_current_user_world)
+    world_id: int, user_world: tuple[int, int] = Depends(validate_current_user_world)
 ):
     """Delete a world"""
     user_id, _ = user_world

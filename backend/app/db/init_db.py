@@ -26,6 +26,7 @@ from app.db.models.magic_link import MagicLinkORM  # noqa: F401
 from app.db.models.memory import MemoryORM  # noqa: F401
 from app.db.models.moderation import ModerationORM  # noqa: F401
 from app.db.models.player import PlayerORM  # noqa: F401
+from app.db.models.player_magic_link import PlayerMagicLinkORM  # noqa: F401
 from app.db.models.reveal import RevealORM  # noqa: F401
 from app.db.models.user import UserORM  # noqa: F401
 from app.db.models.world import WorldORM  # noqa: F401
