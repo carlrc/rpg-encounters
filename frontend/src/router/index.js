@@ -7,6 +7,8 @@ import CharactersPage from '../views/CharactersPage.vue'
 import MemoriesPage from '../views/MemoriesPage.vue'
 import RevealsPage from '../views/RevealsPage.vue'
 import EncountersPage from '../views/EncountersPage.vue'
+import PlayerAuthCallbackPage from '../views/PlayerAuthCallbackPage.vue'
+import PlayerEncounterView from '../views/PlayerEncounterView.vue'
 
 const routes = [
   {
@@ -49,6 +51,18 @@ const routes = [
     path: '/encounters',
     name: 'Encounters',
     component: EncountersPage,
+  },
+  {
+    path: '/players/:playerId/login',
+    name: 'PlayerAuthCallback',
+    component: PlayerAuthCallbackPage,
+    meta: { public: true },
+  },
+  {
+    path: '/players/:playerId/encounter',
+    name: 'PlayerEncounter',
+    component: PlayerEncounterView,
+    meta: { public: true },
   },
 ]
 

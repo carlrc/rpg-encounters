@@ -49,3 +49,10 @@ def get_session_player_id(request: Request) -> str | None:
     Get player_id from session if it exists.
     """
     return request.session.get("player_id")
+
+
+def get_session_world_id(request: Request) -> str | None:
+    """
+    Get world_id from session if it exists.
+    """
+    return request.session.get("world_id")

@@ -82,6 +82,42 @@
         </div>
       </div>
 
+      <!-- Player Login Link Section -->
+      <div class="player-login-section">
+        <div class="shared-field shared-field-full-width">
+          <div class="shared-field-label">Player Login Link</div>
+          <div class="login-link-controls">
+            <input
+              :value="loginLink"
+              readonly
+              placeholder="Click refresh to generate login link"
+              class="shared-input login-link-input"
+            />
+            <div class="login-link-buttons">
+              <button
+                @click="generateLoginLink"
+                :disabled="generatingLink"
+                class="shared-btn shared-btn-secondary login-btn"
+                title="Generate new login link"
+              >
+                {{ generatingLink ? '⏳' : '🔄' }}
+              </button>
+              <button
+                @click="copyLoginLink"
+                :disabled="!loginLink || copyingLink"
+                class="shared-btn shared-btn-secondary login-btn"
+                title="Copy login link"
+              >
+                {{ copyingLink ? '✓' : '📋' }}
+              </button>
+            </div>
+          </div>
+          <div v-if="loginLinkExpiry" class="login-link-expiry">
+            Expires: {{ formatExpiry(loginLinkExpiry) }}
+          </div>
+        </div>
+      </div>
+
       <div class="shared-actions">
         <button @click="startEdit" class="shared-btn shared-btn-primary">Edit</button>
         <button @click="deletePlayer" class="shared-btn shared-btn-danger">Delete</button>
@@ -250,7 +286,9 @@
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
+  import { useNotification } from '../composables/useNotification.js'
   import { getInitials } from '../utils/avatarUtils.js'
+  import { createPlayerLoginLink } from '../services/api.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
 
@@ -278,7 +316,14 @@
     setup(props, { emit }) {
       const gameDataStore = useGameDataStore()
       const { data: gameData } = storeToRefs(gameDataStore)
+      const { showSuccess, showError } = useNotification()
       const isEditing = ref(false)
+
+      // Player login link functionality
+      const loginLink = ref('')
+      const loginLinkExpiry = ref(null)
+      const generatingLink = ref(false)
+      const copyingLink = ref(false)
 
       // Abilities & Skills display functionality
       const displayAbilitiesSkills = ref({})
@@ -352,6 +397,44 @@
         if (confirm(`Are you sure you want to delete ${props.player.name}?`)) {
           emit('delete', props.player.id)
         }
+      }
+
+      const generateLoginLink = async () => {
+        generatingLink.value = true
+        try {
+          const response = await createPlayerLoginLink(props.player.id)
+          loginLink.value = response.login_url
+          loginLinkExpiry.value = response.expires_at
+          showSuccess('Login link generated successfully')
+        } catch (error) {
+          showError('Failed to generate login link')
+          console.error('Error generating login link:', error)
+        } finally {
+          generatingLink.value = false
+        }
+      }
+
+      const copyLoginLink = async () => {
+        if (!loginLink.value) return
+
+        copyingLink.value = true
+        try {
+          await navigator.clipboard.writeText(loginLink.value)
+          showSuccess('Login link copied to clipboard')
+        } catch (error) {
+          showError('Failed to copy login link')
+          console.error('Error copying login link:', error)
+        } finally {
+          setTimeout(() => {
+            copyingLink.value = false
+          }, 1500)
+        }
+      }
+
+      const formatExpiry = (expiryDate) => {
+        if (!expiryDate) return ''
+        const date = new Date(expiryDate)
+        return date.toLocaleString()
       }
 
       const loadDisplayAbilitiesSkills = () => {
@@ -429,6 +512,13 @@
         cancelEdit,
         saveEdit,
         deletePlayer,
+        loginLink,
+        loginLinkExpiry,
+        generatingLink,
+        copyingLink,
+        generateLoginLink,
+        copyLoginLink,
+        formatExpiry,
         displayAbilitiesSkills,
         abilitiesSkillsCategoryNames,
         getValueClass,
@@ -481,6 +571,44 @@
     color: var(--text-muted);
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-medium);
+    font-style: italic;
+  }
+
+  /* Player login section styles */
+  .player-login-section {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    border-top: 2px solid var(--border-default);
+  }
+
+  .login-link-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: stretch;
+  }
+
+  .login-link-input {
+    flex: 1;
+    min-width: 0;
+    font-family: monospace;
+    font-size: var(--font-size-sm);
+  }
+
+  .login-link-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
+
+  .login-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    min-width: 44px;
+    height: auto;
+  }
+
+  .login-link-expiry {
+    margin-top: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    color: var(--text-muted);
     font-style: italic;
   }
 </style>

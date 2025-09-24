@@ -3,6 +3,7 @@ from typing import List
 from pydantic import BaseModel, Field, field_validator
 
 from app.db.limits import ENCOUNTER_DESCRIPTION_LIMIT, TITLE_LIMIT
+from app.models.character import Character
 
 
 class EncounterBase(BaseModel):
@@ -52,5 +53,15 @@ class EncounterUpdate(EncounterBase):
 
 class Encounter(EncounterBase):
     id: int
+
+    model_config = {"from_attributes": True}
+
+
+class EncounterWithCharacters(BaseModel):
+    """Encounter model with full character details for player view"""
+
+    characters: List[Character] = Field(
+        default_factory=list, description="Characters in this encounter"
+    )
 
     model_config = {"from_attributes": True}

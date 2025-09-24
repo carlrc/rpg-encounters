@@ -1,10 +1,11 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.rate_limiter import check_rate_limit
+from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
 from app.data.player_magic_link_store import (
     PlayerMagicLinkStore,
@@ -16,7 +17,7 @@ from app.data.player_store import PlayerStore
 from app.db.connection import get_async_db_routes_session
 from app.dependencies import validate_current_player, validate_current_user_world
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
-from app.models.encounter import Encounter
+from app.models.encounter import EncounterWithCharacters
 from app.models.player import Player, PlayerCreate, PlayerUpdate
 from app.models.player_magic_link import PlayerLoginResponse
 from app.utils import get_or_throw
@@ -199,7 +200,7 @@ async def consume_player_login(
     """Consume a player magic link token to create a player session"""
     # Rate limit by IP address to prevent spamming
     client_ip = request.client.host if request.client else "unknown"
-    if not await check_rate_limit(client_ip, max_count=2, window_minutes=10):
+    if not await check_rate_limit(client_ip, max_count=50, window_minutes=10):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     try:
@@ -218,11 +219,9 @@ async def consume_player_login(
         request.session["player_id"] = player_magic_link.player_id
         request.session["world_id"] = player_magic_link.world_id
 
-        # Redirect player to encounter screen
-        return Response(
-            status_code=status.HTTP_301_MOVED_PERMANENTLY,
-            headers={"Location": f"/players/{player_id}/encounter"},
-        )
+        # TODO: Should be pydantic model
+        # Return world_id so frontend can set world store immediately
+        return {"world_id": player_magic_link.world_id}
 
     except (
         PlayerTokenNotFoundError,
@@ -238,13 +237,13 @@ async def consume_player_login(
         raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
 
 
-@router.get("/{player_id}/encounter", response_model=Encounter)
+@router.get("/{player_id}/encounter", response_model=EncounterWithCharacters)
 async def get_player_encounter(
     player_id: int,
     player_info: tuple[int, int, int] = Depends(validate_current_player),
     session: AsyncSession = Depends(get_async_db_routes_session),
 ):
-    """Get the encounter assigned to the current player"""
+    """Get the encounter assigned to the current player with character details"""
     session_player_id, user_id, world_id = player_info
 
     # Verify the requested player_id matches the session player_id
@@ -263,7 +262,25 @@ async def get_player_encounter(
                 detail="Player is not assigned to any encounter",
             )
 
-        return player_encounter
+        # Fetch character details for all characters in the encounter
+        characters = []
+        character_store = CharacterStore(
+            user_id=user_id, world_id=world_id, session=session
+        )
+        if player_encounter.character_ids:
+            for character_id in player_encounter.character_ids:
+                character = await character_store.get_by_id(character_id)
+                if character:
+                    characters.append(character)
+
+        # Build the response with character details
+        return EncounterWithCharacters(
+            name=player_encounter.name,
+            description=player_encounter.description,
+            position_x=player_encounter.position_x,
+            position_y=player_encounter.position_y,
+            characters=characters,
+        )
 
     except HTTPException:
         raise

@@ -7,6 +7,10 @@ export const createPlayer = (playerData) => http.post('/players', playerData)
 export const updatePlayer = (id, playerData) => http.put(`/players/${id}`, playerData)
 export const deletePlayer = (id) => http.delete(`/players/${id}`)
 
+// Player login operations
+export const createPlayerLoginLink = (playerId) => http.post(`/players/${playerId}/login`)
+export const getPlayerEncounter = (playerId) => http.get(`/players/${playerId}/encounter`)
+
 // Character CRUD operations
 export const getCharacters = () => http.get('/characters')
 export const getCharacter = (id) => http.get(`/characters/${id}`)
@@ -129,3 +133,15 @@ export const consumeMagicLink = async (token) => {
   )
 }
 export const logout = () => http.post('/auth/logout')
+
+// Player auth operations - separate from DM auth to avoid breaking existing flows
+export const consumePlayerLogin = async (playerId, token) => {
+  // Use direct fetch for player login consumption
+  return await fetch(
+    `${import.meta.env.VITE_BACKEND_URL}/players/${playerId}/login?token=${encodeURIComponent(token)}`,
+    {
+      method: 'GET',
+      credentials: 'include',
+    }
+  )
+}
