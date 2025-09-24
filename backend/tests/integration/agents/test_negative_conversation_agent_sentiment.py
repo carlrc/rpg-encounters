@@ -6,7 +6,7 @@ from app.agents.conversations.negative_conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt
-from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
+from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
 from app.models.influence import BASE_INFLUENCE_MIN
 from app.services.context import ConvoContext
 from app.utils import get_or_throw
@@ -42,7 +42,7 @@ DEPENDENCIES = NegativeConvoAgentDeps(
 )
 
 BASE_TEMPLATE_CONTEXT = {
-    "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+    "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
     "character": CHARACTER,
     "memories": ALL_MEMORIES,
     "player": PLAYER,

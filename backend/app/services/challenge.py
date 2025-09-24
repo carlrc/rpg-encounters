@@ -7,8 +7,8 @@ from langfuse import get_client, observe
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.agents.prompts.limits import (
-    MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
     MAX_RESPONSE_WORD_LENGTH,
+    STANDARD_RESPONSE_WORD_LENGTH,
 )
 from app.clients.tts import create_tts_provider
 from app.db.connection import get_async_db_session
@@ -33,13 +33,14 @@ def render_challenge_prompts(
 ) -> tuple[str, str | None]:
     """Render challenge prompts based on D20 roll outcome."""
 
+    # Construct context for all prompts
     base_template_ctx = {
         "character": ctx.character,
         "player": ctx.player,
         "memories": ctx.memories,
         "encounter": ctx.encounter,
         "filtered_reveals": filtered_reveals,
-        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+        "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
     }
 
     # Render standard prompts
@@ -49,16 +50,16 @@ def render_challenge_prompts(
     )
 
     if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
-        # Set 70 word limit for critical success for longer answers
+        # Allow critical success to have longer and more interesting answers
         template_ctx = {
             **base_template_ctx,
-            "max_response_length": MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
+            "max_response_length": MAX_RESPONSE_WORD_LENGTH,
         }
         rendered_prompt = render_prompt(
             "challenge_agent_critical_success", template_ctx
         )
     elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
-        # Set reveals and memories to None such that LLM can't share anything
+        # Critical failures should not share any information so set reveals and memories to None
         rendered_prompt = render_prompt(
             "challenge_agent_critical_failure",
             {**base_template_ctx, "filtered_reveals": None, "memories": None},
@@ -114,7 +115,10 @@ async def challenge_character(
 
             # Calculate skill check using d20 roll, ability (charisma) and skill
             total_roll = calculate_skill_check(
-                skill=skill, player=ctx.player, d20_roll=d20_roll
+                skill=skill,
+                player=ctx.player,
+                d20_roll=d20_roll,
+                influence=ctx.influence,
             )
 
             # Conditionally calculate what reveals are available if not player initiated (e.g., for detailed view or not)

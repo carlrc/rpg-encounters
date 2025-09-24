@@ -1,7 +1,7 @@
 import pytest
 
 from app.agents.prompts.import_prompts import render_prompt
-from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
+from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
 from tests.fixtures.generate import (
     default_character,
     default_encounter,
@@ -14,7 +14,7 @@ from tests.unit.prompts.utils import assert_template_rendered_completely
 def get_base_template_context():
     """Get the base context that most templates need."""
     return {
-        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+        "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
         "character": default_character(),
         "player": default_player(),
         "encounter": default_encounter(),
@@ -84,7 +84,7 @@ def test_personality_agent_template_renders():
 def test_communication_style_agent_template_renders():
     template_context = {
         "character": default_character(),
-        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+        "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
         "style_profile": {
             "style": "Friendly",
             "style_summary": "Warm and welcoming conversationalist",
@@ -100,7 +100,7 @@ def test_template_raises_exception_for_missing_required_field():
     """Test that templates raise exceptions when required fields are missing."""
     # Missing 'character' field which is required by most templates
     incomplete_context = {
-        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+        "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
         "player": default_player(),
         "encounter": default_encounter(),
     }

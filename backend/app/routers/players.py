@@ -275,10 +275,14 @@ async def get_player_encounter(
 
         # Build the response with character details
         return EncounterWithCharacters(
+            id=player_encounter.id,
             name=player_encounter.name,
             description=player_encounter.description,
             position_x=player_encounter.position_x,
             position_y=player_encounter.position_y,
+            character_ids=player_encounter.character_ids,
+            player_ids=player_encounter.player_ids,
+            world_id=world_id,
             characters=characters,
         )
 

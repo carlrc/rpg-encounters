@@ -103,7 +103,7 @@
           <div class="main-controls">
             <button
               @click="toggleRecording"
-              :class="['speak-button', { recording: isRecording, processing: isProcessing }]"
+              :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
               :disabled="isProcessing || (isChallengeMode && !selectedSkill)"
             >
               {{ buttonText }}
@@ -111,7 +111,9 @@
           </div>
 
           <!-- Status Text -->
-          <div :class="['status-text', { recording: isRecording, processing: isProcessing }]">
+          <div
+            :class="['shared-status-text', { recording: isRecording, processing: isProcessing }]"
+          >
             {{ statusText }}
           </div>
         </div>
@@ -130,12 +132,7 @@
   import { useWorldStore } from '../stores/world.js'
   import { useNotification } from '../composables/useNotification.js'
   import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
-
-  // Constants
-  const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL
-  const AUDIO_SAMPLE_RATE = 16000
-  const AUDIO_CHANNEL_COUNT = 1
-  const MEDIA_RECORDER_TIMESLICE = 250
+  import { useWebSocketAudioHandler } from '../composables/audio/useWebSocketAudioHandler.js'
 
   export default {
     name: 'PlayerEncounterView',
@@ -154,10 +151,6 @@
       const streamAudio = ref(null)
 
       // Interaction state
-      const isRecording = ref(false)
-      const isProcessing = ref(false)
-      const websocket = ref(null)
-      const mediaRecorder = ref(null)
       const isChallengeMode = ref(false)
       const selectedSkill = ref('')
       const diceRoll = ref(null)
@@ -165,6 +158,29 @@
 
       // Local WebSocket progressive audio player
       let streamPlayer = null
+
+      // WebSocket Audio Handler
+      const {
+        isRecording,
+        isProcessing,
+        checkMicrophoneAccess,
+        startRecording,
+        stopRecording,
+        connectWebSocket,
+        closeWebSocket,
+        cleanup: cleanupAudioHandler,
+      } = useWebSocketAudioHandler({
+        audioElementRef: streamAudio,
+        worldId: worldStore.currentWorldId,
+        onConversationData: (json) => {
+          // Handle conversation data for players
+          if (isChallengeMode.value && json.influence !== undefined) {
+            // For challenge mode, show the total roll (d20 + modifiers)
+            influenceScore.value = json.influence
+          }
+          // For conversation mode, players don't see influence scores
+        },
+      })
 
       // Computed properties
       const playerId = computed(() => route.params.playerId)
@@ -233,12 +249,12 @@
         diceRoll.value = null
       }
 
-      const closeCharacterInteraction = () => {
+      const closeCharacterInteraction = async () => {
         // Clean up any active recording/websocket
         if (isRecording.value) {
           stopRecording()
         }
-        closeWebSocket()
+        await cleanupAudioHandler(streamPlayer)
         selectedCharacter.value = null
       }
 
@@ -249,131 +265,45 @@
         diceRoll.value = null
       }
 
-      const toggleRecording = () => {
+      const processAudioChunk = async (audioBlob) => {
+        await streamPlayer.append(audioBlob)
+      }
+
+      const toggleRecording = async () => {
         if (isRecording.value) {
           stopRecording()
         } else {
-          startRecording()
-        }
-      }
+          if (!selectedCharacter.value) return
 
-      const startRecording = async () => {
-        if (!selectedCharacter.value) return
+          if (isChallengeMode.value) {
+            // Generate random D20 roll for challenge
+            diceRoll.value = Math.floor(Math.random() * 20) + 1
+          }
 
-        try {
-          // TODO: Is this exactly what is on the other encounter page? Dont introduce new features
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              sampleRate: AUDIO_SAMPLE_RATE,
-              channelCount: AUDIO_CHANNEL_COUNT,
-              echoCancellation: true,
-              noiseSuppression: true,
-            },
+          streamPlayer = new WebSocketStreamPlayer({
+            audioEl: streamAudio.value || undefined,
+          })
+          void streamPlayer.prepare({ fromUserGesture: true })
+
+          // Check microphone access before opening WebSocket
+          const microphoneAvailable = await checkMicrophoneAccess()
+          if (!microphoneAvailable) {
+            return
+          }
+
+          connectWebSocket({
+            encounterId: encounter.value.id,
+            selectedPlayerId: playerId.value,
+            characterId: selectedCharacter.value.id,
+            isChallengeMode: isChallengeMode.value,
+            selectedSkill: selectedSkill.value,
+            diceRoll: diceRoll.value,
+            streamPlayer,
+            processAudioChunk,
+            playerInitiated: true,
           })
 
-          const options = { mimeType: 'audio/webm;codecs=opus' }
-          mediaRecorder.value = new MediaRecorder(stream, options)
-
-          // Start WebSocket connection before recording
-          await startWebSocketConnection()
-
-          // TODO: Is this the same as the encounter page? I dont' think so
-          mediaRecorder.value.ondataavailable = (event) => {
-            if (event.data.size > 0 && websocket.value?.readyState === WebSocket.OPEN) {
-              websocket.value.send(event.data)
-            }
-          }
-
-          mediaRecorder.value.start(MEDIA_RECORDER_TIMESLICE)
-          isRecording.value = true
-        } catch (error) {
-          console.error('Error starting recording:', error)
-          showError('Failed to access microphone. Please check permissions.')
-        }
-      }
-
-      const stopRecording = () => {
-        if (mediaRecorder.value && isRecording.value) {
-          mediaRecorder.value.stop()
-          mediaRecorder.value.stream.getTracks().forEach((track) => track.stop())
-          isRecording.value = false
-          isProcessing.value = true
-        }
-      }
-
-      const startWebSocketConnection = async () => {
-        if (!selectedCharacter.value || !encounter.value) return
-
-        // Initialize stream player
-        if (!streamPlayer) {
-          streamPlayer = new WebSocketStreamPlayer({ audioEl: streamAudio.value })
-        }
-
-        const worldId = encounter.value.world_id
-        let wsUrl
-
-        if (isChallengeMode.value) {
-          if (!selectedSkill.value) return
-          // Generate random D20 roll for challenge
-          diceRoll.value = Math.floor(Math.random() * 20) + 1
-          wsUrl = `${WEBSOCKET_BASE_URL}/api/encounters/${encounter.value.id}/challenge/${playerId.value}/${selectedCharacter.value.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}&world_id=${worldId}&player_init=true`
-        } else {
-          wsUrl = `${WEBSOCKET_BASE_URL}/api/encounters/${encounter.value.id}/conversation/${playerId.value}/${selectedCharacter.value.id}?world_id=${worldId}&player_init=true`
-        }
-
-        websocket.value = new WebSocket(wsUrl)
-
-        websocket.value.onopen = () => {
-          console.log('WebSocket connection opened')
-        }
-
-        websocket.value.onmessage = async (event) => {
-          try {
-            if (typeof event.data === 'string') {
-              const message = JSON.parse(event.data)
-
-              if (message.type === 'conversation_data' && !isChallengeMode.value) {
-                // For conversation mode, we don't show influence to players
-                // but we might receive it - just ignore it
-              } else if (message.type === 'challenge_data' && isChallengeMode.value) {
-                // For challenge mode, show only the D20 roll result
-                if (message.d20_roll !== undefined) {
-                  influenceScore.value = message.d20_roll
-                }
-              } else if (message.type === 'end') {
-                // End of stream
-                await streamPlayer.end()
-                isProcessing.value = false
-              }
-            } else {
-              // Audio chunk
-              await streamPlayer.append(event.data)
-            }
-          } catch (error) {
-            console.error('Error processing WebSocket message:', error)
-          }
-        }
-
-        websocket.value.onerror = (error) => {
-          console.error('WebSocket error:', error)
-          showError('Connection error occurred')
-          isProcessing.value = false
-        }
-
-        websocket.value.onclose = () => {
-          console.log('WebSocket connection closed')
-          isProcessing.value = false
-        }
-      }
-
-      const closeWebSocket = () => {
-        if (websocket.value) {
-          websocket.value.close()
-          websocket.value = null
-        }
-        if (streamPlayer) {
-          streamPlayer.stop()
-          streamPlayer = null
+          startRecording()
         }
       }
 
@@ -386,15 +316,15 @@
         await loadEncounter()
       })
 
-      onUnmounted(() => {
-        closeCharacterInteraction()
+      onUnmounted(async () => {
+        await closeCharacterInteraction()
       })
 
       // Watch for route changes
       watch(
         () => route.params.playerId,
-        () => {
-          closeCharacterInteraction()
+        async () => {
+          await closeCharacterInteraction()
           loadEncounter()
         }
       )
@@ -704,71 +634,6 @@
     justify-content: center;
   }
 
-  .speak-button {
-    padding: var(--spacing-lg) var(--spacing-xxl);
-    border: 3px solid var(--primary-color);
-    background: var(--primary-color);
-    color: white;
-    border-radius: 50px;
-    font-size: var(--font-size-lg);
-    font-weight: var(--font-weight-bold);
-    cursor: pointer;
-    min-width: 120px;
-    min-height: 64px;
-    transition: all 0.2s ease;
-  }
-
-  .speak-button:hover {
-    background: var(--primary-dark);
-    border-color: var(--primary-dark);
-  }
-
-  .speak-button.recording {
-    background: var(--danger-color);
-    border-color: var(--danger-color);
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  .speak-button.processing {
-    background: var(--warning-color);
-    border-color: var(--warning-color);
-    cursor: not-allowed;
-  }
-
-  .speak-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 var(--danger-color);
-    }
-    70% {
-      box-shadow: 0 0 0 10px rgba(220, 20, 60, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(220, 20, 60, 0);
-    }
-  }
-
-  .status-text {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: var(--font-size-sm);
-    font-style: italic;
-  }
-
-  .status-text.recording {
-    color: var(--danger-color);
-    font-weight: var(--font-weight-medium);
-  }
-
-  .status-text.processing {
-    color: var(--warning-color);
-    font-weight: var(--font-weight-medium);
-  }
-
   /* Mobile Responsiveness */
   @media (max-width: 480px) {
     .player-encounter-page {
@@ -787,7 +652,7 @@
       padding: var(--spacing-md);
     }
 
-    .speak-button {
+    .shared-speak-button {
       padding: var(--spacing-md) var(--spacing-lg);
       min-width: 100px;
       min-height: 56px;

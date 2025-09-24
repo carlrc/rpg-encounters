@@ -57,9 +57,11 @@ class Encounter(EncounterBase):
     model_config = {"from_attributes": True}
 
 
-class EncounterWithCharacters(BaseModel):
+class EncounterWithCharacters(EncounterBase):
     """Encounter model with full character details for player view"""
 
+    id: int
+    world_id: int = Field(..., description="World ID this encounter belongs to")
     characters: List[Character] = Field(
         default_factory=list, description="Characters in this encounter"
     )

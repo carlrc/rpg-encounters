@@ -90,7 +90,7 @@
           <div class="control-buttons">
             <button
               @click="toggleRecording"
-              :class="['speak-button', { recording: isRecording, processing: isProcessing }]"
+              :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
               :disabled="!selectedPlayerId || isProcessing || (isChallengeMode && !selectedSkill)"
             >
               {{ buttonText }}
@@ -105,7 +105,9 @@
             </button>
           </div>
 
-          <div :class="['status', { recording: isRecording, processing: isProcessing }]">
+          <div
+            :class="['shared-status-text', { recording: isRecording, processing: isProcessing }]"
+          >
             {{ statusText }}
           </div>
         </div>
@@ -377,6 +379,7 @@
             diceRoll: diceRoll.value,
             streamPlayer,
             processAudioChunk,
+            playerInitiated: false,
           })
 
           startRecording()
@@ -795,19 +798,6 @@
     margin-bottom: 20px;
   }
 
-  .speak-button {
-    padding: 16px 32px;
-    font-size: 1.2em;
-    font-weight: 600;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    min-width: 140px;
-    text-align: center;
-    box-shadow: var(--shadow-voice-hover);
-  }
-
   .challenge-button {
     padding: 12px 24px;
     font-size: 1em;
@@ -845,57 +835,6 @@
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
-  }
-
-  .speak-button:not(:disabled) {
-    background: linear-gradient(135deg, var(--success-color), var(--success-dark));
-    color: white;
-  }
-
-  .speak-button:not(:disabled):hover {
-    background: linear-gradient(135deg, var(--success-dark), var(--success-darker));
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-success-hover);
-  }
-
-  .speak-button.recording {
-    background: linear-gradient(135deg, var(--danger-color), var(--danger-dark)) !important;
-  }
-
-  .speak-button.recording:hover {
-    background: linear-gradient(135deg, var(--danger-dark), var(--danger-darker)) !important;
-  }
-
-  .speak-button.processing {
-    background: linear-gradient(135deg, var(--warning-color), var(--warning-dark)) !important;
-    cursor: not-allowed;
-  }
-
-  .speak-button:disabled {
-    background: var(--gray-500);
-    color: #fff;
-    cursor: not-allowed;
-    opacity: 0.6;
-    transform: none;
-    box-shadow: none;
-  }
-
-  .status {
-    font-size: 1.1em;
-    font-weight: 500;
-    color: var(--gray-500);
-    min-height: 24px;
-    transition: color 0.3s ease;
-  }
-
-  .status.recording {
-    color: var(--danger-color);
-    font-weight: 600;
-  }
-
-  .status.processing {
-    color: var(--warning-color);
-    font-weight: 600;
   }
 
   /* Conversation stats container */

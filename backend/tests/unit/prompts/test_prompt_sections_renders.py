@@ -1,5 +1,5 @@
 from app.agents.prompts.import_prompts import render_prompt_section
-from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
+from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
 from tests.fixtures.generate import (
     default_character,
     default_encounter,
@@ -35,7 +35,7 @@ def test_current_task_section_renders():
 
 def test_absolute_rules_section_renders():
     context = {
-        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+        "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
     }
 
     rendered_section = render_prompt_section("absolute_rules", context)

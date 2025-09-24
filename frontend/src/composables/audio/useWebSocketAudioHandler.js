@@ -1,5 +1,7 @@
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { serializeError } from 'serialize-error'
+import { checkAuth } from '../../services/api.js'
 
 // Constants
 const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL
@@ -13,11 +15,23 @@ const MEDIA_RECORDER_TIMESLICE = 250
  * while maintaining mobile compatibility. Pure audio/websocket handling only.
  */
 export function useWebSocketAudioHandler({ audioElementRef, onConversationData, worldId }) {
+  const router = useRouter()
+
   // Internal state
   const isRecording = ref(false)
   const isProcessing = ref(false)
   const websocket = ref(null)
   const mediaRecorder = ref(null)
+
+  /**
+   * Check authentication status and redirect to login if expired
+   */
+  const checkAuthAndRedirect = async () => {
+    const isAuthenticated = await checkAuth()
+    if (!isAuthenticated) {
+      router.push('/login')
+    }
+  }
 
   /**
    * Check microphone access permissions
@@ -164,6 +178,7 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
     diceRoll = null,
     streamPlayer,
     processAudioChunk,
+    playerInitiated = false,
   }) => {
     if (!selectedPlayerId || !characterId) return
 
@@ -172,8 +187,8 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
     }
 
     const wsUrl = isChallengeMode
-      ? `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/challenge/${selectedPlayerId}/${characterId}?skill=${selectedSkill}&d20_roll=${diceRoll}&world_id=${worldId}`
-      : `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/conversation/${selectedPlayerId}/${characterId}?world_id=${worldId}`
+      ? `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/challenge/${selectedPlayerId}/${characterId}?skill=${selectedSkill}&d20_roll=${diceRoll}&world_id=${worldId}&player_init=${playerInitiated}`
+      : `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/conversation/${selectedPlayerId}/${characterId}?world_id=${worldId}&player_init=${playerInitiated}`
 
     try {
       websocket.value = new WebSocket(wsUrl)
@@ -194,7 +209,12 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
         closeWebSocket()
       }
 
-      websocket.value.onclose = () => {
+      websocket.value.onclose = async (event) => {
+        // Code 1008 policy violation
+        if (event.code === 1008) {
+          // Check inf session is still valid and redirect if not
+          await checkAuthAndRedirect()
+        }
         websocket.value = null
       }
     } catch (error) {
