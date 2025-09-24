@@ -123,13 +123,8 @@
   import { useConversationDataStore } from '../stores/conversationData.js'
   import { useWorldStore } from '../stores/world.js'
   import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
+  import { useWebSocketAudioHandler } from '../composables/audio/useWebSocketAudioHandler.js'
   import { serializeError } from 'serialize-error'
-
-  // Constants to replace magic numbers
-  const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL
-  const AUDIO_SAMPLE_RATE = 16000
-  const AUDIO_CHANNEL_COUNT = 1
-  const MEDIA_RECORDER_TIMESLICE = 250
 
   export default {
     name: 'CharacterEncounterPopup',
@@ -170,14 +165,40 @@
       const players = computed(() => props.assignedPlayers || [])
       const streamAudio = ref(null)
 
-      // Encounter state (copied from EncountersPage.vue)
+      // Encounter state
       const selectedPlayerId = ref('')
-      const isRecording = ref(false)
-      const isProcessing = ref(false)
-      const websocket = ref(null)
-      const mediaRecorder = ref(null)
 
-      // NEW: Conversation data state
+      // WebSocket Audio Handler
+      const {
+        isRecording,
+        isProcessing,
+        checkMicrophoneAccess,
+        startRecording,
+        stopRecording,
+        connectWebSocket,
+        closeWebSocket,
+        cleanup: cleanupAudioHandler,
+      } = useWebSocketAudioHandler({
+        audioElementRef: streamAudio,
+        worldId: worldStore.currentWorldId,
+        onConversationData: (json) => {
+          // Update local state from websocket data
+          influenceScore.value = json.influence ?? null
+          revealsData.value = Array.isArray(json.reveals) ? json.reveals : []
+
+          // Handle caching in component - only cache conversation data, not challenge data
+          if (selectedPlayerId.value && props.character?.id && !isChallengeMode.value) {
+            const cacheKey = `${props.encounterId}-${selectedPlayerId.value}-${props.character.id}`
+            conversationDataStore.cache[cacheKey] = {
+              influence: json.influence ?? null,
+              reveals: json.reveals || [],
+              rawReveals: json.raw_reveals || json.reveals || [],
+            }
+          }
+        },
+      })
+
+      // Conversation data state
       const influenceScore = ref(null)
       const revealsData = ref([])
 
@@ -319,171 +340,8 @@
         resetChallengeState()
       }
 
-      const closeWebSocket = () => {
-        if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
-          websocket.value.close()
-        }
-        websocket.value = null
-      }
-
-      const isConversationData = (v) =>
-        v && v.type === 'conversation_data' && 'influence' in v && 'reveals' in v
-
-      const CONTROL = {
-        AUDIO_COMPLETE: async () => {
-          // Signal end of stream for progressive playback
-          if (streamPlayer) {
-            try {
-              await streamPlayer.end()
-            } catch (e) {
-              console.error('Failed to close audio stream', JSON.stringify(serializeError(e)))
-            } finally {
-              streamPlayer = null
-            }
-          }
-          isProcessing.value = false
-          closeWebSocket()
-        },
-      }
-
-      const handleWSMessage = (data) => {
-        // Binary audio chunks
-        if (data instanceof Blob) {
-          processAudioChunk(data)
-          return
-        }
-
-        // Text frames: fast path for control tokens
-        if (typeof data === 'string') {
-          const control = CONTROL[data]
-          if (control) {
-            control()
-            return
-          }
-
-          // Assume its JSON
-          const json = JSON.parse(data)
-          if (isConversationData(json)) {
-            influenceScore.value = json.influence ?? null
-            revealsData.value = Array.isArray(json.reveals) ? json.reveals : []
-
-            // Only update cache with conversation data when NOT in challenge mode
-            // Challenge results should not overwrite conversation influence data
-            if (selectedPlayerId.value && props.character?.id && !isChallengeMode.value) {
-              const cacheKey = `${props.encounterId}-${selectedPlayerId.value}-${props.character.id}`
-              conversationDataStore.cache[cacheKey] = {
-                influence: json.influence ?? null,
-                reveals: json.reveals || [],
-                rawReveals: json.raw_reveals || json.reveals || [],
-              }
-            }
-            return
-          }
-        }
-      }
-
-      const connectWebSocket = () => {
-        if (!selectedPlayerId.value || !props.character?.id) return
-
-        if (isChallengeMode.value && (!selectedSkill.value || diceRoll.value === null)) {
-          return
-        }
-
-        const wsUrl = isChallengeMode.value
-          ? `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/challenge/${selectedPlayerId.value}/${props.character.id}?skill=${selectedSkill.value}&d20_roll=${diceRoll.value}&world_id=${worldStore.currentWorldId}`
-          : `${WEBSOCKET_BASE_URL}/api/encounters/${props.encounterId}/conversation/${selectedPlayerId.value}/${props.character.id}?world_id=${worldStore.currentWorldId}`
-
-        try {
-          websocket.value = new WebSocket(wsUrl)
-
-          // Set binary type explicitly for better performance
-          websocket.value.binaryType = 'blob'
-
-          websocket.value.onopen = () => {
-            // WebSocket connected
-          }
-
-          websocket.value.onmessage = (event) => handleWSMessage(event.data)
-
-          websocket.value.onerror = (error) => {
-            console.error('WebSocket connection error', JSON.stringify(serializeError(error)))
-            isProcessing.value = false
-            closeWebSocket()
-          }
-
-          websocket.value.onclose = () => {
-            websocket.value = null
-          }
-        } catch (error) {
-          console.error('WebSocket creation failed', JSON.stringify(serializeError(error)))
-          isProcessing.value = false
-        }
-      }
-
       const processAudioChunk = async (audioBlob) => {
         await streamPlayer.append(audioBlob)
-      }
-
-      const checkMicrophoneAccess = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              sampleRate: AUDIO_SAMPLE_RATE,
-              channelCount: AUDIO_CHANNEL_COUNT,
-              echoCancellation: true,
-              noiseSuppression: true,
-            },
-          })
-          // Stop the test stream immediately
-          stream.getTracks().forEach((track) => track.stop())
-          return true
-        } catch (error) {
-          alert('Could not access microphone. Please check permissions.')
-          return false
-        }
-      }
-
-      const startRecording = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-              sampleRate: AUDIO_SAMPLE_RATE,
-              channelCount: AUDIO_CHANNEL_COUNT,
-              echoCancellation: true,
-              noiseSuppression: true,
-            },
-          })
-
-          mediaRecorder.value = new MediaRecorder(stream, {
-            mimeType: 'audio/webm;codecs=opus',
-          })
-
-          mediaRecorder.value.ondataavailable = (event) => {
-            if (event.data.size > 0 && websocket.value?.readyState === WebSocket.OPEN) {
-              websocket.value.send(event.data)
-            }
-          }
-
-          mediaRecorder.value.start(MEDIA_RECORDER_TIMESLICE)
-          isRecording.value = true
-        } catch (error) {
-          console.error('Audio recording failed', JSON.stringify(serializeError(error)))
-          alert('Could not record audio. Refresh the page and try again.')
-        }
-      }
-
-      const stopRecording = () => {
-        if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
-          mediaRecorder.value.stop()
-          mediaRecorder.value.stream.getTracks().forEach((track) => track.stop())
-        }
-
-        isRecording.value = false
-        isProcessing.value = true
-
-        if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
-          websocket.value.send('END')
-        }
       }
 
       const prepareChallengeMode = () => {
@@ -510,13 +368,18 @@
             return
           }
 
-          if (!websocket.value) {
-            connectWebSocket()
-          }
+          connectWebSocket({
+            encounterId: props.encounterId,
+            selectedPlayerId: selectedPlayerId.value,
+            characterId: props.character?.id,
+            isChallengeMode: isChallengeMode.value,
+            selectedSkill: selectedSkill.value,
+            diceRoll: diceRoll.value,
+            streamPlayer,
+            processAudioChunk,
+          })
 
-          if (websocket.value) {
-            startRecording()
-          }
+          startRecording()
         }
       }
 
