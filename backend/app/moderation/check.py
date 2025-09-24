@@ -57,8 +57,9 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
         return None
 
     # Do not fail open (e.g., default to None)
-    failover = ModerationResponse(id="default", model="failover")
+    failover = ModerationResponse(id="failover", model="OpenAI")
     try:
+        # Check text against bad word lists
         if MODERATION_REGEX.search(text):
             logger.warning(
                 f"Moderation flag triggered for user {user_id}. Checking moderation service..."
@@ -67,9 +68,11 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
             if not response.results:
                 return failover
             results = response.results[0]
+            # Check against illegal material
             must_block = openai_illegal_flag(
                 categories=results.categories
             ) or openai_minors_score(results.category_scores.sexual_minors)
+            # Check against custom moderation threshold
             should_block = openai_score(results.category_scores.sexual)
 
             return response if (must_block or should_block) else None
@@ -81,12 +84,8 @@ async def moderation_pipe(user_id: int, text: str) -> ModerationResponse | None:
 
 
 def get_random_moderation_response() -> str:
-    """
-    Return a random response message for when content is flagged by moderation.
+    """Return a random response message for when content is flagged by moderation."""
 
-    Returns:
-        A randomly selected inappropriate content response message
-    """
     responses = [
         "Whoa there! Let's keep things appropriate.",
         "That escalated quickly! How about we talk about literally anything else?",
@@ -101,23 +100,15 @@ def get_random_moderation_response() -> str:
 
 
 async def moderate_text(user_id: int, text: str) -> str:
-    """
-    Check text content and return either the original text or inappropriate content message.
+    """Check text content and return either the original text or inappropriate content message."""
 
-    Args:
-        user_id: ID of the user whose content is being moderated
-        text: The text content to check
-
-    Returns:
-        Either the original text if it passes moderation, or a random inappropriate content message
-    """
     if not text or not text.strip():
         return text
 
     moderation_result = await moderation_pipe(user_id=user_id, text=text)
 
     if moderation_result:
-        logger.warning(f"User {user_id} text violated TOS. Using default replies...")
+        logger.warning(f"User {user_id} text flagged. Using default content...")
         return INAPPROPRIATE_CONTENT_DEFAULT
 
     return text
@@ -126,6 +117,7 @@ async def moderate_text(user_id: int, text: str) -> str:
 async def moderate_character(
     user_id: int, character_data: Union[CharacterCreate, CharacterUpdate]
 ) -> Union[CharacterCreate, CharacterUpdate]:
+    # TODO: This should use asyncio.gather in case someone makes an entire inappropriate character
     if character_data.name:
         character_data.name = await moderate_text(
             user_id=user_id, text=character_data.name

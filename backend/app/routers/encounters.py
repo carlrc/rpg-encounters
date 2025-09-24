@@ -297,15 +297,23 @@ async def websocket_convo_endpoint(
     player_id: int,
     character_id: int,
 ):
+    # Get context
     user_id, world_id = await get_websocket_user_world(websocket)
+    player_initiated = (
+        websocket.query_params.get("player_init", "false").lower() == "true"
+    )
+
+    # Update trace
     get_client().update_current_trace(
         user_id=user_id,
         tags=["conversation"],
         metadata={
             "service": get_or_throw("SERVICE"),
             "env": get_or_throw("ENVIRONMENT"),
+            "player_initiated": player_initiated,
         },
     )
+
     return await have_conversation(
         websocket=websocket,
         world_id=world_id,
@@ -313,6 +321,7 @@ async def websocket_convo_endpoint(
         encounter_id=encounter_id,
         player_id=player_id,
         character_id=character_id,
+        player_initiated=player_initiated,
     )
 
 
@@ -324,17 +333,25 @@ async def websocket_challenge_endpoint(
     player_id: int,
     character_id: int,
 ):
+    # Get context
     user_id, world_id = await get_websocket_user_world(websocket)
+    skill = websocket.query_params.get("skill")
+    d20_roll = websocket.query_params.get("d20_roll")
+    player_initiated = (
+        websocket.query_params.get("player_init", "false").lower() == "true"
+    )
+
+    # Update trace
     get_client().update_current_trace(
         user_id=user_id,
         tags=["challenge"],
         metadata={
             "service": get_or_throw("SERVICE"),
             "env": get_or_throw("ENVIRONMENT"),
+            "player_initiated": player_initiated,
         },
     )
-    skill = websocket.query_params.get("skill")
-    d20_roll = websocket.query_params.get("d20_roll")
+
     return await challenge_character(
         websocket=websocket,
         world_id=world_id,
@@ -344,4 +361,5 @@ async def websocket_challenge_endpoint(
         character_id=character_id,
         skill=skill,
         d20_roll=int(d20_roll),
+        player_initiated=player_initiated,
     )

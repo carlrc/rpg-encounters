@@ -78,12 +78,14 @@ async def challenge_character(
     character_id: int,
     skill: str,
     d20_roll: int,
+    player_initiated: bool = False,
 ):
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(audio_chunks)
 
     try:
         async with get_async_db_session() as session:
+            # Do large DB context lookup along with transcription and moderation checks
             ctx, (transcription, is_blocked) = await asyncio.gather(
                 get_conversation_context(
                     world_id=world_id,
@@ -96,6 +98,7 @@ async def challenge_character(
                 transcribe_and_moderate(user_id=user_id, wav_file_path=wav_path),
             )
 
+            # If flagged, fallback to default reply
             if is_blocked:
                 await handle_moderation_response(
                     websocket=websocket,
@@ -109,35 +112,38 @@ async def challenge_character(
             # Set user message as overall trace input
             get_client().update_current_trace(input=transcription)
 
-            # Calculate skill check and filter reveals outside of session
+            # Calculate skill check using d20 roll, ability (charisma) and skill
             total_roll = calculate_skill_check(
-                skill=skill,
-                player=ctx.player,
-                d20_roll=d20_roll,
-                influence=ctx.influence,
+                skill=skill, player=ctx.player, d20_roll=d20_roll
+            )
+
+            # Conditionally calculate what reveals are available if not player initiated (e.g., for detailed view or not)
+            reveals = (
+                [
+                    calculate_reveal_progress(reveal, total_roll)
+                    for reveal in ctx.reveals
+                ]
+                if not player_initiated
+                else []
             )
 
             try:
-                # TODO: Need to include the modifier (e.g., influence being added to roll) in this case to make it clear whats happening
                 await websocket.send_json(
                     ConversationData(
                         influence=total_roll,
-                        reveals=[
-                            calculate_reveal_progress(reveal, total_roll)
-                            for reveal in ctx.reveals
-                        ],
+                        reveals=reveals,
                     ).model_dump()
                 )
             except Exception as e:
                 logger.error(f"Failed to send challenge data: {e}")
 
-            # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render prompt
+            # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render agent prompt
             rendered_prompt, rendered_instructions = render_challenge_prompts(
                 ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll)
             )
             agent = ChallengeAgent(
                 system_prompt=rendered_prompt,
-                # In the case of critical failure there are no instructions
+                # In the case of critical failure there is no additional context (e.g., reveals) to give
                 instructions=rendered_instructions if rendered_instructions else None,
             )
 
