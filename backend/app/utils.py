@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 
 
-@lru_cache(maxsize=1)
+@lru_cache()
 def get_or_throw(env_var: str) -> str:
     value = os.getenv(env_var)
     if not value:

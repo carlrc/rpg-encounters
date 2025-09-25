@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket
 from langfuse import get_client, observe
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.session import UserSession
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_routes_session
@@ -31,10 +32,10 @@ logger = logging.getLogger(__name__)
 @router.get("/{encounter_id}", response_model=Encounter)
 async def get_encounter(
     encounter_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Get a specific encounter by ID"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         encounter = await EncounterStore(user_id=user_id, world_id=world_id).get_by_id(
             encounter_id
@@ -54,10 +55,10 @@ async def get_encounter(
 @router.post("/", response_model=Encounter, status_code=201)
 async def create_encounter(
     encounter_data: EncounterCreate,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Create a new encounter"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         return await EncounterStore(user_id=user_id, world_id=world_id).create(
             encounter_data
@@ -75,10 +76,10 @@ async def create_encounter(
 async def update_encounter(
     encounter_id: int,
     encounter_update: EncounterUpdate,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Update an existing encounter"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         # Override the ID from the URL path
         encounter_update.id = encounter_id
@@ -100,17 +101,16 @@ async def update_encounter(
 @router.delete("/{encounter_id}", status_code=204)
 async def delete_encounter(
     encounter_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Delete an encounter"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         success = await EncounterStore(user_id=user_id, world_id=world_id).delete(
             encounter_id
         )
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-        return None
     except HTTPException:
         raise
     except Exception as e:
@@ -123,17 +123,17 @@ async def delete_encounter(
 @router.post("/connections", response_model=Connection, status_code=201)
 async def create_connection(
     connection_data: ConnectionCreate,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    session: UserSession = Depends(validate_current_user_world),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Create a new connection between encounters"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
             user_id=user_id, world_id=world_id, session=session
         )
         connection_store = ConnectionStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
 
         # Validate that both encounters exist
@@ -156,17 +156,17 @@ async def create_connection(
 async def update_connection(
     connection_id: int,
     connection_update: ConnectionUpdate,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    session: UserSession = Depends(validate_current_user_world),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Update an existing connection"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
             user_id=user_id, world_id=world_id, session=session
         )
         connection_store = ConnectionStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
 
         # Override the ID from the URL path
@@ -200,17 +200,16 @@ async def update_connection(
 @router.delete("/connections/{connection_id}", status_code=204)
 async def delete_connection(
     connection_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Delete a connection"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         success = await ConnectionStore(user_id=user_id, world_id=world_id).delete(
             connection_id
         )
         if not success:
             raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-        return None
     except HTTPException:
         raise
     except Exception as e:
@@ -223,17 +222,17 @@ async def delete_connection(
 @router.get("/{encounter_id}/connections", response_model=List[Connection])
 async def get_encounter_connections(
     encounter_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    session: UserSession = Depends(validate_current_user_world),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get all connections for a specific encounter"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
             user_id=user_id, world_id=world_id, session=session
         )
         connection_store = ConnectionStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
 
         # Validate encounter exists
@@ -258,10 +257,10 @@ async def get_conversation_data(
     encounter_id: int,
     player_id: int,
     character_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ) -> Dict:
     """Get current influence and reveals data for a player/character combination"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
 
     try:
         ctx = await get_conversation_context(
@@ -298,7 +297,8 @@ async def websocket_convo_endpoint(
     character_id: int,
 ):
     # Get context
-    user_id, world_id = await get_websocket_user_world(websocket)
+    session = await get_websocket_user_world(websocket)
+    user_id, world_id = session.user_id, session.world_id
     player_initiated = (
         websocket.query_params.get("player_init", "false").lower() == "true"
     )
@@ -334,7 +334,8 @@ async def websocket_challenge_endpoint(
     character_id: int,
 ):
     # Get context
-    user_id, world_id = await get_websocket_user_world(websocket)
+    session = await get_websocket_user_world(websocket)
+    user_id, world_id = session.user_id, session.world_id
     skill = websocket.query_params.get("skill")
     d20_roll = websocket.query_params.get("d20_roll")
     player_initiated = (

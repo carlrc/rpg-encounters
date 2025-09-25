@@ -31,9 +31,6 @@ class CommunicationStyle(Enum):
 
 class CharacterBase(BaseModel):
     name: str = Field(..., description="Character name", max_length=NAME_LIMIT)
-    avatar: str | None = Field(
-        None, description="Character avatar image (base64 or URL)", exclude=True
-    )
     race: str = Field(..., description="Character race")
     size: str = Field(..., description="Character size")
     alignment: str = Field(..., description="Character alignment")
@@ -46,27 +43,29 @@ class CharacterBase(BaseModel):
     )
     communication_style: str = Field(
         "",
-        description="Character communication style",
+        description="Character communication style summary",
         max_length=CHARACTER_COMMUNICATION_LIMIT,
     )
     communication_style_examples: List[str] | None = Field(
         None,
-        description="Examples of the characters communication style",
+        description="Communication style examples",
         exclude=True,
     )
     communication_style_type: str = Field(
         ...,
-        description="Whether the character users a communication style preset or not",
+        description="Communication style preset",
     )
     motivation: str = Field(
         ..., description="Character motivation", max_length=CHARACTER_MOTIVATION_LIMIT
     )
     personality: str = Field(
-        "", description="AI-generated personality profile for influence decisions"
+        "",
+        description="AI-generated personality profile for influence scoring",
+        exclude=True,
     )
-    voice_id: str = Field(..., description="ElevenLabs voice ID for TTS")
-    voice_name: str = Field("Manual", description="Voice name")
-    tts_provider: str = Field(..., description="Text to speach provider")
+    voice_id: str = Field(..., description="TTS provider voice Id")
+    voice_name: str = Field("Default", description="TTS provider voice name")
+    tts_provider: str = Field(..., description="TTS provider")
 
     # Bias
     race_preferences: Dict[str, int] | None = Field(
@@ -86,7 +85,7 @@ class CharacterBase(BaseModel):
     @classmethod
     def validate_tts(cls, v):
         if v is not None:
-            return validate_choice(v, [GOOGLE_TTS, ELEVANLABS_TTS], "Race")
+            return validate_choice(v, [GOOGLE_TTS, ELEVANLABS_TTS], "TTS Provider")
         return v
 
     @field_validator("race")

@@ -1,10 +1,12 @@
 services:
   backend:
+    image: rpg-encounters-backend:dev
     build:
       context: .
       dockerfile: Dockerfile
       target: dependencies # Use dependencies stage for dev
     container_name: rpg-encounters-backend
+    pull_policy: never
     ports:
       - "8000:8000"
     command: [ "/app/.venv/bin/python", "-m", "app.main" ]

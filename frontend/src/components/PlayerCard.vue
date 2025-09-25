@@ -473,14 +473,14 @@
       })
 
       // Use watchEffect for automatic cleanup and better performance
-      const stopPlayerIdWatcher = watchEffect(() => {
+      const playerIdWatcherCleanup = watchEffect(() => {
         if (props.player.id) {
           loadDisplayAbilitiesSkills()
         }
       })
 
       // Watch for changes in player abilities and skills properties with cleanup
-      const stopAbilitiesSkillsWatcher = watch(
+      const abilitiesSkillsWatcherCleanup = watch(
         () => [props.player.abilities, props.player.skills],
         () => {
           loadDisplayAbilitiesSkills()
@@ -488,8 +488,24 @@
         { deep: true }
       )
 
+      // Clear login link data when switching between players
+      const loginLinkWatcherCleanup = watch(
+        () => props.player.id,
+        (newPlayerId, oldPlayerId) => {
+          if (newPlayerId !== oldPlayerId) {
+            // Clear login link data when switching between players
+            loginLink.value = ''
+            loginLinkExpiry.value = null
+          }
+        }
+      )
+
       // Add watchers to cleanup functions
-      cleanupFunctions.push(stopPlayerIdWatcher, stopAbilitiesSkillsWatcher)
+      cleanupFunctions.push(
+        playerIdWatcherCleanup,
+        abilitiesSkillsWatcherCleanup,
+        loginLinkWatcherCleanup
+      )
 
       // Clean up on unmount to prevent memory leaks
       onUnmounted(() => {

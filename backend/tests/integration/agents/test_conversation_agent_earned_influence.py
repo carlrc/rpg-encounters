@@ -7,7 +7,10 @@ from app.agents.conversations.conversation_agent import (
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
+from app.models.character import Character
+from app.models.encounter import Encounter
 from app.models.influence import BASE_INFLUENCE_MAX, BASE_INFLUENCE_MIN, Influence
+from app.models.player import Player
 from app.models.reveal import Reveal, RevealLayer
 from app.services.context import ConvoContext
 from tests.fixtures.generate import (
@@ -57,15 +60,17 @@ RENDERED_SYSTEM_PROMPT = render_prompt("conversation_agent", BASE_TEMPLATE_CONTE
 RENDERED_INSTRUCTIONS = render_prompt_section("memories_reveals", BASE_TEMPLATE_CONTEXT)
 
 
-def create_influence_calculator_agent(character=None, player=None, encounter=None):
+def create_influence_calculator_agent(
+    character: Character, player: Player, encounter: Encounter
+):
     """Create a new InfluenceCalculatorAgent instance for each test."""
     return InfluenceCalculatorAgent(
         system_prompt=render_prompt(
             "influence_scoring_agent",
             {
-                "character": character or CHARACTER,
-                "player": player or PLAYER,
-                "encounter": encounter or CONTEXT.encounter,
+                "character": character,
+                "player": player,
+                "encounter": encounter,
             },
         )
     )
@@ -76,12 +81,16 @@ async def test_personality_based_earned_influence_respects_standard_level():
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
         conversation_store=AsyncMock(),
-        influence_calculator_agent=create_influence_calculator_agent(),
+        influence_calculator_agent=create_influence_calculator_agent(
+            character=CHARACTER.model_copy(deep=True),
+            player=PLAYER.model_copy(deep=True),
+            encounter=CONTEXT.encounter.model_copy(deep=True),
+        ),
     )
 
     _, level, _ = await agent.chat(
         player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
-        deps=DEPENDENCIES.model_copy(),
+        deps=DEPENDENCIES.model_copy(deep=True),
     )
     # Bias with max base influence and basic inquiry should only result in standard level
     assert level == RevealLayer.STANDARD
@@ -92,13 +101,17 @@ async def test_personality_based_earned_influence_respects_privileged_level():
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
         conversation_store=AsyncMock(),
-        influence_calculator_agent=create_influence_calculator_agent(),
+        influence_calculator_agent=create_influence_calculator_agent(
+            character=CHARACTER.model_copy(deep=True),
+            player=PLAYER.model_copy(deep=True),
+            encounter=CONTEXT.encounter.model_copy(deep=True),
+        ),
     )
 
     # A heroic deed that aligns morally and touches on their motivation (e.g., make money) should unlock PRIVILEGED
     _, level, _ = await agent.chat(
         player_transcript="Hello good man! I've just come from a long quest saving a lost princess. Oh what a quest it was. I want your finest ale",
-        deps=DEPENDENCIES.model_copy(),
+        deps=DEPENDENCIES.model_copy(deep=True),
     )
 
     # Bias with max base influence and high alignment story should get privileged (not exclusive)
@@ -118,11 +131,17 @@ async def test_personality_based_earned_influence_respects_exclusive_level():
         system_prompt=RENDERED_SYSTEM_PROMPT,
         instructions=RENDERED_INSTRUCTIONS,
         conversation_store=AsyncMock(),
-        influence_calculator_agent=create_influence_calculator_agent(),
+        influence_calculator_agent=create_influence_calculator_agent(
+            character=CHARACTER.model_copy(deep=True),
+            player=PLAYER.model_copy(deep=True),
+            encounter=CONTEXT.encounter.model_copy(deep=True),
+        ),
     )
 
-    updated_context = CONTEXT.model_copy(update={"influence": influence})
-    updated_deps = DEPENDENCIES.model_copy(update={"context": updated_context})
+    updated_context = CONTEXT.model_copy(update={"influence": influence}, deep=True)
+    updated_deps = DEPENDENCIES.model_copy(
+        update={"context": updated_context}, deep=True
+    )
 
     # Being presumptuous doesn't match characters motivation
     _, level, _ = await agent.chat(
@@ -161,13 +180,14 @@ async def test_personality_based_earned_influence_can_be_negative():
         ),
     )
 
-    updated_context = CONTEXT.model_copy(update={"influence": influence})
+    updated_context = CONTEXT.model_copy(update={"influence": influence}, deep=True)
     updated_deps = DEPENDENCIES.model_copy(
         update={
             "context": updated_context,
             "character": CHARACTER,
             "player": opposing_player,
-        }
+        },
+        deep=True,
     )
 
     _, level, influence = await agent.chat(
@@ -179,8 +199,12 @@ async def test_personality_based_earned_influence_can_be_negative():
     assert level == RevealLayer.NEGATIVE
 
     # Update the context again with the new influence
-    updated_context = updated_context.model_copy(update={"influence": influence})
-    updated_deps = updated_deps.model_copy(update={"context": updated_context})
+    updated_context = updated_context.model_copy(
+        update={"influence": influence}, deep=True
+    )
+    updated_deps = updated_deps.model_copy(
+        update={"context": updated_context}, deep=True
+    )
 
     _, level, influence = await agent.chat(
         player_transcript="That isn't good enough you old man!",
@@ -215,14 +239,20 @@ async def test_conversation_agent_handles_multiple_reveals():
         system_prompt=rendered_system_prompt,
         instructions=rendered_instructions,
         conversation_store=AsyncMock(),
-        influence_calculator_agent=create_influence_calculator_agent(),
+        influence_calculator_agent=create_influence_calculator_agent(
+            character=CHARACTER.model_copy(deep=True),
+            player=PLAYER.model_copy(deep=True),
+            encounter=CONTEXT.encounter.model_copy(deep=True),
+        ),
     )
 
     garden_keywords = ["vandalizing", "garden", "foreigner", "Merry"]
     room_keywords = ["room", "standard", "balcony", "corridor"]
 
-    updated_context = CONTEXT.model_copy(update={"reveals": reveals})
-    dependencies = DEPENDENCIES.model_copy(update={"context": updated_context})
+    updated_context = CONTEXT.model_copy(update={"reveals": reveals}, deep=True)
+    dependencies = DEPENDENCIES.model_copy(
+        update={"context": updated_context}, deep=True
+    )
 
     # Start asking about the first reveal (available rooms) and switch mid conversation to the garden vandal
     result, _, _ = await agent.chat(

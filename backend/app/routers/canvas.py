@@ -3,6 +3,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.session import UserSession
 from app.data.connection_store import ConnectionStore
 from app.data.encounter_store import EncounterStore
 from app.db.connection import get_async_db_routes_session
@@ -18,17 +19,17 @@ logger = logging.getLogger(__name__)
 
 @router.get("", response_model=CanvasResponse)
 async def get_canvas(
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    session: UserSession = Depends(validate_current_user_world),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Get complete canvas state - all encounters with connections"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
         connection_store = ConnectionStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
 
         encounters = await encounter_store.get_all()
@@ -45,17 +46,17 @@ async def get_canvas(
 @router.post("", response_model=CanvasResponse)
 async def save_canvas(
     request: CanvasSaveRequest,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    session: UserSession = Depends(validate_current_user_world),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """Save entire canvas state - handles new, existing, and deleted items"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
         connection_store = ConnectionStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
 
         # Delete encounters and their connections

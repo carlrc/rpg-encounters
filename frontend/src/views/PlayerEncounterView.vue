@@ -17,7 +17,7 @@
     </div>
 
     <!-- Encounter View -->
-    <div v-else class="encounter-view">
+    <div v-else class="encounter-view" :class="{ 'has-interaction-panel': selectedCharacter }">
       <!-- Header -->
       <div class="encounter-header">
         <h1 class="encounter-title">{{ encounter.name }}</h1>
@@ -78,10 +78,10 @@
           <div class="mode-controls">
             <button
               @click="toggleChallengeMode"
-              :class="['mode-btn', { active: isChallengeMode }]"
+              :class="['challenge-button', { active: isChallengeMode }]"
               :disabled="isRecording || isProcessing"
             >
-              {{ isChallengeMode ? 'Conversation' : 'Challenge' }}
+              Challenge
             </button>
           </div>
 
@@ -409,6 +409,10 @@
     margin: 0 auto;
   }
 
+  .encounter-view.has-interaction-panel {
+    padding-bottom: 400px; /* Add padding when interaction panel is open */
+  }
+
   .encounter-header {
     text-align: center;
     margin-bottom: var(--spacing-xl);
@@ -529,12 +533,15 @@
     left: 0;
     right: 0;
     background: var(--bg-secondary);
+    /* Add fallback solid background to ensure opacity */
+    background-color: #ffffff;
     border-top: 1px solid var(--border-default);
     padding: var(--spacing-lg);
     padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
     max-height: 70vh;
     overflow-y: auto;
+    z-index: 1000;
   }
 
   .panel-header {
@@ -595,22 +602,47 @@
     justify-content: center;
   }
 
-  .mode-btn {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    border: 2px solid var(--border-default);
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border-radius: var(--border-radius-md);
-    font-weight: var(--font-weight-medium);
+  .challenge-button {
+    padding: 12px 24px;
+    font-size: 1em;
+    font-weight: 600;
+    border: 2px solid var(--gray-500);
+    border-radius: 12px;
     cursor: pointer;
+    transition: all 0.3s ease;
+    width: 120px;
+    background: white;
+    color: var(--gray-500);
+    box-shadow: var(--shadow-voice-hover);
     min-height: 44px;
-    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .mode-btn:hover,
-  .mode-btn.active {
+  .challenge-button:hover:not(:disabled) {
     border-color: var(--primary-color);
-    background: var(--primary-alpha-10);
+    color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-reveal-hover);
+  }
+
+  .challenge-button.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border-color: var(--primary-color);
+  }
+
+  .challenge-button.active:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
+    border-color: var(--primary-darker);
+  }
+
+  .challenge-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 
   .skill-selection {
@@ -650,6 +682,10 @@
 
     .interaction-panel {
       padding: var(--spacing-md);
+    }
+
+    .encounter-view.has-interaction-panel {
+      padding-bottom: 320px; /* Reduce padding on mobile */
     }
 
     .shared-speak-button {

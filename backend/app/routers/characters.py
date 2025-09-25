@@ -1,7 +1,7 @@
 import logging
 from typing import List, Union
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
 from app.agents.communication_style_agent import (
     COMMUNICATION_STYLE_PROFILES,
@@ -9,6 +9,7 @@ from app.agents.communication_style_agent import (
 )
 from app.agents.personality_agent import PersonalityAgent
 from app.agents.prompts.import_prompts import render_prompt
+from app.auth.session import UserSession
 from app.data.character_store import CharacterStore
 from app.db.limits import CHARACTER_COMMUNICATION_LIMIT
 from app.dependencies import validate_current_user_world
@@ -98,10 +99,10 @@ async def _generate_communication_style_background(
 
 @router.get("", response_model=List[Character])
 async def get_characters(
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Get all characters"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         return await CharacterStore(user_id=user_id, world_id=world_id).get_all()
     except HTTPException:
@@ -116,10 +117,10 @@ async def get_characters(
 @router.get("/{character_id}", response_model=Character)
 async def get_character(
     character_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Get a specific character by ID"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         character = await CharacterStore(user_id=user_id, world_id=world_id).get_by_id(
             character_id
@@ -140,10 +141,10 @@ async def get_character(
 async def create_character(
     character_data: CharacterCreate,
     background_tasks: BackgroundTasks,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Create a new character and generate AI content in background"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         # Moderate character fields
         character_data = await moderate_character(
@@ -193,10 +194,10 @@ async def update_character(
     character_id: int,
     character_update: CharacterUpdate,
     background_tasks: BackgroundTasks,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Update an existing character and regenerate AI content in background if needed"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
         # Ensure the character exists first
@@ -263,21 +264,25 @@ async def update_character(
 @router.delete("/{character_id}", status_code=204)
 async def delete_character(
     character_id: int,
-    user_world: tuple[int, int] = Depends(validate_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Delete a character"""
-    user_id, world_id = user_world
+    user_id, world_id = session.user_id, session.world_id
     try:
         success = await CharacterStore(user_id=user_id, world_id=world_id).delete(
             character_id
         )
         if not success:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
-        return None
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(
             f"Failed to delete character {character_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )

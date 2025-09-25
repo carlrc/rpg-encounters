@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.rate_limiter import check_rate_limit
 from app.auth.session import (
     SESSION_CONFIG,
+    PlayerSession,
+    UserSession,
     destroy_session,
 )
 from app.clients.ses import SimpleEmailService
@@ -18,7 +20,7 @@ from app.data.magic_link_store import (
     TokenNotFoundError,
 )
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import validate_current_user_world
+from app.dependencies import validate_current_player_or_user
 from app.http import DEVICE_MISMATCH, DEVICE_NONCE_COOKIE
 from app.models.magic_link import (
     AuthCheckResponse,
@@ -50,6 +52,7 @@ async def request_magic_link(
     Returns empty 200 response to prevent user enumeration.
     """
 
+    # TODO: Consider adding IP address on top of email in case of bots spamming the same emails
     if not await check_rate_limit(body.email, max_count=2, window_minutes=10):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
@@ -180,7 +183,8 @@ async def check_auth(request: Request) -> AuthCheckResponse:
 
 @router.post("/logout")
 async def logout(
-    request: Request, _: tuple[int, int] = Depends(validate_current_user_world)
+    request: Request,
+    _: UserSession | PlayerSession = Depends(validate_current_player_or_user),
 ):
     """Logout by destroying the session"""
     destroy_session(request)

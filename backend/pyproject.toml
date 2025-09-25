@@ -23,7 +23,8 @@ dependencies = [
     "asyncpg==0.30",
     "google-cloud-texttospeech==2.29.0",
     "itsdangerous==2.2.0",
-    "boto3==1.40.31"
+    "boto3==1.40.31",
+    "async-lru==2.0.5"
 ]
 
 [project.optional-dependencies]

@@ -67,3 +67,21 @@ class EncounterWithCharacters(EncounterBase):
     )
 
     model_config = {"from_attributes": True}
+
+
+class PlayerEncounterResponse(BaseModel):
+    """Simplified encounter response for player view"""
+
+    id: int
+    name: str = Field(..., description="Encounter name", max_length=TITLE_LIMIT)
+    description: str | None = Field(
+        None,
+        description="Encounter description",
+        max_length=ENCOUNTER_DESCRIPTION_LIMIT,
+    )
+    world_id: int = Field(..., description="World ID this encounter belongs to")
+    characters: List[Character] = Field(
+        default_factory=list, description="Characters in this encounter"
+    )
+
+    model_config = {"from_attributes": True}

@@ -94,6 +94,7 @@ async def test_challenge_agent_critical_success():
         deps=DEPENDENCIES,
     )
 
+    # TODO: How to assert on positivity / information better?
     assert_contains_any_keywords(
         text=response, keywords=["secret", "corridor", "diplomats"]
     )

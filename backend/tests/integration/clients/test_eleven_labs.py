@@ -11,7 +11,7 @@ from app.utils import get_or_throw
 def eleven_labs_client():
     """Create an ElevenLabs client instance"""
     load_dotenv()
-    api_key = get_or_throw("ELEVENLABS_API_KEY")
+    api_key = get_or_throw("ELEVENLABS_TTS_API_KEY")
     if not api_key:
         pytest.skip("ELEVENLABS_API_KEY not found in environment")
     return ElevenLabs(page_size=5, api_key=api_key)

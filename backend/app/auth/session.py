@@ -16,6 +16,15 @@ load_dotenv()
 IS_LOCAL = get_or_throw("ENVIRONMENT") == "local"
 
 
+class UserSession(BaseModel):
+    user_id: int = Field(..., frozen=True)
+    world_id: int = Field(..., frozen=True)
+
+
+class PlayerSession(UserSession):
+    player_id: int = Field(..., frozen=True)
+
+
 # https://www.starlette.io/middleware/#sessionmiddleware
 class SessionConfig(BaseModel):
     secret_key: str = Field(

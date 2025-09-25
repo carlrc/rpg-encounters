@@ -1,6 +1,7 @@
 import logging
 from typing import List
 
+from async_lru import alru_cache
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +11,17 @@ from app.db.models.account import AccountORM
 from app.models.account import Account, AccountCreate, AccountUpdate
 
 logger = logging.getLogger(__name__)
+
+
+@alru_cache()
+async def get_user_elevenlabs_token(user_id: int) -> str | None:
+    """Check if user has ElevenLabs token configured - with LRU cache"""
+    try:
+        account = await AccountStore(user_id=user_id).get_account_by_user_id(user_id)
+        return account.elevenlabs_token if account else None
+    except Exception as e:
+        logger.error(f"Failed to check ElevenLabs token for user {user_id}: {e}")
+        return None
 
 
 class AccountStore(BaseStore):

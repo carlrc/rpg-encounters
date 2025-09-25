@@ -125,10 +125,14 @@ docker-compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml u
 
 ### Debugging
 
-Re-install local packages (e.g., .venv changes)
+Rebuild dev image after dependency changes (e.g., new libs)
 
 ```bash
-sudo docker build --no-cache -f Dockerfile -t rpg-encounters-backend .
+# Rebuild the dev image (dependencies stage) without cache
+sudo docker compose -f docker-compose.dev.yml build --no-cache backend
+
+# Recreate the container using the freshly built image
+sudo docker compose -f docker-compose.dev.yml up --force-recreate
 ```
 
 Reset docker env

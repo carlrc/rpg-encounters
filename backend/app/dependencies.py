@@ -1,8 +1,8 @@
-from typing import Tuple
-
 from fastapi import Header, HTTPException, Request, WebSocket, status
 
 from app.auth.session import (
+    PlayerSession,
+    UserSession,
     get_session_player_id,
     get_session_user_id,
     get_session_world_id,
@@ -11,7 +11,7 @@ from app.auth.session import (
 
 def _validate_user_world(
     request: Request, x_world_id: str = Header(None)
-) -> Tuple[int, int]:
+) -> UserSession:
     user_id = get_session_user_id(request=request)
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
@@ -22,24 +22,24 @@ def _validate_user_world(
             detail="X-World-Id header is required",
         )
 
-    return int(user_id), int(x_world_id)
+    return UserSession(user_id=int(user_id), world_id=int(x_world_id))
 
 
 def validate_current_user_world(
     request: Request, x_world_id: str = Header(None)
-) -> Tuple[int, int]:
+) -> UserSession:
     """Get user ID and world ID efficiently without DB lookup."""
-    user_id, x_world_id = _validate_user_world(request=request, x_world_id=x_world_id)
+    user_session = _validate_user_world(request=request, x_world_id=x_world_id)
 
     player_id = get_session_player_id(request=request)
     if player_id:
         # Players should not use sessions for standard endpoints
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
 
-    return user_id, x_world_id
+    return user_session
 
 
-async def get_websocket_user_world(websocket: WebSocket) -> Tuple[int, int]:
+async def get_websocket_user_world(websocket: WebSocket) -> UserSession:
     """Get user ID and world ID from WebSocket connection."""
 
     # User Id should be present in all sessions
@@ -63,10 +63,10 @@ async def get_websocket_user_world(websocket: WebSocket) -> Tuple[int, int]:
             await websocket.close(code=1008)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
-    return int(user_id), int(world_id)
+    return UserSession(user_id=int(user_id), world_id=int(world_id))
 
 
-def validate_current_player(request: Request) -> Tuple[int, int, int]:
+def validate_current_player(request: Request) -> PlayerSession:
     """Get player_id, user_id, and world_id for player sessions only."""
     user_id = get_session_user_id(request=request)
     world_id = get_session_world_id(request=request)
@@ -75,15 +75,17 @@ def validate_current_player(request: Request) -> Tuple[int, int, int]:
     if not user_id or not world_id or not player_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-    return int(player_id), int(user_id), int(world_id)
+    return PlayerSession(
+        user_id=int(user_id), world_id=int(world_id), player_id=int(player_id)
+    )
 
 
 def validate_current_player_or_user(
     request: Request, x_world_id: str = Header(None)
-) -> None:
+) -> UserSession | PlayerSession:
     # If player validate player session
     if get_session_player_id(request=request):
-        validate_current_player(request=request)
+        return validate_current_player(request=request)
     else:
         # If user validate session and header
-        validate_current_user_world(request=request, x_world_id=x_world_id)
+        return validate_current_user_world(request=request, x_world_id=x_world_id)
