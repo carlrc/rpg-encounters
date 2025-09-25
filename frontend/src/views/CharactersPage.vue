@@ -48,6 +48,7 @@
   import { ref, computed, onMounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import CharacterCard from '../components/CharacterCard.vue'
@@ -113,7 +114,7 @@
     try {
       await createEntity(formData)
     } catch (err) {
-      // Error handling is done in character store
+      console.error('Character entity creation error:', JSON.stringify(serializeError(err)))
     }
   }
 

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { serializeError } from 'serialize-error'
 import { getConversationData } from '@/services/api'
 
 export const useConversationDataStore = defineStore('conversationData', () => {
@@ -38,6 +39,7 @@ export const useConversationDataStore = defineStore('conversationData', () => {
 
       return cache.value[cacheKey]
     } catch (err) {
+      console.error('Conversation data error:', JSON.stringify(serializeError(err)))
       error.value = err
       throw err
     } finally {

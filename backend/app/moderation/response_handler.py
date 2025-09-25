@@ -20,17 +20,8 @@ async def handle_moderation_response(
     ctx: ConvoContext,
     response: ModerationResponse,
 ) -> None:
-    """
-    Handle moderation response when content is blocked.
+    """Handle moderation response when content is blocked."""
 
-    Args:
-        websocket: WebSocket connection to send audio to
-        user_id: ID of the user whose content was blocked
-        text: The flagged text content from the user
-        response: The moderation response containing block details
-        tts_provider_name: TTS provider to use for audio generation
-        voice_id: Voice ID for TTS
-    """
     # Save the flagged text to the moderation table for auditing
     try:
         record = await ModerationStore().create(
@@ -43,9 +34,10 @@ async def handle_moderation_response(
         logger.error(f"Failed to save moderation record for user {user_id}: {e}")
         raise e
 
-    logger.info(f"User {user_id} msg violated TOS. Using default replies...")
     default_response = get_random_moderation_response()
     telem_client = get_client()
+
+    # Do not log the moderated message in case it would break TOS of third party services
     telem_client.update_current_trace(input=f"MODERATED MESSAGE {record.id}")
     telem_client.update_current_trace(
         output=default_response,

@@ -3,9 +3,11 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.rate_limiter import check_email_rate_limit
+from app.auth.rate_limiter import check_rate_limit
 from app.auth.session import (
     SESSION_CONFIG,
+    PlayerSession,
+    UserSession,
     destroy_session,
 )
 from app.clients.ses import SimpleEmailService
@@ -18,7 +20,7 @@ from app.data.magic_link_store import (
     TokenNotFoundError,
 )
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_player_or_user
 from app.http import DEVICE_MISMATCH, DEVICE_NONCE_COOKIE
 from app.models.magic_link import (
     AuthCheckResponse,
@@ -42,7 +44,7 @@ async def request_magic_link(
     body: MagicLinkRequest,
     _: Request,
     response: Response,
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """
     Request a magic link for login. Account must already exist.
@@ -50,11 +52,12 @@ async def request_magic_link(
     Returns empty 200 response to prevent user enumeration.
     """
 
-    if not await check_email_rate_limit(body.email):
+    # TODO: Consider adding IP address on top of email in case of bots spamming the same emails
+    if not await check_rate_limit(body.email, max_count=2, window_minutes=10):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     try:
-        account = await AccountStore(user_id=None, session=session).get_by_email(
+        account = await AccountStore(user_id=None, session=db_session).get_by_email(
             body.email
         )
 
@@ -65,7 +68,7 @@ async def request_magic_link(
             # But don't actually create a magic link
             return
 
-        magic_link_store = MagicLinkStore(session=session)
+        magic_link_store = MagicLinkStore(user_id=account.user_id, session=db_session)
 
         # Generate new device nonce for strict device binding
         device_nonce = MagicLinkStore.generate_token()
@@ -73,12 +76,12 @@ async def request_magic_link(
         # Create magic link
         raw_token = MagicLinkStore.generate_token()
 
-        # Send magic link email to user
+        # Login link
+        magic_link = f"{FRONTEND_URL}/auth?token={raw_token}"
+
+        # So you can login manually locally
         if LOG_MAGIC_LINK:
-            # So you can login manually locally
-            logger.info(
-                f"{body.email} login link: {FRONTEND_URL}/auth?token={raw_token}"
-            )
+            logger.info(f"{body.email} login link: {magic_link}")
 
         if SEND_EMAIL:
             try:
@@ -88,7 +91,7 @@ async def request_magic_link(
                     body_html=render_email_template(
                         "login-email-template.jinja.html",
                         {
-                            "MAGIC_LINK": f"{FRONTEND_URL}/auth?token={raw_token}",
+                            "MAGIC_LINK": f"{magic_link}",
                             "LOGO_PATH": f"{FRONTEND_URL}/logo.png",
                         },
                     ),
@@ -127,7 +130,7 @@ async def request_magic_link(
 async def consume_magic_link(
     token: str,
     request: Request,
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """
     Consume a magic link token to create a user session and redirect to destination.
@@ -142,12 +145,15 @@ async def consume_magic_link(
         )
 
     # Validate and consume magic link atomically
-    magic_link_store = MagicLinkStore(session=session)
+    magic_link_store = MagicLinkStore(session=db_session)
     token_hash = MagicLinkStore.hash_token(token)
     device_nonce_hash = MagicLinkStore.hash_token(device_nonce)
 
     try:
         magic_link = await magic_link_store.consume(token_hash, device_nonce_hash)
+
+        # Clear any existing session data before establishing new user session
+        destroy_session(request)
 
         # Create session
         request.session["user_id"] = magic_link.user_id
@@ -158,7 +164,6 @@ async def consume_magic_link(
         TokenExpiredError,
         DeviceMismatchError,
     ):
-        # Redirect to login page with error instead of returning JSON
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error processing magic link: {e}")
@@ -180,7 +185,8 @@ async def check_auth(request: Request) -> AuthCheckResponse:
 
 @router.post("/logout")
 async def logout(
-    request: Request, _: tuple[int, int] = Depends(get_current_user_world)
+    request: Request,
+    _: UserSession | PlayerSession = Depends(validate_current_player_or_user),
 ):
     """Logout by destroying the session"""
     destroy_session(request)

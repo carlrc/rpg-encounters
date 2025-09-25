@@ -1,3 +1,4 @@
+import { serializeError } from 'serialize-error'
 import { useGameDataStore } from '@/stores/gameData'
 
 export function useGameData() {
@@ -11,6 +12,7 @@ export function useGameData() {
       }
       return result
     } catch (err) {
+      console.error('Failed to load game data:', JSON.stringify(serializeError(err)))
       alert('Failed to load game data')
       throw err
     }

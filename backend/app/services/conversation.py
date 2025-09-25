@@ -14,7 +14,7 @@ from app.agents.conversations.negative_conversation_agent import (
 )
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
-from app.agents.prompts.limits import MAX_RESPONSE_WORD_LENGTH
+from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
 from app.clients.tts import create_tts_provider
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
@@ -39,12 +39,14 @@ async def have_conversation(
     player_id: int,
     character_id: int,
     encounter_id: int,
+    player_initiated: bool = False,
 ) -> None:
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(chunks=audio_chunks)
 
     try:
         async with get_async_db_session() as session:
+            # Do large DB context lookup along with transcription and moderation checks
             ctx, (transcription, is_blocked) = await asyncio.gather(
                 get_conversation_context(
                     world_id=world_id,
@@ -57,6 +59,7 @@ async def have_conversation(
                 transcribe_and_moderate(user_id=user_id, wav_file_path=wav_path),
             )
 
+            # If flagged, fallback to default reply
             if is_blocked:
                 await handle_moderation_response(
                     websocket=websocket,
@@ -70,15 +73,16 @@ async def have_conversation(
             # Set user message as overall trace input
             get_client().update_current_trace(input=transcription)
 
-            # Common template context for both conversation agents
+            # Common prompt template for positive/negative conversation agents
             template_ctx = {
-                "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+                "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
                 "character": ctx.character,
                 "memories": ctx.memories,
                 "player": ctx.player,
                 "encounter": ctx.encounter,
             }
 
+            # Agent for scoring user input against character motivations
             influence_agent = InfluenceCalculatorAgent(
                 system_prompt=render_prompt(
                     "influence_scoring_agent",
@@ -86,7 +90,7 @@ async def have_conversation(
                 ),
             )
 
-            # If negative attitude, use negative sentiment agent
+            # If negative influence, use negative sentiment agent
             negative_attitude = (
                 ctx.influence.score < REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD]
             )
@@ -101,7 +105,7 @@ async def have_conversation(
                     influence_calculator_agent=influence_agent,
                 )
 
-                # Reveals thresholds cannot be negative, so don't pass any
+                # Reveal thresholds cannot be negative, so don't pass any
                 response, influence = await agent.chat(
                     player_transcript=transcription,
                     deps=NegativeConvoAgentDeps(
@@ -116,9 +120,10 @@ async def have_conversation(
                 # Add reveals for positive conversation agent
                 template_ctx["reveals"] = ctx.reveals
 
+                # NOTE: LLM does not handle choosing reveals and memories well when combined in system prompt
+                # TODO: Investigate why merging prompts in pydantic ai reduces effectiveness
                 agent = ConversationAgent(
                     system_prompt=render_prompt("conversation_agent", template_ctx),
-                    # LLM does not handle choosing reveals and memories well when combined in system prompt
                     instructions=render_prompt_section(
                         "memories_reveals", template_ctx
                     ),
@@ -142,23 +147,26 @@ async def have_conversation(
             # Force overall trace output to be LLM response
             get_client().update_current_trace(output=response)
 
+            # Persist influence adjustment
             await InfluenceStore(
                 user_id=user_id, world_id=world_id, session=session
             ).update(influence=influence)
 
-            try:
-                await websocket.send_json(
-                    ConversationData(
-                        type="conversation_data",
-                        influence=influence.score,
-                        reveals=[
-                            calculate_reveal_progress(reveal, influence.score)
-                            for reveal in ctx.reveals
-                        ],
-                    ).model_dump()
-                )
-            except Exception as e:
-                logger.error(f"Failed to send conversation data: {e}")
+            # If not player initiated return adjusted influence etc for detailed view
+            if not player_initiated:
+                try:
+                    await websocket.send_json(
+                        ConversationData(
+                            type="conversation_data",
+                            influence=influence.score,
+                            reveals=[
+                                calculate_reveal_progress(reveal, influence.score)
+                                for reveal in ctx.reveals
+                            ],
+                        ).model_dump()
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send conversation data: {e}")
 
             # Stream TTS audio chunks back to frontend
             await stream_tts_audio(

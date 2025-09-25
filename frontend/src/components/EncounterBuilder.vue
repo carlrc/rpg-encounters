@@ -91,6 +91,7 @@
   import { ref, computed, onMounted, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import { VueFlow } from '@vue-flow/core'
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
@@ -173,7 +174,7 @@
     } catch (err) {
       const errorMessage = err.message || 'Failed to load characters'
       error.value = errorMessage
-      console.error('Character loading failed:', err)
+      console.error('Character loading failed:', JSON.stringify(serializeError(err)))
       throw err // Re-throw to be caught by loadData
     }
   }
@@ -231,8 +232,8 @@
     } catch (err) {
       const errorMessage = err.message || 'Failed to load encounters'
       error.value = errorMessage
-      console.error('Encounter loading failed:', err)
-      throw err // Re-throw to be caught by loadData
+      console.error('Encounter loading failed:', JSON.stringify(serializeError(err)))
+      throw err
     }
   }
 
@@ -270,7 +271,7 @@
     } catch (err) {
       const errorMessage = err.message || 'Failed to load world data'
       error.value = `Encounter Builder Error: ${errorMessage}`
-      console.error('Data loading failed:', err)
+      console.error('Data loading failed:', JSON.stringify(serializeError(err)))
     } finally {
       loading.value = false
     }
@@ -457,7 +458,8 @@
       elements.value.push(newEncounter)
       showSuccess('New encounter created!')
     } catch (error) {
-      showError(`Failed to create encounter: ${error.message}`)
+      console.error('Failed to create encounter:', JSON.stringify(serializeError(error)))
+      showError(`Failed to create encounter`)
     }
   }
 
@@ -631,58 +633,6 @@
     })
   }
 
-  // Update elements with database IDs and remove isNew flags
-  const updateElementsWithDbIds = (response) => {
-    // Update created encounters with real database IDs
-    response.created_encounters.forEach((dbEncounter) => {
-      const elementIndex = elements.value.findIndex(
-        (el) =>
-          el.type === 'encounter' &&
-          el.data.isNew &&
-          el.data.name === dbEncounter.name &&
-          Math.abs(el.position.x - dbEncounter.position_x) < 1 &&
-          Math.abs(el.position.y - dbEncounter.position_y) < 1
-      )
-
-      if (elementIndex !== -1) {
-        elements.value[elementIndex].id = String(dbEncounter.id)
-        elements.value[elementIndex].data.isNew = false
-      }
-    })
-
-    // Update created connections with real database IDs
-    response.created_connections.forEach((dbConnection) => {
-      const elementIndex = elements.value.findIndex(
-        (el) =>
-          el.source &&
-          el.target &&
-          el.data.isNew &&
-          el.source === String(dbConnection.source_encounter_id) &&
-          el.target === String(dbConnection.target_encounter_id)
-      )
-
-      if (elementIndex !== -1) {
-        elements.value[elementIndex].id = `edge-${dbConnection.id}`
-        elements.value[elementIndex].data.isNew = false
-      }
-    })
-
-    // Remove isNew flags from updated items
-    response.updated_encounters.forEach((dbEncounter) => {
-      const elementIndex = elements.value.findIndex((el) => el.id === String(dbEncounter.id))
-      if (elementIndex !== -1) {
-        elements.value[elementIndex].data.isNew = false
-      }
-    })
-
-    response.updated_connections.forEach((dbConnection) => {
-      const elementIndex = elements.value.findIndex((el) => el.id === `edge-${dbConnection.id}`)
-      if (elementIndex !== -1) {
-        elements.value[elementIndex].data.isNew = false
-      }
-    })
-  }
-
   // Save canvas function
   const saveCanvas = async () => {
     try {
@@ -715,8 +665,8 @@
       // Show success notification
       showSuccess('Canvas saved successfully!')
     } catch (error) {
-      console.error('Failed to save canvas:', error)
-      showError(`Failed to save canvas: ${error.message}`)
+      console.error('Failed to save canvas:', JSON.stringify(serializeError(error)))
+      showError(`Failed to save canvas`)
     } finally {
       isSaving.value = false
     }

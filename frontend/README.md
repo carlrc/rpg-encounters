@@ -2,10 +2,10 @@
 
 ## Usage
 
-Install NVM and ensure you are using the correct Node version, then install dependencies
+Install [nvm](https://github.com/nvm-sh/nvm) and ensure you are using the correct Node version, then install dependencies
 
 ```bash
-npm install
+npm ci
 ```
 
 Run development server

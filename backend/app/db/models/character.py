@@ -24,7 +24,6 @@ class CharacterORM(UnifiedBase):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(NAME_LIMIT))
-    avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
     race: Mapped[str] = mapped_column(String(50))
     size: Mapped[str] = mapped_column(String(20))
     alignment: Mapped[str] = mapped_column(String(50))

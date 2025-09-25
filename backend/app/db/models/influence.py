@@ -10,10 +10,10 @@ class InfluenceORM(UnifiedBase):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     character_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("characters.id"), nullable=False
+        Integer, ForeignKey("characters.id", ondelete="CASCADE"), nullable=False
     )
     player_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("players.id"), nullable=False
+        Integer, ForeignKey("players.id", ondelete="CASCADE"), nullable=False
     )
     base: Mapped[int] = mapped_column(Integer, default=0)
     earned: Mapped[int] = mapped_column(Integer, default=0)

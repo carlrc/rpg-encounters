@@ -15,6 +15,7 @@
 
 <script>
   import { ref, onMounted } from 'vue'
+  import { serializeError } from 'serialize-error'
   import { getWorlds, createWorld, deleteWorld } from '../services/api.js'
   import { useWorldStore } from '../stores/world.js'
   import { storeToRefs } from 'pinia'
@@ -48,7 +49,7 @@
           }
           // If no worlds exist, currentWorldId will remain as default but no data will load
         } catch (error) {
-          console.error('Failed to load worlds:', error)
+          console.error('Failed to load worlds:', JSON.stringify(serializeError(error)))
           showError('Failed to load worlds')
         } finally {
           loading.value = false
@@ -72,8 +73,8 @@
           emit('world-changed', newWorld.id)
           showSuccess(`Created ${getWorldDisplayName(worlds.value, newWorld.id)}`)
         } catch (error) {
-          console.error('Failed to create world:', error)
-          showError('Failed to create new world. Please try again.')
+          console.error('Failed to create world:', JSON.stringify(serializeError(error)))
+          showError('Failed to create world')
         }
       }
 
@@ -107,8 +108,8 @@
           emit('world-deleted', worldId)
           showSuccess(`Deleted ${worldDisplayName}`)
         } catch (error) {
-          console.error('Failed to delete world:', error)
-          showError(`Failed to delete ${worldDisplayName}. Please try again.`)
+          console.error('Failed to delete world:', JSON.stringify(serializeError(error)))
+          showError(`Failed to delete world`)
         }
       }
 

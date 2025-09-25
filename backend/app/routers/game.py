@@ -2,7 +2,9 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from app.clients.tts import GOOGLE_TTS
+from app.auth.session import PlayerSession, UserSession
+from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS
+from app.data.account_store import get_user_elevenlabs_token
 from app.db.limits import (
     CHARACTER_BACKGROUND_LIMIT,
     CHARACTER_COMMUNICATION_LIMIT,
@@ -14,7 +16,7 @@ from app.db.limits import (
     REVEAL_CONTENT_LIMIT,
     TITLE_LIMIT,
 )
-from app.dependencies import get_current_user_world
+from app.dependencies import validate_current_player_or_user
 from app.models.alignment import VALID_ALIGNMENTS
 from app.models.character import CommunicationStyle
 from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
@@ -34,11 +36,13 @@ router = APIRouter(prefix="/api/game", tags=["games"])
 
 
 @router.get("/", response_model=GameDataResponse)
-def get_game_data(
-    _: tuple[int, int] = Depends(get_current_user_world),
+async def get_game_data(
+    session: UserSession | PlayerSession = Depends(validate_current_player_or_user),
 ) -> GameDataResponse:
     """Get all game data constants for frontend caching"""
     try:
+        token = await get_user_elevenlabs_token(user_id=session.user_id)
+        tts_providers = [GOOGLE_TTS] + ([ELEVANLABS_TTS] if token else [])
         return GameDataResponse(
             races=VALID_RACES,
             classes=VALID_CLASSES,
@@ -70,7 +74,7 @@ def get_game_data(
                 step=5,
                 min_gap=5,
             ),
-            tts_providers=[GOOGLE_TTS],
+            tts_providers=tts_providers,
         )
     except Exception as e:
         logger.error(f"Could not return game data: {e}")

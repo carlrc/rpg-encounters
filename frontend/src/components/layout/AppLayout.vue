@@ -15,7 +15,25 @@
     </div>
   </div>
 
-  <!-- Full app layout for authenticated users -->
+  <!-- Player layout - minimal interface -->
+  <div v-else-if="isPlayerRoute" class="player-app-container">
+    <!-- Simple Header with only logout -->
+    <header class="page-header custom-header">
+      <div class="header-content custom-header-content">
+        <AppBanner />
+        <div class="header-actions">
+          <button class="logout-button" @click="handleLogout">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Player Content Area -->
+    <main class="player-content-area">
+      <slot />
+    </main>
+  </div>
+
+  <!-- Full app layout for authenticated DM users -->
   <div v-else class="app-container">
     <!-- Page Header -->
     <header class="page-header custom-header">
@@ -59,7 +77,8 @@
 
 <script setup>
   import { computed, ref } from 'vue'
-  import { useRouter } from 'vue-router'
+  import { useRouter, useRoute } from 'vue-router'
+  import { serializeError } from 'serialize-error'
   import { useAuthStore } from '@/stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
@@ -67,17 +86,30 @@
   import { logout } from '@/services/api'
 
   const router = useRouter()
+  const route = useRoute()
   const authStore = useAuthStore()
   const showInstructions = ref(false)
 
   // Use auth store for authentication check
   const isAuthenticated = computed(() => authStore.isAuthenticated === true)
 
-  // Get navigation routes from router configuration
+  // Check if current route is a player route
+  const isPlayerRoute = computed(() => {
+    return route.name === 'PlayerAuthCallback' || route.name === 'PlayerEncounter'
+  })
+
+  // Get navigation routes from router configuration (exclude player-only routes)
   const navigationRoutes = computed(() => {
+    const playerOnlyRoutes = ['PlayerAuthCallback', 'PlayerEncounter']
     return router
       .getRoutes()
-      .filter((route) => route.name && route.path !== '/login' && route.path !== '/auth')
+      .filter(
+        (route) =>
+          route.name &&
+          route.path !== '/login' &&
+          route.path !== '/auth' &&
+          !playerOnlyRoutes.includes(route.name)
+      )
       .map((route) => ({
         path: route.path,
         name: route.name,
@@ -90,7 +122,7 @@
       await authStore.logout()
       router.push('/login')
     } catch (error) {
-      console.error('Logout failed:', error)
+      console.error('Logout failed:', JSON.stringify(serializeError(error)))
       // Force redirect anyway
       await authStore.logout()
       router.push('/login')
@@ -121,6 +153,19 @@
     align-items: center;
     justify-content: center;
     width: 100%;
+  }
+
+  .player-app-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+  }
+
+  .player-content-area {
+    flex: 1;
+    overflow: auto;
   }
 
   .custom-header {

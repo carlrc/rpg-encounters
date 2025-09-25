@@ -10,14 +10,20 @@ from sqlalchemy import select
 from app.auth.session import SESSION_CONFIG
 from app.data.account_store import AccountStore
 from app.data.magic_link_store import MagicLinkStore
+from app.data.player_magic_link_store import PlayerMagicLinkStore
+from app.data.player_store import PlayerStore
 from app.data.user_store import UserStore
 from app.data.world_store import WorldStore
 from app.db.models.magic_link import MagicLinkORM
+from app.db.models.player_magic_link import PlayerMagicLinkORM
 from app.http import DEVICE_NONCE_COOKIE
 from app.main import app
 from app.models.account import AccountCreate
 from app.models.magic_link import MagicLink, MagicLinkCreate
+from app.models.player import Player, PlayerCreate
+from app.models.player_magic_link import PlayerMagicLink, PlayerMagicLinkCreate
 from app.models.user import UserCreate
+from tests.fixtures.generate import default_player
 
 
 async def create_test_user_and_account():
@@ -117,3 +123,85 @@ async def get_latest_magic_link_for_user(user_id: int) -> MagicLink | None:
         )
         magic_link = result.scalar_one_or_none()
         return MagicLink.model_validate(magic_link) if magic_link else None
+
+
+async def create_test_player(user_id: int, world_id: int) -> Player:
+    """Create a test player for testing - returns player"""
+    player_store = PlayerStore(user_id=user_id, world_id=world_id)
+    player_data = default_player(player_id=1)
+    player_create = PlayerCreate(**player_data.model_dump(exclude={"id"}))
+    player = await player_store.create(player_create)
+    return player
+
+
+async def get_latest_player_magic_link_for_player(
+    player_id: int,
+) -> PlayerMagicLink | None:
+    """Get the most recent player magic link for a player - FOR TESTING ONLY"""
+    player_magic_link_store = PlayerMagicLinkStore()
+    async with player_magic_link_store.get_session() as session:
+        result = await session.execute(
+            select(PlayerMagicLinkORM)
+            .where(PlayerMagicLinkORM.player_id == player_id)
+            .order_by(PlayerMagicLinkORM.created_at.desc())
+            .limit(1)
+        )
+        player_magic_link = result.scalar_one_or_none()
+        return (
+            PlayerMagicLink.model_validate(player_magic_link)
+            if player_magic_link
+            else None
+        )
+
+
+async def create_authenticated_player_client(user_id: int = None, world_id: int = None):
+    """Create an authenticated TestClient with player session"""
+    client = TestClient(app)
+
+    if user_id and world_id:
+        user_store = UserStore()
+        user = await user_store.get_by_id(user_id)
+        world_store = WorldStore(user_id=user_id)
+        world = await world_store.get_by_id(world_id)
+    else:
+        user, _, world = await create_test_user_and_account()
+
+    # Create a test player
+    player = await create_test_player(user.id, world.id)
+
+    # Create player magic link directly
+    test_token = PlayerMagicLinkStore.generate_token()
+
+    player_magic_link_store = PlayerMagicLinkStore()
+
+    # Use the store's session to directly create the magic link
+    async with player_magic_link_store.get_session() as session:
+        from app.db.models.player_magic_link import PlayerMagicLinkORM
+
+        magic_link_data = PlayerMagicLinkCreate(
+            player_id=player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=PlayerMagicLinkStore.hash_token(test_token),
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
+        )
+
+        player_magic_link_orm = PlayerMagicLinkORM(**magic_link_data.model_dump())
+        session.add(player_magic_link_orm)
+        await session.flush()
+
+    # Consume magic link to create player session
+    response = client.get(f"/api/players/{player.id}/login?token={test_token}")
+    assert response.status_code == 200
+
+    # Get session token from cookies
+    session = client.cookies.get(SESSION_CONFIG.session_cookie_name)
+    assert session
+
+    decoded_session = decode_session(cookie_value=session)
+    assert decoded_session["user_id"] == user.id
+    assert decoded_session["player_id"] == player.id
+    assert decoded_session["world_id"] == world.id
+
+    return client, user, player, world

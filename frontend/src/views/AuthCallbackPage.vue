@@ -14,6 +14,7 @@
 <script setup>
   import { onMounted, nextTick } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { serializeError } from 'serialize-error'
   import { useAuthStore } from '@/stores/auth'
   import { consumeMagicLink } from '@/services/api'
   import '@/components/shared.css'
@@ -56,6 +57,7 @@
         router.push('/login')
       }
     } catch (error) {
+      console.error('Auth callback error:', JSON.stringify(serializeError(error)))
       alert('Failed to authenticate.')
       router.push('/login')
     }

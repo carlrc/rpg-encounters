@@ -7,8 +7,8 @@ from langfuse import get_client, observe
 from app.agents.challenge_agent import ChallengeAgent, ChallengeAgentDeps
 from app.agents.prompts.import_prompts import render_prompt, render_prompt_section
 from app.agents.prompts.limits import (
-    MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
     MAX_RESPONSE_WORD_LENGTH,
+    STANDARD_RESPONSE_WORD_LENGTH,
 )
 from app.clients.tts import create_tts_provider
 from app.db.connection import get_async_db_session
@@ -33,13 +33,14 @@ def render_challenge_prompts(
 ) -> tuple[str, str | None]:
     """Render challenge prompts based on D20 roll outcome."""
 
+    # Construct context for all prompts
     base_template_ctx = {
         "character": ctx.character,
         "player": ctx.player,
         "memories": ctx.memories,
         "encounter": ctx.encounter,
         "filtered_reveals": filtered_reveals,
-        "max_response_length": MAX_RESPONSE_WORD_LENGTH,
+        "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
     }
 
     # Render standard prompts
@@ -49,16 +50,16 @@ def render_challenge_prompts(
     )
 
     if d20_roll == D20Outcomes.CRITICAL_SUCCESS.value:
-        # Set 70 word limit for critical success for longer answers
+        # Allow critical success to have longer and more interesting answers
         template_ctx = {
             **base_template_ctx,
-            "max_response_length": MAX_CHALLENGE_RESPONSE_WORD_LENGTH,
+            "max_response_length": MAX_RESPONSE_WORD_LENGTH,
         }
         rendered_prompt = render_prompt(
             "challenge_agent_critical_success", template_ctx
         )
     elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
-        # Set reveals and memories to None such that LLM can't share anything
+        # Critical failures should not share any information so set reveals and memories to None
         rendered_prompt = render_prompt(
             "challenge_agent_critical_failure",
             {**base_template_ctx, "filtered_reveals": None, "memories": None},
@@ -78,12 +79,14 @@ async def challenge_character(
     character_id: int,
     skill: str,
     d20_roll: int,
+    player_initiated: bool = False,
 ):
     audio_chunks = await get_audio_chunks(websocket=websocket)
     wav_path = await save_chunks_to_wav(audio_chunks)
 
     try:
         async with get_async_db_session() as session:
+            # Do large DB context lookup along with transcription and moderation checks
             ctx, (transcription, is_blocked) = await asyncio.gather(
                 get_conversation_context(
                     world_id=world_id,
@@ -96,6 +99,7 @@ async def challenge_character(
                 transcribe_and_moderate(user_id=user_id, wav_file_path=wav_path),
             )
 
+            # If flagged, fallback to default reply
             if is_blocked:
                 await handle_moderation_response(
                     websocket=websocket,
@@ -109,7 +113,7 @@ async def challenge_character(
             # Set user message as overall trace input
             get_client().update_current_trace(input=transcription)
 
-            # Calculate skill check and filter reveals outside of session
+            # Calculate skill check using d20 roll, ability (charisma) and skill
             total_roll = calculate_skill_check(
                 skill=skill,
                 player=ctx.player,
@@ -117,27 +121,33 @@ async def challenge_character(
                 influence=ctx.influence,
             )
 
+            # Conditionally calculate what reveals are available if not player initiated (e.g., for detailed view or not)
+            reveals = (
+                [
+                    calculate_reveal_progress(reveal, total_roll)
+                    for reveal in ctx.reveals
+                ]
+                if not player_initiated
+                else []
+            )
+
             try:
-                # TODO: Need to include the modifier (e.g., influence being added to roll) in this case to make it clear whats happening
                 await websocket.send_json(
                     ConversationData(
                         influence=total_roll,
-                        reveals=[
-                            calculate_reveal_progress(reveal, total_roll)
-                            for reveal in ctx.reveals
-                        ],
+                        reveals=reveals,
                     ).model_dump()
                 )
             except Exception as e:
                 logger.error(f"Failed to send challenge data: {e}")
 
-            # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render prompt
+            # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render agent prompt
             rendered_prompt, rendered_instructions = render_challenge_prompts(
                 ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll)
             )
             agent = ChallengeAgent(
                 system_prompt=rendered_prompt,
-                # In the case of critical failure there are no instructions
+                # In the case of critical failure there is no additional context (e.g., reveals) to give
                 instructions=rendered_instructions if rendered_instructions else None,
             )
 

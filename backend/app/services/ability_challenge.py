@@ -23,9 +23,10 @@ def calculate_skill_check(
     """
     skill_modifier = player.skills.get(skill)
     charisma_modifier = player.abilities.get(Abilities.CHARISMA.value)
-    influence_modifier = influence.score
+    # NOTE: Adding positive influence makes the final scores too high, so only include if negative (e.g., character dislikes them)
+    negative_influence_modifier = influence.score if influence.score <= 0 else 0
 
-    total = d20_roll + charisma_modifier + skill_modifier + influence_modifier
+    total = d20_roll + charisma_modifier + skill_modifier + negative_influence_modifier
 
     return total
 

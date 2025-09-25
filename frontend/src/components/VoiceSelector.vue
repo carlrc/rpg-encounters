@@ -179,6 +179,7 @@
 <script>
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import { useGameDataStore } from '../stores/gameData.js'
   import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer.js'
   import { searchVoices, getVoiceSample, getTTSProviders } from '../services/api.js'
@@ -285,7 +286,7 @@
           allVoices.value = response.voices || []
         } catch (err) {
           loadError.value = 'Failed to load voices. Please try again.'
-          console.error('Failed to load voices:', err)
+          console.error('Failed to load voices:', JSON.stringify(serializeError(err)))
         } finally {
           initialLoading.value = false
         }
@@ -355,7 +356,7 @@
           if (voiceId === manualVoiceId.value.trim()) {
             manualVoiceError.value = 'Invalid voice ID or failed to play sample'
           }
-          console.error('Voice sample playback failed:', err)
+          console.error('Voice sample playback failed:', JSON.stringify(serializeError(err)))
         } finally {
           playingVoiceId.value = null
           audioLoading.value = false

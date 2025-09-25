@@ -203,12 +203,19 @@
             title: form.title.trim(),
             character_ids: form.character_ids.map((id) => parseInt(id)),
             level_1_content: form.level_1_content.trim(),
-            level_2_content: form.enable_level_2 ? form.level_2_content.trim() : null,
-            level_3_content: form.enable_level_3 ? form.level_3_content.trim() : null,
             standard_threshold: form.standard_threshold,
-            privileged_threshold: form.enable_level_2 ? form.privileged_threshold : null,
-            exclusive_threshold: form.enable_level_3 ? form.exclusive_threshold : null,
           }
+
+          // Only add optional fields if they're enabled
+          if (form.enable_level_2) {
+            formData.level_2_content = form.level_2_content.trim()
+            formData.privileged_threshold = form.privileged_threshold
+          }
+          if (form.enable_level_3) {
+            formData.level_3_content = form.level_3_content.trim()
+            formData.exclusive_threshold = form.exclusive_threshold
+          }
+
           emit('save', formData)
         }
       }

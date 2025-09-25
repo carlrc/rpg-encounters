@@ -13,8 +13,16 @@ from app.db.models.base import SimpleBase
 memory_characters = Table(
     "memory_characters",
     SimpleBase.metadata,
-    Column("memory_id", ForeignKey(f"{MEMORIES_TABLE}.id"), primary_key=True),
-    Column("character_id", ForeignKey(f"{CHARACTERS_TABLE}.id"), primary_key=True),
+    Column(
+        "memory_id",
+        ForeignKey(f"{MEMORIES_TABLE}.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "character_id",
+        ForeignKey(f"{CHARACTERS_TABLE}.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )
 
 encounter_characters = Table(
@@ -50,6 +58,14 @@ encounter_players = Table(
 reveal_characters = Table(
     "reveal_characters",
     SimpleBase.metadata,
-    Column("reveal_id", ForeignKey(f"{REVEALS_TABLE}.id"), primary_key=True),
-    Column("character_id", ForeignKey(f"{CHARACTERS_TABLE}.id"), primary_key=True),
+    Column(
+        "reveal_id",
+        ForeignKey(f"{REVEALS_TABLE}.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "character_id",
+        ForeignKey(f"{CHARACTERS_TABLE}.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
 )

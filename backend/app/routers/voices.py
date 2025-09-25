@@ -1,13 +1,14 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
+from app.auth.session import UserSession
 from app.clients.tts import ELEVANLABS_TTS, GOOGLE_TTS, create_tts_provider
 from app.clients.tts_base import VoicesResponse
-from app.data.account_store import AccountStore
-from app.dependencies import get_current_user_world
+from app.data.account_store import get_user_elevenlabs_token
+from app.dependencies import validate_current_user_world
 from app.http import INTERNAL_SERVER_ERROR
 
 router = APIRouter(prefix="/api/voices", tags=["voices"])
@@ -17,22 +18,12 @@ logger = logging.getLogger(__name__)
 VOICE_SAMPLE_TEXT = "This is a character voice sample"
 
 
-async def get_user_elevenlabs_token(user_id: int) -> str | None:
-    """Check if user has ElevenLabs token configured - with LRU cache"""
-    try:
-        account = await AccountStore(user_id=user_id).get_account_by_user_id(user_id)
-        return account.elevenlabs_token
-    except Exception as e:
-        logger.error(f"Failed to check ElevenLabs token for user {user_id}: {e}")
-        return None
-
-
 @router.get("/tts_providers", response_model=List[str])
 async def get_tts_providers(
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Get available TTS providers for the current user"""
-    user_id, _ = user_world
+    user_id, _ = session.user_id, session.world_id
 
     try:
         providers = [GOOGLE_TTS]
@@ -43,7 +34,10 @@ async def get_tts_providers(
         return providers
     except Exception as e:
         logger.error(f"Failed to get TTS providers for user {user_id}: {e}")
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/search", response_model=VoicesResponse)
@@ -53,10 +47,10 @@ async def search_voices(
         None, description="Pagination token for next page"
     ),
     tts_provider: str = Query(..., description="TTS provider"),
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Search for available voices"""
-    user_id, _ = user_world
+    user_id, _ = session.user_id, session.world_id
 
     try:
         elevanlabs_token = await get_user_elevenlabs_token(user_id=user_id)
@@ -73,17 +67,20 @@ async def search_voices(
         logger.error(
             f"Failed to search voices for user {user_id} and term '{search_term}'. {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/{voice_id}/sample")
 async def get_voice_sample(
     voice_id: str,
     tts_provider: str = Query(..., description="TTS provider"),
-    user_world: tuple[int, int] = Depends(get_current_user_world),
+    session: UserSession = Depends(validate_current_user_world),
 ):
     """Generate and stream a voice sample using static text"""
-    user_id, _ = user_world
+    user_id, _ = session.user_id, session.world_id
 
     try:
         elevanlabs_token = await get_user_elevenlabs_token(user_id)
@@ -111,4 +108,7 @@ async def get_voice_sample(
         logger.error(
             f"Failed to generate voice sample {voice_id} for user {user_id}. {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )

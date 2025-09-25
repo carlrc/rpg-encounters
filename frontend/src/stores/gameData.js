@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { serializeError } from 'serialize-error'
 import { getGameData } from '../services/api'
 
 export const useGameDataStore = defineStore('gameData', () => {
@@ -17,6 +18,7 @@ export const useGameDataStore = defineStore('gameData', () => {
       data.value = await getGameData()
       return data.value
     } catch (err) {
+      console.error('Game data store error:', JSON.stringify(serializeError(err)))
       error.value = err
       throw err
     } finally {

@@ -32,6 +32,7 @@
 
 <script setup>
   import { ref } from 'vue'
+  import { serializeError } from 'serialize-error'
   import { requestMagicLink } from '@/services/api'
   import '@/components/shared.css'
 
@@ -47,7 +48,7 @@
       await requestMagicLink(email.value)
       emailSent.value = true
     } catch (error) {
-      console.error('Failed to send login link:', error)
+      console.error('Failed to send login link:', JSON.stringify(serializeError(error)))
       alert('Failed to send login link. Please try again.')
     } finally {
       loading.value = false
