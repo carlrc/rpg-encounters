@@ -96,7 +96,7 @@ class MagicLinkStore(BaseStore):
                     update(MagicLinkORM)
                     .where(
                         MagicLinkORM.token_hash == token_hash,
-                        MagicLinkORM.used is False,
+                        MagicLinkORM.used == False,  # noqa: E712
                         MagicLinkORM.expires_at > now,
                         MagicLinkORM.device_nonce_hash == device_nonce_hash,
                     )

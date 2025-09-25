@@ -103,7 +103,7 @@ class PlayerMagicLinkStore(BaseStore):
                 update(PlayerMagicLinkORM)
                 .where(
                     PlayerMagicLinkORM.token_hash == token_hash,
-                    PlayerMagicLinkORM.used is False,
+                    PlayerMagicLinkORM.used == False,  # noqa: E712
                     PlayerMagicLinkORM.expires_at > now,
                 )
                 .values(used=True, used_at=now)
