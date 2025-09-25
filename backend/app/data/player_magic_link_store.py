@@ -32,11 +32,11 @@ logger = logging.getLogger(__name__)
 class PlayerMagicLinkStore(BaseStore):
     def __init__(
         self,
-        user_id: int = 0,
-        world_id: int | None = None,
+        user_id: int = None,
+        world_id: int = None,
         session: AsyncSession | None = None,
     ):
-        super().__init__(user_id, world_id, session)
+        super().__init__(user_id=user_id, world_id=world_id, session=session)
 
     @staticmethod
     def generate_token(num_bytes: int = 32) -> str:
@@ -54,22 +54,10 @@ class PlayerMagicLinkStore(BaseStore):
         return datetime.now(timezone.utc) + timedelta(minutes=minutes)
 
     async def create(
-        self, player_id: int, user_id: int, world_id: int
-    ) -> tuple[PlayerMagicLink, str]:
-        """Create a new player magic link and return both the link and raw token"""
+        self, player_magic_link_data: PlayerMagicLinkCreate
+    ) -> PlayerMagicLink:
+        """Create a new player magic link"""
         try:
-            raw_token = self.generate_token()
-            token_hash = self.hash_token(raw_token)
-
-            player_magic_link_data = PlayerMagicLinkCreate(
-                player_id=player_id,
-                user_id=user_id,
-                world_id=world_id,
-                token_hash=token_hash,
-                expires_at=self.magic_link_expiry(),
-                used=False,
-            )
-
             player_magic_link_orm = PlayerMagicLinkORM(
                 **player_magic_link_data.model_dump()
             )
@@ -77,12 +65,11 @@ class PlayerMagicLinkStore(BaseStore):
             await self.session.flush()
             await self.session.refresh(player_magic_link_orm)
 
-            player_magic_link = PlayerMagicLink.model_validate(player_magic_link_orm)
-            return player_magic_link, raw_token
+            return PlayerMagicLink.model_validate(player_magic_link_orm)
 
         except Exception as e:
             logger.error(
-                f"Failed to create player magic link for player {player_id}: {e}"
+                f"Failed to create player magic link for player {player_magic_link_data.player_id}: {e}"
             )
             raise e
 

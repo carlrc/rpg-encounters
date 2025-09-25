@@ -20,7 +20,7 @@ from app.dependencies import validate_current_player, validate_current_user_worl
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.encounter import PlayerEncounterResponse
 from app.models.player import Player, PlayerCreate, PlayerUpdate
-from app.models.player_magic_link import PlayerLoginResponse
+from app.models.player_magic_link import PlayerLoginResponse, PlayerMagicLinkCreate
 from app.utils import get_or_throw
 
 router = APIRouter(prefix="/api/players", tags=["players"])
@@ -167,11 +167,24 @@ async def request_player_login(
                 status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
             )
 
-        # Create player magic link
-        player_magic_link_store = PlayerMagicLinkStore(session=db_session)
-        player_magic_link, raw_token = await player_magic_link_store.create(
-            player_id=player_id, user_id=user_id, world_id=world_id
+        # Generate token and hash
+        raw_token = PlayerMagicLinkStore.generate_token()
+        token_hash = PlayerMagicLinkStore.hash_token(raw_token)
+
+        # Create player magic link data
+        player_magic_link_data = PlayerMagicLinkCreate(
+            player_id=player_id,
+            user_id=user_id,
+            world_id=world_id,
+            token_hash=token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
+
+        # Create player magic link
+        player_magic_link = await PlayerMagicLinkStore(
+            user_id=user_id, world_id=world_id, session=db_session
+        ).create(player_magic_link_data)
 
         # Login link
         magic_link = f"{FRONTEND_URL}/players/{player_id}/login?token={raw_token}"

@@ -68,7 +68,7 @@ async def request_magic_link(
             # But don't actually create a magic link
             return
 
-        magic_link_store = MagicLinkStore(session=session)
+        magic_link_store = MagicLinkStore(user_id=account.user_id, session=session)
 
         # Generate new device nonce for strict device binding
         device_nonce = MagicLinkStore.generate_token()
@@ -151,6 +151,9 @@ async def consume_magic_link(
 
     try:
         magic_link = await magic_link_store.consume(token_hash, device_nonce_hash)
+
+        # Clear any existing session data before establishing new user session
+        destroy_session(request)
 
         # Create session
         request.session["user_id"] = magic_link.user_id

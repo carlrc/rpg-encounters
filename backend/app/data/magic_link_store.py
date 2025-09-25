@@ -3,7 +3,7 @@ import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,12 +41,10 @@ class DeviceMismatchError(Exception):
 class MagicLinkStore(BaseStore):
     def __init__(
         self,
-        user_id: int = 0,
-        world_id: int | None = None,
+        user_id: int = None,
         session: AsyncSession | None = None,
     ):
-        # Magic links don't need user_id for creation, but keep consistent with BaseStore
-        super().__init__(user_id, world_id, session)
+        super().__init__(user_id=user_id, session=session)
 
     @staticmethod
     def generate_token(num_bytes: int = 32) -> str:
@@ -153,24 +151,4 @@ class MagicLinkStore(BaseStore):
             raise
         except SQLAlchemyError as e:
             logger.error(f"Error consuming magic link for user {self.user_id}: {e}")
-            raise
-
-    async def cleanup(self) -> int:
-        """Delete expired and used magic links. Returns count of deleted records."""
-        try:
-            async with self.get_session() as session:
-                cutoff_time = datetime.now(timezone.utc) - timedelta(days=1)
-                result = await session.execute(
-                    delete(MagicLinkORM).where(
-                        (MagicLinkORM.expires_at < datetime.now(timezone.utc))
-                        | (MagicLinkORM.used == True)  # noqa: E712
-                        | (MagicLinkORM.created_at < cutoff_time)
-                    )
-                )
-                await session.flush()
-                return result.rowcount or 0
-        except SQLAlchemyError as e:
-            logger.error(
-                f"Error cleaning up expired magic links for user {self.user_id}: {e}"
-            )
             raise
