@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
 from app.auth.session import UserSession
@@ -34,7 +34,10 @@ async def get_tts_providers(
         return providers
     except Exception as e:
         logger.error(f"Failed to get TTS providers for user {user_id}: {e}")
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/search", response_model=VoicesResponse)
@@ -64,7 +67,10 @@ async def search_voices(
         logger.error(
             f"Failed to search voices for user {user_id} and term '{search_term}'. {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/{voice_id}/sample")
@@ -102,4 +108,7 @@ async def get_voice_sample(
         logger.error(
             f"Failed to generate voice sample {voice_id} for user {user_id}. {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )

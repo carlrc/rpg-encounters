@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.session import UserSession
@@ -40,7 +40,10 @@ async def get_canvas(
         raise
     except Exception as e:
         logger.error(f"Failed to get canvas for user {user_id}, world {world_id}: {e}")
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.post("", response_model=CanvasResponse)
@@ -101,7 +104,8 @@ async def save_canvas(
         for encounter_update in request.existing_encounters:
             if not encounter_update.id:
                 raise HTTPException(
-                    status_code=400, detail="Existing encounter missing ID"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Existing encounter missing ID",
                 )
             updated = await encounter_store.update(
                 encounter_id=int(encounter_update.id),
@@ -110,7 +114,9 @@ async def save_canvas(
                 ),
             )
             if not updated:
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                )
             all_encounters.append(updated)
             # Add existing encounters to map (they keep their real IDs)
             encounter_id_map[encounter_update.id] = updated.id
@@ -129,7 +135,9 @@ async def save_canvas(
                     logger.error(
                         f"Source encounter {connection_data.source_encounter_id} not found"
                     )
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                    )
 
                 source_id = existing_encounter.id
                 encounter_id_map[source_id] = source_id  # Add to map for future lookups
@@ -146,7 +154,9 @@ async def save_canvas(
                     logger.error(
                         f"Target encounter {connection_data.target_encounter_id} not found"
                     )
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                    )
 
                 target_id = existing_encounter.id
                 encounter_id_map[target_id] = target_id  # Add to map for future lookups
@@ -162,7 +172,8 @@ async def save_canvas(
         for connection_update in request.existing_connections:
             if not connection_update.id:
                 raise HTTPException(
-                    status_code=400, detail="Existing connection missing ID"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Existing connection missing ID",
                 )
 
             # Ensure encounter IDs are integers (existing connections have DB IDs)
@@ -177,7 +188,9 @@ async def save_canvas(
                 connection_update.id, connection_update
             )
             if not updated:
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                )
             all_connections.append(updated)
 
         return CanvasResponse(encounters=all_encounters, connections=all_connections)
@@ -185,4 +198,7 @@ async def save_canvas(
         raise
     except Exception as e:
         logger.error(f"Failed to save canvas for user {user_id}, world {world_id}: {e}")
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )

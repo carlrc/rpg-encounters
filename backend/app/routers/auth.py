@@ -161,7 +161,6 @@ async def consume_magic_link(
         TokenExpiredError,
         DeviceMismatchError,
     ):
-        # Redirect to login page with error instead of returning JSON
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.error(f"Error processing magic link: {e}")

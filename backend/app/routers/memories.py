@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.session import UserSession
@@ -31,7 +31,10 @@ async def get_all_memories(
         logger.error(
             f"Failed to get memories for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/{memory_id}", response_model=Memory)
@@ -45,7 +48,9 @@ async def get_memory(
             memory_id
         )
         if not memory:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
         return memory
     except HTTPException:
         raise
@@ -53,7 +58,10 @@ async def get_memory(
         logger.error(
             f"Failed to get memory {memory_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.post("", response_model=Memory)
@@ -71,7 +79,9 @@ async def create_memory(
         )
         for character_id in memory_data.character_ids:
             if not await character_store.exists(character_id):
-                raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                )
 
         return await MemoryStore(
             user_id=user_id, world_id=world_id, session=db_session
@@ -82,7 +92,10 @@ async def create_memory(
         logger.error(
             f"Failed to create memory for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.put("/{memory_id}", response_model=Memory)
@@ -102,13 +115,17 @@ async def update_memory(
             )
             for character_id in memory_update.character_ids:
                 if not await character_store.exists(character_id):
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                    )
 
         memory = await MemoryStore(
             user_id=user_id, world_id=world_id, session=db_session
         ).update(memory_id, memory_update)
         if not memory:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
         return memory
     except HTTPException:
         raise
@@ -116,7 +133,10 @@ async def update_memory(
         logger.error(
             f"Failed to update memory {memory_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.delete("/{memory_id}")
@@ -130,11 +150,16 @@ async def delete_memory(
             memory_id
         )
         if not success:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
     except HTTPException:
         raise
     except Exception as e:
         logger.error(
             f"Failed to delete memory {memory_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )

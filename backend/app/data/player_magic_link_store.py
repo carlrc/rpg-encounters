@@ -88,40 +88,64 @@ class PlayerMagicLinkStore(BaseStore):
 
     async def consume(self, token_hash: str) -> PlayerMagicLink:
         """
-        Validate and consume a player magic link token in a single atomic operation.
+        Atomically validate and consume a player magic link token.
+
+        Uses a conditional UPDATE to ensure only valid, unused tokens are consumed.
+        Multiple concurrent requests for the same token will result in only one success.
+
         Returns the PlayerMagicLink if successful.
+        Raises specific exceptions for different error conditions.
         """
         try:
+            now = datetime.now(timezone.utc)
+
             result = await self.session.execute(
-                select(PlayerMagicLinkORM).where(
-                    PlayerMagicLinkORM.token_hash == token_hash
+                update(PlayerMagicLinkORM)
+                .where(
+                    PlayerMagicLinkORM.token_hash == token_hash,
+                    PlayerMagicLinkORM.used is False,
+                    PlayerMagicLinkORM.expires_at > now,
                 )
+                .values(used=True, used_at=now)
+                .returning(PlayerMagicLinkORM)
             )
+
+            # Extract the updated token - None if no rows matched the conditions
             player_magic_link_orm = result.scalar_one_or_none()
 
             if not player_magic_link_orm:
-                raise PlayerTokenNotFoundError("Player magic link token not found")
-
-            if player_magic_link_orm.used:
-                raise PlayerTokenAlreadyUsedError(
-                    "Player magic link token already used"
+                # The conditional update failed - determine why for specific error message
+                # This diagnostic query is safe as it's read-only and not used for business logic
+                check_result = await self.session.execute(
+                    select(PlayerMagicLinkORM).where(
+                        PlayerMagicLinkORM.token_hash == token_hash
+                    )
                 )
+                existing_token = check_result.scalar_one_or_none()
 
-            if player_magic_link_orm.expires_at < datetime.now(timezone.utc):
-                raise PlayerTokenExpiredError("Player magic link token expired")
+                # Check each possible failure condition
+                if not existing_token:
+                    raise PlayerTokenNotFoundError("Player magic link token not found")
+                elif existing_token.used:
+                    raise PlayerTokenAlreadyUsedError(
+                        "Player magic link token already used"
+                    )
+                elif existing_token.expires_at <= now:
+                    raise PlayerTokenExpiredError("Player magic link token expired")
+                else:
+                    # Fallback for unexpected state
+                    raise PlayerTokenNotFoundError("Player magic link token not found")
 
-            # Mark as used atomically
-            await self.session.execute(
-                update(PlayerMagicLinkORM)
-                .where(PlayerMagicLinkORM.id == player_magic_link_orm.id)
-                .values(used=True, used_at=datetime.now(timezone.utc))
-            )
-
+            # Token successfully consumed
             await self.session.flush()
-            await self.session.refresh(player_magic_link_orm)
-
             return PlayerMagicLink.model_validate(player_magic_link_orm)
 
+        except (
+            PlayerTokenNotFoundError,
+            PlayerTokenAlreadyUsedError,
+            PlayerTokenExpiredError,
+        ):
+            raise
         except Exception as e:
             logger.error(f"Failed to consume player magic link token: {e}")
             raise e

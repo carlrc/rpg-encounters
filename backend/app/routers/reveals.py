@@ -146,7 +146,9 @@ async def update_reveal(
             )
             for character_id in reveal_update.character_ids:
                 if not await character_store.exists(character_id):
-                    raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                    )
 
         reveal = await RevealStore(
             user_id=user_id, world_id=world_id, session=db_session

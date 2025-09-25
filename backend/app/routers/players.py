@@ -60,7 +60,9 @@ async def get_player(
             player_id
         )
         if player is None:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
         return player
     except HTTPException:
         raise
@@ -74,7 +76,7 @@ async def get_player(
         )
 
 
-@router.post("", response_model=Player, status_code=201)
+@router.post("", response_model=Player)
 async def create_player(
     player: PlayerCreate,
     session: UserSession = Depends(validate_current_user_world),
@@ -108,7 +110,9 @@ async def update_player(
             player_id, player_update
         )
         if updated_player is None:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
         return updated_player
     except HTTPException:
         raise
@@ -122,7 +126,7 @@ async def update_player(
         )
 
 
-@router.delete("/{player_id}", status_code=204)
+@router.delete("/{player_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_player(
     player_id: int, session: UserSession = Depends(validate_current_user_world)
 ):
@@ -130,7 +134,9 @@ async def delete_player(
     user_id, world_id = session.user_id, session.world_id
     try:
         if not await PlayerStore(user_id=user_id, world_id=world_id).delete(player_id):
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
     except HTTPException:
         raise
     except Exception as e:
@@ -234,7 +240,10 @@ async def consume_player_login(
         raise
     except Exception as e:
         logger.error(f"Failed to consume player login for player {player_id}: {e}")
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/{player_id}/encounter", response_model=PlayerEncounterResponse)

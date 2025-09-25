@@ -111,7 +111,10 @@ async def get_characters(
         logger.error(
             f"Failed to get characters for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.get("/{character_id}", response_model=Character)
@@ -126,7 +129,9 @@ async def get_character(
             character_id
         )
         if not character:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
         return character
     except HTTPException:
         raise
@@ -134,10 +139,13 @@ async def get_character(
         logger.error(
             f"Failed to get character {character_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
-@router.post("", response_model=Character, status_code=201)
+@router.post("", response_model=Character)
 async def create_character(
     character_data: CharacterCreate,
     background_tasks: BackgroundTasks,
@@ -186,7 +194,10 @@ async def create_character(
         logger.error(
             f"Failed to create character for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
 @router.put("/{character_id}", response_model=Character)
@@ -203,7 +214,9 @@ async def update_character(
         # Ensure the character exists first
         character = await character_store.get_by_id(character_id=character_id)
         if not character:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
 
         # Moderate character fields
         character_update = await moderate_character(
@@ -258,10 +271,13 @@ async def update_character(
         logger.error(
             f"Failed to update character {character_id} for user {user_id}, world {world_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
 
 
-@router.delete("/{character_id}", status_code=204)
+@router.delete("/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_character(
     character_id: int,
     session: UserSession = Depends(validate_current_user_world),
