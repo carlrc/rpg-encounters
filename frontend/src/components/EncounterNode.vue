@@ -619,7 +619,7 @@
   }
 
   .info-btn.active {
-    background: var(--success-color);
+    background: var(--addition-color);
   }
 
   /* Encounter Description Section - Floating Box */
