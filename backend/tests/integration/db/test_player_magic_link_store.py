@@ -41,9 +41,19 @@ async def test_player_magic_link_create_and_retrieve():
 
         # Create player magic link
         player_magic_link_store = PlayerMagicLinkStore(session=session)
-        magic_link, raw_token = await player_magic_link_store.create(
-            player_id=player.id, user_id=user.id, world_id=world.id
+        raw_token = PlayerMagicLinkStore.generate_token()
+        token_hash = PlayerMagicLinkStore.hash_token(raw_token)
+
+        magic_link_data = PlayerMagicLinkCreate(
+            player_id=player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
+
+        magic_link = await player_magic_link_store.create(magic_link_data)
 
         # Verify link properties
         assert magic_link.player_id == player.id
@@ -75,9 +85,19 @@ async def test_player_magic_link_consume_success():
 
         # Create player magic link
         player_magic_link_store = PlayerMagicLinkStore(session=session)
-        created_link, raw_token = await player_magic_link_store.create(
-            player_id=player.id, user_id=user.id, world_id=world.id
+        raw_token = PlayerMagicLinkStore.generate_token()
+        token_hash = PlayerMagicLinkStore.hash_token(raw_token)
+
+        magic_link_data = PlayerMagicLinkCreate(
+            player_id=player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
+
+        created_link = await player_magic_link_store.create(magic_link_data)
 
         # Consume the magic link
         token_hash = PlayerMagicLinkStore.hash_token(raw_token)
@@ -152,9 +172,19 @@ async def test_player_magic_link_consume_already_used():
 
         # Create player magic link
         player_magic_link_store = PlayerMagicLinkStore(session=session)
-        magic_link, raw_token = await player_magic_link_store.create(
-            player_id=player.id, user_id=user.id, world_id=world.id
+        raw_token = PlayerMagicLinkStore.generate_token()
+        token_hash = PlayerMagicLinkStore.hash_token(raw_token)
+
+        magic_link_data = PlayerMagicLinkCreate(
+            player_id=player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
+
+        await player_magic_link_store.create(magic_link_data)
 
         # Consume the link once
         token_hash = PlayerMagicLinkStore.hash_token(raw_token)
@@ -200,9 +230,19 @@ async def test_multiple_player_links_same_player():
         links = []
 
         for _ in range(3):
-            magic_link, raw_token = await player_magic_link_store.create(
-                player_id=player.id, user_id=user.id, world_id=world.id
+            raw_token = PlayerMagicLinkStore.generate_token()
+            token_hash = PlayerMagicLinkStore.hash_token(raw_token)
+
+            magic_link_data = PlayerMagicLinkCreate(
+                player_id=player.id,
+                user_id=user.id,
+                world_id=world.id,
+                token_hash=token_hash,
+                expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+                used=False,
             )
+
+            magic_link = await player_magic_link_store.create(magic_link_data)
             links.append((magic_link, raw_token))
 
         # Verify all links exist and are independent
@@ -248,9 +288,19 @@ async def test_player_link_no_device_binding():
 
         # Create player magic link
         player_magic_link_store = PlayerMagicLinkStore(session=session)
-        magic_link, raw_token = await player_magic_link_store.create(
-            player_id=player.id, user_id=user.id, world_id=world.id
+        raw_token = PlayerMagicLinkStore.generate_token()
+        token_hash = PlayerMagicLinkStore.hash_token(raw_token)
+
+        magic_link_data = PlayerMagicLinkCreate(
+            player_id=player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
+
+        magic_link = await player_magic_link_store.create(magic_link_data)
 
         # Consume without device binding - should work
         token_hash = PlayerMagicLinkStore.hash_token(raw_token)
@@ -286,13 +336,33 @@ async def test_different_players_for_comparison():
         # Create magic links for both players
         player_magic_link_store = PlayerMagicLinkStore(session=session)
 
-        bard_link, bard_token = await player_magic_link_store.create(
-            player_id=bard_player.id, user_id=user.id, world_id=world.id
+        bard_token = PlayerMagicLinkStore.generate_token()
+        bard_token_hash = PlayerMagicLinkStore.hash_token(bard_token)
+
+        bard_magic_link_data = PlayerMagicLinkCreate(
+            player_id=bard_player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=bard_token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
 
-        barbarian_link, barbarian_token = await player_magic_link_store.create(
-            player_id=barbarian_player.id, user_id=user.id, world_id=world.id
+        bard_link = await player_magic_link_store.create(bard_magic_link_data)
+
+        barbarian_token = PlayerMagicLinkStore.generate_token()
+        barbarian_token_hash = PlayerMagicLinkStore.hash_token(barbarian_token)
+
+        barbarian_magic_link_data = PlayerMagicLinkCreate(
+            player_id=barbarian_player.id,
+            user_id=user.id,
+            world_id=world.id,
+            token_hash=barbarian_token_hash,
+            expires_at=PlayerMagicLinkStore.magic_link_expiry(),
+            used=False,
         )
+
+        barbarian_link = await player_magic_link_store.create(barbarian_magic_link_data)
 
         # Verify links are independent
         assert bard_link.player_id == bard_player.id

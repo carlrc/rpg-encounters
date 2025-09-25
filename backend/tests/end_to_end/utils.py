@@ -20,7 +20,7 @@ from app.http import DEVICE_NONCE_COOKIE
 from app.main import app
 from app.models.account import AccountCreate
 from app.models.magic_link import MagicLink, MagicLinkCreate
-from app.models.player import PlayerCreate
+from app.models.player import Player, PlayerCreate
 from app.models.player_magic_link import PlayerMagicLink, PlayerMagicLinkCreate
 from app.models.user import UserCreate
 from tests.fixtures.generate import default_player
@@ -125,13 +125,13 @@ async def get_latest_magic_link_for_user(user_id: int) -> MagicLink | None:
         return MagicLink.model_validate(magic_link) if magic_link else None
 
 
-async def create_test_player(user_id: int, world_id: int) -> tuple:
-    """Create a test player for testing - returns (player, player_store)"""
+async def create_test_player(user_id: int, world_id: int) -> Player:
+    """Create a test player for testing - returns player"""
     player_store = PlayerStore(user_id=user_id, world_id=world_id)
     player_data = default_player(player_id=1)
     player_create = PlayerCreate(**player_data.model_dump(exclude={"id"}))
     player = await player_store.create(player_create)
-    return player, player_store
+    return player
 
 
 async def get_latest_player_magic_link_for_player(
@@ -167,7 +167,7 @@ async def create_authenticated_player_client(user_id: int = None, world_id: int 
         user, _, world = await create_test_user_and_account()
 
     # Create a test player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     # Create player magic link directly
     test_token = PlayerMagicLinkStore.generate_token()

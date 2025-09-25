@@ -22,7 +22,7 @@ async def test_player_login_complete_flow():
     dm_client, user, _, world = await create_authenticated_client()
 
     # Create a player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     # Step 1: Generate player login link
     response = dm_client.post(
@@ -77,7 +77,7 @@ async def test_player_login_invalid_token_consumption():
     _, user, _, world = await create_authenticated_client()
 
     # Create a player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     # Try to consume with invalid token
     client = TestClient(app)
@@ -92,7 +92,7 @@ async def test_player_login_token_reuse_prevention():
     dm_client, user, _, world = await create_authenticated_client()
 
     # Create a player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     test_token = PlayerMagicLinkStore.generate_token()
     with patch(
@@ -127,8 +127,8 @@ async def test_player_login_mismatched_player_id():
     dm_client, user, _, world = await create_authenticated_client()
 
     # Create two players
-    player1, _ = await create_test_player(user.id, world.id)
-    player2, _ = await create_test_player(user.id, world.id)
+    player1 = await create_test_player(user.id, world.id)
+    player2 = await create_test_player(user.id, world.id)
 
     # Generate login link for player1
     response = dm_client.post(
@@ -149,7 +149,7 @@ async def test_player_login_rate_limiting():
     _, user, _, world = await create_authenticated_client()
 
     # Create a player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     client = TestClient(app)
 
@@ -167,7 +167,7 @@ async def test_player_login_missing_token():
     user, _, world = await create_test_user_and_account()
 
     # Create a player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     client = TestClient(app)
     response = client.get(f"/api/players/{player.id}/login")
@@ -184,7 +184,7 @@ async def test_player_login_expired_token():
     user, _, world = await create_test_user_and_account()
 
     # Create a player
-    player, _ = await create_test_player(user.id, world.id)
+    player = await create_test_player(user.id, world.id)
 
     # Create expired token directly in database
     player_magic_link_store = PlayerMagicLinkStore()
@@ -240,8 +240,8 @@ async def test_multiple_player_sessions():
     dm_client, user, _, world = await create_authenticated_client()
 
     # Create two players
-    player1, _ = await create_test_player(user.id, world.id)
-    player2, _ = await create_test_player(user.id, world.id)
+    player1 = await create_test_player(user.id, world.id)
+    player2 = await create_test_player(user.id, world.id)
 
     # Generate login links for both players
     response1 = dm_client.post(
