@@ -24,6 +24,7 @@
 <script>
   import { ref, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
+  import { serializeError } from 'serialize-error'
   import { consumePlayerLogin } from '../services/api.js'
   import { useWorldStore } from '../stores/world.js'
 
@@ -64,7 +65,7 @@
             error.value = 'Authentication failed. Please try again.'
           }
         } catch (err) {
-          console.error('Player login error:', err)
+          console.error('Player login error:', JSON.stringify(serializeError(err)))
           error.value = 'Login error. Try clearing your cookies and try again.'
         } finally {
           isProcessing.value = false

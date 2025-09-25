@@ -78,6 +78,7 @@
 <script setup>
   import { computed, ref } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
+  import { serializeError } from 'serialize-error'
   import { useAuthStore } from '@/stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
@@ -121,7 +122,7 @@
       await authStore.logout()
       router.push('/login')
     } catch (error) {
-      console.error('Logout failed:', error)
+      console.error('Logout failed:', JSON.stringify(serializeError(error)))
       // Force redirect anyway
       await authStore.logout()
       router.push('/login')

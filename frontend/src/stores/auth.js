@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { serializeError } from 'serialize-error'
 import { checkAuth, getWorlds } from '@/services/api'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -37,6 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
           }
         }
       } catch (error) {
+        console.error('Auth initialization error:', JSON.stringify(serializeError(error)))
         setAuthenticated(false)
       } finally {
         isInitialized.value = true

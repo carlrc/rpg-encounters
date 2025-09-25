@@ -12,7 +12,6 @@
     <div v-else-if="!encounter" class="empty-state">
       <div class="empty-content">
         <h2>No Active Encounter</h2>
-        <p>You are not currently assigned to any encounters.</p>
       </div>
     </div>
 
@@ -126,6 +125,7 @@
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import { getInitials } from '../utils/avatarUtils.js'
   import { getPlayerEncounter } from '../services/api.js'
   import { useGameDataStore } from '../stores/gameData.js'
@@ -227,12 +227,10 @@
             worldStore.setCurrentWorldId(encounterData.world_id)
           }
         } catch (error) {
-          // TODO: This should be a serialized error such as the other encounter pages using the npm package
-          console.error('Error loading encounter:', error)
-          // TODO: remove this
           if (error.message?.includes('404')) {
             encounter.value = null // No encounter assigned
           } else {
+            console.error('Error loading encounter:', JSON.stringify(serializeError(error)))
             showError('Failed to load encounter')
           }
         } finally {
@@ -319,15 +317,6 @@
       onUnmounted(async () => {
         await closeCharacterInteraction()
       })
-
-      // Watch for route changes
-      watch(
-        () => route.params.playerId,
-        async () => {
-          await closeCharacterInteraction()
-          loadEncounter()
-        }
-      )
 
       return {
         loading,

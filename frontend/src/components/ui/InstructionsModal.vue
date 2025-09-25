@@ -12,6 +12,7 @@
 
 <script setup>
   import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { serializeError } from 'serialize-error'
   import { marked } from 'marked'
 
   defineProps({
@@ -46,7 +47,7 @@
       const response = await fetch('/instructions.md')
       instructionsContent.value = await response.text()
     } catch (error) {
-      console.error('Failed to load instructions:', error)
+      console.error('Failed to load instructions:', JSON.stringify(serializeError(error)))
       instructionsContent.value = '# Error\n\nFailed to load instructions content.'
     }
 

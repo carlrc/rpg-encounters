@@ -53,6 +53,7 @@
 <script setup>
   import { ref, computed, onMounted, watch } from 'vue'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import MemoryCard from '../components/MemoryCard.vue'
@@ -111,7 +112,7 @@
     try {
       characters.value = await getCharacters()
     } catch (err) {
-      console.error('Error loading characters:', err)
+      console.error('Error loading characters:', JSON.stringify(serializeError(err)))
     }
   }
 
@@ -119,7 +120,7 @@
     try {
       await createEntity(formData)
     } catch (err) {
-      // Error handling is done in memory store
+      console.error('Memory entity creation error:', JSON.stringify(serializeError(err)))
     }
   }
 

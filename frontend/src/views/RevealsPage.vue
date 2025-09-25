@@ -55,6 +55,7 @@
   import { ref, computed, onMounted, watch } from 'vue'
   import { useRoute } from 'vue-router'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import RevealCard from '../components/RevealCard.vue'
@@ -118,7 +119,7 @@
     try {
       characters.value = await getCharacters()
     } catch (err) {
-      console.error('Error loading characters:', err)
+      console.error('Error loading characters:', JSON.stringify(serializeError(err)))
     }
   }
 
@@ -126,7 +127,7 @@
     try {
       await createEntity(formData)
     } catch (err) {
-      // Error handling is done in reveal store
+      console.error('Reveal entity creation error:', JSON.stringify(serializeError(err)))
     }
   }
 

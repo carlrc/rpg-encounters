@@ -283,6 +283,7 @@
 <script>
   import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
@@ -408,7 +409,7 @@
           showSuccess('Login link generated successfully')
         } catch (error) {
           showError('Failed to generate login link')
-          console.error('Error generating login link:', error)
+          console.error('Error generating login link:', JSON.stringify(serializeError(error)))
         } finally {
           generatingLink.value = false
         }
@@ -423,7 +424,7 @@
           showSuccess('Login link copied to clipboard')
         } catch (error) {
           showError('Failed to copy login link')
-          console.error('Error copying login link:', error)
+          console.error('Error copying login link:', JSON.stringify(serializeError(error)))
         } finally {
           setTimeout(() => {
             copyingLink.value = false

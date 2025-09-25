@@ -380,6 +380,7 @@
 <script setup>
   import { ref, reactive, computed, onMounted, onUnmounted, watch, watchEffect } from 'vue'
   import { storeToRefs } from 'pinia'
+  import { serializeError } from 'serialize-error'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
@@ -658,7 +659,7 @@
       const response = await getVoiceSample(props.character.voice_id, props.character.tts_provider)
       await httpPlayer.playResponse(response)
     } catch (err) {
-      console.error('Failed to play character voice sample:', err)
+      console.error('Failed to play character voice sample:', JSON.stringify(serializeError(err)))
     } finally {
       previewLoading.value = false
     }
