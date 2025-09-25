@@ -533,8 +533,9 @@
       onUnmounted(async () => {
         closeWebSocket()
 
-        if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
-          mediaRecorder.value.stop()
+        // If recording, stop via composable API to avoid out-of-scope refs
+        if (isRecording.value) {
+          stopRecording()
         }
 
         // Stop any playing audio when component unmounts
@@ -560,6 +561,9 @@
 
       // Also reset audio/websocket when navigating away to avoid mobile Safari quirks
       onBeforeRouteLeave(async () => {
+        if (isRecording.value) {
+          stopRecording()
+        }
         closeWebSocket()
         if (streamPlayer) {
           await streamPlayer.stop()
