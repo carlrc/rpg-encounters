@@ -44,7 +44,7 @@ async def request_magic_link(
     body: MagicLinkRequest,
     _: Request,
     response: Response,
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """
     Request a magic link for login. Account must already exist.
@@ -57,7 +57,7 @@ async def request_magic_link(
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS)
 
     try:
-        account = await AccountStore(user_id=None, session=session).get_by_email(
+        account = await AccountStore(user_id=None, session=db_session).get_by_email(
             body.email
         )
 
@@ -68,7 +68,7 @@ async def request_magic_link(
             # But don't actually create a magic link
             return
 
-        magic_link_store = MagicLinkStore(user_id=account.user_id, session=session)
+        magic_link_store = MagicLinkStore(user_id=account.user_id, session=db_session)
 
         # Generate new device nonce for strict device binding
         device_nonce = MagicLinkStore.generate_token()
@@ -130,7 +130,7 @@ async def request_magic_link(
 async def consume_magic_link(
     token: str,
     request: Request,
-    session: AsyncSession = Depends(get_async_db_routes_session),
+    db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """
     Consume a magic link token to create a user session and redirect to destination.
@@ -145,7 +145,7 @@ async def consume_magic_link(
         )
 
     # Validate and consume magic link atomically
-    magic_link_store = MagicLinkStore(session=session)
+    magic_link_store = MagicLinkStore(session=db_session)
     token_hash = MagicLinkStore.hash_token(token)
     device_nonce_hash = MagicLinkStore.hash_token(device_nonce)
 

@@ -148,7 +148,7 @@ async def create_connection(
     user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
         connection_store = ConnectionStore(
             user_id=user_id, world_id=world_id, session=db_session
@@ -188,7 +188,7 @@ async def update_connection(
     user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
         connection_store = ConnectionStore(
             user_id=user_id, world_id=world_id, session=db_session
