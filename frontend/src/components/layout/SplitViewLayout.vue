@@ -392,7 +392,7 @@
   .list-item {
     padding: var(--spacing-md) var(--spacing-lg);
     cursor: pointer;
-    transition: var(--transition-fast);
+    transition: none;
     border-left: 3px solid transparent;
     font-weight: var(--font-weight-medium);
     color: var(--text-secondary);
@@ -400,6 +400,7 @@
     margin: 2px var(--spacing-sm);
     border-radius: var(--radius-md);
     border: 1px solid transparent;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .list-item:hover {
@@ -413,7 +414,6 @@
     color: white;
     border-left-color: var(--primary-darker);
     font-weight: var(--font-weight-semibold);
-    box-shadow: var(--shadow-button);
   }
 
   .list-item.active:hover {

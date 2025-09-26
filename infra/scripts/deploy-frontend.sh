@@ -36,12 +36,10 @@ else
 fi
 echo ""
 
-# Build frontend
 echo "🔨 Building frontend..."
 cd "$FRONTEND_DIR"
 npm run build
 
-# Check if dist directory was created
 if [[ ! -d "dist" ]]; then
     echo "❌ Error: Build failed - dist directory not found"
     exit 1
@@ -50,28 +48,26 @@ fi
 echo "✅ Frontend build completed"
 echo ""
 
-# Sync to S3
 echo "📤 Uploading files to S3..."
 
-# Upload all files except HTML and JSON with long cache
 echo "  📁 Uploading assets..."
 aws s3 sync dist/ "s3://$BUCKET_NAME/" \
   --profile $AWS_PROFILE \
   --delete \
   --exclude "*.html" \
   --exclude "*.json" \
+  --exclude "*.md" \
 
-# Upload HTML and JSON files with short cache (for SPA routing)
-echo "  📄 Uploading HTML/JSON..."
+echo "  📄 Uploading HTML/JSON/Markdown..."
 aws s3 sync dist/ "s3://$BUCKET_NAME/" \
   --profile $AWS_PROFILE \
   --include "*.html" \
   --include "*.json" \
+  --include "*.md" \
 
 echo "✅ Files uploaded to S3"
 echo ""
 
-# Invalidate CloudFront if distribution ID provided
 if [[ -n "$DISTRIBUTION_ID" ]]; then
     echo "🔄 Creating CloudFront invalidation..."
     INVALIDATION_ID=$(aws cloudfront create-invalidation \
