@@ -11,7 +11,8 @@ html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  height: 100%; /* Fallback for older browsers */
+  height: 100dvh; /* Dynamic viewport height for iOS */
   font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: var(--font-weight-normal);
@@ -21,7 +22,8 @@ body {
 
 #app {
   width: 100%;
-  height: 100%;
+  height: 100%; /* Fallback for older browsers */
+  height: 100dvh; /* Dynamic viewport height for iOS */
 }
 
 /* ===== SHARED CARD SYSTEM ===== */
@@ -38,6 +40,9 @@ body {
   flex-direction: column;
   min-height: 100%;
   height: auto;
+  width: 100%; /* Take full available width */
+  max-width: 800px; /* Reasonable maximum for readability */
+  margin: 0 auto; /* Center cards in their container */
 }
 
 .shared-card:hover {
@@ -425,18 +430,14 @@ body {
 }
 
 .main-layout {
-  display: flex;
+  display: grid;
+  grid-template-columns:
+    max-content /* Dynamic width - WorldTabs size to content */
+    var(--sidebar-width) /* 200px - Navigation sidebar */
+    1fr; /* Remaining space - Content area */
   flex: 1;
-  margin-left: 80px;
-  width: calc(100% - 80px);
-}
-
-/* Tablets and smaller: use min-width to allow full horizontal scrolling */
-@media (max-width: 1023px) {
-  .main-layout {
-    width: auto;
-    min-width: calc(800px - 80px);
-  }
+  /* No overflow rules - let body handle all horizontal scrolling */
+  height: 100%;
 }
 
 .sidebar {
@@ -478,26 +479,13 @@ body {
 
 .content-area {
   flex: 1;
+  /* Removed min-width to prevent forced horizontal scrolling */
   background: var(--bg-white);
   position: relative;
   display: flex;
   flex-direction: column;
-  overflow: visible;
-}
-
-/* Desktop only: hide overflow for clean look */
-@media (min-width: 1024px) {
-  .content-area {
-    overflow: hidden;
-  }
-}
-
-/* Tablets and smaller: allow horizontal scroll in content area */
-@media (max-width: 1023px) {
-  .content-area {
-    overflow-x: auto;
-    overflow-y: visible;
-  }
+  align-items: stretch; /* Allow children to use full width for centering */
+  /* No overflow rules - body handles horizontal scrolling */
 }
 
 /* ===== UTILITY CLASSES ===== */
@@ -547,20 +535,13 @@ body {
 
 /* ===== RESPONSIVE DESIGN ===== */
 
-/* Desktop: Hide scrollbars for clean look */
-@media (min-width: 1024px) {
-  html,
-  body {
-    overflow: hidden;
-  }
-}
-
-/* Tablets and smaller: Allow scrollbars when content overflows */
-@media (max-width: 1023px) {
-  html,
-  body {
-    overflow: auto;
-  }
+/* Base: Allow natural scrolling */
+html,
+body {
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 320px; /* Absolute minimum for any device */
 }
 
 /* Tablet-specific touch targets (iPad portrait and landscape) */
@@ -648,31 +629,20 @@ body {
   }
 }
 
-/* Maintain desktop layout with horizontal scrolling instead of aggressive collapse */
-/* Only apply min-width for tablets and smaller to prevent permanent scrollbars on desktop */
+/* Single scrollbar strategy - consistent minimum width */
 @media (max-width: 1023px) {
-  html,
   body {
-    min-width: 800px;
-    /* Prevent full layout collapse on tablets */
+    min-width: 1000px; /* Single consistent minimum for all screen sizes */
   }
 }
 
-/* Add min-width for very small screens */
-@media (min-width: 320px) and (max-width: 1023px) {
-  html,
+/* Small screens: Keep horizontal layout, allow scrolling */
+@media (max-width: 767px) {
   body {
-    min-width: 320px;
-  }
-}
-
-/* Only collapse to mobile layout for very small screens (small phones) */
-@media (max-width: 480px) {
-  body {
-    min-width: unset;
-    /* Allow collapse only on very small screens */
+    min-width: 1000px; /* Same as tablets - no compression */
   }
 
+  /* Keep all form elements responsive */
   .shared-field-columns {
     grid-template-columns: 1fr;
   }
@@ -686,29 +656,13 @@ body {
     width: 100%;
   }
 
-  .main-layout {
-    flex-direction: column;
-    margin-left: 0;
-    width: 100%;
-    min-width: unset;
-  }
-
-  .sidebar {
-    width: 100%;
-    flex-direction: row;
-    padding: var(--spacing-md) 0;
-    overflow-x: auto;
-  }
-
-  .nav-button {
-    white-space: nowrap;
-    margin: 0 var(--spacing-xs);
-  }
+  /* Main layout stays horizontal - no changes needed */
 }
 
-@media (max-width: 1480px) and (min-width: 1024px) {
-  .main-layout {
-    width: calc(100% - 80px);
+/* Desktop: Allow natural overflow when content exceeds screen */
+@media (min-width: 1024px) {
+  body {
+    min-width: 1000px; /* Consistent minimum across all screen sizes */
   }
 }
 
@@ -1253,13 +1207,16 @@ textarea:focus {
 
 @keyframes shared-pulse {
   0% {
-    box-shadow: 0 0 0 0 var(--danger-color);
+    transform: scale(1);
+    opacity: 1;
   }
-  70% {
-    box-shadow: 0 0 0 10px rgba(220, 20, 60, 0);
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(220, 20, 60, 0);
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

@@ -53,31 +53,29 @@ body {
 /* Styles for specific functionality that extends shared components */
 
 /* World Tabs Component */
-.world-tabs-positioned {
-  position: absolute;
-  left: var(--spacing-sm);
-  top: 90px;
-  z-index: var(--z-fixed);
-}
 
 .world-tabs {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
-  padding: 0;
+  padding: var(--spacing-sm);
   background: transparent;
-  width: var(--world-tabs-width);
+  width: fit-content; /* Size to content */
+  min-width: 60px; /* Minimum reasonable width */
+  height: 100%; /* Take full height of grid cell */
+  justify-content: flex-start;
+  align-items: center; /* Center all buttons horizontally */
 }
 
 .world-tab {
-  padding: 10px 8px;
+  padding: 12px;
   background: var(--bg-white);
   border: 2px solid var(--border-default);
   border-radius: var(--radius-lg);
   cursor: pointer;
   position: relative;
-  width: var(--world-tabs-width);
-  height: var(--world-tabs-width);
+  width: 48px; /* Reasonable default size */
+  height: 48px; /* Square buttons */
   text-align: center;
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
@@ -106,7 +104,7 @@ body {
 }
 
 .add-world-tab {
-  padding: 10px 8px;
+  padding: 12px;
   background: var(--bg-white);
   border: 2px dashed var(--secondary-color);
   border-radius: var(--radius-lg);
@@ -115,8 +113,8 @@ body {
   font-weight: var(--font-weight-bold);
   font-size: var(--font-size-xxl);
   transition: all var(--transition-fast);
-  width: var(--world-tabs-width);
-  height: var(--world-tabs-width);
+  width: 48px; /* Match world-tab size */
+  height: 48px; /* Square button */
   text-align: center;
   display: flex;
   align-items: center;
@@ -187,27 +185,8 @@ body {
 
 /* ===== RESPONSIVE OVERRIDES ===== */
 
-/* Tablet-specific world tabs - maintain vertical positioning but enhance touch targets */
-@media (min-width: 481px) and (max-width: 1023px) {
-  .world-tabs-positioned {
-    position: absolute;
-    left: var(--spacing-xs);
-    /* Closer to edge for more space */
-    top: 100px;
-    /* Slightly lower to accommodate header */
-    z-index: var(--z-fixed);
-  }
-
-  .world-tab,
-  .add-world-tab {
-    width: 54px;
-    /* Larger touch targets */
-    height: 54px;
-    font-size: var(--font-size-base);
-    padding: 10px 8px;
-  }
-
-  /* Enhance touch targets for delete buttons */
+/* Tablet-specific world tabs - enhance delete button touch targets */
+@media (min-width: 768px) and (max-width: 1023px) {
   .delete-btn {
     width: 22px;
     height: 22px;
@@ -219,27 +198,10 @@ body {
   }
 }
 
-/* Only collapse world tabs to horizontal layout on very small screens */
-@media (max-width: 480px) {
-  .world-tabs-positioned {
-    position: static;
-    margin: var(--spacing-sm) 0;
-    left: auto;
-    top: auto;
-  }
-
+/* Small screens: Keep world tabs in grid flow */
+@media (max-width: 767px) {
   .world-tabs {
-    flex-direction: row;
-    width: 100%;
-    overflow-x: auto;
-    padding: 0 var(--spacing-sm);
-    min-width: 320px;
-    /* Minimum scrollable width */
-  }
-
-  .world-tab,
-  .add-world-tab {
-    flex-shrink: 0;
+    padding: var(--spacing-xs) 0;
   }
 }
 
@@ -286,7 +248,7 @@ body {
 /* ===== PRINT STYLES ===== */
 
 @media print {
-  .world-tabs-positioned,
+  .world-tabs,
   .sidebar,
   .shared-actions {
     display: none !important;

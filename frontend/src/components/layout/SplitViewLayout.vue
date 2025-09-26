@@ -252,16 +252,17 @@
 <style scoped>
   .split-view {
     display: flex;
-    height: calc(100vh - var(--header-height));
+    height: calc(100vh - var(--header-height)); /* Fallback for older browsers */
+    height: calc(100dvh - var(--header-height)); /* Dynamic viewport height for iOS */
     max-height: calc(100vh - var(--header-height));
+    max-height: calc(100dvh - var(--header-height));
     gap: 0;
-    overflow: hidden;
+    /* No overflow or min-width rules - let body handle all horizontal scrolling */
   }
 
   .list-pane {
-    width: 30%;
-    min-width: 280px;
-    max-width: 400px;
+    width: clamp(280px, 30%, 400px); /* Flexible width between 280px and 400px */
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     background: var(--bg-light);
@@ -383,6 +384,9 @@
     flex: 1;
     overflow-y: auto;
     padding: var(--spacing-sm) 0;
+    -webkit-overflow-scrolling: touch;
+    /* Allow both horizontal and vertical panning for better touch scrolling */
+    touch-action: auto;
   }
 
   .list-item {
@@ -405,7 +409,7 @@
   }
 
   .list-item.active {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    background: var(--primary-color);
     color: white;
     border-left-color: var(--primary-darker);
     font-weight: var(--font-weight-semibold);
@@ -413,7 +417,7 @@
   }
 
   .list-item.active:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
+    background: var(--primary-dark);
   }
 
   .empty-state {
@@ -433,14 +437,14 @@
   .add-btn {
     width: 100%;
     padding: var(--spacing-md) var(--spacing-lg);
-    background: linear-gradient(135deg, var(--success-color), var(--success-dark));
+    background: var(--success-color);
     color: white;
     border: none;
     border-radius: var(--radius-lg);
     cursor: pointer;
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
-    transition: var(--transition-fast);
+    transition: background-color var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -449,9 +453,7 @@
   }
 
   .add-btn:hover {
-    background: linear-gradient(135deg, var(--success-dark), var(--success-darker));
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-success-hover);
+    background: var(--success-dark);
   }
 
   .plus-icon {
@@ -461,10 +463,15 @@
 
   .detail-pane {
     flex: 1;
+    /* Removed min-width to prevent forced horizontal scrolling */
     padding: var(--spacing-xl);
     padding-bottom: calc(var(--spacing-xl) + var(--spacing-lg));
     overflow-y: auto;
+    /* No overflow-x rules - body handles horizontal scrolling */
     background: var(--bg-white);
+    -webkit-overflow-scrolling: touch;
+    /* Allow both horizontal and vertical panning for better touch scrolling */
+    touch-action: auto;
   }
 
   /* Scrollbar styling for list */
@@ -485,51 +492,25 @@
     background: var(--text-muted);
   }
 
-  /* Set minimum width to prevent layout collapse */
-  .split-view {
-    min-width: 800px; /* Ensure split view never collapses */
-  }
+  /* Split view now inherits sizing from main-layout grid */
 
-  /* iPad portrait and landscape - maintain split view with enhanced touch targets */
+  /* Enhanced touch targets for tablets */
   @media (min-width: 768px) and (max-width: 1023px) {
-    .split-view {
-      flex-direction: row; /* Always maintain horizontal split */
-      min-width: 800px; /* Prevent collapse, allow horizontal scroll instead */
-    }
-
-    .list-pane {
-      width: 35%;
-      min-width: 280px;
-      max-width: 400px;
-      max-height: none; /* Remove height restriction */
-    }
-
-    .detail-pane {
-      flex: 1;
-      padding: var(--spacing-xl);
-      min-width: 400px; /* Ensure detail pane doesn't get too narrow */
-    }
-
-    /* Larger touch targets for filter controls */
     .filter-toggle-btn {
       min-width: 44px;
       min-height: 44px;
       padding: var(--spacing-md);
     }
 
-    /* Better spacing for list items */
     .list-item {
       padding: var(--spacing-lg) var(--spacing-xl);
       margin: var(--spacing-xs) var(--spacing-sm);
     }
   }
 
-  /* Only collapse to mobile layout for very small screens (small phones) */
-  @media (max-width: 480px) {
-    .split-view {
-      flex-direction: column;
-      min-width: unset; /* Allow full collapse only on very small screens */
-    }
+  /* Even on small screens, maintain horizontal layout with scroll */
+  @media (max-width: 767px) {
+    /* No split-view specific rules needed - body handles scrolling */
 
     .filter-panel-container {
       padding: var(--spacing-md);
@@ -538,21 +519,10 @@
     .filter-panel,
     .attribute-filter-panel {
       width: 100%;
+      max-width: 520px;
       max-height: 95vh;
       border-radius: var(--radius-lg);
       padding: var(--spacing-lg);
-    }
-
-    .list-pane {
-      width: 100%;
-      min-width: unset;
-      max-height: 200px;
-    }
-
-    .detail-pane {
-      flex: 1;
-      padding: var(--spacing-lg);
-      min-width: unset;
     }
   }
 </style>

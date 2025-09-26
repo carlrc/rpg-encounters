@@ -227,7 +227,8 @@
             worldStore.setCurrentWorldId(encounterData.world_id)
           }
         } catch (error) {
-          if (error.message?.includes('404')) {
+          // TODO: function is being called in lifecycle hook after logout
+          if (error.message?.includes('401') || error.message?.includes('404')) {
             encounter.value = null // No encounter assigned
           } else {
             console.error('Error loading encounter:', JSON.stringify(serializeError(error)))
@@ -531,6 +532,9 @@
     max-height: 70vh;
     overflow-y: auto;
     z-index: 1000;
+    -webkit-overflow-scrolling: touch;
+    /* Allow both horizontal and vertical touch scrolling */
+    touch-action: auto;
   }
 
   .panel-header {
@@ -655,8 +659,20 @@
     justify-content: center;
   }
 
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .interaction-panel {
+      background-color: rgba(255, 255, 255, 0.98); /* Better opacity for tablets */
+      backdrop-filter: blur(10px);
+    }
+
+    .encounter-view.has-interaction-panel {
+      padding-bottom: 450px; /* More padding for larger tablet screen */
+    }
+  }
+
   /* Mobile Responsiveness */
-  @media (max-width: 480px) {
+  @media (max-width: 767px) {
     .player-encounter-page {
       padding: var(--spacing-sm);
     }

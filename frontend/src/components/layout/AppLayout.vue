@@ -46,11 +46,11 @@
       </div>
     </header>
 
-    <!-- World Tabs -->
-    <WorldTabs class="world-tabs-positioned" @world-changed="handleWorldChange" />
-
     <!-- Main Layout -->
     <div class="main-layout">
+      <!-- World Tabs (now part of unified grid) -->
+      <WorldTabs @world-changed="handleWorldChange" />
+
       <!-- Left Sidebar Navigation -->
       <nav class="sidebar">
         <router-link
@@ -140,7 +140,8 @@
 <style scoped>
   .auth-app-container {
     width: 100%;
-    height: 100vh;
+    height: 100vh; /* Fallback for older browsers */
+    height: 100dvh; /* Dynamic viewport height for iOS */
     display: flex;
     flex-direction: column;
     background: var(--bg-light);
@@ -157,7 +158,8 @@
 
   .player-app-container {
     width: 100%;
-    height: 100vh;
+    height: 100vh; /* Fallback for older browsers */
+    height: 100dvh; /* Dynamic viewport height for iOS */
     display: flex;
     flex-direction: column;
     background: var(--bg-primary);
@@ -166,6 +168,10 @@
   .player-content-area {
     flex: 1;
     overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Allow both horizontal and vertical touch scrolling */
+    touch-action: auto;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .custom-header {
@@ -224,33 +230,16 @@
     max-width: 100%;
   }
 
-  /* Tablet-specific navigation optimizations - maintain desktop layout */
-  @media (min-width: 481px) and (max-width: 1023px) {
-    .main-layout {
-      margin-left: 70px; /* Maintain sidebar space */
-      min-width: 800px; /* Prevent layout collapse */
-    }
-
+  /* Tablet: Consistent with main layout system */
+  @media (min-width: 768px) and (max-width: 1023px) {
     .custom-header-content {
       padding-left: var(--spacing-lg) !important;
       padding-right: var(--spacing-lg) !important;
     }
   }
 
-  /* Tablet landscape and desktop adjustments */
-  @media (min-width: 1024px) and (max-width: 1366px) {
-    .main-layout {
-      max-width: calc(100vw - 90px);
-    }
-  }
-
-  /* Only collapse to mobile layout for very small screens */
-  @media (max-width: 480px) {
-    .main-layout {
-      margin-left: 0;
-      min-width: unset; /* Allow collapse only on very small screens */
-    }
-
+  /* Mobile: Stack layout */
+  @media (max-width: 767px) {
     .instructions-button {
       font-size: 1rem;
     }
