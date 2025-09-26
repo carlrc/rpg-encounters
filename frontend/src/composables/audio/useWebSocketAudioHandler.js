@@ -9,6 +9,37 @@ const AUDIO_SAMPLE_RATE = 16000
 const AUDIO_CHANNEL_COUNT = 1
 const MEDIA_RECORDER_TIMESLICE = 250
 
+const isMobile = () => {
+  return /iPhone|Android/.test(navigator.userAgent)
+}
+
+// Get MediaRecorder configuration for device
+const getAudioConfig = () => {
+  if (isMobile()) {
+    // Try MP4 first for mobile compatibility, fallback to browser default
+    try {
+      if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        return {
+          mimeType: 'audio/mp4',
+          formatParam: 'mp4',
+        }
+      }
+    } catch (e) {
+      // MediaRecorder.isTypeSupported might not be available
+    }
+    // Fallback for mobile: let browser choose default format
+    return {
+      mimeType: undefined, // Browser default
+      formatParam: 'mp4', // Assume mp4 for backend processing
+    }
+  } else {
+    return {
+      mimeType: 'audio/webm;codecs=opus', // Standard desktop format
+      formatParam: 'webm',
+    }
+  }
+}
+
 /**
  * WebSocket Audio Handler Composable
  * Handles websocket connections and audio recording for encounter interactions
@@ -60,17 +91,19 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
    */
   const startRecording = async () => {
     try {
+      const audioConfig = getAudioConfig()
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: AUDIO_SAMPLE_RATE,
           channelCount: AUDIO_CHANNEL_COUNT,
-          echoCancellation: true,
-          noiseSuppression: true,
+          echoCancellation: !isMobile(), // Disable for mobile compatibility
+          noiseSuppression: !isMobile(), // Disable for mobile compatibility
         },
       })
 
       mediaRecorder.value = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
+        mimeType: audioConfig.mimeType,
       })
 
       mediaRecorder.value.ondataavailable = (event) => {
@@ -186,9 +219,11 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
       return
     }
 
+    const audioConfig = getAudioConfig()
+
     const wsUrl = isChallengeMode
-      ? `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/challenge/${selectedPlayerId}/${characterId}?skill=${selectedSkill}&d20_roll=${diceRoll}&world_id=${worldId}&player_init=${playerInitiated}`
-      : `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/conversation/${selectedPlayerId}/${characterId}?world_id=${worldId}&player_init=${playerInitiated}`
+      ? `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/challenge/${selectedPlayerId}/${characterId}?skill=${selectedSkill}&d20_roll=${diceRoll}&world_id=${worldId}&player_init=${playerInitiated}&audio_format=${audioConfig.formatParam}`
+      : `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/conversation/${selectedPlayerId}/${characterId}?world_id=${worldId}&player_init=${playerInitiated}&audio_format=${audioConfig.formatParam}`
 
     try {
       websocket.value = new WebSocket(wsUrl)

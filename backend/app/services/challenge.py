@@ -82,7 +82,8 @@ async def challenge_character(
     player_initiated: bool = False,
 ):
     audio_chunks = await get_audio_chunks(websocket=websocket)
-    wav_path = await save_chunks_to_wav(audio_chunks)
+    audio_format = websocket.query_params.get("audio_format", "webm")
+    wav_path = await save_chunks_to_wav(audio_chunks, audio_format=audio_format)
 
     try:
         async with get_async_db_session() as session:

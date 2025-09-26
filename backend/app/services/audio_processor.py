@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @observe
-async def save_chunks_to_wav(chunks: List[bytes]) -> str:
+async def save_chunks_to_wav(chunks: List[bytes], audio_format: str = "webm") -> str:
     """Save audio chunks directly to WAV file using ffmpeg"""
     # Useful to use tempfile even though we are manually cleaning up after due to auto naming
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
@@ -23,7 +23,7 @@ async def save_chunks_to_wav(chunks: List[bytes]) -> str:
     cmd = [
         "ffmpeg",
         "-f",
-        "webm",  # Input format (WebM from MediaRecorder)
+        audio_format,  # Input format based on device/browser
         "-i",
         "pipe:0",  # Read from stdin
         "-ar",

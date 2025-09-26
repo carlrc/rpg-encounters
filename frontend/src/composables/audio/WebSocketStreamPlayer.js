@@ -41,6 +41,10 @@ export default class WebSocketStreamPlayer {
 
   static isSupported(mimeType = 'audio/mp4; codecs=mp4a.40.2') {
     try {
+      // Check for ManagedMediaSource first (iOS 17.1+), then fall back to standard MediaSource
+      if (window.ManagedMediaSource && ManagedMediaSource.isTypeSupported(mimeType)) {
+        return true
+      }
       return !!(window.MediaSource && MediaSource.isTypeSupported(mimeType))
     } catch {
       return false
@@ -63,6 +67,7 @@ export default class WebSocketStreamPlayer {
 
     this.audio.preload = 'auto'
     this.audio.playsInline = true
+
     this.audio.onerror = (error) => {
       if (this.stopped) return
       console.error('WebSocketStreamPlayer audio error', JSON.stringify(serializeError(error)))
@@ -71,7 +76,14 @@ export default class WebSocketStreamPlayer {
 
   _createMediaSource() {
     if (this.mediaSource) return
-    this.mediaSource = new MediaSource()
+
+    // Use ManagedMediaSource if available (iOS 17.1+), otherwise fall back to standard MediaSource
+    if (window.ManagedMediaSource) {
+      this.mediaSource = new ManagedMediaSource()
+    } else {
+      this.mediaSource = new MediaSource()
+    }
+
     this.mediaSource.addEventListener('sourceopen', this._onSourceOpen)
     this.mediaSource.addEventListener('error', this._onSourceError)
 
@@ -182,32 +194,13 @@ export default class WebSocketStreamPlayer {
    * @returns {Promise<void>|undefined} Promise if unlocking, undefined otherwise
    */
   prepare({ fromUserGesture = false } = {}) {
-    // Unlock the audio element during a user gesture so iOS/iPadOS will allow later autoplay of streamed chunks.
+    // Simply mark as unlocked when called during user gesture - no need to play dummy content
     this._ensureReady()
     if (!fromUserGesture) return
     if (!this.audio || this.unlocked) return
-    if (this._unlockPromise) return this._unlockPromise
 
-    const previousMuted = this.audio.muted
-    this.audio.muted = true
-
-    this._unlockPromise = (async () => {
-      try {
-        await this.audio.play()
-        this.unlocked = true
-        this.playingStarted = true
-      } catch (error) {
-        console.warn(
-          'WebSocketStreamPlayer audio unlock failed',
-          JSON.stringify(serializeError(error))
-        )
-      } finally {
-        this.audio.muted = previousMuted
-        this._unlockPromise = null
-      }
-    })()
-
-    return this._unlockPromise
+    // Mark as unlocked since we're being called during a user gesture
+    this.unlocked = true
   }
 
   async _tryPlay() {
