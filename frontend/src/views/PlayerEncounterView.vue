@@ -399,27 +399,27 @@
 
   /* Encounter View */
   .encounter-view {
-    max-width: 800px;
+    max-width: min(800px, 100%);
     margin: 0 auto;
   }
 
   .encounter-view.has-interaction-panel {
-    padding-bottom: 400px; /* Add padding when interaction panel is open */
+    padding-bottom: clamp(280px, 40dvh, 420px); /* Reserve space for interaction panel */
   }
 
   .encounter-header {
     text-align: center;
     margin-bottom: var(--spacing-xl);
     padding: var(--spacing-lg);
-    background: var(--bg-secondary);
+    background: var(--bg-white);
     border: 1px solid var(--border-default);
-    border-radius: var(--border-radius-lg);
+    border-radius: var(--radius-lg);
   }
 
   .encounter-title {
     margin: 0 0 var(--spacing-md) 0;
     color: var(--text-primary);
-    font-size: var(--font-size-xxl);
+    font-size: clamp(1.1rem, 5.5vw, var(--font-size-xxl));
     font-weight: var(--font-weight-bold);
   }
 
@@ -436,7 +436,7 @@
   .section-title {
     margin: 0 0 var(--spacing-lg) 0;
     color: var(--text-primary);
-    font-size: var(--font-size-xl);
+    font-size: clamp(1rem, 4.5vw, var(--font-size-xl));
     font-weight: var(--font-weight-semibold);
     text-align: center;
   }
@@ -450,10 +450,10 @@
   .character-tile {
     display: flex;
     align-items: center;
-    padding: var(--spacing-lg);
-    background: var(--bg-secondary);
+    padding: clamp(10px, 3.5vw, var(--spacing-lg));
+    background: var(--bg-white);
     border: 2px solid var(--border-default);
-    border-radius: var(--border-radius-lg);
+    border-radius: var(--radius-lg);
     cursor: pointer;
     transition: all 0.2s ease;
     min-height: 88px; /* Ensure touch-friendly size */
@@ -472,8 +472,8 @@
 
   .avatar-image,
   .avatar-placeholder {
-    width: 56px;
-    height: 56px;
+    width: clamp(40px, 10vw, 56px);
+    height: clamp(40px, 10vw, 56px);
     border-radius: 50%;
   }
 
@@ -502,7 +502,7 @@
   }
 
   .character-name {
-    font-size: var(--font-size-lg);
+    font-size: clamp(0.95rem, 4vw, var(--font-size-lg));
     font-weight: var(--font-weight-semibold);
     color: var(--text-primary);
     margin-bottom: var(--spacing-xs);
@@ -511,7 +511,7 @@
   .character-details {
     display: flex;
     gap: var(--spacing-sm);
-    font-size: var(--font-size-sm);
+    font-size: clamp(12px, 3.5vw, var(--font-size-sm));
     color: var(--text-muted);
   }
 
@@ -526,18 +526,16 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--bg-secondary);
-    /* Add fallback solid background to ensure opacity */
+    background: var(--bg-white);
     background-color: #ffffff;
     border-top: 1px solid var(--border-default);
     padding: var(--spacing-lg);
     padding-bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-    max-height: 70vh;
+    max-height: clamp(320px, 60dvh, 75dvh);
     overflow-y: auto;
     z-index: 1000;
     -webkit-overflow-scrolling: touch;
-    /* Allow both horizontal and vertical touch scrolling */
     touch-action: auto;
   }
 
@@ -666,12 +664,8 @@
   /* Tablet optimizations */
   @media (min-width: 768px) and (max-width: 1023px) {
     .interaction-panel {
-      background-color: rgba(255, 255, 255, 0.98); /* Better opacity for tablets */
+      background-color: rgba(255, 255, 255, 0.98);
       backdrop-filter: blur(10px);
-    }
-
-    .encounter-view.has-interaction-panel {
-      padding-bottom: 450px; /* More padding for larger tablet screen */
     }
   }
 
@@ -693,14 +687,22 @@
       padding: var(--spacing-md);
     }
 
-    .encounter-view.has-interaction-panel {
-      padding-bottom: 320px; /* Reduce padding on mobile */
-    }
-
     .shared-speak-button {
       padding: var(--spacing-md) var(--spacing-lg);
       min-width: 100px;
       min-height: 56px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .mode-controls,
+    .main-controls {
+      justify-content: stretch;
+    }
+
+    .challenge-button,
+    .shared-speak-button {
+      width: 100%;
     }
   }
 </style>

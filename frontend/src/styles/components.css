@@ -631,15 +631,15 @@ body {
 
 /* Single scrollbar strategy - consistent minimum width */
 @media (max-width: 1023px) {
-  body {
-    min-width: 1000px; /* Single consistent minimum for all screen sizes */
+  .app-container {
+    min-width: 1000px; /* Single consistent minimum for DM layout */
   }
 }
 
 /* Small screens: Keep horizontal layout, allow scrolling */
 @media (max-width: 767px) {
-  body {
-    min-width: 1000px; /* Same as tablets - no compression */
+  .app-container {
+    min-width: 1000px; /* DM layout retains desktop width */
   }
 
   /* Keep all form elements responsive */
@@ -661,8 +661,8 @@ body {
 
 /* Desktop: Allow natural overflow when content exceeds screen */
 @media (min-width: 1024px) {
-  body {
-    min-width: 1000px; /* Consistent minimum across all screen sizes */
+  .app-container {
+    min-width: 1000px; /* DM layout retains desktop width */
   }
 }
 

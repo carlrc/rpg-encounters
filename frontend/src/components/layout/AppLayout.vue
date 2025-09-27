@@ -244,4 +244,18 @@
       font-size: 1rem;
     }
   }
+
+  .player-app-container .page-header {
+    padding: 0 var(--spacing-lg) !important;
+  }
+
+  .player-app-container .header-content {
+    height: 56px;
+  }
+
+  @media (max-width: 360px) {
+    .player-app-container :deep(.brand-title) {
+      display: none;
+    }
+  }
 </style>

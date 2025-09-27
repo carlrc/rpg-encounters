@@ -13,46 +13,22 @@
   .brand-section {
     display: flex;
     align-items: center;
-    gap: var(--spacing-xl);
+    gap: clamp(8px, 3vw, var(--spacing-lg));
   }
 
   .logo {
-    height: 60px !important;
+    height: clamp(32px, 6vw, 50px);
     width: auto;
     flex-shrink: 0;
   }
 
   .brand-title {
-    font-size: 1.5rem;
+    font-size: clamp(1rem, 4vw, 1.35rem);
     font-weight: 600;
     color: var(--color-text-primary);
     margin: 0;
     white-space: nowrap;
-  }
-
-  /* Responsive styles for tablets */
-  @media (min-width: 481px) and (max-width: 1023px) {
-    .brand-section {
-      gap: var(--spacing-lg);
-    }
-
-    .brand-title {
-      font-size: 1.35rem;
-    }
-
-    .logo {
-      height: 55px !important;
-    }
-  }
-
-  /* Responsive styles for mobile */
-  @media (max-width: 480px) {
-    .brand-title {
-      font-size: 1.25rem;
-    }
-
-    .logo {
-      height: 50px !important;
-    }
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 </style>
