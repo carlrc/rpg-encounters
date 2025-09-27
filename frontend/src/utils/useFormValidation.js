@@ -31,19 +31,29 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
 
     // Validate abilities and skills ranges for PLAYER
     if (entityType === 'PLAYER') {
-      // Validate abilities (0-30 range)
+      // Get modifier limits from game data, with fallback values
+      const abilityMin = gameData.value?.modifier_limits?.ability_min
+      const abilityMax = gameData.value?.modifier_limits?.ability_max
+      const skillMin = gameData.value?.modifier_limits?.skill_min
+      const skillMax = gameData.value?.modifier_limits?.skill_max
+
+      // Validate abilities
       if (formData.abilities) {
         for (const [ability, abilityValue] of Object.entries(formData.abilities)) {
-          if (typeof abilityValue !== 'number' || abilityValue < 0 || abilityValue > 30) {
+          if (
+            typeof abilityValue !== 'number' ||
+            abilityValue < abilityMin ||
+            abilityValue > abilityMax
+          ) {
             return false
           }
         }
       }
 
-      // Validate skills (-5 to 25 range)
+      // Validate skills
       if (formData.skills) {
         for (const [skill, skillValue] of Object.entries(formData.skills)) {
-          if (typeof skillValue !== 'number' || skillValue < -5 || skillValue > 25) {
+          if (typeof skillValue !== 'number' || skillValue < skillMin || skillValue > skillMax) {
             return false
           }
         }
@@ -77,17 +87,29 @@ export function useFormValidation(formData, entityType = 'PLAYER') {
       }
 
       if (fieldName === 'abilities' && value && typeof value === 'object') {
+        // Get modifier limits from game data, with fallback values
+        const abilityMin = gameData.value?.modifier_limits?.ability_min
+        const abilityMax = gameData.value?.modifier_limits?.ability_max
+
         for (const [ability, abilityValue] of Object.entries(value)) {
-          if (typeof abilityValue !== 'number' || abilityValue < 0 || abilityValue > 30) {
-            errors.push(`${ability} must be between 0 and 30`)
+          if (
+            typeof abilityValue !== 'number' ||
+            abilityValue < abilityMin ||
+            abilityValue > abilityMax
+          ) {
+            errors.push(`${ability} must be between ${abilityMin} and ${abilityMax}`)
           }
         }
       }
 
       if (fieldName === 'skills' && value && typeof value === 'object') {
+        // Get modifier limits from game data, with fallback values
+        const skillMin = gameData.value?.modifier_limits?.skill_min
+        const skillMax = gameData.value?.modifier_limits?.skill_max
+
         for (const [skill, skillValue] of Object.entries(value)) {
-          if (typeof skillValue !== 'number' || skillValue < -5 || skillValue > 25) {
-            errors.push(`${skill} must be between -5 and 25`)
+          if (typeof skillValue !== 'number' || skillValue < skillMin || skillValue > skillMax) {
+            errors.push(`${skill} must be between ${skillMin} and ${skillMax}`)
           }
         }
       }

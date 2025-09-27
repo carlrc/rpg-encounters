@@ -265,7 +265,11 @@
       }
 
       const processAudioChunk = async (audioBlob) => {
-        await streamPlayer.append(audioBlob)
+        try {
+          await streamPlayer.append(audioBlob)
+        } catch (error) {
+          console.error('Failed to append audio chunk:', JSON.stringify(serializeError(error)))
+        }
       }
 
       const toggleRecording = async () => {

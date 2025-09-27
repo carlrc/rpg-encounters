@@ -10,7 +10,7 @@ const AUDIO_CHANNEL_COUNT = 1
 const MEDIA_RECORDER_TIMESLICE = 250
 
 const isMobile = () => {
-  return /iPhone|Android/.test(navigator.userAgent)
+  return /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
 }
 
 // Get MediaRecorder configuration for device
@@ -27,10 +27,10 @@ const getAudioConfig = () => {
     } catch (e) {
       // MediaRecorder.isTypeSupported might not be available
     }
-    // Fallback for mobile: let browser choose default format
+    // Fallback for mobile: use WebM which is more widely supported
     return {
-      mimeType: undefined, // Browser default
-      formatParam: 'mp4', // Assume mp4 for backend processing
+      mimeType: 'audio/webm', // Explicitly request WebM
+      formatParam: 'webm', // Tell backend it's WebM
     }
   } else {
     return {

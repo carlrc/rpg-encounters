@@ -26,6 +26,7 @@ echo "Deploying ${ECR_IMAGE_URI} to instance ${INSTANCE_ID}..."
 COMMANDS=$(cat <<EOF
 cd /app && \
 docker-compose down && \
+aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ECR_REPO} && \
 export ECR_REPO_URI=${ECR_IMAGE_URI} && \
 docker-compose pull && \
 docker-compose up -d

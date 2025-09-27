@@ -19,10 +19,18 @@ from app.db.limits import (
 from app.dependencies import validate_current_player_or_user
 from app.models.alignment import VALID_ALIGNMENTS
 from app.models.character import CommunicationStyle
-from app.models.class_traits import VALID_CLASSES, VALID_SKILLS
+from app.models.class_traits import (
+    ABILITY_MODIFIER_MAX,
+    ABILITY_MODIFIER_MIN,
+    SKILL_MODIFIER_MAX,
+    SKILL_MODIFIER_MIN,
+    VALID_CLASSES,
+    VALID_SKILLS,
+)
 from app.models.game import (
     DefaultThresholds,
     GameDataResponse,
+    ModifierLimits,
     SizeOptions,
     ThresholdLimits,
     ValidationLimits,
@@ -73,6 +81,12 @@ async def get_game_data(
                 max=DifficultyClass.NEARLY_IMPOSSIBLE.value,
                 step=5,
                 min_gap=5,
+            ),
+            modifier_limits=ModifierLimits(
+                ability_min=ABILITY_MODIFIER_MIN,
+                ability_max=ABILITY_MODIFIER_MAX,
+                skill_min=SKILL_MODIFIER_MIN,
+                skill_max=SKILL_MODIFIER_MAX,
             ),
             tts_providers=tts_providers,
         )

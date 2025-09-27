@@ -27,10 +27,35 @@ aws ecr get-login-password --region eu-central-1 | docker login --username AWS -
 DATA_DEV=$(lsblk -ndo NAME,SIZE,TYPE,MOUNTPOINT | awk '$2=="20G" && $3=="disk" && $4=="" {print "/dev/"$1}' | head -n1)
 [ -b "$DATA_DEV" ] || { echo "ERROR: 20GB data volume not found" >&2; exit 1; }
 
+echo "Found 20GB EBS data volume at: $DATA_DEV"
+
 mkdir -p /data
-if ! blkid "$DATA_DEV" >/dev/null 2>&1; then mkfs.xfs -f "$DATA_DEV"; fi
-mount "$DATA_DEV" /data
-mkdir -p /data/postgres && chown 999:999 /data/postgres && chmod 700 /data/postgres
+if ! blkid "$DATA_DEV" >/dev/null 2>&1; then
+    echo "No filesystem detected on $DATA_DEV, formatting with XFS..."
+    mkfs.xfs -f "$DATA_DEV"
+else
+    echo "Existing filesystem detected on $DATA_DEV, preserving data..."
+fi
+
+echo "Mounting $DATA_DEV to /data..."
+mount --make-shared "$DATA_DEV" /data
+echo "Successfully mounted data volume"
+
+# Check if this is a new installation
+if [ ! -d /data/postgres ]; then
+    echo "New installation detected, creating /data/postgres"
+    mkdir -p /data/postgres
+    chown 999:999 /data/postgres
+    chmod 700 /data/postgres
+    sync
+    SHOULD_SEED=true
+else
+    echo "Existing /data/postgres found, preserving data"
+    # Ensure permissions are correct even for existing directory
+    chown 999:999 /data/postgres
+    chmod 700 /data/postgres
+    SHOULD_SEED=false
+fi
 
 # App workspace
 mkdir -p /app
@@ -51,6 +76,9 @@ docker-compose up -d
 sleep 15
 docker-compose ps
 
-docker exec rpg-encounters-backend python tests/fixtures/seed_data.py
+# Only seed if /data/postgres didn't exist (new installation)
+if [ "$SHOULD_SEED" = "true" ]; then
+    docker exec rpg-encounters-backend python tests/fixtures/seed_data.py
+fi
 
 echo "Setup complete"

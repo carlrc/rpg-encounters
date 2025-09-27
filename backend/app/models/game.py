@@ -38,6 +38,15 @@ class SizeOptions(BaseModel):
     character: List[str] = Field(..., description="Valid sizes for characters")
 
 
+class ModifierLimits(BaseModel):
+    """Ability and skill modifier limits for player validation"""
+
+    ability_min: int = Field(..., description="Minimum ability modifier value")
+    ability_max: int = Field(..., description="Maximum ability modifier value")
+    skill_min: int = Field(..., description="Minimum skill modifier value")
+    skill_max: int = Field(..., description="Maximum skill modifier value")
+
+
 class DefaultThresholds(BaseModel):
     """Default threshold values for reveal layers"""
 
@@ -68,5 +77,8 @@ class GameDataResponse(BaseModel):
     )
     threshold_limits: ThresholdLimits = Field(
         ..., description="Threshold configuration limits"
+    )
+    modifier_limits: ModifierLimits = Field(
+        ..., description="Ability and skill modifier limits"
     )
     tts_providers: List[str] = Field(..., description="Available TTS providers")
