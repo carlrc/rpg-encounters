@@ -63,20 +63,6 @@ If you don't want telemetry with [langfuse](https://github.com/langfuse/langfuse
 LANGFUSE_TRACING_ENABLED=false
 ```
 
-## Usage
-
-Launch backend services
-
-```bash
-sudo docker compose -f docker-compose.dev.yml up
-```
-
-Stop backend services
-
-```bash
-sudo docker compose -f docker-compose.dev.yml down
-```
-
 ## Admin
 
 <details>
