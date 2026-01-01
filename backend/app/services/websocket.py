@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 async def get_audio_chunks(websocket: WebSocket):
     await websocket.accept()
-    logger.debug("WebSocket connection established...")
+    logger.info("WebSocket connection established...")
 
     # Buffer for audio chunks during recording
     audio_chunks = []
@@ -27,7 +27,8 @@ async def get_audio_chunks(websocket: WebSocket):
             elif "text" in message:
                 # Text control signal
                 if message["text"] == "END":
-                    logger.debug("Received END signal, processing accumulated audio...")
+                    logger.info("Received END signal, starting audio processing")
+                    logger.info("Received END signal, processing accumulated audio...")
                     break
                 else:
                     logger.warning(
