@@ -96,11 +96,7 @@
   import '@vue-flow/core/dist/style.css'
   import EncounterNode from './EncounterNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
-  import {
-    getEncounters,
-    createEncounter,
-    saveCanvas as saveCanvasAPI,
-  } from '../services/api.js'
+  import { getEncounters, createEncounter, saveCanvas as saveCanvasAPI } from '../services/api.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import { useWorldStore } from '@/stores/world'
   import { usePlayerStore } from '@/stores/players'
