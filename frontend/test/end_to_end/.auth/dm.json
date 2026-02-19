@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "rpg_encounters_session",
+      "value": "eyJ1c2VyX2lkIjogMX0=.aZdSgQ.wGHEQJ4vWAscWsXOfmgnXTEmqMM",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

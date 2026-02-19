@@ -1,6 +1,6 @@
 <template>
   <SplitViewLayout
-    :items="entities"
+    :items="filteredEntities"
     :selected-item-id="selectedEntityId"
     :loading="loading"
     list-title="Players"
@@ -14,7 +14,7 @@
       <div v-else-if="error" class="shared-error">{{ error }}</div>
 
       <EmptyState
-        v-else-if="!selectedPlayer && !showCreateForm"
+        v-else-if="!selectedEntity && !showCreateForm"
         icon="👤"
         title="No Player Selected"
         message="Select a player from the list to view details, or create a new one."
@@ -25,8 +25,8 @@
       </div>
 
       <PlayerCard
-        v-else-if="selectedPlayer"
-        :player="selectedPlayer"
+        v-else-if="selectedEntity"
+        :player="selectedEntity"
         @update="updateEntity"
         @delete="deleteEntity"
       />
@@ -35,58 +35,36 @@
 </template>
 
 <script setup>
-  import { onMounted } from 'vue'
-  import { storeToRefs } from 'pinia'
-  import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import PlayerCard from '../components/PlayerCard.vue'
   import PlayerForm from '../components/PlayerForm.vue'
   import { usePlayerStore } from '../stores/players.js'
   import { useGameDataStore } from '../stores/gameData.js'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
 
-  // Initialize stores
   const playerStore = usePlayerStore()
   const gameDataStore = useGameDataStore()
 
-  // Reactive refs from stores
   const {
-    entities,
+    filteredEntities,
     loading,
     error,
     selectedEntityId,
-    selectedEntity: selectedPlayer,
+    selectedEntity,
     showCreateForm,
-  } = storeToRefs(playerStore)
-
-  const { data: gameData } = storeToRefs(gameDataStore)
-
-  // Actions
-  const {
-    loadEntities,
-    createEntity,
-    updateEntity,
-    deleteEntity,
     selectEntity,
     startCreate,
-    cancelCreate,
-  } = playerStore
-
-  const handleCreateSave = async (formData) => {
-    try {
-      await createEntity(formData)
-    } catch (err) {
-      console.error('Player entity creation error:', JSON.stringify(serializeError(err)))
-    }
-  }
-
-  const handleCancelCreate = () => {
-    cancelCreate()
-  }
-
-  onMounted(async () => {
-    await gameDataStore.load()
-    await loadEntities()
+    handleCreateSave,
+    handleCancelCreate,
+    updateEntity,
+    deleteEntity,
+  } = useCrudSplitViewPage({
+    store: playerStore,
+    createErrorLabel: 'Player',
+    loadDeps: async () => {
+      await gameDataStore.load()
+    },
   })
 </script>
 

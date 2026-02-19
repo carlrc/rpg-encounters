@@ -124,7 +124,7 @@ test('FILTER-ALIGNMENT-01 dynamic alignment filter works across Characters/Memor
   for (const screen of SCREENS_WITH_ALIGNMENT) {
     const context = await browser.newContext({
       baseURL: 'http://localhost:3001',
-      storageState: 'e2e/.auth/dm.json',
+      storageState: 'test/end_to_end/.auth/dm.json',
     })
     const page = await context.newPage()
 

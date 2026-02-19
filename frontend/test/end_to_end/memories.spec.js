@@ -29,6 +29,13 @@ const fieldByLabel = (page, label) => {
 
 const sortedNumbers = (values) => [...values].map(Number).sort((a, b) => a - b)
 
+const assertCharacterSelectionNotNested = async (scope) => {
+  await expect(scope.locator('.character-filters .filter-row')).toHaveCount(1)
+  await expect(scope.locator('.character-selection .option-item').first()).toBeVisible()
+  await expect(scope.locator('.character-selection .dropdown-header .header-btn')).toHaveCount(0)
+  await expect(scope.locator('.character-selection .multiselect-trigger')).toHaveCount(0)
+}
+
 test('MEMORIES-SMOKE-01 loads memories page, selects memory, renders detail panel', async ({
   page,
 }) => {
@@ -82,6 +89,9 @@ test('MEMORIES-EDIT-01 edits and saves title/content/assigned characters', async
   expect(baselineContent).not.toBe(newContent)
 
   await page.getByRole('button', { name: 'Edit' }).click()
+  const editScope = page.locator('.shared-form').first()
+  await expect(editScope).toBeVisible()
+  await assertCharacterSelectionNotNested(editScope)
 
   await page.getByPlaceholder('Memory title').fill(newTitle)
   await page.getByPlaceholder(/Memory content \(max \d+ characters\)/).fill(newContent)

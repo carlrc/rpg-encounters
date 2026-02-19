@@ -15,7 +15,7 @@
       <FilterPanel
         v-model="activeFilters"
         :enable-tabs="true"
-        :available-tabs="characterFilterTabs"
+        :available-tabs="CHARACTER_FILTER_TABS"
       />
     </template>
 
@@ -24,7 +24,7 @@
       <div v-else-if="error" class="shared-error">{{ error }}</div>
 
       <EmptyState
-        v-else-if="!selectedCharacter && !showCreateForm"
+        v-else-if="!selectedEntity && !showCreateForm"
         icon="👤"
         title="No Character Selected"
         message="Select a character from the list to view details, or create a new one."
@@ -35,8 +35,8 @@
       </div>
 
       <CharacterCard
-        v-else-if="selectedCharacter"
-        :character="selectedCharacter"
+        v-else-if="selectedEntity"
+        :character="selectedEntity"
         @update="updateEntity"
         @delete="deleteEntity"
       />
@@ -45,10 +45,8 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, watch } from 'vue'
+  import { ref, watch } from 'vue'
   import { useRoute } from 'vue-router'
-  import { storeToRefs } from 'pinia'
-  import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import CharacterCard from '../components/CharacterCard.vue'
@@ -57,93 +55,57 @@
   import { useCharacterStore } from '../stores/characters.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import { applyFilters } from '../utils/filterUtils.js'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
+  import { CHARACTER_FILTER_TABS, createCharacterFilterState } from '../constants/uiFilters.js'
 
   const route = useRoute()
-
-  // Initialize stores
   const characterStore = useCharacterStore()
   const gameDataStore = useGameDataStore()
 
-  // Reactive refs from stores
+  const activeFilters = ref(createCharacterFilterState())
+
+  const parseRouteSelection = (entityList) => {
+    const characterId = route.query.id
+    if (!characterId) {
+      return null
+    }
+
+    const id = parseInt(characterId, 10)
+    if (entityList.some((char) => char.id === id)) {
+      return id
+    }
+
+    return null
+  }
+
   const {
     entities,
+    filteredEntities,
     loading,
     error,
     selectedEntityId,
-    selectedEntity: selectedCharacter,
+    selectedEntity,
     showCreateForm,
-  } = storeToRefs(characterStore)
-
-  const { data: gameData } = storeToRefs(gameDataStore)
-
-  // Actions
-  const {
-    loadEntities,
-    createEntity,
-    updateEntity,
-    deleteEntity,
     selectEntity,
     startCreate,
-    cancelCreate,
-  } = characterStore
-
-  // Character filter tabs configuration
-  const characterFilterTabs = [
-    { id: 'race', label: 'Race' },
-    { id: 'alignment', label: 'Alignment' },
-    { id: 'size', label: 'Size' },
-    { id: 'gender', label: 'Gender' },
-    { id: 'class', label: 'Class' },
-  ]
-
-  // Filter state management (tabbed filtering - search is handled by SplitViewLayout)
-  const activeFilters = ref({
-    race: [],
-    alignment: [],
-    size: [],
-    gender: [],
-    class: [],
+    handleCreateSave,
+    handleCancelCreate,
+    trySelectFromRoute,
+    updateEntity,
+    deleteEntity,
+  } = useCrudSplitViewPage({
+    store: characterStore,
+    createErrorLabel: 'Character',
+    loadDeps: async () => {
+      await gameDataStore.load()
+    },
+    parseRouteSelection,
+    applyEntityFilters: (entityList) => applyFilters(entityList, activeFilters.value),
   })
 
-  // Computed filtered entities (only apply FilterBar filters, search is handled by SplitViewLayout)
-  const filteredEntities = computed(() => {
-    return applyFilters(entities.value, activeFilters.value)
-  })
-
-  const handleCreateSave = async (formData) => {
-    try {
-      await createEntity(formData)
-    } catch (err) {
-      console.error('Character entity creation error:', JSON.stringify(serializeError(err)))
-    }
-  }
-
-  const handleCancelCreate = () => {
-    cancelCreate()
-  }
-
-  onMounted(async () => {
-    await gameDataStore.load()
-    await loadEntities()
-
-    // Auto-select character if ID is provided in query params
-    const characterId = route.query.id
-    if (characterId) {
-      const id = parseInt(characterId, 10)
-      if (entities.value.some((char) => char.id === id)) {
-        selectEntity(id)
-      }
-    }
-  })
-
-  // Watch for changes in entities to handle auto-selection after data loads
-  watch(entities, (newEntities) => {
-    const characterId = route.query.id
-    if (characterId && newEntities.length > 0 && !selectedEntityId.value) {
-      const id = parseInt(characterId, 10)
-      if (newEntities.some((char) => char.id === id)) {
-        selectEntity(id)
-      }
+  watch(entities, () => {
+    if (!selectedEntityId.value) {
+      trySelectFromRoute()
     }
   })
 </script>

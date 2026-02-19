@@ -1,6 +1,5 @@
 <template>
   <div class="filter-panel">
-    <!-- Tabbed interface for complex filtering -->
     <div v-if="enableTabs" class="filter-panel-content">
       <FilterTabs
         :tabs="availableTabs"
@@ -10,90 +9,25 @@
       />
 
       <div class="tab-content">
-        <!-- Race filters -->
-        <div v-if="activeTab === 'race'" class="filter-section">
+        <div v-if="activeTabConfig" class="filter-section">
           <div class="filter-section-header">
-            <h4>Filter by Race</h4>
+            <h4>{{ activeTabConfig.title }}</h4>
           </div>
-          <FilterMultiSelect
-            v-if="gameData"
-            :options="gameData.races || []"
-            v-model="filters.race"
-            placeholder="Select races..."
-            :expanded="true"
-            :label="''"
-          />
-        </div>
 
-        <!-- Alignment filters -->
-        <div v-if="activeTab === 'alignment'" class="filter-section">
-          <div class="filter-section-header">
-            <h4>Filter by Alignment</h4>
-          </div>
           <FilterMultiSelect
-            v-if="gameData"
-            :options="gameData.alignments || []"
-            v-model="filters.alignment"
-            placeholder="Select alignments..."
-            :expanded="true"
-            :label="''"
-          />
-        </div>
-
-        <!-- Size filters -->
-        <div v-if="activeTab === 'size'" class="filter-section">
-          <div class="filter-section-header">
-            <h4>Filter by Size</h4>
-          </div>
-          <FilterMultiSelect
-            v-if="gameData"
-            :options="gameData.sizes?.character || []"
-            v-model="filters.size"
-            placeholder="Select sizes..."
-            :expanded="true"
-            :label="''"
-          />
-        </div>
-
-        <!-- Gender filters -->
-        <div v-if="activeTab === 'gender'" class="filter-section">
-          <div class="filter-section-header">
-            <h4>Filter by Gender</h4>
-          </div>
-          <FilterMultiSelect
-            v-if="genders"
-            :options="genders"
-            v-model="filters.gender"
-            placeholder="Select genders..."
-            :expanded="true"
-            :label="''"
-          />
-        </div>
-
-        <!-- Class filters -->
-        <div v-if="activeTab === 'class'" class="filter-section">
-          <div class="filter-section-header">
-            <h4>Filter by Class</h4>
-          </div>
-          <FilterMultiSelect
-            v-if="gameData"
-            :options="gameData.classes || []"
-            v-model="filters.class"
-            placeholder="Select classes..."
-            :expanded="true"
-            :label="''"
-          />
-        </div>
-
-        <!-- Characters filters (for memories/reveals pages) -->
-        <div v-if="activeTab === 'characters'" class="filter-section">
-          <div class="filter-section-header">
-            <h4>Filter by Characters</h4>
-          </div>
-          <FilterMultiSelect
+            v-if="activeTabConfig.id === 'characters'"
             v-model="characterSelectorValue"
             :options="characterOptions"
             placeholder="Select characters..."
+            :expanded="true"
+            :label="''"
+          />
+
+          <FilterMultiSelect
+            v-else
+            v-model="filters[activeTabConfig.model]"
+            :options="activeTabConfig.options"
+            :placeholder="activeTabConfig.placeholder"
             :expanded="true"
             :label="''"
           />
@@ -101,7 +35,6 @@
       </div>
     </div>
 
-    <!-- Simple interface for character-only filtering -->
     <div v-else class="filter-panel-content simple">
       <slot />
     </div>
@@ -148,9 +81,6 @@
 
       const activeTab = ref(props.availableTabs[0]?.id || 'race')
 
-      // Normalize and clone incoming filter state to avoid shared references
-      // between parent/child and to keep consistent shapes for comparison.
-      // This prevents identity churn and accidental mutation loops.
       const buildFilterState = (value = {}) => ({
         race: Array.isArray(value.race) ? [...value.race] : [],
         alignment: Array.isArray(value.alignment) ? [...value.alignment] : [],
@@ -161,26 +91,19 @@
         showUnassigned: value.showUnassigned === true,
       })
 
-      // Local reactive copy of the filters used by the panel UI
       const filters = ref(buildFilterState(props.modelValue))
-
-      // Guard flag: when we are syncing from props -> local state,
-      // do not emit updates back to the parent to avoid loops.
       let syncingFromModelValue = false
 
       const charactersFromParent = computed(() => props.characters)
 
-      // Character options for FilterMultiSelect
       const characterOptions = computed(() => {
-        const options = []
+        const options = [
+          {
+            label: 'NONE - Select items with no assignments',
+            value: 'no-characters',
+          },
+        ]
 
-        // Add "no characters" option
-        options.push({
-          label: 'NONE - Select items with no assignments',
-          value: 'no-characters',
-        })
-
-        // Add character options
         charactersFromParent.value.forEach((character) => {
           options.push({
             label: character.name || `Character ${character.id}`,
@@ -191,8 +114,53 @@
         return options
       })
 
-      // Computed helper for character filter values while
-      // mapping the 'no-characters' sentinel to/from our boolean flag.
+      const tabConfigMap = computed(() => ({
+        race: {
+          id: 'race',
+          title: 'Filter by Race',
+          model: 'race',
+          placeholder: 'Select races...',
+          options: gameData.value?.races || [],
+        },
+        alignment: {
+          id: 'alignment',
+          title: 'Filter by Alignment',
+          model: 'alignment',
+          placeholder: 'Select alignments...',
+          options: gameData.value?.alignments || [],
+        },
+        size: {
+          id: 'size',
+          title: 'Filter by Size',
+          model: 'size',
+          placeholder: 'Select sizes...',
+          options: gameData.value?.sizes?.character || [],
+        },
+        gender: {
+          id: 'gender',
+          title: 'Filter by Gender',
+          model: 'gender',
+          placeholder: 'Select genders...',
+          options: genders || [],
+        },
+        class: {
+          id: 'class',
+          title: 'Filter by Class',
+          model: 'class',
+          placeholder: 'Select classes...',
+          options: gameData.value?.classes || [],
+        },
+        characters: {
+          id: 'characters',
+          title: 'Filter by Characters',
+          model: 'characterIds',
+          placeholder: 'Select characters...',
+          options: characterOptions.value,
+        },
+      }))
+
+      const activeTabConfig = computed(() => tabConfigMap.value[activeTab.value] || null)
+
       const characterSelectorValue = computed({
         get() {
           const value = [...filters.value.characterIds]
@@ -207,8 +175,6 @@
         },
       })
 
-      // Deep-watch local filters and emit normalized updates to the parent.
-      // Skip while we are applying a prop-driven sync to prevent ping-pong.
       watch(
         filters,
         () => {
@@ -218,8 +184,6 @@
         { deep: true }
       )
 
-      // Sync down external changes from v-model (parent -> child).
-      // Use a microtask deferral to re-enable emissions after assignment.
       watch(
         () => props.modelValue,
         (newValue) => {
@@ -232,62 +196,23 @@
         { deep: true }
       )
 
-      const hasActiveFilters = computed(() => {
-        return Object.values(filters.value).some((filterValue) => {
-          if (Array.isArray(filterValue)) {
-            return filterValue.length > 0
+      watch(
+        () => props.availableTabs,
+        (tabs) => {
+          if (!tabs.some((tab) => tab.id === activeTab.value)) {
+            activeTab.value = tabs[0]?.id || 'race'
           }
-          return Boolean(filterValue)
-        })
-      })
-
-      const totalActiveFilters = computed(() => {
-        return Object.values(filters.value).reduce((count, filterValue) => {
-          if (Array.isArray(filterValue)) {
-            return count + (filterValue.length > 0 ? 1 : 0)
-          }
-          return count + (filterValue ? 1 : 0)
-        }, 0)
-      })
-
-      const clearFilter = (filterType) => {
-        if (Array.isArray(filters.value[filterType])) {
-          filters.value[filterType] = []
-        } else {
-          filters.value[filterType] = ''
-        }
-      }
-
-      const clearAllFilters = () => {
-        filters.value = {
-          race: [],
-          alignment: [],
-          size: [],
-          gender: [],
-          class: [],
-          characterIds: [],
-          showUnassigned: false,
-        }
-      }
-
-      const clearCharactersFilter = () => {
-        filters.value.characterIds = []
-        filters.value.showUnassigned = false
-      }
+        },
+        { deep: true }
+      )
 
       return {
         gameData,
-        genders,
-        charactersFromParent,
+        activeTab,
+        activeTabConfig,
+        filters,
         characterOptions,
         characterSelectorValue,
-        activeTab,
-        filters,
-        hasActiveFilters,
-        totalActiveFilters,
-        clearFilter,
-        clearAllFilters,
-        clearCharactersFilter,
       }
     },
   }

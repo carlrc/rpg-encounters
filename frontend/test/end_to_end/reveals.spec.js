@@ -35,6 +35,72 @@ const setSliderValue = async (page, labelPrefix, value) => {
 
 const sortedNumbers = (values) => [...values].map(Number).sort((a, b) => a - b)
 
+const assertCharacterSelectionNotNested = async (scope) => {
+  await expect(scope.locator('.character-filters .filter-row')).toHaveCount(1)
+  await expect(scope.locator('.character-selection .option-item').first()).toBeVisible()
+  await expect(scope.locator('.character-selection .dropdown-header .header-btn')).toHaveCount(0)
+  await expect(scope.locator('.character-selection .multiselect-trigger')).toHaveCount(0)
+}
+
+const assertSliderTrackVisible = async (slider) => {
+  await expect(slider).toBeVisible()
+
+  const sliderBox = await slider.boundingBox()
+  expect(sliderBox).not.toBeNull()
+  expect(sliderBox.width).toBeGreaterThan(0)
+  expect(sliderBox.height).toBeGreaterThan(0)
+
+  const trackVisible = await slider.evaluate((input) => {
+    const parsePx = (value) => {
+      const parsed = Number.parseFloat(value || '0')
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+
+    const hasVisibleTrackStyle = (style) => {
+      if (!style) return false
+      const height = parsePx(style.height)
+      const backgroundColor = String(style.backgroundColor || '').toLowerCase()
+      const backgroundImage = String(style.backgroundImage || '').toLowerCase()
+      const hasBackgroundColor =
+        backgroundColor &&
+        backgroundColor !== 'rgba(0, 0, 0, 0)' &&
+        backgroundColor !== 'transparent'
+      const hasBackgroundImage = backgroundImage && backgroundImage !== 'none'
+      const hasBorder =
+        parsePx(style.borderTopWidth) > 0 ||
+        parsePx(style.borderRightWidth) > 0 ||
+        parsePx(style.borderBottomWidth) > 0 ||
+        parsePx(style.borderLeftWidth) > 0
+      return height > 0 && (hasBackgroundColor || hasBackgroundImage || hasBorder)
+    }
+
+    const webkitTrack = getComputedStyle(input, '::-webkit-slider-runnable-track')
+    const mozTrack = getComputedStyle(input, '::-moz-range-track')
+    const hasComputedTrack = hasVisibleTrackStyle(webkitTrack) || hasVisibleTrackStyle(mozTrack)
+    if (hasComputedTrack) return true
+
+    // Fallback: confirm a slider track rule is authored in loaded stylesheets.
+    const hasTrackRule = Array.from(document.styleSheets).some((sheet) => {
+      try {
+        const rules = Array.from(sheet.cssRules || [])
+        return rules.some((rule) => {
+          const selector = String(rule.selectorText || '')
+          return (
+            selector.includes('::-webkit-slider-runnable-track') ||
+            selector.includes('::-moz-range-track')
+          )
+        })
+      } catch {
+        return false
+      }
+    })
+
+    return hasTrackRule
+  })
+
+  expect(trackVisible).toBe(true)
+}
+
 test('REVEALS-SMOKE-01 loads reveals page, selects reveal, renders detail panel', async ({
   page,
 }) => {
@@ -97,6 +163,7 @@ test('REVEALS-EDIT-01 edits and saves reveal text, assigned characters, and thre
 
   const editScope = page.locator('.reveal-edit .shared-form')
   await expect(editScope).toBeVisible()
+  await assertCharacterSelectionNotNested(editScope)
 
   await editScope.getByPlaceholder('Reveal title').fill(newTitle)
   await editScope.getByPlaceholder('Enter standard content...').fill(newLevel1)
@@ -164,6 +231,18 @@ test('REVEALS-EDIT-01 edits and saves reveal text, assigned characters, and thre
     .locator('.threshold-slider', { hasText: 'Standard Content:' })
     .locator('input[type="range"]')
     .first()
+  const privilegedSlider = editScope
+    .locator('.threshold-slider', { hasText: 'Privileged Content:' })
+    .locator('input[type="range"]')
+    .first()
+  const exclusiveSlider = editScope
+    .locator('.threshold-slider', { hasText: 'Exclusive Content:' })
+    .locator('input[type="range"]')
+    .first()
+  await assertSliderTrackVisible(standardSlider)
+  await assertSliderTrackVisible(privilegedSlider)
+  await assertSliderTrackVisible(exclusiveSlider)
+
   const minThreshold = Number((await standardSlider.getAttribute('min')) || 5)
   const maxThreshold = Number((await standardSlider.getAttribute('max')) || 25)
   const thresholdStep = Number((await standardSlider.getAttribute('step')) || 1)

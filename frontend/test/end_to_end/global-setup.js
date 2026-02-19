@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const FRONTEND_ROOT = path.resolve(__dirname, '..')
+const FRONTEND_ROOT = path.resolve(__dirname, '..', '..')
 const BACKEND_ROOT = path.resolve(FRONTEND_ROOT, '..', 'backend')
 const AUTH_DIR = path.resolve(__dirname, '.auth')
 const AUTH_STATE_PATH = path.resolve(AUTH_DIR, 'dm.json')

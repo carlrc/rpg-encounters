@@ -102,6 +102,8 @@
   import { usePlayerStore } from '@/stores/players'
   import { useCharacterStore } from '../stores/characters.js'
   import { useNotification } from '../composables/useNotification.js'
+  import { useEncounterGraphOps } from '../composables/encounters/useEncounterGraphOps.js'
+  import { useEncounterCanvasData } from '../composables/encounters/useEncounterCanvasData.js'
   import { isTemporaryId } from '../utils/idUtils.js'
   import { saveViewport, getViewport } from '../utils/viewportState.js'
 
@@ -145,94 +147,28 @@
   const deletedEncounterIds = ref([])
   const deletedConnectionIds = ref([])
 
-  // Get available characters for a specific encounter (exclude characters already in that encounter)
-  const getAvailableCharactersForEncounter = (encounterData) => {
-    if (!encounterData || !Array.isArray(encounterData.characters)) return characters.value
+  const {
+    getAvailableCharactersForEncounter,
+    getAvailablePlayersForEncounter,
+    getCharactersForEncounter,
+    getPlayersForEncounter,
+    addCharacterToEncounter,
+    removeCharacterFromEncounter,
+    addPlayerToEncounter,
+    removePlayerFromEncounter,
+  } = useEncounterGraphOps({
+    elements,
+    characters,
+    players,
+  })
 
-    const encounterCharacterIds = new Set(encounterData.characters.map((char) => char.id))
-    return characters.value.filter((char) => !encounterCharacterIds.has(char.id))
-  }
-
-  const getAvailablePlayersForEncounter = (encounterData) => {
-    if (!encounterData || !encounterData.players) return players.value
-
-    const encounterPlayerIds = new Set(encounterData.players.map((player) => player.id))
-    return players.value.filter((player) => !encounterPlayerIds.has(player.id))
-  }
-
-  // Transform encounter data to Vue Flow format
-  const transformEncounterDataToElements = (encounterData) => {
-    // Transform database encounters to Vue Flow format
-    const vueFlowNodes = encounterData.encounters.map((encounter) => ({
-      id: String(encounter.id),
-      type: 'encounter',
-      position: {
-        x: encounter.position_x || 200,
-        y: encounter.position_y || 150,
-      },
-      data: {
-        name: encounter.name,
-        description: encounter.description || '',
-        characters: getCharactersForEncounter(encounter.character_ids || []),
-        players: getPlayersForEncounter(encounter.player_ids || []),
-        isNew: false, // Existing encounters from database
-      },
-    }))
-
-    // Transform database connections to Vue Flow edges
-    const vueFlowEdges = (encounterData.connections || []).map((connection) => ({
-      id: `edge-${connection.id}`,
-      source: String(connection.source_encounter_id),
-      target: String(connection.target_encounter_id),
-      sourceHandle: connection.source_handle,
-      targetHandle: connection.target_handle,
-      type: connection.edge_type === 'bezier' ? 'default' : connection.edge_type || 'straight',
-      style: {
-        stroke: connection.stroke_color || '#A0A0A0',
-        strokeWidth: connection.stroke_width || 3,
-      },
-      data: {
-        selectable: true,
-        isNew: false, // Existing connections from database
-      },
-    }))
-
-    // Combine nodes and edges
-    return [...vueFlowNodes, ...vueFlowEdges]
-  }
-
-  // Load encounters and connections from API
-  const loadEncounters = async () => {
-    try {
-      const encounterData = await getEncounters()
-      if (!encounterData || !Array.isArray(encounterData.encounters)) {
-        throw new Error('Invalid encounter data received from API')
-      }
-
-      elements.value = transformEncounterDataToElements(encounterData)
-    } catch (err) {
-      const errorMessage = err.message || 'Failed to load encounters'
-      error.value = errorMessage
-      console.error('Encounter loading failed:', JSON.stringify(serializeError(err)))
-      throw err
-    }
-  }
-
-  // Helper function to get character objects from character IDs
-  const getCharactersForEncounter = (characterIds) => {
-    if (!Array.isArray(characterIds) || !Array.isArray(characters.value)) {
-      return []
-    }
-    return characters.value.filter((character) => characterIds.includes(character.id))
-  }
-
-  const getPlayersForEncounter = (playerIds) => {
-    if (!playerIds) {
-      return []
-    }
-
-    return players.value.filter((player) => playerIds.includes(player.id))
-  }
+  const { transformEncounterDataToElements, loadEncounters } = useEncounterCanvasData({
+    elements,
+    error,
+    getEncounters,
+    getCharactersForEncounter,
+    getPlayersForEncounter,
+  })
 
   const loadData = async () => {
     // Triggered by state changes (even logout) where there is no world set
@@ -256,51 +192,6 @@
     } finally {
       loading.value = false
     }
-  }
-
-  // Character management
-  const addCharacterToEncounter = (encounterId, characterId) => {
-    const character = characters.value.find((c) => c.id === characterId)
-    const encounter = elements.value.find((el) => el.id === encounterId)
-
-    encounter.data.characters = encounter.data.characters || []
-
-    const isAlreadyInEncounter = encounter.data.characters.some((char) => char.id === characterId)
-
-    if (!isAlreadyInEncounter) {
-      encounter.data.characters.push(character)
-    }
-  }
-
-  const removeCharacterFromEncounter = (encounterId, characterId) => {
-    const encounter = elements.value.find((el) => el.id === encounterId)
-    encounter.data.characters = (encounter.data.characters || []).filter(
-      (char) => char.id !== characterId
-    )
-  }
-
-  const addPlayerToEncounter = (encounterId, playerId) => {
-    const player = players.value.find((p) => p.id === playerId)
-    if (!player) return
-
-    // Rebuild elements: remove player from all encounters, add to target
-    elements.value = elements.value.map((el) => {
-      if (el.type !== 'encounter') return el
-
-      const isTarget = String(el.id) === String(encounterId)
-      const current = el.data?.players ?? []
-      const filtered = current.filter((p) => p.id !== playerId)
-      const nextPlayers = isTarget ? [...filtered, player] : filtered
-
-      return { ...el, data: { ...el.data, players: nextPlayers } }
-    })
-  }
-
-  const removePlayerFromEncounter = (encounterId, playerId) => {
-    const encounter = elements.value.find((el) => el.id === encounterId)
-    encounter.data.players = (encounter.data.players || []).filter(
-      (assigned) => assigned.id !== playerId
-    )
   }
 
   // Character encounter handlers

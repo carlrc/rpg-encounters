@@ -6,7 +6,7 @@ import { expect, test } from '@playwright/test'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const BACKEND_ROOT = path.resolve(__dirname, '..', '..', 'backend')
+const BACKEND_ROOT = path.resolve(__dirname, '..', '..', '..', 'backend')
 const bootstrapCommand = ['run', 'python', 'scripts/get_seeded_dm_session.py']
 
 test('AUTH-BOOTSTRAP-01 CLI returns valid JSON contract', async () => {

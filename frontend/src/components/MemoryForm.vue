@@ -8,8 +8,8 @@
       <label class="shared-field-label">Content <span class="required">*</span></label>
       <BaseTextareaWithCharacterCounter
         v-model="form.content"
-        :placeholder="`Memory content`"
-        :max-characters="1000"
+        :placeholder="`Memory content (max ${gameData?.validation_limits?.memory_content || 1000} characters)`"
+        :max-characters="gameData?.validation_limits?.memory_content || 1000"
       />
     </div>
 
@@ -18,6 +18,7 @@
       v-model="form.character_ids"
       :characters="characters"
       :enable-filtering="true"
+      selection-mode="checklist"
       label="Characters"
     />
 
@@ -32,8 +33,10 @@
 
 <script>
   import { reactive, computed } from 'vue'
+  import { storeToRefs } from 'pinia'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
+  import { useGameDataStore } from '../stores/gameData.js'
 
   const CONTENT_WORD_LIMIT = 200
 
@@ -59,6 +62,9 @@
     },
     emits: ['save', 'cancel'],
     setup(props, { emit }) {
+      const gameDataStore = useGameDataStore()
+      const { data: gameData } = storeToRefs(gameDataStore)
+
       // Initialize form with either initial data or empty values
       const form = reactive({
         title: props.initialData.title || '',
@@ -93,6 +99,7 @@
 
       return {
         form,
+        gameData,
         isFormValid,
         handleSave,
         handleCancel,

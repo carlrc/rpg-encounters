@@ -37,48 +37,20 @@
       </div>
     </div>
 
-    <div v-else class="shared-form">
-      <!-- Title -->
-      <input
-        v-model="editForm.title"
-        placeholder="Memory title"
-        class="shared-input shared-input-name"
-      />
-
-      <!-- Content -->
-      <div class="content-field">
-        <label class="shared-field-label">Content</label>
-        <BaseTextareaWithCharacterCounter
-          v-model="editForm.content"
-          :placeholder="`Memory content (max ${gameData?.validation_limits?.memory_content || 1000} characters)`"
-          :max-characters="gameData?.validation_limits?.memory_content || 1000"
-        />
-      </div>
-
-      <!-- Character Selection -->
-      <CharacterSelector
-        v-model="editForm.character_ids"
-        :characters="characters"
-        :enable-filtering="true"
-        label="Characters"
-      />
-
-      <div class="shared-actions">
-        <button @click="saveEdit" class="shared-btn shared-btn-success" :disabled="!isFormValid">
-          Save
-        </button>
-        <button @click="cancelEdit" class="shared-btn shared-btn-secondary">Cancel</button>
-      </div>
-    </div>
+    <MemoryForm
+      v-else
+      :initial-data="memory"
+      :characters="characters"
+      :is-editing="true"
+      @save="saveEdit"
+      @cancel="cancelEdit"
+    />
   </div>
 </template>
 
 <script>
-  import { ref, reactive, computed } from 'vue'
-  import { storeToRefs } from 'pinia'
-  import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
-  import CharacterSelector from './entity/CharacterSelector.vue'
-  import { useGameDataStore } from '../stores/gameData.js'
+  import { ref } from 'vue'
+  import MemoryForm from './MemoryForm.vue'
   import { getCharacterName } from '../utils/characterUtils.js'
 
   const CONTENT_WORD_LIMIT = 200
@@ -86,8 +58,7 @@
   export default {
     name: 'MemoryCard',
     components: {
-      BaseTextareaWithCharacterCounter,
-      CharacterSelector,
+      MemoryForm,
     },
     props: {
       memory: {
@@ -101,29 +72,9 @@
     },
     emits: ['update', 'delete'],
     setup(props, { emit }) {
-      const gameDataStore = useGameDataStore()
-      const { data: gameData } = storeToRefs(gameDataStore)
       const isEditing = ref(false)
 
-      const editForm = reactive({
-        title: '',
-        content: '',
-        character_ids: [],
-      })
-
-      const isFormValid = computed(() => {
-        return (
-          editForm.title.trim().length > 0 &&
-          editForm.content.trim().length > 0 &&
-          editForm.character_ids.length > 0 &&
-          editForm.content.trim().split(' ').length <= CONTENT_WORD_LIMIT
-        )
-      })
-
       const startEdit = () => {
-        editForm.title = props.memory.title || ''
-        editForm.content = props.memory.content || ''
-        editForm.character_ids = [...props.memory.character_ids]
         isEditing.value = true
       }
 
@@ -131,15 +82,13 @@
         isEditing.value = false
       }
 
-      const saveEdit = () => {
-        if (isFormValid.value) {
-          emit('update', props.memory.id, {
-            title: editForm.title.trim(),
-            content: editForm.content.trim(),
-            character_ids: editForm.character_ids,
-          })
-          isEditing.value = false
-        }
+      const saveEdit = (formData) => {
+        emit('update', props.memory.id, {
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+          character_ids: formData.character_ids,
+        })
+        isEditing.value = false
       }
 
       const deleteMemory = () => {
@@ -149,10 +98,7 @@
       }
 
       return {
-        gameData,
         isEditing,
-        editForm,
-        isFormValid,
         CONTENT_WORD_LIMIT,
         getCharacterName: (id) => getCharacterName(id, props.characters),
         startEdit,

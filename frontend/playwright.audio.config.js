@@ -4,20 +4,20 @@ import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const FAKE_AUDIO_PATH = path.resolve(__dirname, 'fake-input.wav')
+const FAKE_AUDIO_PATH = path.resolve(__dirname, 'test/mocks/fake-input.wav')
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: './test/end_to_end',
   timeout: 90_000,
   expect: {
     timeout: 10_000,
   },
   fullyParallel: false,
   reporter: [['list'], ['html', { open: 'never' }]],
-  globalSetup: path.resolve(__dirname, 'e2e/global-setup.js'),
+  globalSetup: path.resolve(__dirname, 'test/end_to_end/global-setup.js'),
   use: {
     baseURL: 'http://localhost:3001',
-    storageState: path.resolve(__dirname, 'e2e/.auth/dm.json'),
+    storageState: path.resolve(__dirname, 'test/end_to_end/.auth/dm.json'),
     trace: 'retain-on-failure',
     browserName: 'chromium',
     launchOptions: {

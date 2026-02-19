@@ -10,17 +10,20 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
-    "e2e:auth-bootstrap": "playwright test e2e/auth-bootstrap.spec.js",
-    "e2e:players": "playwright test e2e/players.spec.js",
-    "e2e:characters": "playwright test e2e/characters.spec.js",
-    "e2e:memories": "playwright test e2e/memories.spec.js",
-    "e2e:reveals": "playwright test e2e/reveals.spec.js",
-    "e2e:filters": "playwright test e2e/filtering.spec.js",
-    "e2e:encounters": "playwright test e2e/encounters.spec.js",
-    "e2e:player-login-mobile": "playwright test e2e/player-login-mobile.spec.js",
-    "e2e:encounters:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test e2e/encounters.spec.js --grep ENCOUNTERS-TALKING-AUDIO-01 --config playwright.audio.config.js"
+    "e2e:auth-bootstrap": "playwright test test/end_to_end/auth-bootstrap.spec.js",
+    "e2e:players": "playwright test test/end_to_end/players.spec.js",
+    "e2e:characters": "playwright test test/end_to_end/characters.spec.js",
+    "e2e:memories": "playwright test test/end_to_end/memories.spec.js",
+    "e2e:reveals": "playwright test test/end_to_end/reveals.spec.js",
+    "e2e:filters": "playwright test test/end_to_end/filtering.spec.js",
+    "e2e:encounters": "playwright test test/end_to_end/encounters.spec.js",
+    "e2e:player-login-mobile": "playwright test test/end_to_end/player-login-mobile.spec.js",
+    "e2e:player-mobile:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/player-encounter-mobile-audio.spec.js --config playwright.audio.config.js",
+    "e2e:encounters:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.js --grep ENCOUNTERS-TALKING-AUDIO-01 --config playwright.audio.config.js"
   },
   "dependencies": {
     "@vue-flow/background": "^1.3.2",
@@ -41,6 +44,7 @@
     "eslint": "^8.57.0",
     "eslint-plugin-vue": "^9.17.0",
     "prettier": "3.6.2",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^2.1.8"
   }
 }
