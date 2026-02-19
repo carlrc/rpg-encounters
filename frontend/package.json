@@ -17,7 +17,9 @@
     "e2e:characters": "playwright test e2e/characters.spec.js",
     "e2e:memories": "playwright test e2e/memories.spec.js",
     "e2e:reveals": "playwright test e2e/reveals.spec.js",
+    "e2e:filters": "playwright test e2e/filtering.spec.js",
     "e2e:encounters": "playwright test e2e/encounters.spec.js",
+    "e2e:player-login-mobile": "playwright test e2e/player-login-mobile.spec.js",
     "e2e:encounters:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test e2e/encounters.spec.js --grep ENCOUNTERS-TALKING-AUDIO-01 --config playwright.audio.config.js"
   },
   "dependencies": {
