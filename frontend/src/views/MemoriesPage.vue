@@ -51,7 +51,7 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, watch } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { storeToRefs } from 'pinia'
   import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
@@ -60,15 +60,15 @@
   import MemoryForm from '../components/MemoryForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useMemoryStore } from '../stores/memories.js'
-  import { useWorldStore } from '@/stores/world'
+  import { useCharacterStore } from '../stores/characters.js'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import { getCharacters } from '../services/api.js'
   import { useGameDataStore } from '../stores/gameData.js'
 
   // Initialize stores
   const memoryStore = useMemoryStore()
+  const characterStore = useCharacterStore()
   const gameDataStore = useGameDataStore()
-  const worldStore = useWorldStore()
+  const { entities: characters } = storeToRefs(characterStore)
 
   // Reactive refs from stores
   const {
@@ -91,8 +91,6 @@
     cancelCreate,
   } = memoryStore
 
-  const characters = ref([])
-
   // Memory filter tabs configuration
   const memoryFilterTabs = [
     { id: 'characters', label: 'Characters' },
@@ -108,14 +106,6 @@
     alignment: [],
   })
 
-  const loadCharacters = async () => {
-    try {
-      characters.value = await getCharacters()
-    } catch (err) {
-      console.error('Error loading characters:', JSON.stringify(serializeError(err)))
-    }
-  }
-
   const handleCreateSave = async (formData) => {
     try {
       await createEntity(formData)
@@ -128,19 +118,10 @@
     cancelCreate()
   }
 
-  // Watch for world changes to reload characters
-  watch(
-    () => worldStore.currentWorldId,
-    () => {
-      characters.value = []
-      loadCharacters()
-    }
-  )
-
   onMounted(async () => {
     await loadEntities()
     await gameDataStore.load()
-    await loadCharacters()
+    await characterStore.loadEntities()
   })
 
   // Filtered entities based on character filters and character attributes

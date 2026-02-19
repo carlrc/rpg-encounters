@@ -63,16 +63,15 @@
   import FilterPanel from '../components/filters/FilterPanel.vue'
   import { useRevealStore } from '../stores/reveals.js'
   import { useGameDataStore } from '../stores/gameData.js'
-  import { useWorldStore } from '@/stores/world'
+  import { useCharacterStore } from '../stores/characters.js'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import { getCharacters } from '../services/api.js'
 
   const route = useRoute()
 
   // Initialize stores
   const revealStore = useRevealStore()
   const gameDataStore = useGameDataStore()
-  const worldStore = useWorldStore()
+  const characterStore = useCharacterStore()
 
   // Reactive refs from stores
   const {
@@ -97,7 +96,7 @@
     cancelCreate,
   } = revealStore
 
-  const characters = ref([])
+  const { entities: characters } = storeToRefs(characterStore)
 
   // Reveal filter tabs configuration
   const revealFilterTabs = [
@@ -115,14 +114,6 @@
     alignment: [],
   })
 
-  const loadCharacters = async () => {
-    try {
-      characters.value = await getCharacters()
-    } catch (err) {
-      console.error('Error loading characters:', JSON.stringify(serializeError(err)))
-    }
-  }
-
   const handleCreateSave = async (formData) => {
     try {
       await createEntity(formData)
@@ -135,19 +126,10 @@
     cancelCreate()
   }
 
-  // Watch for world changes to reload characters
-  watch(
-    () => worldStore.currentWorldId,
-    () => {
-      characters.value = []
-      loadCharacters()
-    }
-  )
-
   onMounted(async () => {
     await gameDataStore.load()
     await loadEntities()
-    await loadCharacters()
+    await characterStore.loadEntities()
 
     // Auto-select reveal if ID is provided in query params
     const revealId = route.query.id

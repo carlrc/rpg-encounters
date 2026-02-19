@@ -97,7 +97,6 @@
   import EncounterNode from './EncounterNode.vue'
   import CharacterEncounterPopup from './CharacterEncounterPopup.vue'
   import {
-    getCharacters,
     getEncounters,
     createEncounter,
     saveCanvas as saveCanvasAPI,
@@ -105,6 +104,7 @@
   import { useGameDataStore } from '../stores/gameData.js'
   import { useWorldStore } from '@/stores/world'
   import { usePlayerStore } from '@/stores/players'
+  import { useCharacterStore } from '../stores/characters.js'
   import { useNotification } from '../composables/useNotification.js'
   import { isTemporaryId } from '../utils/idUtils.js'
   import { saveViewport, getViewport } from '../utils/viewportState.js'
@@ -112,14 +112,15 @@
   const gameDataStore = useGameDataStore()
   const worldStore = useWorldStore()
   const playerStore = usePlayerStore()
+  const characterStore = useCharacterStore()
   const { data: gameData } = storeToRefs(gameDataStore)
+  const { entities: characters } = storeToRefs(characterStore)
   const { entities: playerEntities } = storeToRefs(playerStore)
   const { showSuccess, showError } = useNotification()
   const router = useRouter()
   const route = useRoute()
 
   // State
-  const characters = ref([])
   const players = computed(() => playerEntities.value || [])
   const loading = ref(true)
   const error = ref(null)
@@ -161,22 +162,6 @@
 
     const encounterPlayerIds = new Set(encounterData.players.map((player) => player.id))
     return players.value.filter((player) => !encounterPlayerIds.has(player.id))
-  }
-
-  // Load characters from API
-  const loadCharacters = async () => {
-    try {
-      const loadedCharacters = await getCharacters()
-      if (!Array.isArray(loadedCharacters)) {
-        throw new Error('Invalid characters data received from API')
-      }
-      characters.value = loadedCharacters
-    } catch (err) {
-      const errorMessage = err.message || 'Failed to load characters'
-      error.value = errorMessage
-      console.error('Character loading failed:', JSON.stringify(serializeError(err)))
-      throw err // Re-throw to be caught by loadData
-    }
   }
 
   // Transform encounter data to Vue Flow format
@@ -265,7 +250,7 @@
     try {
       // Load characters first, then encounters (encounters need characters for associations)
       await gameDataStore.load()
-      await loadCharacters()
+      await characterStore.loadEntities()
       await playerStore.loadEntities()
       await loadEncounters()
     } catch (err) {
