@@ -8,6 +8,7 @@
       v-model="form.character_ids"
       :characters="characters"
       :enable-filtering="true"
+      selection-mode="checklist"
       label="Characters"
     />
 
@@ -25,20 +26,14 @@
 
     <!-- Level 1 Threshold -->
     <div class="threshold-section">
-      <div class="threshold-slider">
-        <label class="threshold-label">
-          Standard Content:
-          {{ getDCLabel(form.standard_threshold) || `DC ${form.standard_threshold}` }}
-        </label>
-        <input
-          type="range"
-          v-model.number="form.standard_threshold"
-          :min="gameData?.threshold_limits?.min || 5"
-          :max="gameData?.threshold_limits?.max || 25"
-          :step="gameData?.threshold_limits?.step || 1"
-          class="slider"
-        />
-      </div>
+      <RangeSliderControl
+        v-model="form.standard_threshold"
+        label="Standard Content"
+        :min="gameData?.threshold_limits?.min || 5"
+        :max="gameData?.threshold_limits?.max || 25"
+        :step="gameData?.threshold_limits?.step || 1"
+        :formatter="(value) => getDCLabel(value) || `DC ${value}`"
+      />
     </div>
 
     <!-- Level 2 Content -->
@@ -62,20 +57,14 @@
 
     <!-- Level 2 Threshold -->
     <div v-if="form.enable_level_2" class="threshold-section">
-      <div class="threshold-slider">
-        <label class="threshold-label">
-          Privileged Content:
-          {{ getDCLabel(form.privileged_threshold) || `DC ${form.privileged_threshold}` }}
-        </label>
-        <input
-          type="range"
-          v-model.number="form.privileged_threshold"
-          :min="gameData?.threshold_limits?.min || 5"
-          :max="gameData?.threshold_limits?.max || 25"
-          :step="gameData?.threshold_limits?.step || 1"
-          class="slider"
-        />
-      </div>
+      <RangeSliderControl
+        v-model="form.privileged_threshold"
+        label="Privileged Content"
+        :min="gameData?.threshold_limits?.min || 5"
+        :max="gameData?.threshold_limits?.max || 25"
+        :step="gameData?.threshold_limits?.step || 1"
+        :formatter="(value) => getDCLabel(value) || `DC ${value}`"
+      />
     </div>
 
     <!-- Level 3 Content -->
@@ -99,20 +88,14 @@
 
     <!-- Level 3 Threshold -->
     <div v-if="form.enable_level_3" class="threshold-section">
-      <div class="threshold-slider">
-        <label class="threshold-label">
-          Exclusive Content:
-          {{ getDCLabel(form.exclusive_threshold) || `DC ${form.exclusive_threshold}` }}
-        </label>
-        <input
-          type="range"
-          v-model.number="form.exclusive_threshold"
-          :min="gameData?.threshold_limits?.min || 5"
-          :max="gameData?.threshold_limits?.max || 25"
-          :step="gameData?.threshold_limits?.step || 1"
-          class="slider"
-        />
-      </div>
+      <RangeSliderControl
+        v-model="form.exclusive_threshold"
+        label="Exclusive Content"
+        :min="gameData?.threshold_limits?.min || 5"
+        :max="gameData?.threshold_limits?.max || 25"
+        :step="gameData?.threshold_limits?.step || 1"
+        :formatter="(value) => getDCLabel(value) || `DC ${value}`"
+      />
     </div>
 
     <!-- Actions -->
@@ -130,6 +113,7 @@
   import { storeToRefs } from 'pinia'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
+  import RangeSliderControl from './base/RangeSliderControl.vue'
   import { useRevealValidation } from '../composables/useRevealValidation.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import { getDCLabel } from '../utils/dcUtils.js'
@@ -139,6 +123,7 @@
     components: {
       BaseTextareaWithCharacterCounter,
       CharacterSelector,
+      RangeSliderControl,
     },
     props: {
       initialData: {
@@ -159,7 +144,6 @@
       const gameDataStore = useGameDataStore()
       const { data: gameData } = storeToRefs(gameDataStore)
 
-      // Initialize form with either initial data or empty values
       const form = reactive({
         title: props.initialData.title || '',
         character_ids: [...(props.initialData.character_ids || [])],
@@ -196,7 +180,6 @@
         }
       }
 
-      // Form actions
       const handleSave = () => {
         if (isFormValid.value) {
           const formData = {
@@ -206,7 +189,6 @@
             standard_threshold: form.standard_threshold,
           }
 
-          // Only add optional fields if they're enabled
           if (form.enable_level_2) {
             formData.level_2_content = form.level_2_content.trim()
             formData.privileged_threshold = form.privileged_threshold

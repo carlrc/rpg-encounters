@@ -66,66 +66,27 @@
     <!-- Ability Modifiers Section -->
     <div class="abilities-skills-section">
       <h4 class="section-title">Ability Modifiers</h4>
-      <div class="threshold-slider">
-        <label class="threshold-label">Charisma: {{ form.abilities.Charisma || 0 }}</label>
-        <input
-          type="range"
-          v-model.number="form.abilities.Charisma"
-          min="-5"
-          max="10"
-          step="1"
-          class="slider"
-        />
-      </div>
+      <RangeSliderControl
+        v-model="form.abilities.Charisma"
+        label="Charisma"
+        :min="-5"
+        :max="10"
+        :step="1"
+      />
     </div>
 
     <!-- Skill Modifiers Section -->
     <div class="abilities-skills-section">
       <h4 class="section-title">Skill Modifiers</h4>
-      <div class="threshold-slider">
-        <label class="threshold-label">Deception: {{ form.skills.Deception || 0 }}</label>
-        <input
-          type="range"
-          v-model.number="form.skills.Deception"
-          min="-5"
-          max="25"
-          step="1"
-          class="slider"
-        />
-      </div>
-      <div class="threshold-slider">
-        <label class="threshold-label">Intimidation: {{ form.skills.Intimidation || 0 }}</label>
-        <input
-          type="range"
-          v-model.number="form.skills.Intimidation"
-          min="-5"
-          max="25"
-          step="1"
-          class="slider"
-        />
-      </div>
-      <div class="threshold-slider">
-        <label class="threshold-label">Performance: {{ form.skills.Performance || 0 }}</label>
-        <input
-          type="range"
-          v-model.number="form.skills.Performance"
-          min="-5"
-          max="25"
-          step="1"
-          class="slider"
-        />
-      </div>
-      <div class="threshold-slider">
-        <label class="threshold-label">Persuasion: {{ form.skills.Persuasion || 0 }}</label>
-        <input
-          type="range"
-          v-model.number="form.skills.Persuasion"
-          min="-5"
-          max="25"
-          step="1"
-          class="slider"
-        />
-      </div>
+      <RangeSliderControl
+        v-for="skill in skillSliderFields"
+        :key="skill"
+        v-model="form.skills[skill]"
+        :label="skill"
+        :min="-5"
+        :max="25"
+        :step="1"
+      />
     </div>
 
     <div class="shared-actions">
@@ -144,11 +105,13 @@
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
+  import RangeSliderControl from './base/RangeSliderControl.vue'
 
   export default {
     name: 'PlayerForm',
     components: {
       BaseTextareaWithCharacterCounter,
+      RangeSliderControl,
     },
     props: {
       initialData: {
@@ -166,7 +129,6 @@
       const { data: gameData } = storeToRefs(gameDataStore)
       const { genders } = useDropdownOptions()
 
-      // Initialize form with either initial data or empty values
       const form = reactive({
         name: props.initialData.name || '',
         rl_name: props.initialData.rl_name || '',
@@ -189,7 +151,8 @@
 
       const { isFormValid } = useFormValidation(form, 'PLAYER')
 
-      // Form actions
+      const skillSliderFields = ['Deception', 'Intimidation', 'Performance', 'Persuasion']
+
       const handleSave = () => {
         if (isFormValid.value) {
           const formData = {
@@ -220,6 +183,7 @@
         genders,
         sizes: computed(() => gameData.value?.sizes?.player || []),
         alignments: computed(() => gameData.value?.alignments || []),
+        skillSliderFields,
         isFormValid,
         handleSave,
         handleCancel,

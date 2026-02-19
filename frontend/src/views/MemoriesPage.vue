@@ -15,16 +15,17 @@
       <FilterPanel
         v-model="activeFilters"
         :enable-tabs="true"
-        :available-tabs="memoryFilterTabs"
+        :available-tabs="MEMORY_FILTER_TABS"
         :characters="characters"
       />
     </template>
+
     <template #detail-content>
       <div v-if="loading" class="shared-loading">Loading memories...</div>
       <div v-else-if="error" class="shared-error">{{ error }}</div>
 
       <EmptyState
-        v-else-if="!selectedMemory && !showCreateForm"
+        v-else-if="!selectedEntity && !showCreateForm"
         icon="🧠"
         title="No Memory Selected"
         message="Select a memory from the list to view details, or create a new one."
@@ -40,8 +41,8 @@
       </div>
 
       <MemoryCard
-        v-else-if="selectedMemory"
-        :memory="selectedMemory"
+        v-else-if="selectedEntity"
+        :memory="selectedEntity"
         :characters="characters"
         @update="updateEntity"
         @delete="deleteEntity"
@@ -51,9 +52,8 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted } from 'vue'
+  import { ref } from 'vue'
   import { storeToRefs } from 'pinia'
-  import { serializeError } from 'serialize-error'
   import SplitViewLayout from '../components/layout/SplitViewLayout.vue'
   import EmptyState from '../components/ui/EmptyState.vue'
   import MemoryCard from '../components/MemoryCard.vue'
@@ -63,93 +63,42 @@
   import { useCharacterStore } from '../stores/characters.js'
   import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
+  import { MEMORY_FILTER_TABS, createMemoryFilterState } from '../constants/uiFilters.js'
 
-  // Initialize stores
   const memoryStore = useMemoryStore()
   const characterStore = useCharacterStore()
   const gameDataStore = useGameDataStore()
+
   const { entities: characters } = storeToRefs(characterStore)
 
-  // Reactive refs from stores
+  const activeFilters = ref(createMemoryFilterState())
+
   const {
-    entities,
+    filteredEntities,
     loading,
     error,
     selectedEntityId,
-    selectedEntity: selectedMemory,
+    selectedEntity,
     showCreateForm,
-  } = storeToRefs(memoryStore)
-
-  // Actions
-  const {
-    loadEntities,
-    createEntity,
-    updateEntity,
-    deleteEntity,
     selectEntity,
     startCreate,
-    cancelCreate,
-  } = memoryStore
-
-  // Memory filter tabs configuration
-  const memoryFilterTabs = [
-    { id: 'characters', label: 'Characters' },
-    { id: 'race', label: 'Race' },
-    { id: 'alignment', label: 'Alignment' },
-  ]
-
-  // Character filtering state
-  const activeFilters = ref({
-    characterIds: [],
-    showUnassigned: false,
-    race: [],
-    alignment: [],
+    handleCreateSave,
+    handleCancelCreate,
+    updateEntity,
+    deleteEntity,
+  } = useCrudSplitViewPage({
+    store: memoryStore,
+    createErrorLabel: 'Memory',
+    loadDeps: async () => {
+      await gameDataStore.load()
+      await characterStore.loadEntities()
+    },
+    applyEntityFilters: (entityList) => {
+      const byCharacter = applyCharacterFilters(entityList, activeFilters.value)
+      return applyCharacterAttributeFilters(byCharacter, activeFilters.value, characters.value)
+    },
   })
-
-  const handleCreateSave = async (formData) => {
-    try {
-      await createEntity(formData)
-    } catch (err) {
-      console.error('Memory entity creation error:', JSON.stringify(serializeError(err)))
-    }
-  }
-
-  const handleCancelCreate = () => {
-    cancelCreate()
-  }
-
-  onMounted(async () => {
-    await loadEntities()
-    await gameDataStore.load()
-    await characterStore.loadEntities()
-  })
-
-  // Filtered entities based on character filters and character attributes
-  const filteredEntities = computed(() => {
-    // First apply character ID filters (existing functionality)
-    let filtered = applyCharacterFilters(entities.value, activeFilters.value)
-
-    // Then apply character attribute filters (new functionality)
-    filtered = applyCharacterAttributeFilters(filtered, activeFilters.value, characters.value)
-
-    return filtered
-  })
-
-  const hasActiveCharacterFilters = computed(() => {
-    return (
-      activeFilters.value.characterIds.length > 0 ||
-      activeFilters.value.showUnassigned ||
-      activeFilters.value.race.length > 0 ||
-      activeFilters.value.alignment.length > 0
-    )
-  })
-
-  const clearCharacterFilters = () => {
-    activeFilters.value.characterIds = []
-    activeFilters.value.showUnassigned = false
-    activeFilters.value.race = []
-    activeFilters.value.alignment = []
-  }
 </script>
 
 <style scoped>

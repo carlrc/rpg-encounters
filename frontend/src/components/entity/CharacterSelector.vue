@@ -27,7 +27,23 @@
     </div>
 
     <div class="character-selection">
+      <div v-if="selectionMode === 'checklist'" class="character-checklist">
+        <label
+          v-for="(option, index) in characterOptions"
+          :key="optionKey(option, index)"
+          class="option-item"
+        >
+          <input
+            type="checkbox"
+            :value="option.value"
+            :checked="isOptionSelected(option.value)"
+            @change="toggleSelection(option.value)"
+          />
+          <span class="option-text">{{ option.label }}</span>
+        </label>
+      </div>
       <FilterMultiSelect
+        v-else
         v-model="selectionProxy"
         :options="characterOptions"
         :expanded="true"
@@ -47,7 +63,10 @@
   import FilterMultiSelect from '../filters/FilterMultiSelect.vue'
   import { storeToRefs } from 'pinia'
   import { useGameDataStore } from '../../stores/gameData.js'
-  import { applyFilters } from '../../utils/filterUtils.js'
+  import {
+    buildVisibleCharacterOptions,
+    normalizeCharacterIds,
+  } from '../../utils/characterSelectorFilter.js'
 
   export default {
     name: 'CharacterSelector',
@@ -79,6 +98,11 @@
         type: Boolean,
         default: false,
       },
+      selectionMode: {
+        type: String,
+        default: 'multiselect',
+        validator: (value) => ['multiselect', 'checklist'].includes(value),
+      },
     },
     emits: ['update:modelValue'],
     setup(props, { emit }) {
@@ -95,14 +119,6 @@
       if (props.enableFiltering) {
         gameDataStore.load()
       }
-
-      // Filtered characters based on active filters
-      const filteredCharacters = computed(() => {
-        if (!props.enableFiltering || !hasActiveFilters.value || !gameData.value) {
-          return props.characters
-        }
-        return applyFilters(props.characters, filters.value)
-      })
 
       // Check if any filters are active
       const hasActiveFilters = computed(() => {
@@ -125,13 +141,7 @@
 
       // Get current character IDs from modelValue
       const currentCharacterIds = computed(() => {
-        const ids = (props.modelValue || []).filter((id) => id !== 'no-characters')
-
-        // Normalize all IDs to numbers for consistent comparison
-        return ids.map((id) => {
-          const numId = typeof id === 'string' ? parseInt(id, 10) : Number(id)
-          return isNaN(numId) ? id : numId
-        })
+        return normalizeCharacterIds(props.modelValue)
       })
 
       const currentShowUnassigned = computed(() => {
@@ -141,33 +151,11 @@
       const NO_CHAR_SENTINEL = 'no-characters'
 
       const characterOptions = computed(() => {
-        const options = []
-        const seen = new Set()
-
-        if (props.showNoCharactersOption) {
-          options.push({
-            label: 'NONE - Select items with no assignments',
-            value: NO_CHAR_SENTINEL,
-            excludeFromSelectAll: true,
-          })
-        }
-
-        const addCharacter = (character) => {
-          if (!character) return
-          const id = character.id
-          if (seen.has(id)) return
-          seen.add(id)
-          options.push({ label: character.name || `Character ${id}`, value: id })
-        }
-
-        filteredCharacters.value.forEach(addCharacter)
-
-        // Ensure previously selected characters remain visible even if filtered out
-        props.characters
-          .filter((char) => currentCharacterIds.value.includes(Number(char.id)))
-          .forEach(addCharacter)
-
-        return options
+        return buildVisibleCharacterOptions({
+          characters: props.characters,
+          filters: hasActiveFilters.value ? filters.value : undefined,
+          showNoCharactersOption: props.showNoCharactersOption,
+        })
       })
 
       const selectionProxy = computed({
@@ -194,10 +182,43 @@
         },
       })
 
+      const normalizeSelectionValue = (value) => {
+        if (value === NO_CHAR_SENTINEL) return value
+        const normalized = Number(value)
+        return Number.isNaN(normalized) ? value : normalized
+      }
+
+      const isOptionSelected = (value) => {
+        const normalizedValue = normalizeSelectionValue(value)
+        return selectionProxy.value.some(
+          (item) => normalizeSelectionValue(item) === normalizedValue
+        )
+      }
+
+      const toggleSelection = (value) => {
+        const normalizedValue = normalizeSelectionValue(value)
+        const nextSelection = [...selectionProxy.value]
+        const index = nextSelection.findIndex(
+          (item) => normalizeSelectionValue(item) === normalizedValue
+        )
+
+        if (index > -1) {
+          nextSelection.splice(index, 1)
+        } else {
+          nextSelection.push(value)
+        }
+
+        selectionProxy.value = nextSelection
+      }
+
+      const optionKey = (option, index) => {
+        const key = option.value ?? index
+        return `${String(key)}-${index}`
+      }
+
       return {
         gameData,
         filters,
-        filteredCharacters,
         hasActiveFilters,
         activeFilterCount,
         clearAllFilters,
@@ -205,6 +226,9 @@
         currentShowUnassigned,
         characterOptions,
         selectionProxy,
+        isOptionSelected,
+        toggleSelection,
+        optionKey,
       }
     },
   }
@@ -275,5 +299,36 @@
 
   .character-selection :deep(.filter-multiselect.expanded) {
     width: 100%;
+  }
+
+  .character-checklist {
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    background: var(--bg-white);
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .character-checklist .option-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .character-checklist .option-item:hover {
+    background: var(--bg-light);
+  }
+
+  .character-checklist .option-item input[type='checkbox'] {
+    margin-right: 0.5rem;
+    transform: scale(0.9);
+  }
+
+  .character-checklist .option-text {
+    font-size: 0.875rem;
+    color: var(--text-primary);
   }
 </style>
