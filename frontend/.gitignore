@@ -4,4 +4,4 @@ dist
 .env
 playwright-report
 test-results
-e2e/.auth
+test/end_to_end/.auth/
