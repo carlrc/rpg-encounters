@@ -7,18 +7,18 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from app.auth.session import SESSION_CONFIG
-from app.data.account_store import AccountStore
-from app.data.magic_link_store import MagicLinkStore
-from app.data.world_store import WorldStore
-from app.http import DEVICE_NONCE_COOKIE
-from app.main import app
-from app.models.magic_link import MagicLinkCreate
-
 # Ensure "backend" root is on sys.path when executed as a script.
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
+
+from app.auth.session import SESSION_CONFIG  # noqa: E402
+from app.data.account_store import AccountStore  # noqa: E402
+from app.data.magic_link_store import MagicLinkStore  # noqa: E402
+from app.data.world_store import WorldStore  # noqa: E402
+from app.http import DEVICE_NONCE_COOKIE  # noqa: E402
+from app.main import app  # noqa: E402
+from app.models.magic_link import MagicLinkCreate  # noqa: E402
 
 DEFAULT_DM_EMAIL = "test1@example.com"
 

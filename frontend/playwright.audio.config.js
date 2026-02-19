@@ -1,0 +1,31 @@
+import { defineConfig } from '@playwright/test'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const FAKE_AUDIO_PATH = path.resolve(__dirname, 'fake-input.wav')
+
+export default defineConfig({
+  testDir: './e2e',
+  timeout: 90_000,
+  expect: {
+    timeout: 10_000,
+  },
+  fullyParallel: false,
+  reporter: [['list'], ['html', { open: 'never' }]],
+  globalSetup: path.resolve(__dirname, 'e2e/global-setup.js'),
+  use: {
+    baseURL: 'http://localhost:3001',
+    storageState: path.resolve(__dirname, 'e2e/.auth/dm.json'),
+    trace: 'retain-on-failure',
+    browserName: 'chromium',
+    launchOptions: {
+      args: [
+        '--use-fake-device-for-media-stream',
+        '--use-fake-ui-for-media-stream',
+        `--use-file-for-fake-audio-capture=${FAKE_AUDIO_PATH}`,
+      ],
+    },
+  },
+})
