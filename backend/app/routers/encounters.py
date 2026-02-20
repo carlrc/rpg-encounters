@@ -155,11 +155,14 @@ async def create_connection(
         )
 
         # Validate that both encounters exist
-        if not await encounter_store.get_by_id(connection_data.source_encounter_id):
+        source_encounter_id = int(connection_data.source_encounter_id)
+        target_encounter_id = int(connection_data.target_encounter_id)
+
+        if not await encounter_store.get_by_id(source_encounter_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
             )
-        if not await encounter_store.get_by_id(connection_data.target_encounter_id):
+        if not await encounter_store.get_by_id(target_encounter_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
             )
@@ -199,16 +202,14 @@ async def update_connection(
 
         # If updating encounter IDs, validate they exist
         if connection_update.source_encounter_id is not None:
-            if not await encounter_store.get_by_id(
-                connection_update.source_encounter_id
-            ):
+            source_encounter_id = int(connection_update.source_encounter_id)
+            if not await encounter_store.get_by_id(source_encounter_id):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
                 )
         if connection_update.target_encounter_id is not None:
-            if not await encounter_store.get_by_id(
-                connection_update.target_encounter_id
-            ):
+            target_encounter_id = int(connection_update.target_encounter_id)
+            if not await encounter_store.get_by_id(target_encounter_id):
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
                 )

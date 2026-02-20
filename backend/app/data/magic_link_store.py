@@ -74,9 +74,7 @@ class MagicLinkStore(BaseStore):
             logger.error(f"Error creating magic link for user {data.user_id}: {e}")
             raise
 
-    async def consume(
-        self, token_hash: str, device_nonce_hash: str
-    ) -> MagicLink | None:
+    async def consume(self, token_hash: str, device_nonce_hash: str) -> MagicLink:
         """
         Atomically validate and consume a magic link token with device binding.
 

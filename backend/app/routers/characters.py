@@ -60,16 +60,16 @@ async def _generate_communication_style_background(
 ) -> None:
     """Generate communication style in background and update character"""
     try:
-        if character_data.communication_style_type == CommunicationStyle.CUSTOM.value:
+        if (
+            communication_style_type := character_data.communication_style_type
+        ) is None or communication_style_type == CommunicationStyle.CUSTOM.value:
             return
 
         system_prompt = render_prompt(
             "communication_style_agent",
             {
                 "character": character_data,
-                "style_profile": COMMUNICATION_STYLE_PROFILES[
-                    character_data.communication_style_type
-                ],
+                "style_profile": COMMUNICATION_STYLE_PROFILES[communication_style_type],
                 "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
             },
         )

@@ -76,7 +76,7 @@ async def get_reveal(
     """Get a specific reveal by ID"""
     user_id, world_id = session.user_id, session.world_id
     try:
-        reveal = await RevealStore(user_id=user_id, world_id=world_id).get_reveal(
+        reveal = await RevealStore(user_id=user_id, world_id=world_id).get_by_id(
             reveal_id
         )
         if not reveal:

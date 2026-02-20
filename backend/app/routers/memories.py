@@ -44,7 +44,7 @@ async def get_memory(
     """Get a specific memory by ID"""
     user_id, world_id = session.user_id, session.world_id
     try:
-        memory = await MemoryStore(user_id=user_id, world_id=world_id).get_memory(
+        memory = await MemoryStore(user_id=user_id, world_id=world_id).get_by_id(
             memory_id
         )
         if not memory:

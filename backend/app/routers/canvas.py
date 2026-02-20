@@ -175,6 +175,16 @@ async def save_canvas(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Existing connection missing ID",
                 )
+            if connection_update.source_encounter_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Existing connection missing source encounter ID",
+                )
+            if connection_update.target_encounter_id is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Existing connection missing target encounter ID",
+                )
 
             # Ensure encounter IDs are integers (existing connections have DB IDs)
             connection_update.source_encounter_id = int(
