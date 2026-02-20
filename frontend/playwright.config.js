@@ -19,4 +19,18 @@ export default defineConfig({
     storageState: path.resolve(__dirname, 'test/end_to_end/.auth/dm.json'),
     trace: 'retain-on-failure',
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium',
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+      },
+    },
+  ],
 })

@@ -1,62 +1,44 @@
 import { devices, expect, test } from '@playwright/test'
 import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe.js'
 import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle.js'
+import { resolveBaseUrl } from './helpers/baseUrl.js'
+import {
+  closeTrackedContexts,
+  createContextRegistry,
+  trackContext,
+} from './helpers/contextLifecycle.js'
+import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin.js'
 
-const MOBILE_BASE_URL = 'http://localhost:3001'
-
-const waitForPlayersGet = async (page) => {
-  const response = await page.waitForResponse((candidate) => {
-    return candidate.url().endsWith('/api/players') && candidate.request().method() === 'GET'
-  })
-  expect(response.status()).toBe(200)
-}
-
-const toAbsolutePlayerLoginUrl = (rawLoginUrl) => {
-  return new URL(rawLoginUrl, MOBILE_BASE_URL).toString()
-}
-
-const generatePlayerLoginLinkFromDmView = async (page) => {
-  await page.goto('/players')
-  await waitForPlayersGet(page)
-
-  const playerListItems = page.locator('.list-content .list-item')
-  await expect(playerListItems.first()).toBeVisible()
-  await playerListItems.first().click()
-
-  const generateResponsePromise = page.waitForResponse((response) => {
-    return (
-      /\/api\/players\/\d+\/login$/.test(response.url()) && response.request().method() === 'POST'
-    )
-  })
-
-  await page.getByTitle('Generate new login link').click()
-  const response = await generateResponsePromise
-  expect(response.status()).toBe(200)
-
-  const payload = await response.json()
-  expect(typeof payload.login_url).toBe('string')
-  expect(payload.login_url.length).toBeGreaterThan(0)
-  expect(payload.login_url).toMatch(/\/players\/\d+\/login\?token=/)
-
-  const absoluteLoginUrl = toAbsolutePlayerLoginUrl(payload.login_url)
-  const parsed = new URL(absoluteLoginUrl)
-  const playerId = parsed.pathname.match(/\/players\/(\d+)\/login/)?.[1]
-  if (!playerId) {
-    throw new Error(`Could not parse player id from login url: ${absoluteLoginUrl}`)
-  }
-
-  return {
-    loginUrl: absoluteLoginUrl,
-    playerId,
+const getMicrophonePermissionState = async (page) => {
+  try {
+    return await page.evaluate(async () => {
+      if (!navigator.permissions?.query) {
+        return 'unsupported'
+      }
+      const result = await navigator.permissions.query({ name: 'microphone' })
+      return result.state
+    })
+  } catch (error) {
+    return `unavailable: ${error.message}`
   }
 }
 
-const openPlayerEncounterOnMobile = async (browser, loginUrl, playerId) => {
-  const mobileContext = await browser.newContext({
-    ...devices['iPhone 12'],
-    storageState: undefined,
-    baseURL: MOBILE_BASE_URL,
-  })
+const openPlayerEncounterOnMobile = async (
+  browser,
+  loginUrl,
+  playerId,
+  testInfo,
+  contextRegistry
+) => {
+  const mobileContext = trackContext(
+    contextRegistry,
+    await browser.newContext({
+      ...devices['iPhone 12'],
+      storageState: undefined,
+      baseURL: resolveBaseUrl(testInfo),
+      permissions: ['microphone'],
+    })
+  )
   const mobilePage = await mobileContext.newPage()
   await installWebSocketProbe(mobilePage)
 
@@ -75,14 +57,53 @@ const openPlayerEncounterOnMobile = async (browser, loginUrl, playerId) => {
 
   await mobilePage.goto(loginUrl)
   const consumeResponse = await consumePromise
-  expect(consumeResponse.status()).toBe(200)
-
+  const consumeStatus = consumeResponse.status()
   const encounterResponse = await encounterPromise
-  expect(encounterResponse.status()).toBe(200)
-  const encounterPayload = await encounterResponse.json()
-  await expect(mobilePage).toHaveURL(new RegExp(`/players/${playerId}/encounter$`))
+  const encounterStatus = encounterResponse.status()
+  if (consumeStatus === 200 && encounterStatus === 200) {
+    await expect(mobilePage).toHaveURL(new RegExp(`/players/${playerId}/encounter$`))
+  }
+  const encounterPayload = encounterStatus === 200 ? await encounterResponse.json() : null
 
-  return { mobileContext, mobilePage, playerId, encounterPayload }
+  return { mobileContext, mobilePage, playerId, encounterPayload, encounterStatus, consumeStatus }
+}
+
+const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRegistry) => {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const fixture = await resolveSeededPlayerEncounterFixture(page, browser, testInfo)
+    const playerId = String(fixture.playerId)
+    const loginUrl = fixture.loginUrl
+
+    const mobileResult = await openPlayerEncounterOnMobile(
+      browser,
+      loginUrl,
+      playerId,
+      testInfo,
+      contextRegistry
+    )
+
+    if (mobileResult.consumeStatus === 429) {
+      await mobileResult.mobileContext.close()
+      await page.waitForTimeout(500)
+      continue
+    }
+    if (mobileResult.consumeStatus !== 200 || mobileResult.encounterStatus !== 200) {
+      throw new Error(
+        `Player encounter login did not return active encounter for seeded fixture player ${playerId}. ` +
+          `consume=${mobileResult.consumeStatus}, encounter=${mobileResult.encounterStatus}`
+      )
+    }
+
+    return {
+      playerId,
+      mobilePage: mobileResult.mobilePage,
+      encounterPayload: mobileResult.encounterPayload,
+    }
+  }
+
+  throw new Error(
+    'Player mobile audio fixture exceeded login consume retries due repeated 429 responses.'
+  )
 }
 
 const assertEncounterHasCharactersAndTiles = async (mobilePage, encounterPayload, playerId) => {
@@ -133,34 +154,61 @@ const assertEncounterHasCharactersAndTiles = async (mobilePage, encounterPayload
 test('PLAYER-MOBILE-TALKING-AUDIO-01 returns audio over websocket and completes processing', async ({
   page,
   browser,
-}) => {
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
   test.skip(
     process.env.ENCOUNTERS_AUDIO_TEST !== '1',
     'Player mobile audio test runs only in dedicated player mobile audio command.'
   )
   test.setTimeout(90_000)
 
-  const { loginUrl, playerId } = await generatePlayerLoginLinkFromDmView(page)
-  const { mobileContext, mobilePage, encounterPayload } = await openPlayerEncounterOnMobile(
-    browser,
-    loginUrl,
-    playerId
-  )
-  await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
-  const characterTiles = mobilePage.locator('.character-tile')
+  const browserName = testInfo.project.use?.browserName || testInfo.project.name
+  const contextRegistry = createContextRegistry()
+  try {
+    const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+      page,
+      browser,
+      testInfo,
+      contextRegistry
+    )
+    await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
+    const characterTiles = mobilePage.locator('.character-tile')
 
-  await characterTiles.first().click()
-  await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+    await characterTiles.first().click()
+    await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
 
-  await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true })
-  await assertConversationAudioRoundtrip(mobilePage, {
-    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
-    timeoutMs: 60_000,
-  })
-  await assertReturnedToReadyState(mobilePage, {
-    readyTextPattern: /Tap Speak/,
-    timeoutMs: 60_000,
-  })
-
-  await mobileContext.close()
+    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true })
+    await assertConversationAudioRoundtrip(mobilePage, {
+      wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+      timeoutMs: 60_000,
+    })
+    await assertReturnedToReadyState(mobilePage, {
+      readyTextPattern: /Tap Speak/,
+      timeoutMs: 60_000,
+    })
+  } catch (error) {
+    const dmMicPermission = await getMicrophonePermissionState(page)
+    let mobileMicPermission = 'unavailable'
+    const trackedContexts = [...contextRegistry]
+    if (trackedContexts.length > 0) {
+      const maybePage = trackedContexts[trackedContexts.length - 1]?.pages?.()[0]
+      if (maybePage) {
+        mobileMicPermission = await getMicrophonePermissionState(maybePage)
+      }
+    }
+    throw new Error(
+      `Player mobile audio flow failed in ${browserName}. Diagnostics: ${JSON.stringify({
+        dmUrl: page.url(),
+        mobileUrl:
+          trackedContexts[trackedContexts.length - 1]?.pages?.()[0]?.url?.() || 'unavailable',
+        dmMicPermission,
+        mobileMicPermission,
+      })}. Root error: ${error.message}`
+    )
+  } finally {
+    await closeTrackedContexts(contextRegistry)
+  }
 })

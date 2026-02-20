@@ -264,7 +264,24 @@ async def seed_encounter_data(engine: AsyncEngine, user_ids: list[int], world_id
                 )
                 user_players = player_result.scalars().all()
 
-                for encounter in encounters_db:
+                # Resolve fixture collisions so each player index belongs to one encounter only.
+                # Last occurrence in fixture order wins.
+                player_owner_encounter_index: dict[int, int] = {}
+                duplicate_player_indices: set[int] = set()
+                for encounter_idx, fixture_encounter in enumerate(encounters_db):
+                    for player_idx in fixture_encounter.player_ids or []:
+                        if player_idx in player_owner_encounter_index:
+                            duplicate_player_indices.add(player_idx)
+                        player_owner_encounter_index[player_idx] = encounter_idx
+
+                if duplicate_player_indices:
+                    logger.info(
+                        f"Resolved duplicate player fixture assignments for user {i+1} "
+                        f"(user_id={user_id}, world_id={world_id}) using last-wins: "
+                        f"{sorted(duplicate_player_indices)}"
+                    )
+
+                for encounter_idx, encounter in enumerate(encounters_db):
                     encounter_data = encounter.model_dump()
                     encounter_data.pop('id', None)  # Remove ID to let autoincrement handle it
                     # Extract character_ids/player_ids (these are array indices)
@@ -283,7 +300,12 @@ async def seed_encounter_data(engine: AsyncEngine, user_ids: list[int], world_id
                         await session.run_sync(lambda sync_session: setattr(encounter_orm, 'characters', []))
 
                     if player_indices:
-                        selected_players = [user_players[idx] for idx in player_indices if idx < len(user_players)]
+                        selected_player_indices = [
+                            idx
+                            for idx in player_indices
+                            if player_owner_encounter_index.get(idx) == encounter_idx
+                        ]
+                        selected_players = [user_players[idx] for idx in selected_player_indices if idx < len(user_players)]
                         await session.run_sync(lambda sync_session: setattr(encounter_orm, 'players', selected_players))
                     else:
                         await session.run_sync(lambda sync_session: setattr(encounter_orm, 'players', []))

@@ -19,13 +19,26 @@ export default defineConfig({
     baseURL: 'http://localhost:3001',
     storageState: path.resolve(__dirname, 'test/end_to_end/.auth/dm.json'),
     trace: 'retain-on-failure',
-    browserName: 'chromium',
-    launchOptions: {
-      args: [
-        '--use-fake-device-for-media-stream',
-        '--use-fake-ui-for-media-stream',
-        `--use-file-for-fake-audio-capture=${FAKE_AUDIO_PATH}`,
-      ],
-    },
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium',
+        launchOptions: {
+          args: [
+            '--use-fake-device-for-media-stream',
+            '--use-fake-ui-for-media-stream',
+            `--use-file-for-fake-audio-capture=${FAKE_AUDIO_PATH}`,
+          ],
+        },
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+      },
+    },
+  ],
 })

@@ -1,6 +1,7 @@
 /**
  * Shared avatar utility functions
  */
+import { sanitizeDisplayName } from './nameUtils.js'
 
 /**
  * Generate initials from a name
@@ -8,11 +9,19 @@
  * @returns {string} - The initials (max 2 characters)
  */
 export const getInitials = (name) => {
-  if (!name) return '?'
-  return name
+  const safeName = sanitizeDisplayName(name)
+  if (!safeName) return '?'
+
+  const initials = safeName
     .split(' ')
-    .map((word) => word[0])
+    .map((word) => {
+      const match = word.match(/[\p{L}\p{N}]/u)
+      return match ? match[0] : ''
+    })
+    .filter(Boolean)
     .join('')
     .toUpperCase()
     .slice(0, 2)
+
+  return initials || '?'
 }

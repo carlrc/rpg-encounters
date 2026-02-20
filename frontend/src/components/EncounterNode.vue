@@ -108,7 +108,7 @@
           v-for="player in encounter.players || []"
           :key="player.id"
           class="character-avatar player-chip"
-          :title="player.rl_name || player.name"
+          :title="sanitizeName(player.rl_name || player.name) || 'Unknown Player'"
         >
           <button
             class="remove-character-btn"
@@ -120,15 +120,19 @@
           <img
             v-if="player.avatar"
             :src="player.avatar"
-            :alt="player.rl_name || player.name"
+            :alt="sanitizeName(player.rl_name || player.name) || 'Unknown Player'"
             class="avatar-image"
           />
           <div v-else class="avatar-placeholder">
-            <span class="avatar-initials">{{ getInitials(player.rl_name || player.name) }}</span>
+            <span class="avatar-initials">{{
+              getInitials(sanitizeName(player.rl_name || player.name))
+            }}</span>
           </div>
           <div class="character-info">
-            <span class="character-profession">{{ player.rl_name || 'Unknown Player' }}</span>
-            <span class="character-name">{{ player.name }}</span>
+            <span class="character-profession">{{
+              sanitizeName(player.rl_name || player.name) || 'Unknown Player'
+            }}</span>
+            <span class="character-name">{{ sanitizeName(player.name) }}</span>
           </div>
         </div>
 
@@ -168,18 +172,20 @@
               <img
                 v-if="player.avatar"
                 :src="player.avatar"
-                :alt="player.rl_name || player.name"
+                :alt="sanitizeName(player.rl_name || player.name) || 'Unknown Player'"
                 class="option-avatar-image"
               />
               <div v-else class="option-avatar-placeholder">
                 <span class="option-avatar-initials">{{
-                  getInitials(player.rl_name || player.name)
+                  getInitials(sanitizeName(player.rl_name || player.name))
                 }}</span>
               </div>
             </div>
             <div class="option-info">
-              <div class="option-name">{{ player.rl_name || player.name }}</div>
-              <div class="option-profession">{{ player.name }}</div>
+              <div class="option-name">
+                {{ sanitizeName(player.rl_name || player.name) || 'Unknown Player' }}
+              </div>
+              <div class="option-profession">{{ sanitizeName(player.name) }}</div>
             </div>
           </div>
         </div>
@@ -194,7 +200,7 @@
           :key="character.id"
           class="character-avatar"
           @click="$emit('open-encounter', character, encounter.id)"
-          :title="character.name"
+          :title="sanitizeName(character.name)"
         >
           <button
             class="remove-character-btn"
@@ -206,15 +212,15 @@
           <img
             v-if="character.avatar"
             :src="character.avatar"
-            :alt="character.name"
+            :alt="sanitizeName(character.name)"
             class="avatar-image"
           />
           <div v-else class="avatar-placeholder">
-            <span class="avatar-initials">{{ getInitials(character.name) }}</span>
+            <span class="avatar-initials">{{ getInitials(sanitizeName(character.name)) }}</span>
           </div>
           <div class="character-info">
             <span class="character-profession">{{ character.profession }}</span>
-            <span class="character-name">{{ character.name }}</span>
+            <span class="character-name">{{ sanitizeName(character.name) }}</span>
           </div>
         </div>
 
@@ -254,15 +260,17 @@
               <img
                 v-if="character.avatar"
                 :src="character.avatar"
-                :alt="character.name"
+                :alt="sanitizeName(character.name)"
                 class="option-avatar-image"
               />
               <div v-else class="option-avatar-placeholder">
-                <span class="option-avatar-initials">{{ getInitials(character.name) }}</span>
+                <span class="option-avatar-initials">{{
+                  getInitials(sanitizeName(character.name))
+                }}</span>
               </div>
             </div>
             <div class="option-info">
-              <div class="option-name">{{ character.name }}</div>
+              <div class="option-name">{{ sanitizeName(character.name) }}</div>
               <div class="option-profession">{{ character.profession }}</div>
             </div>
           </div>
@@ -276,6 +284,7 @@
   import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
   import { Handle } from '@vue-flow/core'
   import { getInitials } from '../utils/avatarUtils.js'
+  import { sanitizeDisplayName } from '../utils/nameUtils.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
   export default {
@@ -379,6 +388,8 @@
       const toggleDescription = () => {
         showDescription.value = !showDescription.value
       }
+
+      const sanitizeName = (name) => sanitizeDisplayName(name)
 
       // Handle click outside to close description
       const handleClickOutside = (event) => {
@@ -494,6 +505,7 @@
         saveEncounterDescription,
         cancelEditingDescription,
         getInitials,
+        sanitizeName,
       }
     },
     computed: {

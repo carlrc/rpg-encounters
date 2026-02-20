@@ -103,6 +103,7 @@
   import { storeToRefs } from 'pinia'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
+  import { sanitizeDisplayName } from '../utils/nameUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import RangeSliderControl from './base/RangeSliderControl.vue'
@@ -156,8 +157,8 @@
       const handleSave = () => {
         if (isFormValid.value) {
           const formData = {
-            name: form.name.trim(),
-            rl_name: form.rl_name.trim(),
+            name: sanitizeDisplayName(form.name),
+            rl_name: sanitizeDisplayName(form.rl_name),
             appearance: form.appearance.trim(),
             race: form.race,
             class_name: form.class_name,

@@ -215,6 +215,7 @@
   import { storeToRefs } from 'pinia'
   import { useFormValidation } from '../utils/useFormValidation.js'
   import { useDropdownOptions } from '../composables/useDropdownOptions.js'
+  import { sanitizeDisplayName } from '../utils/nameUtils.js'
   import { useGameDataStore } from '../stores/gameData.js'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import BiasPreferenceRow from './BiasPreferenceRow.vue'
@@ -359,6 +360,7 @@
         if (isFormValid.value) {
           const formData = {
             ...form,
+            name: sanitizeDisplayName(form.name),
             race_preferences: convertBiasesToObject(form.biases.race_preferences),
             class_preferences: convertBiasesToObject(form.biases.class_preferences),
             gender_preferences: convertBiasesToObject(form.biases.gender_preferences),
