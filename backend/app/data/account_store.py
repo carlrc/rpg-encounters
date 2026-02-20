@@ -25,7 +25,7 @@ async def get_user_elevenlabs_token(user_id: int) -> str | None:
 
 
 class AccountStore(BaseStore):
-    def __init__(self, user_id: int | None, session: AsyncSession = None):
+    def __init__(self, user_id: int | None, session: AsyncSession | None = None):
         super().__init__(user_id=user_id, world_id=None, session=session)
 
     async def create(self, account_data: AccountCreate) -> Account:

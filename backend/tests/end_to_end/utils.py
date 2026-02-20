@@ -154,7 +154,9 @@ async def get_latest_player_magic_link_for_player(
         )
 
 
-async def create_authenticated_player_client(user_id: int = None, world_id: int = None):
+async def create_authenticated_player_client(
+    user_id: int | None = None, world_id: int | None = None
+):
     """Create an authenticated TestClient with player session"""
     client = TestClient(app)
 

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class WorldStore(BaseStore):
-    def __init__(self, user_id: int, session: AsyncSession = None):
+    def __init__(self, user_id: int, session: AsyncSession | None = None):
         super().__init__(user_id=user_id, world_id=None, session=session)
 
     async def get_all(self) -> List[World]:

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class UserStore(BaseStore):
-    def __init__(self, user_id: int = None, session: AsyncSession = None):
+    def __init__(self, user_id: int | None = None, session: AsyncSession | None = None):
         """Initialize UserStore with user_id to follow the same pattern as other stores"""
         super().__init__(user_id=user_id, world_id=None, session=session)
 

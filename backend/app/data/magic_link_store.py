@@ -41,7 +41,7 @@ class DeviceMismatchError(Exception):
 class MagicLinkStore(BaseStore):
     def __init__(
         self,
-        user_id: int = None,
+        user_id: int | None = None,
         session: AsyncSession | None = None,
     ):
         super().__init__(user_id=user_id, session=session)

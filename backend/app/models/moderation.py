@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,8 +13,8 @@ class ModerationCreate(ModerationBase):
 
 
 class ModerationUpdate(BaseModel):
-    text: Optional[str] = None
-    openai_id: Optional[str] = None
+    text: str | None = None
+    openai_id: str | None = None
 
 
 class Moderation(ModerationBase):

@@ -452,7 +452,7 @@ async def seed_connection_data(engine: AsyncEngine, user_ids: list[int], world_i
         logger.error(f"Unexpected error seeding connection data: {e}")
         raise
 
-async def seed_all_data(engine: AsyncEngine, user_ids: list[int] = None, world_ids: list[int] = None):
+async def seed_all_data(engine: AsyncEngine, user_ids: list[int] | None = None, world_ids: list[int] | None = None):
     """Seed all fixture data to database in the correct order"""
     try:
         # Seed required user and world data first

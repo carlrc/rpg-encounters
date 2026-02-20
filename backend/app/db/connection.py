@@ -55,7 +55,7 @@ async def get_async_db_routes_session() -> AsyncGenerator[AsyncSession, None]:
 
 # Async context manager for services
 @asynccontextmanager
-async def get_async_db_session(db_url: str = None):
+async def get_async_db_session(db_url: str | None = None):
     """Creates an async context with proper transaction management."""
     engine = create_async_engine(db_url) if db_url else get_async_db_engine()
     async_session = async_sessionmaker(

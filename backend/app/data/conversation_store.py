@@ -18,7 +18,7 @@ class ConversationStore(BaseStore):
         self,
         user_id: int,
         world_id: int,
-        session: AsyncSession = None,
+        session: AsyncSession | None = None,
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
 

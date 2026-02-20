@@ -48,7 +48,7 @@ async def get_conversation_context(
     user_id: int,
     character_id: int,
     encounter_id: int,
-    session: AsyncSession = None,
+    session: AsyncSession | None = None,
 ) -> ConvoContext:
     """
     Get all conversation-related data for a character using the provided database session.

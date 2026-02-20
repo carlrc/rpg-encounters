@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 class PlayerMagicLinkStore(BaseStore):
     def __init__(
         self,
-        user_id: int = None,
-        world_id: int = None,
+        user_id: int | None = None,
+        world_id: int | None = None,
         session: AsyncSession | None = None,
     ):
         super().__init__(user_id=user_id, world_id=world_id, session=session)
