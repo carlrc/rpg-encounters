@@ -5,26 +5,26 @@ description = "RPG AI Encounters"
 readme = "README.md"
 requires-python = "==3.11.13"
 dependencies = [
-    "uvicorn[standard]==0.35.0",
-    "fastapi==0.116.1",
+    "uvicorn[standard]==0.41.0",
+    "fastapi==0.129.0",
     "openai-whisper==20250625",
-    "elevenlabs==2.7.1",
-    "python-dotenv==1.1.1",
-    "pydantic-ai==1.0.1",
-    "pydantic[email]==2.11.7",
-    "pre-commit==4.2.0",
-    "SQLAlchemy[asyncio]==2.0.43",
+    "elevenlabs==2.36.1",
+    "python-dotenv==1.2.1",
+    "pydantic-ai==1.62.0",
+    "pydantic[email]==2.12.5",
+    "pre-commit==4.5.1",
+    "SQLAlchemy[asyncio]==2.0.46",
     "python-jose[cryptography]==3.5.0",
-    "langfuse==3.3.4",
+    "langfuse==3.14.4",
     "Jinja2==3.1.6",
     "httpx==0.28.1",
-    "uvloop==0.21.0",
-    "httptools==0.6.4",
-    "asyncpg==0.30",
-    "google-cloud-texttospeech==2.29.0",
+    "uvloop==0.22.1",
+    "httptools==0.7.1",
+    "asyncpg==0.31.0",
+    "google-cloud-texttospeech==2.34.0",
     "itsdangerous==2.2.0",
-    "boto3==1.40.31",
-    "async-lru==2.0.5"
+    "boto3==1.42.53",
+    "async-lru==2.1.0"
 ]
 
 [project.optional-dependencies]
