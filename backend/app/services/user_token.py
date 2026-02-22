@@ -1,5 +1,7 @@
 import time
 
+from redis.asyncio import Redis
+
 from app.clients.redis_client import (
     create_usage_flush_key,
     create_usage_key,
@@ -17,22 +19,26 @@ USAGE_CACHE_TTL_SECONDS = int(get_or_throw("BILLING_CACHE_TTL_SECONDS"))
 USAGE_FLUSH_INTERVAL_SECONDS = int(get_or_throw("BILLING_FLUSH_INTERVAL_SECONDS"))
 
 
-class UserBillingService:
+class UserTokenService:
     async def _get_db_billing(self, user_id: int) -> UserBilling:
         """Load persisted billing row, creating it when missing."""
         return await UserBillingStore(user_id=user_id).get_or_create(user_id=user_id)
 
-    async def _usage_hash_exists(self, redis, usage_key: str) -> bool:
+    async def _usage_hash_exists(self, redis: Redis, usage_key: str) -> bool:
         """Treat hash as ready only when both runtime counters are present."""
-        available_tokens = await redis.hget(usage_key, "available_tokens")
-        previously_used = await redis.hget(usage_key, "previously_used")
+        available_tokens = await redis.hget(
+            usage_key, "available_tokens"
+        )  # pyright: ignore[reportGeneralTypeIssues]
+        previously_used = await redis.hget(
+            usage_key, "previously_used"
+        )  # pyright: ignore[reportGeneralTypeIssues]
         return available_tokens is not None and previously_used is not None
 
-    async def _write_usage_from_db(self, redis, user_id: int) -> None:
+    async def _write_usage_from_db(self, redis: Redis, user_id: int) -> None:
         """Overwrite Redis counters from DB so runtime starts from source-of-truth."""
         billing = await self._get_db_billing(user_id=user_id)
         usage_key = create_usage_key(user_id=user_id)
-        await redis.hset(
+        await redis.hset(  # pyright: ignore[reportGeneralTypeIssues]
             usage_key,
             mapping={
                 "available_tokens": billing.available_tokens,
@@ -42,7 +48,7 @@ class UserBillingService:
         )
         await redis.expire(usage_key, USAGE_CACHE_TTL_SECONDS)
 
-    async def _hydrate_from_db_if_missing(self, redis, user_id: int) -> None:
+    async def _hydrate_from_db_if_missing(self, redis: Redis, user_id: int) -> None:
         """Lazily hydrate Redis counters when cache is cold or incomplete."""
         usage_key = create_usage_key(user_id=user_id)
         if await self._usage_hash_exists(redis=redis, usage_key=usage_key):
@@ -73,9 +79,13 @@ class UserBillingService:
             await self._hydrate_from_db_if_missing(redis=redis, user_id=user_id)
             usage_key = create_usage_key(user_id=user_id)
             available_tokens = int(
-                (await redis.hget(usage_key, "available_tokens")) or 0
+                (await redis.hget(usage_key, "available_tokens"))
+                or 0  # pyright: ignore[reportGeneralTypeIssues]
             )
-            previously_used = int((await redis.hget(usage_key, "previously_used")) or 0)
+            previously_used = int(
+                (await redis.hget(usage_key, "previously_used"))
+                or 0  # pyright: ignore[reportGeneralTypeIssues]
+            )
             return available_tokens > previously_used
 
     async def update_token_usage(self, user_id: int, usage_tokens: int) -> None:

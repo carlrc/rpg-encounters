@@ -11,20 +11,20 @@ from app.auth.session import IS_LOCAL, SESSION_CONFIG
 from app.clients.redis_client import validate_redis_connection
 from app.routers import (
     auth,
-    billing,
     canvas,
     characters,
     encounters,
     game,
     memories,
     players,
+    profile,
     reveals,
     voices,
     worlds,
 )
-from app.services.user_billing_flush import (
-    start_usage_flush_listener,
-    stop_usage_flush_listener,
+from app.services.user_token_flush import (
+    start_token_usage_flush_listener,
+    stop_token_usage_flush_listener,
 )
 from app.telemetry import setup_telemetry
 from app.utils import get_or_throw
@@ -38,11 +38,11 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     await validate_redis_connection()
-    start_usage_flush_listener(app=app)
+    start_token_usage_flush_listener(app=app)
     try:
         yield
     finally:
-        await stop_usage_flush_listener(app=app)
+        await stop_token_usage_flush_listener(app=app)
 
 
 app = FastAPI(
@@ -73,7 +73,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
-app.include_router(billing.router)
+app.include_router(profile.router)
 app.include_router(players.router)
 app.include_router(characters.router)
 app.include_router(memories.router)

@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 USAGE_CACHE_TTL_SECONDS = int(get_or_throw("BILLING_CACHE_TTL_SECONDS"))
 
 
-async def flush_user_usage(user_id: int) -> None:
+async def flush_user_token_usage(user_id: int) -> None:
     """Flush one user's pending Redis usage into DB."""
     async with get_redis_session() as redis:
-        await _flush_user_usage_with_redis(redis=redis, user_id=user_id)
+        await _flush_user_token_usage_with_redis(redis=redis, user_id=user_id)
 
 
-async def _flush_user_usage_with_redis(redis: Redis, user_id: int) -> None:
+async def _flush_user_token_usage_with_redis(redis: Redis, user_id: int) -> None:
     """Atomically move one user's pending Redis usage delta into DB and reset counters."""
     usage_key = create_usage_key(user_id=user_id)
     lock_key = f"{usage_key}:flush_lock"
@@ -37,9 +37,13 @@ async def _flush_user_usage_with_redis(redis: Redis, user_id: int) -> None:
         return
 
     try:
-        pending_delta = int((await redis.hget(usage_key, "previously_used")) or 0)
+        pending_delta = int(
+            (await redis.hget(usage_key, "previously_used")) or 0
+        )  # pyright: ignore[reportGeneralTypeIssues]
         if pending_delta == 0:
-            await redis.hset(usage_key, mapping={"previously_used": 0})
+            await redis.hset(
+                usage_key, mapping={"previously_used": 0}
+            )  # pyright: ignore[reportGeneralTypeIssues]
             return
 
         async with get_async_db_session() as session:
@@ -62,7 +66,7 @@ async def _flush_user_usage_with_redis(redis: Redis, user_id: int) -> None:
         await redis.delete(lock_key)
 
 
-async def listen_for_usage_flush_events() -> None:
+async def listen_for_token_usage_flush_events() -> None:
     """Continuously consume Redis expiry events and flush matching usage keys."""
     async with get_redis_session() as redis:
         pubsub = redis.pubsub()
@@ -90,13 +94,13 @@ async def listen_for_usage_flush_events() -> None:
                 continue
 
             try:
-                await _flush_user_usage_with_redis(redis=redis, user_id=user_id)
+                await _flush_user_token_usage_with_redis(redis=redis, user_id=user_id)
             except Exception as e:
                 logger.critical(f"Failed usage flush for user {user_id}: {e}")
                 os._exit(1)
 
 
-def _crash_on_flush_listener_failure(task: asyncio.Task) -> None:
+def _crash_on_token_usage_flush_listener_failure(task: asyncio.Task) -> None:
     """Crash process if background listener exits unexpectedly."""
     if task.cancelled():
         return
@@ -106,16 +110,16 @@ def _crash_on_flush_listener_failure(task: asyncio.Task) -> None:
         os._exit(1)
 
 
-def start_usage_flush_listener(app: FastAPI) -> asyncio.Task:
+def start_token_usage_flush_listener(app: FastAPI) -> asyncio.Task:
     """Start listener task and attach crash callback for fail-fast behavior."""
-    task = asyncio.create_task(listen_for_usage_flush_events())
-    task.add_done_callback(_crash_on_flush_listener_failure)
+    task = asyncio.create_task(listen_for_token_usage_flush_events())
+    task.add_done_callback(_crash_on_token_usage_flush_listener_failure)
     app.state.usage_flush_listener_task = task
     logger.info("Started Redis usage flush listener task")
     return task
 
 
-async def stop_usage_flush_listener(app: FastAPI) -> None:
+async def stop_token_usage_flush_listener(app: FastAPI) -> None:
     """Cancel listener task during app shutdown."""
     task = getattr(app.state, "usage_flush_listener_task", None)
     if not task:

@@ -214,4 +214,6 @@ async def get_user_billing_cache(user_id: int) -> dict[str, str]:
     """Return Redis billing hash for a user."""
     async with get_redis_session() as redis:
         usage_key = create_usage_key(user_id=user_id)
-        return await redis.hgetall(usage_key)
+        return await redis.hgetall(
+            usage_key
+        )  # pyright: ignore[reportGeneralTypeIssues]

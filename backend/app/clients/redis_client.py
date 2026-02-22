@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from typing import Awaitable, cast
 from urllib.parse import urlparse
 
 from redis.asyncio import Redis
@@ -51,10 +52,12 @@ def parse_usage_flush_user_id(expired_key: str) -> int | None:
 
 
 async def validate_redis_connection() -> None:
-    """Fail fast by pinging Redis during startup and letting connection errors bubble up."""
+    """Fail fast at startup when Redis is not reachable."""
     client = get_redis_client()
     try:
-        await client.ping()
+        ping_ok = await cast(Awaitable[bool], client.ping())
+        if not ping_ok:
+            raise RuntimeError("Redis ping returned false")
     finally:
         await client.aclose()
 

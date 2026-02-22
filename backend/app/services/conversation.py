@@ -27,7 +27,7 @@ from app.services.billing_responses import send_insufficient_tokens_response
 from app.services.context import get_conversation_context
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.transcription import transcribe_and_moderate
-from app.services.user_billing import UserBillingService
+from app.services.user_token import UserTokenService
 from app.services.websocket import get_audio_chunks, stream_tts_audio
 
 logger = logging.getLogger(__name__)
@@ -48,8 +48,8 @@ async def have_conversation(
     wav_path = await save_chunks_to_wav(chunks=audio_chunks, audio_format=audio_format)
 
     try:
-        billing_service = UserBillingService()
-        sufficient_tokens = await billing_service.check_token_balance(user_id=user_id)
+        token_service = UserTokenService()
+        sufficient_tokens = await token_service.check_token_balance(user_id=user_id)
         if not sufficient_tokens:
             logger.info(
                 f"Insufficient tokens for conversation user={user_id} player={player_id} encounter={encounter_id}"
@@ -160,7 +160,7 @@ async def have_conversation(
             get_client().update_current_trace(output=response)
 
             # Record token usage after successful generation
-            await billing_service.update_token_usage(
+            await token_service.update_token_usage(
                 user_id=user_id,
                 usage_tokens=agent.last_total_tokens
                 + influence_agent.last_total_tokens,

@@ -110,8 +110,15 @@ services:
     image: redis/redisinsight:latest
     container_name: rpg-encounters-redis-insight
     restart: always
+    environment:
+      - RI_REDIS_HOST=redis
+      - RI_REDIS_PORT=6379
+      - RI_REDIS_ALIAS=rpg-encounters-redis
+      - RI_REDIS_DB=0
     ports:
       - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
     depends_on:
       redis:
         condition: service_healthy
@@ -121,3 +128,6 @@ services:
 networks:
   rpg-network:
     driver: bridge
+
+volumes:
+  redisinsight_data:

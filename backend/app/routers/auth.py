@@ -27,8 +27,8 @@ from app.models.magic_link import (
     MagicLinkCreate,
     MagicLinkRequest,
 )
-from app.services.user_billing import UserBillingService
-from app.services.user_billing_flush import flush_user_usage
+from app.services.user_token import UserTokenService
+from app.services.user_token_flush import flush_user_token_usage
 from app.templates.render_template import render_email_template
 from app.utils import get_or_throw
 
@@ -159,7 +159,7 @@ async def consume_magic_link(
 
         # Create session
         request.session["user_id"] = magic_link.user_id
-        await UserBillingService().overwrite_cache_from_db(user_id=magic_link.user_id)
+        await UserTokenService().overwrite_cache_from_db(user_id=magic_link.user_id)
 
     except (
         TokenNotFoundError,
@@ -196,12 +196,12 @@ async def logout(
     if session_user_id:
         user_id = int(session_user_id)
         try:
-            await flush_user_usage(user_id=user_id)
+            await flush_user_token_usage(user_id=user_id)
         except Exception as e:
             logger.error(
                 f"Failed to flush billing usage before logout for user {user_id}: {e}"
             )
             raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
-        await UserBillingService().clear_cache(user_id=user_id)
+        await UserTokenService().clear_cache(user_id=user_id)
     destroy_session(request)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

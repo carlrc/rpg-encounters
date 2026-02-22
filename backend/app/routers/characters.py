@@ -21,7 +21,7 @@ from app.models.character import (
     CommunicationStyle,
 )
 from app.moderation.check import moderate_character
-from app.services.user_billing import UserBillingService
+from app.services.user_token import UserTokenService
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -46,7 +46,7 @@ async def _generate_personality_background(
 
         await character_store.update(character_id, update_data)
 
-        await UserBillingService().update_token_usage(
+        await UserTokenService().update_token_usage(
             user_id=user_id,
             usage_tokens=personality_agent.last_total_tokens,
         )
@@ -93,7 +93,7 @@ async def _generate_communication_style_background(
             character_id, update_data
         )
 
-        await UserBillingService().update_token_usage(
+        await UserTokenService().update_token_usage(
             user_id=user_id,
             usage_tokens=communication_style_agent.last_total_tokens,
         )

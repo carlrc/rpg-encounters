@@ -7,24 +7,20 @@ from app.dependencies import validate_current_user_id
 from app.http import INTERNAL_SERVER_ERROR
 from app.models.user_billing import UserBilling
 
-router = APIRouter(prefix="/api/billing", tags=["billing"])
-
+router = APIRouter(prefix="/api/profile", tags=["profile"])
 logger = logging.getLogger(__name__)
 
 
-@router.get("/users/{user_id}", response_model=UserBilling)
-async def get_user_billing(
-    user_id: int, session_user_id: int = Depends(validate_current_user_id)
-):
+@router.get("", response_model=UserBilling)
+async def get_profile(session_user_id: int = Depends(validate_current_user_id)):
     try:
-        if session_user_id != user_id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-
-        return await UserBillingStore(user_id=user_id).get_or_create(user_id=user_id)
+        return await UserBillingStore(user_id=session_user_id).get_or_create(
+            user_id=session_user_id
+        )
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get billing for user {user_id}: {e}")
+        logger.error(f"Failed to get profile for user {session_user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=INTERNAL_SERVER_ERROR,
