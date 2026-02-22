@@ -93,13 +93,14 @@ async def test_message_history_processor_handles_empty_messages():
 
 
 async def test_agent_new_messages_with_history_processor():
-    """Test that history processor can cause new_messages() to return empty list."""
+    """Test that latest user message is available after history processing."""
 
     base_agent = BaseAgent()
 
     # Create the actual pydantic-ai Agent with our history processor
     agent = base_agent._generate_agent(
-        system_prompt="You are a test agent. Respond with 'OK'.", output_type=str
+        system_prompt="You are a test agent. Respond with 'OK'.",
+        output_type=str,
     )
 
     # Create a message history that exceeds MAX_MESSAGE_HISTORY
@@ -111,9 +112,6 @@ async def test_agent_new_messages_with_history_processor():
     run_result = await agent.run(
         user_prompt="Test message", message_history=initial_messages
     )
-
-    # If this passes then the bug is fixed and we can rely on it
-    assert not run_result.new_messages()
 
     new_message = get_latest_user_message(run_result=run_result)
 

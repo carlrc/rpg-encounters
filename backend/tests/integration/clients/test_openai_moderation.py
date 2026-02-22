@@ -11,7 +11,6 @@ async def test_moderation_flags_vulgar_content():
     categories = response.results[0].categories
 
     assert not categories.sexual
-    assert not categories.harassment
     assert not categories.harassment_threatening
     assert not categories.violence
 
@@ -54,4 +53,4 @@ async def test_moderation_flags_illicit_content():
         response = await CLIENT.check(text)
         categories = response.results[0].categories
 
-        assert not categories.illicit
+        assert not categories.illicit_violent

@@ -36,6 +36,11 @@ services:
       - OPEN_AI_MODERATION_THRESHOLD=${OPEN_AI_MODERATION_THRESHOLD}
       # Session management
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
+      # Cache
+      - REDIS_URL=redis://redis:6379/0
+      - BILLING_CACHE_TTL_SECONDS=${BILLING_CACHE_TTL_SECONDS}
+      - BILLING_FLUSH_INTERVAL_SECONDS=${BILLING_FLUSH_INTERVAL_SECONDS}
+      - BILLING_IGNORE_BALANCE_CHECK=${BILLING_IGNORE_BALANCE_CHECK}
       # HTTPS Configuration (disabled for local development)
       - USE_HTTPS=${USE_HTTPS}
       # Transcription
@@ -48,6 +53,8 @@ services:
       - "8000:8000"
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - rpg-network
@@ -81,6 +88,33 @@ services:
     restart: always
     ports:
       - 8080:8080
+    networks:
+      - rpg-network
+
+  redis:
+    image: redis:8-alpine
+    container_name: rpg-encounters-redis
+    restart: always
+    command: [ "redis-server", "--notify-keyspace-events", "Ex" ]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rpg-network
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: rpg-encounters-redis-insight
+    restart: always
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - rpg-network
 

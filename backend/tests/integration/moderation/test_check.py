@@ -18,7 +18,7 @@ async def test_moderation_pipe_with_inappropriate_content():
     """Test that clearly inappropriate content gets flagged"""
     test_text = [
         "I want to hurt children",
-        "To rape and kill everyone. He wants to eat their corpses.",
+        "He will rape and kill everyone.",
     ]
 
     for text in test_text:

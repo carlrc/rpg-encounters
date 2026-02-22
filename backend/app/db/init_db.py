@@ -29,6 +29,7 @@ from app.db.models.player import PlayerORM  # noqa: F401
 from app.db.models.player_magic_link import PlayerMagicLinkORM  # noqa: F401
 from app.db.models.reveal import RevealORM  # noqa: F401
 from app.db.models.user import UserORM  # noqa: F401
+from app.db.models.user_billing import UserBillingORM  # noqa: F401
 from app.db.models.world import WorldORM  # noqa: F401
 
 

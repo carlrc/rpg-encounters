@@ -132,7 +132,7 @@ def openai_score(score: float) -> bool:
 
 
 def openai_minors_score(score: float) -> bool:
-    # Enforce extremely low threshold on this category in case OpenAI flags don't
+    """Enforce a stricter threshold for minors-related moderation scores."""
     return score > 0.1
 
 

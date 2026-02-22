@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 from app.clients.elevan_labs import ElevenLabs
 from app.utils import get_or_throw
 
+pytestmark = pytest.mark.skip(
+    reason="ElevenLabs integration disabled: paid provider not used"
+)
+
 
 @pytest.fixture
 def eleven_labs_client():

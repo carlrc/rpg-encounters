@@ -89,3 +89,10 @@ def validate_current_player_or_user(
     else:
         # If user validate session and header
         return validate_current_user_world(request=request, x_world_id=x_world_id)
+
+
+def validate_current_user_id(request: Request) -> int:
+    user_id = get_session_user_id(request=request)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    return int(user_id)

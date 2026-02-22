@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 import uvicorn
 from dotenv import load_dotenv
@@ -7,8 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth.session import IS_LOCAL, SESSION_CONFIG
+from app.clients.redis_client import validate_redis_connection
 from app.routers import (
     auth,
+    billing,
     canvas,
     characters,
     encounters,
@@ -19,6 +22,10 @@ from app.routers import (
     voices,
     worlds,
 )
+from app.services.user_billing_flush import (
+    start_usage_flush_listener,
+    stop_usage_flush_listener,
+)
 from app.telemetry import setup_telemetry
 from app.utils import get_or_throw
 
@@ -27,7 +34,24 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="RPG Encounters", docs_url=None, openapi_url=None, redoc_url=None)
+
+@asynccontextmanager
+async def app_lifespan(app: FastAPI):
+    await validate_redis_connection()
+    start_usage_flush_listener(app=app)
+    try:
+        yield
+    finally:
+        await stop_usage_flush_listener(app=app)
+
+
+app = FastAPI(
+    title="RPG Encounters",
+    docs_url=None,
+    openapi_url=None,
+    redoc_url=None,
+    lifespan=app_lifespan,
+)
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
 
@@ -49,6 +73,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(billing.router)
 app.include_router(players.router)
 app.include_router(characters.router)
 app.include_router(memories.router)

@@ -20,9 +20,11 @@ from app.services.ability_challenge import (
     filter_reveals_by_roll,
 )
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
+from app.services.billing_responses import send_insufficient_tokens_response
 from app.services.context import get_conversation_context
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.transcription import transcribe_and_moderate
+from app.services.user_billing import UserBillingService
 from app.services.websocket import get_audio_chunks, stream_tts_audio
 
 logger = logging.getLogger(__name__)
@@ -86,6 +88,15 @@ async def challenge_character(
     wav_path = await save_chunks_to_wav(audio_chunks, audio_format=audio_format)
 
     try:
+        billing_service = UserBillingService()
+        sufficient_tokens = await billing_service.check_token_balance(user_id=user_id)
+        if not sufficient_tokens:
+            logger.info(
+                f"Insufficient tokens for challenge user={user_id} player={player_id} encounter={encounter_id}"
+            )
+            await send_insufficient_tokens_response(websocket=websocket)
+            return
+
         async with get_async_db_session() as session:
             # Do large DB context lookup along with transcription and moderation checks
             ctx, (transcription, is_blocked) = await asyncio.gather(
@@ -166,6 +177,11 @@ async def challenge_character(
 
             # Force overall trace output to be LLM response
             get_client().update_current_trace(output=response)
+
+            await billing_service.update_token_usage(
+                user_id=user_id,
+                usage_tokens=agent.last_total_tokens,
+            )
 
             # Stream TTS audio chunks back to frontend
             await stream_tts_audio(

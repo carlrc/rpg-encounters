@@ -18,7 +18,8 @@ class GoogleCloudTTS(TTSProvider):
         )
 
     async def text_to_speech_stream(self, text: str, voice_id: str):
-        # See https://cloud.google.com/text-to-speech/docs/voices for all voices.
+        """Stream speech audio chunks for text using the selected Google voice."""
+        # See https://cloud.google.com/text-to-speech/docs/voices for available voices.
         streaming_config = texttospeech.StreamingSynthesizeConfig(
             voice=texttospeech.VoiceSelectionParams(name=voice_id),
             # https://cloud.google.com/text-to-speech/docs/reference/rest/Shared.Types/StreamingAudioConfig

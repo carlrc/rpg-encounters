@@ -23,6 +23,7 @@ class PersonalityAgent(BaseAgent):
             )
 
             run_result = await self.agent.run(rendered_prompt)
+            self.last_total_tokens = run_result.usage().total_tokens
 
             return run_result.output.strip()
 

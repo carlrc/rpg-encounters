@@ -21,6 +21,7 @@ from app.models.character import (
     CommunicationStyle,
 )
 from app.moderation.check import moderate_character
+from app.services.user_billing import UserBillingService
 
 router = APIRouter(prefix="/api/characters", tags=["characters"])
 
@@ -36,13 +37,19 @@ async def _generate_personality_background(
     """Generate personality in background and update character"""
     try:
         # Generate personality
-        personality = await PersonalityAgent().generate(character_data)
+        personality_agent = PersonalityAgent()
+        personality = await personality_agent.generate(character_data)
 
         # Update character with generated personality
         character_store = CharacterStore(user_id=user_id, world_id=world_id)
         update_data = CharacterUpdate(personality=personality)
 
         await character_store.update(character_id, update_data)
+
+        await UserBillingService().update_token_usage(
+            user_id=user_id,
+            usage_tokens=personality_agent.last_total_tokens,
+        )
 
         logger.info(f"Created personality for user {user_id} in background task...")
     except Exception as e:
@@ -74,9 +81,8 @@ async def _generate_communication_style_background(
             },
         )
 
-        communication_style = await CommunicationStyleAgent(
-            system_prompt=system_prompt
-        ).generate()
+        communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
+        communication_style = await communication_style_agent.generate()
 
         update_data = CharacterUpdate(
             communication_style=communication_style.style_summary,
@@ -85,6 +91,11 @@ async def _generate_communication_style_background(
 
         await CharacterStore(user_id=user_id, world_id=world_id).update(
             character_id, update_data
+        )
+
+        await UserBillingService().update_token_usage(
+            user_id=user_id,
+            usage_tokens=communication_style_agent.last_total_tokens,
         )
 
         logger.info(

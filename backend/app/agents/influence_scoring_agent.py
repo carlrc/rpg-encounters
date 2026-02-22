@@ -42,6 +42,7 @@ class InfluenceCalculatorAgent(BaseAgent):
     async def process(self, msg: str) -> InfluenceCalculatorAgentOutput:
         try:
             run_result = await self.agent.run(msg)
+            self.last_total_tokens = run_result.usage().total_tokens
 
             # Called from other agents, therefore add to their traces
             get_client().update_current_span(

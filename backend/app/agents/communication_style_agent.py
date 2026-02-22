@@ -117,6 +117,7 @@ class CommunicationStyleAgent(BaseAgent):
             run_result = await self.agent.run(
                 "Generate a communication style summary for this character."
             )
+            self.last_total_tokens = run_result.usage().total_tokens
 
             return run_result.output
         except UnexpectedModelBehavior as e:

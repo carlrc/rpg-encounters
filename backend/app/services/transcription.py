@@ -51,7 +51,7 @@ class WhisperTranscriptionService:
             raise
 
     def _get_device(self) -> str:
-        # TODO: Support MPS on mac
+        """Select the best available compute device for Whisper inference."""
         try:
             if torch.cuda.is_available():
                 return "cuda"

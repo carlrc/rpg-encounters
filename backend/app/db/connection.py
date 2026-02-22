@@ -24,6 +24,7 @@ ENCOUNTERS_TABLE = "encounters"
 CONNECTIONS_TABLE = "connections"
 WORLDS_TABLE = "worlds"
 CONVERSATIONS_TABLE = "conversations"
+USER_BILLING_TABLE = "user_billing"
 
 
 def get_async_db_engine():

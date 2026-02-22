@@ -8,6 +8,7 @@ from itsdangerous import TimestampSigner
 from sqlalchemy import select
 
 from app.auth.session import SESSION_CONFIG
+from app.clients.redis_client import create_usage_key, get_redis_session
 from app.data.account_store import AccountStore
 from app.data.magic_link_store import MagicLinkStore
 from app.data.player_magic_link_store import PlayerMagicLinkStore
@@ -207,3 +208,10 @@ async def create_authenticated_player_client(
     assert decoded_session["world_id"] == world.id
 
     return client, user, player, world
+
+
+async def get_user_billing_cache(user_id: int) -> dict[str, str]:
+    """Return Redis billing hash for a user."""
+    async with get_redis_session() as redis:
+        usage_key = create_usage_key(user_id=user_id)
+        return await redis.hgetall(usage_key)

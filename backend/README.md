@@ -34,12 +34,6 @@ Install [Docker](https://docs.docker.com/engine/install/) and verify installatio
 docker
 ```
 
-Activate `venv`
-
-```bash
-source .venv/bin/activate
-```
-
 Install project dependencies. Specify either `cpu` or `gpu`.
 
 ```bash
@@ -61,6 +55,48 @@ If you don't want telemetry with [langfuse](https://github.com/langfuse/langfuse
 
 ```bash
 LANGFUSE_TRACING_ENABLED=false
+```
+
+Create db
+
+```bash
+# Dev db
+createdb -h localhost -p 5432 -U postgres 'rpg-encounters'
+
+# Test db
+createdb -h localhost -p 5432 -U postgres 'rpg-encounters-test'
+```
+
+Manage db tables
+
+```bash
+# Create
+python -m app.db.init_db
+```
+
+Create and seed db with fixture data
+
+```bash
+# Seed db with default users
+python -m tests.fixtures.seed_data
+```
+
+## Tests
+
+Verify with `pytest`
+
+```bash
+# All
+uv run pytest 
+
+# Unit
+uv run pytest tests/unit
+
+# Integration
+uv run pytest/tests/integration
+
+# End to end
+uv run pytest/tests/end_to_end
 ```
 
 ## Admin
@@ -109,7 +145,7 @@ Launch only the database
 docker-compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up db
 ```
 
-### Debugging
+### Docker Commands
 
 Rebuild dev image after dependency changes (e.g., new libs)
 

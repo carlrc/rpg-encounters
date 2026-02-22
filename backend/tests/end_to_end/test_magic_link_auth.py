@@ -13,6 +13,7 @@ from tests.end_to_end.utils import (
     decode_session,
     encode_session,
     get_latest_magic_link_for_user,
+    get_user_billing_cache,
 )
 
 
@@ -231,3 +232,17 @@ async def test_empty_session_rejected():
     # Try to access protected endpoint with empty session
     response = client.get("/api/players", headers={"X-World-Id": str(world.id)})
     assert response.status_code == 401
+
+
+async def test_login_hydrates_billing_cache_and_logout_clears_it():
+    client, user, _, world = await create_authenticated_client()
+    billing_cache = await get_user_billing_cache(user_id=user.id)
+    assert billing_cache
+    assert "available_tokens" in billing_cache
+    assert "previously_used" in billing_cache
+
+    response = client.post("/api/auth/logout", headers={"X-World-Id": str(world.id)})
+    assert response.status_code == 204
+
+    billing_cache_after_logout = await get_user_billing_cache(user_id=user.id)
+    assert billing_cache_after_logout == {}

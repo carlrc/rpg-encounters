@@ -24,6 +24,7 @@ class ChallengeAgent(BaseAgent):
     async def chat(self, player_transcript: str, deps: ChallengeAgentDeps) -> str:
         try:
             run_result = await self.agent.run(user_prompt=player_transcript, deps=deps)
+            self.last_total_tokens = run_result.usage().total_tokens
 
             deps.telemetry()
 

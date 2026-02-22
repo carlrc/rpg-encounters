@@ -203,11 +203,13 @@ async def seed_character_data(engine: AsyncEngine, user_ids: list[int], world_id
                             "max_response_length": CHARACTER_COMMUNICATION_LIMIT,
                         }
                     )
-                    communication_style = await CommunicationStyleAgent(system_prompt=system_prompt).generate()
+                    communication_style_agent = CommunicationStyleAgent(system_prompt=system_prompt)
+                    communication_style = await communication_style_agent.generate()
                     character_copy.communication_style = communication_style.style_summary
                     character_copy.communication_style_examples = communication_style.examples
 
-                character_copy.personality = await PersonalityAgent().generate(character=character_copy)
+                personality_agent = PersonalityAgent()
+                character_copy.personality = await personality_agent.generate(character=character_copy)
                 character_data = character_copy.model_dump()
                 character_data.pop('id', None)  # Remove ID to let autoincrement handle it
                 logger.info(f"Generated character '{character_data['name']}' for user {user_index+1}")
@@ -218,7 +220,9 @@ async def seed_character_data(engine: AsyncEngine, user_ids: list[int], world_id
             generation_tasks = []
             for i, (user_id, world_id) in enumerate(zip(user_ids, world_ids)):
                 for character in characters_db:
-                    task = generate_character_for_user(character, user_id, world_id, i)
+                    task = generate_character_for_user(
+                        character, user_id, world_id, i
+                    )
                     generation_tasks.append(task)
 
             # Execute all character generation concurrently
@@ -230,6 +234,7 @@ async def seed_character_data(engine: AsyncEngine, user_ids: list[int], world_id
             for character_data, user_id, world_id in generated_characters:
                 character_orm = CharacterORM(**character_data, user_id=user_id, world_id=world_id)
                 session.add(character_orm)
+                await session.flush()
 
             await session.commit()
             logger.info(f"Successfully seeded {len(characters_db) * len(user_ids)} characters to database! ({len(characters_db)} per user)")

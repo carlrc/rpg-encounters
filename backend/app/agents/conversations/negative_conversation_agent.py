@@ -48,6 +48,7 @@ class NegativeConvoAgent(BaseAgent):
             run_result, influence_result = await asyncio.gather(
                 agent_task, influence_task
             )
+            self.last_total_tokens = run_result.usage().total_tokens
         except UnexpectedModelBehavior as e:
             logger.error(f"Agent failure. {e.message}")
             raise

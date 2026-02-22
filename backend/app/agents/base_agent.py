@@ -60,6 +60,7 @@ class BaseAgent:
         self.retries = MAX_RETRIES
         self.temp = float(get_or_throw("DEFAULT_MODEL_TEMP"))
         self.metadata = {"temperature": self.temp}
+        self.last_total_tokens = 0
 
     # https://ai.pydantic.dev/message-history/#summarize-old-messages
     async def _keep_recent_messages(
