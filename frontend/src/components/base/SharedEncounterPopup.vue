@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-  import { computed } from 'vue'
+  import { computed, onMounted, onUnmounted } from 'vue'
 
   const props = defineProps({
     isOpen: {
@@ -30,6 +30,10 @@
     closeAriaLabel: {
       type: String,
       default: 'Close popup',
+    },
+    closeOnEscape: {
+      type: Boolean,
+      default: true,
     },
     popupWidth: {
       type: String,
@@ -51,11 +55,26 @@
     emit('close')
   }
 
+  const handleEscape = (event) => {
+    if (!props.closeOnEscape || !props.isOpen) return
+    if (event.key === 'Escape') {
+      emitClose()
+    }
+  }
+
   const popupStyle = computed(() => ({
     width: props.popupWidth,
     maxWidth: props.popupMaxWidth,
     maxHeight: props.popupMaxHeight,
   }))
+
+  onMounted(() => {
+    document.addEventListener('keydown', handleEscape)
+  })
+
+  onUnmounted(() => {
+    document.removeEventListener('keydown', handleEscape)
+  })
 </script>
 
 <style scoped>

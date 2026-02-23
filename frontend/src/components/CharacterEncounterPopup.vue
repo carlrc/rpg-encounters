@@ -58,8 +58,8 @@
       </div>
 
       <div class="encounter-controls">
-        <div class="selection-row">
-          <div class="player-selection">
+        <div class="shared-encounter-controls-grid">
+          <div class="player-selection shared-encounter-controls-cell">
             <select
               id="player-select"
               v-model="selectedPlayerId"
@@ -74,11 +74,18 @@
             </select>
           </div>
 
-          <div v-if="isChallengeMode" class="skill-selection">
+          <div
+            :class="[
+              'skill-selection',
+              'shared-encounter-controls-cell',
+              { 'shared-encounter-skill-placeholder-cell': !isChallengeMode },
+            ]"
+          >
             <select
+              v-if="isChallengeMode"
               id="skill-select"
               v-model="selectedSkill"
-              class="shared-select"
+              class="shared-select shared-encounter-skill-select"
               :disabled="isRecording || isProcessing"
             >
               <option value="">Select a skill</option>
@@ -86,25 +93,28 @@
                 {{ skill }}
               </option>
             </select>
+            <div v-else class="shared-encounter-controls-placeholder" aria-hidden="true"></div>
           </div>
-        </div>
 
-        <div class="control-buttons">
-          <button
-            @click="toggleRecording"
-            :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
-            :disabled="!selectedPlayerId || isProcessing || (isChallengeMode && !selectedSkill)"
-          >
-            {{ buttonText }}
-          </button>
+          <div class="shared-encounter-controls-cell">
+            <button
+              @click="toggleRecording"
+              :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
+              :disabled="!selectedPlayerId || isProcessing || (isChallengeMode && !selectedSkill)"
+            >
+              {{ buttonText }}
+            </button>
+          </div>
 
-          <button
-            @click="toggleChallengeMode"
-            :class="['challenge-button', { active: isChallengeMode }]"
-            :disabled="isRecording || isProcessing"
-          >
-            Challenge
-          </button>
+          <div class="shared-encounter-controls-cell">
+            <button
+              @click="toggleChallengeMode"
+              :class="['shared-encounter-challenge-button', { active: isChallengeMode }]"
+              :disabled="isRecording || isProcessing"
+            >
+              Challenge
+            </button>
+          </div>
         </div>
 
         <div :class="['shared-status-text', { recording: isRecording, processing: isProcessing }]">
@@ -182,7 +192,6 @@
         stopRecording,
         connectWebSocket,
         closeWebSocket,
-        cleanup: cleanupAudioHandler,
       } = useWebSocketAudioHandler({
         audioElementRef: streamAudio,
         worldId: worldStore.currentWorldId,
@@ -632,6 +641,14 @@
     flex: 1;
     display: flex;
     flex-direction: column;
+    --encounter-col-left: 150px;
+    --encounter-col-right: 120px;
+    --encounter-controls-gap: 20px;
+    --encounter-controls-grid-margin-bottom: 20px;
+    --encounter-placeholder-height: 52px;
+    --encounter-mobile-max-width: 340px;
+    --encounter-controls-mobile-gap: 12px;
+    --encounter-controls-mobile-margin-bottom: 20px;
   }
 
   .character-header {
@@ -721,69 +738,6 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-  }
-
-  .selection-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-
-  .player-selection {
-    width: 150px;
-  }
-
-  .skill-selection {
-    width: 120px;
-  }
-
-  .control-buttons {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 20px;
-  }
-
-  .challenge-button {
-    padding: 12px 24px;
-    font-size: 1em;
-    font-weight: 600;
-    border: 2px solid var(--gray-500);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 120px;
-    background: white;
-    color: var(--gray-500);
-    box-shadow: var(--shadow-voice-hover);
-  }
-
-  .challenge-button:hover:not(:disabled) {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-reveal-hover);
-  }
-
-  .challenge-button.active {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    border-color: var(--primary-color);
-  }
-
-  .challenge-button.active:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
-    border-color: var(--primary-darker);
-  }
-
-  .challenge-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
   }
 
   /* Conversation stats container */
@@ -880,5 +834,17 @@
   .progress-complete {
     background: var(--color-reveal-complete);
     color: var(--color-reveal-complete-text);
+  }
+
+  @media (max-width: 767px) {
+    .skill-selection,
+    .player-selection {
+      width: 100%;
+    }
+
+    .encounter-interface .shared-encounter-skill-select {
+      min-height: 48px;
+      font-size: 16px;
+    }
   }
 </style>

@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-  import { ref, computed, onMounted, onUnmounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import { serializeError } from 'serialize-error'
   import { marked } from 'marked'
   import SharedEncounterPopup from '../base/SharedEncounterPopup.vue'
@@ -38,12 +38,6 @@
     emit('close')
   }
 
-  const handleEscape = (event) => {
-    if (event.key === 'Escape') {
-      closeModal()
-    }
-  }
-
   onMounted(async () => {
     // Load the markdown content
     try {
@@ -53,13 +47,6 @@
       console.error('Failed to load instructions:', JSON.stringify(serializeError(error)))
       instructionsContent.value = '# Error\n\nFailed to load instructions content.'
     }
-
-    // Add escape key listener
-    document.addEventListener('keydown', handleEscape)
-  })
-
-  onUnmounted(() => {
-    document.removeEventListener('keydown', handleEscape)
   })
 </script>
 

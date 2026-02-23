@@ -3,7 +3,7 @@
     :is-open="isOpen"
     close-aria-label="Close profile popup"
     popup-width="90%"
-    popup-max-width="42%"
+    popup-max-width="720px"
     popup-max-height="90vh"
     @close="closeModal"
   >
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-  import { onMounted, onUnmounted, watch } from 'vue'
+  import { watch } from 'vue'
   import SharedEncounterPopup from '../base/SharedEncounterPopup.vue'
   import SplitViewLayout from '../layout/SplitViewLayout.vue'
   import ProfileBillingCard from './ProfileBillingCard.vue'
@@ -72,12 +72,6 @@
 
   const closeModal = () => emit('close')
 
-  const handleEscape = (event) => {
-    if (event.key === 'Escape' && props.isOpen) {
-      closeModal()
-    }
-  }
-
   watch(
     () => props.isOpen,
     (isOpen) => {
@@ -86,14 +80,6 @@
       }
     }
   )
-
-  onMounted(() => {
-    document.addEventListener('keydown', handleEscape)
-  })
-
-  onUnmounted(() => {
-    document.removeEventListener('keydown', handleEscape)
-  })
 </script>
 
 <style scoped>

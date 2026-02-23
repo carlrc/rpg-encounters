@@ -127,3 +127,61 @@ test('PLAYER-MOBILE-VIEW-01 player encounter content renders and basic tap flow 
     await closeTrackedContexts(contextRegistry)
   }
 })
+
+test('PLAYER-MOBILE-CHALLENGE-SKILL-PICKER-01 challenge skill picker opens, selects, and clears on mobile', async ({
+  page,
+  browser,
+}, testInfo) => {
+  const contextRegistry = createContextRegistry()
+  try {
+    const loginResult = await getLoginForPlayerWithEncounter(
+      page,
+      browser,
+      testInfo,
+      contextRegistry
+    )
+    const { mobilePage } = loginResult
+
+    await mobilePage.locator('.character-tile').first().click()
+    await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+
+    const challengeButton = mobilePage.getByRole('button', { name: 'Challenge' })
+    await challengeButton.click()
+
+    const speakButton = mobilePage.getByRole('button', { name: 'Speak' })
+    await expect(speakButton).toBeDisabled()
+
+    const skillTrigger = mobilePage.locator('.mobile-skill-trigger')
+    await expect(skillTrigger).toBeVisible()
+    await expect(skillTrigger).toContainText('Select a skill')
+    await expect(skillTrigger).toHaveAttribute('aria-expanded', 'false')
+
+    await skillTrigger.click()
+    await expect(skillTrigger).toHaveAttribute('aria-expanded', 'true')
+    const mobileSkillList = mobilePage.locator('.mobile-skill-list')
+    await expect(mobileSkillList).toBeVisible()
+    await expect(
+      mobileSkillList.getByRole('button', { name: 'Select a skill', exact: true })
+    ).toBeVisible()
+    await expect(
+      mobileSkillList.getByRole('button', { name: 'Deception', exact: true })
+    ).toBeVisible()
+
+    await mobileSkillList.getByRole('button', { name: 'Deception', exact: true }).click()
+    await expect(mobilePage.locator('.mobile-skill-list')).toHaveCount(0)
+    await expect(skillTrigger).toContainText('Deception')
+    await expect(skillTrigger).toHaveAttribute('aria-expanded', 'false')
+    await expect(speakButton).toBeEnabled()
+
+    await skillTrigger.click()
+    await mobilePage
+      .locator('.mobile-skill-list')
+      .getByRole('button', { name: 'Select a skill', exact: true })
+      .click()
+    await expect(mobilePage.locator('.mobile-skill-list')).toHaveCount(0)
+    await expect(skillTrigger).toContainText('Select a skill')
+    await expect(speakButton).toBeDisabled()
+  } finally {
+    await closeTrackedContexts(contextRegistry)
+  }
+})

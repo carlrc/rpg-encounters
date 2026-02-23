@@ -1205,6 +1205,107 @@ textarea:focus {
   cursor: not-allowed;
 }
 
+/* Shared challenge controls layout */
+.shared-encounter-controls-grid {
+  display: grid;
+  grid-template-columns: var(--encounter-col-left, 150px) var(--encounter-col-right, 120px);
+  gap: var(--encounter-controls-gap, 20px);
+  justify-content: center;
+  align-items: center;
+  margin-bottom: var(--encounter-controls-grid-margin-bottom, 0);
+}
+
+.shared-encounter-controls-cell {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.shared-encounter-controls-empty,
+.shared-encounter-skill-placeholder-cell,
+.shared-encounter-controls-placeholder {
+  min-height: var(--encounter-placeholder-height, 44px);
+}
+
+.shared-encounter-controls-placeholder {
+  width: 100%;
+  visibility: hidden;
+}
+
+.shared-encounter-controls-grid .shared-speak-button {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.shared-encounter-skill-select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.shared-encounter-challenge-button {
+  padding: 12px 24px;
+  font-size: 1em;
+  font-weight: 600;
+  border: 2px solid var(--gray-500);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
+  color: var(--gray-500);
+  box-shadow: var(--shadow-voice-hover);
+  min-height: var(--encounter-challenge-button-height, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shared-encounter-challenge-button:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-reveal-hover);
+}
+
+.shared-encounter-challenge-button.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.shared-encounter-challenge-button.active:hover {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
+  border-color: var(--primary-darker);
+}
+
+.shared-encounter-challenge-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 767px) {
+  .shared-encounter-controls-grid {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: var(--encounter-mobile-max-width, 280px);
+    margin: 0 auto var(--encounter-controls-mobile-margin-bottom, 0);
+    gap: var(--encounter-controls-mobile-gap, 12px);
+  }
+
+  .shared-encounter-controls-empty,
+  .shared-encounter-skill-placeholder-cell {
+    display: none;
+    min-height: 0;
+  }
+
+  .shared-encounter-controls-placeholder {
+    min-height: 0;
+  }
+}
+
 @keyframes shared-pulse {
   0% {
     transform: scale(1);

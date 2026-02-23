@@ -73,40 +73,100 @@
 
         <!-- Controls -->
         <div class="interaction-controls">
-          <!-- Challenge Mode Toggle -->
-          <div class="mode-controls">
-            <button
-              @click="toggleChallengeMode"
-              :class="['challenge-button', { active: isChallengeMode }]"
-              :disabled="isRecording || isProcessing"
-            >
-              Challenge
-            </button>
-          </div>
+          <div class="shared-encounter-controls-grid">
+            <div
+              class="shared-encounter-controls-cell shared-encounter-controls-empty"
+              aria-hidden="true"
+            ></div>
 
-          <!-- Skill Selection (Challenge Mode Only) -->
-          <div v-if="isChallengeMode" class="skill-selection">
-            <select
-              v-model="selectedSkill"
-              class="skill-select"
-              :disabled="isRecording || isProcessing"
+            <div
+              :class="[
+                'skill-selection',
+                'shared-encounter-controls-cell',
+                { 'shared-encounter-skill-placeholder-cell': !isChallengeMode },
+              ]"
             >
-              <option value="">Select a skill</option>
-              <option v-for="skill in skills" :key="skill" :value="skill">
-                {{ skill }}
-              </option>
-            </select>
-          </div>
+              <template v-if="isChallengeMode">
+                <select
+                  v-if="!isMobileViewport"
+                  v-model="selectedSkill"
+                  class="skill-select shared-encounter-skill-select"
+                  :disabled="isRecording || isProcessing"
+                >
+                  <option value="">Select a skill</option>
+                  <option v-for="skill in skills" :key="skill" :value="skill">
+                    {{ skill }}
+                  </option>
+                </select>
+                <div v-else ref="mobileSkillPickerRef" class="mobile-skill-picker">
+                  <button
+                    type="button"
+                    class="mobile-skill-trigger"
+                    :disabled="isRecording || isProcessing"
+                    :aria-expanded="isMobileSkillMenuOpen ? 'true' : 'false'"
+                    :aria-controls="mobileSkillMenuId"
+                    @click="toggleMobileSkillMenu"
+                  >
+                    <span>{{ selectedSkill || 'Select a skill' }}</span>
+                    <span class="mobile-skill-caret">{{ isMobileSkillMenuOpen ? '▲' : '▼' }}</span>
+                  </button>
+                  <ul
+                    v-if="isMobileSkillMenuOpen"
+                    :id="mobileSkillMenuId"
+                    class="mobile-skill-list"
+                  >
+                    <li>
+                      <button
+                        type="button"
+                        class="mobile-skill-item"
+                        :class="{ active: !selectedSkill }"
+                        :disabled="isRecording || isProcessing"
+                        @click="selectMobileSkill('')"
+                      >
+                        Select a skill
+                      </button>
+                    </li>
+                    <li v-for="skill in skills" :key="`mobile-list-${skill}`">
+                      <button
+                        type="button"
+                        class="mobile-skill-item"
+                        :class="{ active: selectedSkill === skill }"
+                        :disabled="isRecording || isProcessing"
+                        @click="selectMobileSkill(skill)"
+                      >
+                        {{ skill }}
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </template>
+              <div v-else class="shared-encounter-controls-placeholder" aria-hidden="true"></div>
+            </div>
 
-          <!-- Main Action Button -->
-          <div class="main-controls">
-            <button
-              @click="toggleRecording"
-              :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
-              :disabled="isProcessing || (isChallengeMode && !selectedSkill)"
-            >
-              {{ buttonText }}
-            </button>
+            <!-- Main Action Button -->
+            <div class="main-controls shared-encounter-controls-cell">
+              <button
+                @click="toggleRecording"
+                :class="[
+                  'shared-speak-button',
+                  { recording: isRecording, processing: isProcessing },
+                ]"
+                :disabled="isProcessing || (isChallengeMode && !selectedSkill)"
+              >
+                {{ buttonText }}
+              </button>
+            </div>
+
+            <!-- Challenge Mode Toggle -->
+            <div class="mode-controls shared-encounter-controls-cell">
+              <button
+                @click="toggleChallengeMode"
+                :class="['shared-encounter-challenge-button', { active: isChallengeMode }]"
+                :disabled="isRecording || isProcessing"
+              >
+                Challenge
+              </button>
+            </div>
           </div>
 
           <!-- Status Text -->
@@ -137,6 +197,7 @@
   export default {
     name: 'PlayerEncounterView',
     setup() {
+      const MOBILE_VIEWPORT_QUERY = '(max-width: 767px)'
       const route = useRoute()
       const router = useRouter()
       const gameDataStore = useGameDataStore()
@@ -153,11 +214,16 @@
       // Interaction state
       const isChallengeMode = ref(false)
       const selectedSkill = ref('')
+      const isMobileSkillMenuOpen = ref(false)
+      const isMobileViewport = ref(false)
+      const mobileSkillMenuId = 'player-mobile-skill-menu'
+      const mobileSkillPickerRef = ref(null)
       const diceRoll = ref(null)
       const influenceScore = ref(null)
 
       // Local WebSocket progressive audio player
       let streamPlayer = null
+      let mobileViewportMediaQuery = null
 
       // WebSocket Audio Handler
       const {
@@ -244,6 +310,7 @@
         // Reset state
         isChallengeMode.value = false
         selectedSkill.value = ''
+        isMobileSkillMenuOpen.value = false
         influenceScore.value = null
         diceRoll.value = null
       }
@@ -254,12 +321,48 @@
           stopRecording()
         }
         await cleanupAudioHandler(streamPlayer)
+        isMobileSkillMenuOpen.value = false
         selectedCharacter.value = null
+      }
+
+      const toggleMobileSkillMenu = () => {
+        isMobileSkillMenuOpen.value = !isMobileSkillMenuOpen.value
+      }
+
+      const selectMobileSkill = (skill) => {
+        selectedSkill.value = skill
+        isMobileSkillMenuOpen.value = false
+      }
+
+      const syncViewportMode = () => {
+        isMobileViewport.value = mobileViewportMediaQuery?.matches ?? false
+        if (!isMobileViewport.value) {
+          isMobileSkillMenuOpen.value = false
+        }
+      }
+
+      const handleViewportChange = () => {
+        syncViewportMode()
+      }
+
+      const handleDocumentInteraction = (event) => {
+        if (!isMobileSkillMenuOpen.value) return
+        const pickerEl = mobileSkillPickerRef.value
+        if (!pickerEl) return
+        if (pickerEl.contains(event.target)) return
+        isMobileSkillMenuOpen.value = false
+      }
+
+      const handleDocumentKeydown = (event) => {
+        if (event.key === 'Escape' && isMobileSkillMenuOpen.value) {
+          isMobileSkillMenuOpen.value = false
+        }
       }
 
       const toggleChallengeMode = () => {
         isChallengeMode.value = !isChallengeMode.value
         selectedSkill.value = ''
+        isMobileSkillMenuOpen.value = false
         influenceScore.value = null
         diceRoll.value = null
       }
@@ -312,6 +415,16 @@
 
       // Lifecycle
       onMounted(async () => {
+        mobileViewportMediaQuery = window.matchMedia(MOBILE_VIEWPORT_QUERY)
+        if (typeof mobileViewportMediaQuery.addEventListener === 'function') {
+          mobileViewportMediaQuery.addEventListener('change', handleViewportChange)
+        } else if (typeof mobileViewportMediaQuery.addListener === 'function') {
+          mobileViewportMediaQuery.addListener(handleViewportChange)
+        }
+        document.addEventListener('click', handleDocumentInteraction)
+        document.addEventListener('keydown', handleDocumentKeydown)
+        syncViewportMode()
+
         // Initialize game data if needed
         if (!gameData.value || !gameData.value.skills) {
           await gameDataStore.load()
@@ -320,6 +433,19 @@
       })
 
       onUnmounted(async () => {
+        if (
+          mobileViewportMediaQuery &&
+          typeof mobileViewportMediaQuery.removeEventListener === 'function'
+        ) {
+          mobileViewportMediaQuery.removeEventListener('change', handleViewportChange)
+        } else if (
+          mobileViewportMediaQuery &&
+          typeof mobileViewportMediaQuery.removeListener === 'function'
+        ) {
+          mobileViewportMediaQuery.removeListener(handleViewportChange)
+        }
+        document.removeEventListener('click', handleDocumentInteraction)
+        document.removeEventListener('keydown', handleDocumentKeydown)
         await closeCharacterInteraction()
       })
 
@@ -332,6 +458,10 @@
         isProcessing,
         isChallengeMode,
         selectedSkill,
+        isMobileSkillMenuOpen,
+        isMobileViewport,
+        mobileSkillMenuId,
+        mobileSkillPickerRef,
         skills,
         buttonText,
         statusText,
@@ -341,6 +471,8 @@
         getInitials,
         openCharacterInteraction,
         closeCharacterInteraction,
+        toggleMobileSkillMenu,
+        selectMobileSkill,
         toggleChallengeMode,
         toggleRecording,
       }
@@ -590,6 +722,12 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    --encounter-col-left: 160px;
+    --encounter-col-right: 160px;
+    --encounter-controls-gap: 20px;
+    --encounter-placeholder-height: 44px;
+    --encounter-mobile-max-width: 340px;
+    --encounter-controls-mobile-gap: 12px;
   }
 
   .mode-controls {
@@ -597,56 +735,13 @@
     justify-content: center;
   }
 
-  .challenge-button {
-    padding: 12px 24px;
-    font-size: 1em;
-    font-weight: 600;
-    border: 2px solid var(--gray-500);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 120px;
-    background: white;
-    color: var(--gray-500);
-    box-shadow: var(--shadow-voice-hover);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .challenge-button:hover:not(:disabled) {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-reveal-hover);
-  }
-
-  .challenge-button.active {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    border-color: var(--primary-color);
-  }
-
-  .challenge-button.active:hover {
-    background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
-    border-color: var(--primary-darker);
-  }
-
-  .challenge-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-
   .skill-selection {
     display: flex;
     justify-content: center;
+    width: 100%;
   }
 
   .skill-select {
-    min-width: 200px;
     padding: var(--spacing-sm) var(--spacing-md);
     border: 1px solid var(--border-default);
     border-radius: var(--border-radius-md);
@@ -654,6 +749,52 @@
     color: var(--text-primary);
     font-size: var(--font-size-base);
     min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .mobile-skill-picker {
+    display: none;
+  }
+
+  .mobile-skill-trigger,
+  .mobile-skill-item {
+    width: 100%;
+    border: 1px solid var(--border-default);
+    border-radius: var(--border-radius-md);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    font-size: var(--font-size-base);
+    min-height: 44px;
+  }
+
+  .mobile-skill-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .mobile-skill-caret {
+    color: var(--text-muted);
+    font-size: 0.85em;
+  }
+
+  .mobile-skill-list {
+    list-style: none;
+    margin: var(--spacing-xs) 0 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .mobile-skill-item.active {
+    border-color: var(--primary-color);
+    background: var(--primary-alpha-10);
+    font-weight: var(--font-weight-semibold);
   }
 
   .main-controls {
@@ -692,6 +833,11 @@
       min-width: 100px;
       min-height: 56px;
     }
+
+    .mobile-skill-picker {
+      display: block;
+      width: 100%;
+    }
   }
 
   @media (max-width: 360px) {
@@ -700,7 +846,7 @@
       justify-content: stretch;
     }
 
-    .challenge-button,
+    .shared-encounter-challenge-button,
     .shared-speak-button {
       width: 100%;
     }
