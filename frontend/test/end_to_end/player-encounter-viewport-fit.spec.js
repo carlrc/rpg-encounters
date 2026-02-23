@@ -12,7 +12,7 @@ const CRITICAL_CONTROL_SELECTORS = [
 ]
 
 const getLoginForEncounterWithPlayersAndCharacters = async (page, browser, testInfo) => {
-  const fixture = await resolveSeededPlayerEncounterFixture(page, browser, testInfo)
+  const fixture = await resolveSeededPlayerEncounterFixture(page, testInfo)
   const playerId = String(fixture.playerId)
   const loginUrl = fixture.loginUrl
   return { loginUrl, playerId }

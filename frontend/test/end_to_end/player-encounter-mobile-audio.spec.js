@@ -70,7 +70,7 @@ const openPlayerEncounterOnMobile = async (
 
 const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRegistry) => {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const fixture = await resolveSeededPlayerEncounterFixture(page, browser, testInfo)
+    const fixture = await resolveSeededPlayerEncounterFixture(page, testInfo)
     const playerId = String(fixture.playerId)
     const loginUrl = fixture.loginUrl
 
@@ -180,7 +180,9 @@ test('PLAYER-MOBILE-TALKING-AUDIO-01 returns audio over websocket and completes 
     await characterTiles.first().click()
     await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
 
-    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true })
+    // Mobile Chromium fake-mic capture can intermittently produce empty WAV payloads with short
+    // recording windows; keep capture open longer so backend transcription gets non-empty audio.
+    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
     await assertConversationAudioRoundtrip(mobilePage, {
       wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
       timeoutMs: 60_000,

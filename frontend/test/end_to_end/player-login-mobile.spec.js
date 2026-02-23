@@ -45,7 +45,7 @@ const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo, cont
 }
 
 const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRegistry) => {
-  const fixture = await resolveSeededPlayerEncounterFixture(page, browser, testInfo)
+  const fixture = await resolveSeededPlayerEncounterFixture(page, testInfo)
   const playerId = String(fixture.playerId)
   const loginUrl = fixture.loginUrl
   const { mobileContext, mobilePage, encounterStatus } = await loginAsPlayerOnMobile(

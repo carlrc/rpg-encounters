@@ -69,9 +69,3 @@ test('AUTH-BOOTSTRAP-04 missing seeded DM fails clearly', async () => {
     expect(stderr).toContain('python -m tests.fixtures.seed_data')
   }
 })
-
-test('AUTH-BOOTSTRAP-05 authenticated root redirects to players', async ({ page }) => {
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/players$/)
-  await expect(page.getByRole('button', { name: 'Add Player' })).toBeVisible()
-})

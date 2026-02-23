@@ -80,9 +80,9 @@ const loadEncountersViaUi = async (page) => {
   return Array.isArray(canvasPayload?.encounters) ? canvasPayload.encounters : []
 }
 
-export const resolveSeededPlayerEncounterFixture = async (page, browser, testInfo) => {
-  if (!browser || !testInfo) {
-    throw new Error('resolveSeededPlayerEncounterFixture requires browser and testInfo.')
+export const resolveSeededPlayerEncounterFixture = async (page, testInfo) => {
+  if (!testInfo) {
+    throw new Error('resolveSeededPlayerEncounterFixture requires testInfo.')
   }
 
   const players = await loadPlayersViaUi(page)
