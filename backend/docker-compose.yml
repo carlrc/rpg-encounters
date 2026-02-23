@@ -37,7 +37,7 @@ services:
       # Session management
       - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
       # Cache
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=${REDIS_URL}
       - BILLING_CACHE_TTL_SECONDS=${BILLING_CACHE_TTL_SECONDS}
       - BILLING_FLUSH_INTERVAL_SECONDS=${BILLING_FLUSH_INTERVAL_SECONDS}
       - BILLING_IGNORE_BALANCE_CHECK=${BILLING_IGNORE_BALANCE_CHECK}
@@ -95,7 +95,6 @@ services:
     image: redis:8-alpine
     container_name: rpg-encounters-redis
     restart: always
-    command: [ "redis-server", "--notify-keyspace-events", "Ex" ]
     ports:
       - "6379:6379"
     healthcheck:

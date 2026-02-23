@@ -1,9 +1,9 @@
 import time
 
+from pydantic import BaseModel
 from redis.asyncio import Redis
 
 from app.clients.redis_client import (
-    create_usage_flush_key,
     create_usage_key,
     get_redis_session,
 )
@@ -16,7 +16,14 @@ IGNORE_BILLING_BALANCE_CHECK = (
 )
 
 USAGE_CACHE_TTL_SECONDS = int(get_or_throw("BILLING_CACHE_TTL_SECONDS"))
-USAGE_FLUSH_INTERVAL_SECONDS = int(get_or_throw("BILLING_FLUSH_INTERVAL_SECONDS"))
+
+
+class TokenUsageCache(BaseModel):
+    available_tokens: int
+    last_used_tokens: int
+    total_used_tokens: int
+    updated_at_epoch: int
+    synced_at_epoch: int
 
 
 class UserTokenService:
@@ -29,23 +36,42 @@ class UserTokenService:
         available_tokens = await redis.hget(
             usage_key, "available_tokens"
         )  # pyright: ignore[reportGeneralTypeIssues]
-        previously_used = await redis.hget(
-            usage_key, "previously_used"
+        last_used_tokens = await redis.hget(
+            usage_key, "last_used_tokens"
         )  # pyright: ignore[reportGeneralTypeIssues]
-        return available_tokens is not None and previously_used is not None
+        total_used_tokens = await redis.hget(
+            usage_key, "total_used_tokens"
+        )  # pyright: ignore[reportGeneralTypeIssues]
+        updated_at_epoch = await redis.hget(
+            usage_key, "updated_at_epoch"
+        )  # pyright: ignore[reportGeneralTypeIssues]
+        synced_at_epoch = await redis.hget(
+            usage_key, "synced_at_epoch"
+        )  # pyright: ignore[reportGeneralTypeIssues]
+        return (
+            available_tokens is not None
+            and last_used_tokens is not None
+            and total_used_tokens is not None
+            and updated_at_epoch is not None
+            and synced_at_epoch is not None
+        )
 
     async def _write_usage_from_db(self, redis: Redis, user_id: int) -> None:
         """Overwrite Redis counters from DB so runtime starts from source-of-truth."""
         billing = await self._get_db_billing(user_id=user_id)
         usage_key = create_usage_key(user_id=user_id)
-        await redis.hset(  # pyright: ignore[reportGeneralTypeIssues]
-            usage_key,
-            mapping={
-                "available_tokens": billing.available_tokens,
-                "previously_used": 0,
-                "updated_at_epoch": int(time.time()),
-            },
+        now = int(time.time())
+        usage_cache = TokenUsageCache(
+            available_tokens=billing.available_tokens,
+            last_used_tokens=billing.last_used_tokens,
+            total_used_tokens=billing.total_used_tokens,
+            updated_at_epoch=now,
+            synced_at_epoch=now,
         )
+        await redis.hset(
+            usage_key,
+            mapping=usage_cache.model_dump(),
+        )  # pyright: ignore[reportGeneralTypeIssues]
         await redis.expire(usage_key, USAGE_CACHE_TTL_SECONDS)
 
     async def _hydrate_from_db_if_missing(self, redis: Redis, user_id: int) -> None:
@@ -59,37 +85,41 @@ class UserTokenService:
     async def overwrite_cache_from_db(self, user_id: int) -> None:
         """Force-refresh Redis counters from DB (used on login)."""
         async with get_redis_session() as redis:
+            await redis.delete(create_usage_key(user_id=user_id))
             await self._write_usage_from_db(redis=redis, user_id=user_id)
 
     async def clear_cache(self, user_id: int) -> None:
-        """Remove Redis usage/flush keys (used on logout)."""
+        """Remove Redis usage key (used on logout)."""
         async with get_redis_session() as redis:
-            await redis.delete(
-                create_usage_key(user_id=user_id),
-                create_usage_flush_key(user_id=user_id),
-            )
+            await redis.delete(create_usage_key(user_id=user_id))
+
+    async def get_token_usage_summary(self, user_id: int) -> TokenUsageCache:
+        """Return user billing counters from cache, hydrating from DB when missing."""
+        async with get_redis_session() as redis:
+            await self._hydrate_from_db_if_missing(redis=redis, user_id=user_id)
+            usage_key = create_usage_key(user_id=user_id)
+            usage_hash = await redis.hgetall(
+                usage_key
+            )  # pyright: ignore[reportGeneralTypeIssues]
+            return TokenUsageCache.model_validate(usage_hash)
 
     async def check_token_balance(self, user_id: int) -> bool:
         """Compare available tokens against unflushed usage to allow/block flow entry."""
-        # Local dev escape hatch to bypass balance checks when explicitly enabled.
+        # Ignore billing for local development
         if IGNORE_BILLING_BALANCE_CHECK:
             return True
 
         async with get_redis_session() as redis:
             await self._hydrate_from_db_if_missing(redis=redis, user_id=user_id)
             usage_key = create_usage_key(user_id=user_id)
-            available_tokens = int(
-                (await redis.hget(usage_key, "available_tokens"))
-                or 0  # pyright: ignore[reportGeneralTypeIssues]
-            )
-            previously_used = int(
-                (await redis.hget(usage_key, "previously_used"))
-                or 0  # pyright: ignore[reportGeneralTypeIssues]
-            )
-            return available_tokens > previously_used
+            usage_hash = await redis.hgetall(
+                usage_key
+            )  # pyright: ignore[reportGeneralTypeIssues]
+            usage_cache = TokenUsageCache.model_validate(usage_hash)
+            return usage_cache.available_tokens > 0
 
     async def update_token_usage(self, user_id: int, usage_tokens: int) -> None:
-        """Record usage in Redis and schedule async DB flush via expiry key."""
+        """Record usage in Redis and rely on periodic/background flush for DB sync."""
         if usage_tokens == 0:
             return
 
@@ -97,14 +127,16 @@ class UserTokenService:
         async with get_redis_session() as redis:
             await self._hydrate_from_db_if_missing(redis=redis, user_id=user_id)
             usage_key = create_usage_key(user_id=user_id)
-            flush_key = create_usage_flush_key(user_id=user_id)
 
             async with redis.pipeline(transaction=True) as pipeline:
-                pipeline.hincrby(usage_key, "previously_used", usage_tokens)
+                pipeline.hincrby(usage_key, "total_used_tokens", usage_tokens)
+                pipeline.hincrby(usage_key, "available_tokens", -usage_tokens)
                 pipeline.hset(
                     usage_key,
-                    mapping={"updated_at_epoch": now},
+                    mapping={
+                        "last_used_tokens": usage_tokens,
+                        "updated_at_epoch": now,
+                    },
                 )
                 pipeline.expire(usage_key, USAGE_CACHE_TTL_SECONDS)
-                pipeline.set(flush_key, "1", ex=USAGE_FLUSH_INTERVAL_SECONDS)
                 await pipeline.execute()

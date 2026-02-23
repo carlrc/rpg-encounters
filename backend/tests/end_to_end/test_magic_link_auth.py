@@ -239,7 +239,8 @@ async def test_login_hydrates_billing_cache_and_logout_clears_it():
     billing_cache = await get_user_billing_cache(user_id=user.id)
     assert billing_cache
     assert "available_tokens" in billing_cache
-    assert "previously_used" in billing_cache
+    assert "last_used_tokens" in billing_cache
+    assert "total_used_tokens" in billing_cache
 
     response = client.post("/api/auth/logout", headers={"X-World-Id": str(world.id)})
     assert response.status_code == 204

@@ -22,9 +22,9 @@ from app.routers import (
     voices,
     worlds,
 )
-from app.services.user_token_flush import (
-    start_token_usage_flush_listener,
-    stop_token_usage_flush_listener,
+from app.services.redis import (
+    start_token_usage_sync_poller,
+    stop_token_usage_sync_poller,
 )
 from app.telemetry import setup_telemetry
 from app.utils import get_or_throw
@@ -38,11 +38,11 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     await validate_redis_connection()
-    start_token_usage_flush_listener(app=app)
+    start_token_usage_sync_poller(app=app)
     try:
         yield
     finally:
-        await stop_token_usage_flush_listener(app=app)
+        await stop_token_usage_sync_poller(app=app)
 
 
 app = FastAPI(

@@ -27,8 +27,8 @@ from app.models.magic_link import (
     MagicLinkCreate,
     MagicLinkRequest,
 )
+from app.services.redis import flush_user_token_usage
 from app.services.user_token import UserTokenService
-from app.services.user_token_flush import flush_user_token_usage
 from app.templates.render_template import render_email_template
 from app.utils import get_or_throw
 

@@ -133,3 +133,20 @@ class UserBillingStore(BaseStore):
         if not updated:
             raise RuntimeError(f"Failed to apply usage delta for user {user_id}")
         return updated
+
+    async def apply_token_usage_snapshot(
+        self,
+        user_id: int,
+        token_usage_update: UserBillingUpdate,
+    ) -> UserBilling:
+        """Persist the cached token snapshot as the latest DB token state."""
+        await self.get_orm_for_update(user_id=user_id)
+        updated = await self.update_by_user_id(
+            user_id=user_id,
+            user_billing_update=token_usage_update,
+        )
+        if not updated:
+            raise RuntimeError(
+                f"Failed to apply token usage snapshot for user {user_id}"
+            )
+        return updated
