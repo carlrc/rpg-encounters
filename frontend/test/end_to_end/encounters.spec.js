@@ -29,12 +29,22 @@ const getEncounterCharacterTile = (encounterNode) =>
 const CLEAN_NAME_REGEX = /^[\p{L}\p{N}\s'-]+$/u
 const CLEAN_INITIALS_REGEX = /^[\p{L}\p{N}]{1,2}$/u
 
-const SEEDED_PLAYER_MUTATION_ENCOUNTER = "The Captain's Quarters"
-const SEEDED_CHARACTER_MUTATION_ENCOUNTER = "The Captain's Quarters"
+const MUTABLE_ENCOUNTERS = [
+  "The Captain's Quarters",
+  'The Lower Deck',
+  'The Crew Quarters',
+  'The Main Deck',
+  'The Upper Deck',
+]
 
 const getProjectHash = (testInfo) => {
   const projectName = testInfo?.project?.name || 'default'
   return [...projectName].reduce((hash, char) => hash + char.charCodeAt(0), 0)
+}
+
+const getProjectScopedEncounterName = (testInfo, offset = 0) => {
+  const index = (getProjectHash(testInfo) + offset) % MUTABLE_ENCOUNTERS.length
+  return MUTABLE_ENCOUNTERS[index]
 }
 
 const clickWhenActionable = async (locator) => {
@@ -383,7 +393,7 @@ test('ENCOUNTERS-ASSIGN-PLAYER-01 adds/removes player and persists after save/re
   await waitForEncountersGet(page)
   await expect(page).toHaveURL(/\/encounters/)
 
-  const encounterNode = getEncounterNodeByName(page, SEEDED_PLAYER_MUTATION_ENCOUNTER)
+  const encounterNode = getEncounterNodeByName(page, getProjectScopedEncounterName(testInfo, 0))
   await expect(encounterNode).toBeVisible()
   const encounterName = (await encounterNode.locator('.encounter-name').first().innerText()).trim()
   expect(encounterName).not.toBe('')
@@ -438,7 +448,7 @@ test('ENCOUNTERS-ASSIGN-CHARACTER-01 adds/removes character and persists after s
   await waitForEncountersGet(page)
   await expect(page).toHaveURL(/\/encounters/)
 
-  const encounterNode = getEncounterNodeByName(page, SEEDED_CHARACTER_MUTATION_ENCOUNTER)
+  const encounterNode = getEncounterNodeByName(page, getProjectScopedEncounterName(testInfo, 1))
   await expect(encounterNode).toBeVisible()
   const encounterName = (await encounterNode.locator('.encounter-name').first().innerText()).trim()
   expect(encounterName).not.toBe('')

@@ -1,6 +1,11 @@
 <template>
+  <!-- Public landing gets a full-bleed container -->
+  <div v-if="isLandingRoute" class="landing-app-container">
+    <slot />
+  </div>
+
   <!-- Auth pages get minimal container -->
-  <div v-if="!isAuthenticated" class="auth-app-container">
+  <div v-else-if="!isAuthenticated" class="auth-app-container">
     <!-- Page Header for auth pages -->
     <header class="page-header custom-header">
       <div class="header-content custom-header-content">
@@ -99,6 +104,7 @@
 
   // Use auth store for authentication check
   const isAuthenticated = computed(() => authStore.isAuthenticated === true)
+  const isLandingRoute = computed(() => route.path === '/')
 
   // Check if current route is a player route
   const isPlayerRoute = computed(() => {
@@ -113,6 +119,7 @@
       .filter(
         (route) =>
           route.name &&
+          route.path !== '/' &&
           route.path !== '/login' &&
           route.path !== '/auth' &&
           !playerOnlyRoutes.includes(route.name)
@@ -150,6 +157,12 @@
 </script>
 
 <style scoped>
+  .landing-app-container {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   .auth-app-container {
     width: 100%;
     height: 100vh; /* Fallback for older browsers */

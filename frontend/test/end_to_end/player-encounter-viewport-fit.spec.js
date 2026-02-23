@@ -6,7 +6,7 @@ const TOLERANCE_PX = 2
 const STRICT_TOLERANCE_PX = 1
 const CRITICAL_CONTROL_SELECTORS = [
   '.close-btn',
-  '.challenge-button',
+  '.shared-encounter-challenge-button',
   '.shared-speak-button',
   '.shared-status-text',
 ]

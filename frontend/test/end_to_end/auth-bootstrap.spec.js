@@ -14,6 +14,10 @@ test('AUTH-BOOTSTRAP-01 CLI returns valid JSON contract', async () => {
     cwd: BACKEND_ROOT,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379/0',
+    },
   })
 
   const payload = JSON.parse(stdout.trim())
@@ -55,6 +59,7 @@ test('AUTH-BOOTSTRAP-04 missing seeded DM fails clearly', async () => {
       env: {
         ...process.env,
         PLAYWRIGHT_SEEDED_DM_EMAIL: missingEmail,
+        REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379/0',
       },
     })
     throw new Error('Expected bootstrap command to fail for missing seeded DM.')
@@ -63,4 +68,10 @@ test('AUTH-BOOTSTRAP-04 missing seeded DM fails clearly', async () => {
     expect(stderr).toContain(`Seeded DM account '${missingEmail}' not found`)
     expect(stderr).toContain('python -m tests.fixtures.seed_data')
   }
+})
+
+test('AUTH-BOOTSTRAP-05 authenticated root redirects to players', async ({ page }) => {
+  await page.goto('/')
+  await expect(page).toHaveURL(/\/players$/)
+  await expect(page.getByRole('button', { name: 'Add Player' })).toBeVisible()
 })

@@ -5,7 +5,10 @@ from typing import Dict
 
 from pydantic import BaseModel
 
+from app.utils import get_or_throw
+
 logger = logging.getLogger(__name__)
+DISABLE_RATE_LIMITING = get_or_throw("DISABLE_RATE_LIMITING").lower() == "true"
 
 
 class RateLimitEntry(BaseModel):
@@ -35,6 +38,8 @@ def _cleanup_expired_entries(window_minutes: int) -> None:
 
 async def check_rate_limit(key: str, max_count: int, window_minutes: int) -> bool:
     """Check if key is rate limited. Returns False if rate limit exceeded."""
+    if DISABLE_RATE_LIMITING:
+        return True
 
     async with _LOCK:
         global _CLEANUP_COUNTER

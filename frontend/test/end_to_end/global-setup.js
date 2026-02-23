@@ -59,6 +59,10 @@ export default async function globalSetup() {
       cwd: BACKEND_ROOT,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379/0',
+      },
     })
   } catch (error) {
     const stderr = error?.stderr?.toString()?.trim()

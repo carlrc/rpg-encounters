@@ -32,8 +32,6 @@ export const useAuthStore = defineStore('auth', () => {
           } else {
             // No worlds configured - treat as auth failure
             setAuthenticated(false)
-            const router = await import('@/router')
-            router.default.push('/login')
             return
           }
         }

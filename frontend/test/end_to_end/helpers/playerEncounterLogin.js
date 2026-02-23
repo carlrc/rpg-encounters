@@ -1,100 +1,83 @@
 import { expect } from '@playwright/test'
 
-import { resolveBaseUrl, toAbsoluteUrl } from './baseUrl.js'
+import { toAbsoluteUrl } from './baseUrl.js'
 
 const clickWhenActionable = async (locator) => {
   await expect(locator).toBeVisible()
   await expect(locator).toBeEnabled()
-  try {
-    await locator.click({ timeout: 2_000 })
-  } catch {
-    await locator.evaluate((element) => element.click())
-  }
+  await locator.click()
 }
 
-const waitForPlayersPage = async (page) => {
+const pickDeterministicFixture = (players, encounters) => {
+  const sortedPlayers = [...players]
+    .map((player) => ({
+      id: Number(player?.id),
+      name: typeof player?.name === 'string' ? player.name : '',
+      rlName: typeof player?.rl_name === 'string' ? player.rl_name : '',
+    }))
+    .filter((player) => Number.isFinite(player.id))
+    .sort((a, b) => a.id - b.id)
+
+  const encounterByPlayerId = new Map()
+  for (const encounter of encounters) {
+    const encounterId = Number(encounter?.id)
+    const playerIds = Array.isArray(encounter?.player_ids) ? encounter.player_ids : []
+    const characterIds = Array.isArray(encounter?.character_ids) ? encounter.character_ids : []
+    if (!Number.isFinite(encounterId) || characterIds.length < 1) {
+      continue
+    }
+    const characterId = Number(characterIds[0])
+    if (!Number.isFinite(characterId)) {
+      continue
+    }
+
+    for (const rawPlayerId of playerIds) {
+      const playerId = Number(rawPlayerId)
+      if (Number.isFinite(playerId)) {
+        encounterByPlayerId.set(playerId, { encounterId, characterId })
+      }
+    }
+  }
+
+  for (const player of sortedPlayers) {
+    const fixture = encounterByPlayerId.get(player.id)
+    if (fixture) {
+      return {
+        playerId: player.id,
+        playerName: player.name,
+        playerRlName: player.rlName,
+        encounterId: fixture.encounterId,
+        characterId: fixture.characterId,
+      }
+    }
+  }
+
+  return null
+}
+
+const loadPlayersViaUi = async (page) => {
   const playersResponsePromise = page.waitForResponse((response) => {
     return response.url().endsWith('/api/players') && response.request().method() === 'GET'
   })
   await page.goto('/players')
-  const response = await playersResponsePromise
-  expect(response.status()).toBe(200)
+  const playersResponse = await playersResponsePromise
+  if (playersResponse.status() !== 200) {
+    throw new Error(`Failed to load seeded players. Status: ${playersResponse.status()}`)
+  }
+  return await playersResponse.json()
 }
 
-const generatePlayerLoginByIndex = async (page, playerIndex, testInfo) => {
-  const playerListItems = page.locator('.list-content .list-item')
-  const playerCount = await playerListItems.count()
-  if (playerIndex < 0 || playerIndex >= playerCount) {
-    return null
-  }
-
-  await clickWhenActionable(playerListItems.nth(playerIndex))
-
-  const generateResponsePromise = page.waitForResponse((response) => {
-    return (
-      /\/api\/players\/\d+\/login$/.test(response.url()) && response.request().method() === 'POST'
-    )
+const loadEncountersViaUi = async (page) => {
+  const canvasResponsePromise = page.waitForResponse((response) => {
+    return response.url().endsWith('/api/canvas') && response.request().method() === 'GET'
   })
-  await clickWhenActionable(page.getByTitle('Generate new login link'))
-  const generateResponse = await generateResponsePromise
-  if (generateResponse.status() !== 200) {
-    return null
+  await page.goto('/encounters')
+  const canvasResponse = await canvasResponsePromise
+  if (canvasResponse.status() !== 200) {
+    throw new Error(`Failed to load seeded encounters. Status: ${canvasResponse.status()}`)
   }
-
-  const payload = await generateResponse.json()
-  const loginUrl = toAbsoluteUrl(payload?.login_url || '', testInfo)
-  const playerId = Number(generateResponse.url().match(/\/api\/players\/(\d+)\/login$/)?.[1])
-  if (!Number.isFinite(playerId)) {
-    return null
-  }
-
-  return { loginUrl, playerId, playerCount }
-}
-
-const probeEncounterForPlayer = async (browser, testInfo, playerId, loginUrl) => {
-  const probeContext = await browser.newContext({
-    storageState: undefined,
-    baseURL: resolveBaseUrl(testInfo),
-  })
-  const probePage = await probeContext.newPage()
-  try {
-    const consumePromise = probePage.waitForResponse((response) => {
-      return (
-        new RegExp(`/api/players/${playerId}/login\\?token=`).test(response.url()) &&
-        response.request().method() === 'GET'
-      )
-    })
-    const encounterPromise = probePage.waitForResponse((response) => {
-      return (
-        response.url().endsWith(`/api/players/${playerId}/encounter`) &&
-        response.request().method() === 'GET'
-      )
-    })
-
-    await probePage.goto(loginUrl)
-    const consumeResponse = await consumePromise
-    if (consumeResponse.status() !== 200) {
-      return null
-    }
-
-    const encounterResponse = await encounterPromise
-    if (encounterResponse.status() !== 200) {
-      return null
-    }
-
-    const encounterPayload = await encounterResponse.json()
-    const encounterId = Number(encounterPayload?.id)
-    const characterId = Number(encounterPayload?.characters?.[0]?.id)
-    if (!Number.isFinite(encounterId) || !Number.isFinite(characterId)) {
-      return null
-    }
-
-    return { encounterId, characterId }
-  } catch {
-    return null
-  } finally {
-    await probeContext.close()
-  }
+  const canvasPayload = await canvasResponse.json()
+  return Array.isArray(canvasPayload?.encounters) ? canvasPayload.encounters : []
 }
 
 export const resolveSeededPlayerEncounterFixture = async (page, browser, testInfo) => {
@@ -102,49 +85,59 @@ export const resolveSeededPlayerEncounterFixture = async (page, browser, testInf
     throw new Error('resolveSeededPlayerEncounterFixture requires browser and testInfo.')
   }
 
-  await waitForPlayersPage(page)
-  const firstResult = await generatePlayerLoginByIndex(page, 0, testInfo)
-  if (!firstResult?.playerCount) {
-    throw new Error('No players available for deterministic fixture resolution.')
+  const players = await loadPlayersViaUi(page)
+  if (!Array.isArray(players) || players.length < 1) {
+    throw new Error('No seeded players available for deterministic fixture resolution.')
   }
 
-  for (let index = 0; index < firstResult.playerCount; index++) {
-    const candidate =
-      index === 0 ? firstResult : await generatePlayerLoginByIndex(page, index, testInfo)
-    if (!candidate) {
-      continue
-    }
+  const encounters = await loadEncountersViaUi(page)
 
-    const encounterFixture = await probeEncounterForPlayer(
-      browser,
-      testInfo,
-      candidate.playerId,
-      candidate.loginUrl
+  const fixture = pickDeterministicFixture(players, encounters)
+  if (!fixture) {
+    throw new Error(
+      'No deterministic player fixture found with an encounter that has at least one character.'
     )
-    if (!encounterFixture) {
-      continue
-    }
-
-    const freshLogin = await generatePlayerLoginByIndex(page, index, testInfo)
-    if (!freshLogin) {
-      continue
-    }
-
-    return {
-      encounterId: encounterFixture.encounterId,
-      playerId: freshLogin.playerId,
-      characterId: encounterFixture.characterId,
-      loginUrl: freshLogin.loginUrl,
-    }
   }
 
-  throw new Error('No player login produced an active encounter with at least one character.')
+  const loginUrl = await generatePlayerLoginLinkForPlayer(
+    page,
+    testInfo,
+    fixture.playerId,
+    fixture.playerRlName || fixture.playerName
+  )
+  return {
+    encounterId: fixture.encounterId,
+    playerId: fixture.playerId,
+    characterId: fixture.characterId,
+    loginUrl,
+  }
 }
 
-export const generatePlayerLoginLinkForPlayer = async (page, testInfo, playerId, retries = 3) => {
+export const generatePlayerLoginLinkForPlayer = async (
+  page,
+  testInfo,
+  playerId,
+  playerDisplayName,
+  retries = 3
+) => {
+  await page.goto('/players')
+  const playerListItem = page
+    .locator('.list-content .list-item')
+    .filter({ hasText: playerDisplayName })
+    .first()
+  await clickWhenActionable(playerListItem)
+
+  const generateButton = page.getByTitle('Generate new login link')
   let response
   for (let attempt = 0; attempt < retries; attempt++) {
-    response = await page.request.post(`/api/players/${playerId}/login`)
+    const generateResponsePromise = page.waitForResponse((candidate) => {
+      return (
+        candidate.url().endsWith(`/api/players/${playerId}/login`) &&
+        candidate.request().method() === 'POST'
+      )
+    })
+    await clickWhenActionable(generateButton)
+    response = await generateResponsePromise
     if (response.status() !== 429) {
       break
     }

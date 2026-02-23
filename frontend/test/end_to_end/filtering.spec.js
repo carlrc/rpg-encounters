@@ -66,6 +66,12 @@ const waitForEntityListResponse = async (page, endpointRegex) => {
   expect(response.status()).toBe(200)
 }
 
+const gotoAndWaitForEntityList = async (page, route, endpointRegex) => {
+  const responsePromise = waitForEntityListResponse(page, endpointRegex)
+  await page.goto(route)
+  await responsePromise
+}
+
 const openFilterPanel = async (page) => {
   await page.locator('.filter-toggle-btn').click()
   await expect(page.locator('.attribute-filter-panel')).toBeVisible()
@@ -95,8 +101,7 @@ test('FILTER-SEARCH-01 dynamic search filter works across Players/Characters/Mem
   page,
 }) => {
   for (const screen of SCREENS_WITH_SEARCH) {
-    await page.goto(screen.route)
-    await waitForEntityListResponse(page, screen.endpointRegex)
+    await gotoAndWaitForEntityList(page, screen.route, screen.endpointRegex)
 
     const baseline = await readVisibleListTexts(page)
     expect(baseline.count).toBeGreaterThan(0)
@@ -128,8 +133,7 @@ test('FILTER-ALIGNMENT-01 dynamic alignment filter works across Characters/Memor
     })
     const page = await context.newPage()
 
-    await page.goto(screen.route)
-    await waitForEntityListResponse(page, new RegExp(`${screen.endpoint}$`))
+    await gotoAndWaitForEntityList(page, screen.route, new RegExp(`${screen.endpoint}$`))
 
     const baseline = await readVisibleListTexts(page)
     expect(baseline.count).toBeGreaterThan(0)

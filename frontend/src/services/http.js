@@ -25,7 +25,11 @@ const request = async (method, url, body, { signal } = {}) => {
     // Lazy load router to avoid circular dependency
     const router = (await import('@/router')).default
     const currentRoute = router.currentRoute.value
-    if (currentRoute.path !== '/login' && currentRoute.path !== '/auth') {
+    if (
+      currentRoute.path !== '/' &&
+      currentRoute.path !== '/login' &&
+      currentRoute.path !== '/auth'
+    ) {
       router.push('/login')
     }
   }

@@ -6,6 +6,7 @@
 
 /* Import shared component styles that use the tokens */
 @import './components.css';
+@import './landing.css';
 
 /* ===== APPLICATION ROOT STYLES ===== */
 /* Base styles that apply to the entire application */

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import LandingPage from '../views/LandingPage.vue'
 import LoginPage from '../views/LoginPage.vue'
 import AuthCallbackPage from '../views/AuthCallbackPage.vue'
 import PlayersPage from '../views/PlayersPage.vue'
@@ -13,7 +14,9 @@ import PlayerEncounterView from '../views/PlayerEncounterView.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/login',
+    name: 'Landing',
+    component: LandingPage,
+    meta: { public: true },
   },
   {
     path: '/login',
@@ -74,6 +77,20 @@ const router = createRouter({
 // Navigation guard to check authentication
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+
+  if (to.path === '/' || to.path === '/login') {
+    if (!authStore.isInitialized) {
+      await authStore.initializeAuth()
+    }
+
+    if (authStore.isAuthenticated) {
+      next('/players')
+      return
+    }
+
+    next()
+    return
+  }
 
   // Allow public routes
   if (to.meta.public) {
