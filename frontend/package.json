@@ -17,6 +17,7 @@
     "e2e:webkit": "playwright test --project=webkit",
     "e2e:headed": "playwright test --headed",
     "e2e:auth-bootstrap": "playwright test test/end_to_end/auth-bootstrap.spec.js",
+    "e2e:profile": "playwright test test/end_to_end/profile.spec.js",
     "e2e:players": "playwright test test/end_to_end/players.spec.js",
     "e2e:characters": "playwright test test/end_to_end/characters.spec.js",
     "e2e:memories": "playwright test test/end_to_end/memories.spec.js",

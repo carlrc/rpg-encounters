@@ -1,19 +1,22 @@
 <template>
-  <div v-if="isOpen" class="encounter-popup-overlay" @click="closeModal">
-    <div class="encounter-popup" @click.stop>
-      <div class="popup-header">
-        <h3>Instructions</h3>
-        <button class="close-button" @click="closeModal" aria-label="Close instructions">×</button>
-      </div>
-      <div class="modal-body" v-html="renderedMarkdown"></div>
-    </div>
-  </div>
+  <SharedEncounterPopup
+    :is-open="isOpen"
+    title="Instructions"
+    close-aria-label="Close instructions"
+    popup-width="90%"
+    popup-max-width="800px"
+    popup-max-height="90vh"
+    @close="closeModal"
+  >
+    <div class="modal-body" v-html="renderedMarkdown"></div>
+  </SharedEncounterPopup>
 </template>
 
 <script setup>
   import { ref, computed, onMounted, onUnmounted } from 'vue'
   import { serializeError } from 'serialize-error'
   import { marked } from 'marked'
+  import SharedEncounterPopup from '../base/SharedEncounterPopup.vue'
 
   defineProps({
     isOpen: {
@@ -61,70 +64,6 @@
 </script>
 
 <style scoped>
-  /* Use same popup styling as encounter popup */
-  .encounter-popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: var(--z-modal);
-    padding: var(--spacing-lg);
-  }
-
-  .encounter-popup {
-    background: var(--bg-white);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-card-hover);
-    max-width: 800px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--spacing-lg) var(--spacing-xl);
-    border-bottom: 1px solid var(--gray-100);
-    flex-shrink: 0;
-  }
-
-  .popup-header h3 {
-    margin: 0;
-    color: var(--gray-800);
-    font-size: var(--font-size-xxl);
-    font-weight: var(--font-weight-semibold);
-  }
-
-  .close-button {
-    background: none;
-    border: none;
-    font-size: var(--font-size-xl);
-    cursor: pointer;
-    color: var(--gray-500);
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--radius-round);
-    transition: var(--transition-fast);
-  }
-
-  .close-button:hover {
-    background: var(--gray-50);
-    color: var(--danger-color);
-  }
-
   .modal-body {
     padding: var(--spacing-xl);
     overflow-y: auto;
@@ -198,16 +137,6 @@
 
   /* Responsive design */
   @media (max-width: 768px) {
-    .encounter-popup-overlay {
-      padding: var(--spacing-lg);
-    }
-
-    .encounter-popup {
-      width: 95%;
-      max-height: 95vh;
-    }
-
-    .popup-header,
     .modal-body {
       padding: var(--spacing-lg);
     }

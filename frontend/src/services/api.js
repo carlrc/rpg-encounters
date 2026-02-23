@@ -47,6 +47,7 @@ export const getGameData = () => http.get('/game')
 export const getWorlds = () => http.get('/worlds')
 export const createWorld = () => http.post('/worlds')
 export const deleteWorld = (worldId) => http.delete(`/worlds/${worldId}`)
+export const getProfile = () => http.get('/profile')
 
 // Voice operations
 export const getTTSProviders = () => http.get('/voices/tts_providers')

@@ -41,7 +41,7 @@
         <AppBanner />
         <div class="header-actions">
           <button class="instructions-button" @click="showInstructions = true">Instructions</button>
-          <button class="logout-button" @click="handleLogout">Logout</button>
+          <button class="profile-button" @click="showProfile = true">Profile</button>
         </div>
       </div>
     </header>
@@ -72,6 +72,11 @@
 
     <!-- Instructions Modal -->
     <InstructionsModal :is-open="showInstructions" @close="showInstructions = false" />
+    <ProfileModal
+      :is-open="showProfile"
+      @close="showProfile = false"
+      @logout="handleProfileLogout"
+    />
   </div>
 </template>
 
@@ -82,6 +87,7 @@
   import { useAuthStore } from '@/stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
+  import ProfileModal from '../ui/ProfileModal.vue'
   import AppBanner from '../ui/AppBanner.vue'
   import { logout } from '@/services/api'
 
@@ -89,6 +95,7 @@
   const route = useRoute()
   const authStore = useAuthStore()
   const showInstructions = ref(false)
+  const showProfile = ref(false)
 
   // Use auth store for authentication check
   const isAuthenticated = computed(() => authStore.isAuthenticated === true)
@@ -127,6 +134,11 @@
       await authStore.logout()
       router.push('/login')
     }
+  }
+
+  const handleProfileLogout = async () => {
+    showProfile.value = false
+    await handleLogout()
   }
 
   const handleWorldChange = async (worldId) => {
@@ -223,6 +235,23 @@
 
   .logout-button:hover {
     color: var(--danger-color);
+  }
+
+  .profile-button {
+    background: none;
+    border: none;
+    color: var(--color-text-primary);
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-left: var(--spacing-lg);
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .profile-button:hover {
+    color: var(--color-text-secondary);
   }
 
   .content-area.full-width {

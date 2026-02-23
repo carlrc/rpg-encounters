@@ -1,119 +1,118 @@
 <template>
-  <div v-if="isOpen" class="encounter-popup-overlay" @click="closePopup">
-    <div class="encounter-popup" @click.stop>
+  <SharedEncounterPopup
+    :is-open="isOpen"
+    :title="`Encounter with ${character?.name}`"
+    close-aria-label="Close encounter popup"
+    @close="closePopup"
+  >
+    <template #pre-header>
       <audio ref="streamAudio" playsinline style="display: none"></audio>
-      <div class="popup-header">
-        <h3>Encounter with {{ character?.name }}</h3>
-        <button class="close-button" @click="closePopup">&times;</button>
+    </template>
+
+    <!-- Direct reuse of encounter interface from EncountersPage.vue -->
+    <div class="encounter-interface">
+      <div class="character-header">
+        <div class="character-avatar">
+          <img
+            v-if="character?.avatar"
+            :src="character.avatar"
+            :alt="character.name"
+            class="avatar-image"
+          />
+          <div v-else class="avatar-placeholder">
+            <span class="avatar-initials">{{ getInitials(character?.name || '') }}</span>
+          </div>
+        </div>
+        <div class="character-info">
+          <h2 class="character-name-link" @click="navigateToCharacter">{{ character?.name }}</h2>
+          <div class="character-details">
+            <span class="character-race">{{ character?.race }}</span>
+            <span class="character-profession">{{ character?.profession }}</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Direct reuse of encounter interface from EncountersPage.vue -->
-      <div class="encounter-interface">
-        <div class="character-header">
-          <div class="character-avatar">
-            <img
-              v-if="character?.avatar"
-              :src="character.avatar"
-              :alt="character.name"
-              class="avatar-image"
-            />
-            <div v-else class="avatar-placeholder">
-              <span class="avatar-initials">{{ getInitials(character?.name || '') }}</span>
-            </div>
-          </div>
-          <div class="character-info">
-            <h2 class="character-name-link" @click="navigateToCharacter">{{ character?.name }}</h2>
-            <div class="character-details">
-              <span class="character-race">{{ character?.race }}</span>
-              <span class="character-profession">{{ character?.profession }}</span>
-            </div>
-          </div>
+      <!-- Challenge/Conversation preview display -->
+      <div class="conversation-stats" v-if="shouldShowScore || displayRevealsData.length > 0">
+        <div class="influence-display" v-if="shouldShowScore">
+          <span class="stat-label">{{ scoreLabel }}</span>
+          <span class="stat-value">{{ displayScore }}</span>
         </div>
 
-        <!-- Challenge/Conversation preview display -->
-        <div class="conversation-stats" v-if="shouldShowScore || displayRevealsData.length > 0">
-          <div class="influence-display" v-if="shouldShowScore">
-            <span class="stat-label">{{ scoreLabel }}</span>
-            <span class="stat-value">{{ displayScore }}</span>
-          </div>
-
-          <div class="reveals-section" v-if="displayRevealsData.length > 0">
-            <h4 class="reveals-title">Reveals {{ isPreviewMode ? '(Preview)' : '' }}</h4>
-            <div class="reveals-list">
-              <div
-                v-for="reveal in displayRevealsData"
-                :key="reveal.id"
-                class="reveal-item reveal-clickable"
-                @click="navigateToReveal(reveal)"
-              >
-                <span class="reveal-title">{{ reveal.title }}</span>
-                <span class="reveal-progress" :class="getProgressClass(reveal)">
-                  {{ reveal.progress }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="encounter-controls">
-          <div class="selection-row">
-            <div class="player-selection">
-              <select
-                id="player-select"
-                v-model="selectedPlayerId"
-                class="shared-select"
-                :disabled="isRecording || isProcessing || players.length === 0"
-              >
-                <option v-if="players.length === 0" value="" disabled>No players assigned</option>
-                <option v-else value="">Select a player</option>
-                <option v-for="player in players" :key="player.id" :value="player.id">
-                  {{ player.rl_name }}
-                </option>
-              </select>
-            </div>
-
-            <div v-if="isChallengeMode" class="skill-selection">
-              <select
-                id="skill-select"
-                v-model="selectedSkill"
-                class="shared-select"
-                :disabled="isRecording || isProcessing"
-              >
-                <option value="">Select a skill</option>
-                <option v-for="skill in skills" :key="skill" :value="skill">
-                  {{ skill }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <div class="control-buttons">
-            <button
-              @click="toggleRecording"
-              :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
-              :disabled="!selectedPlayerId || isProcessing || (isChallengeMode && !selectedSkill)"
+        <div class="reveals-section" v-if="displayRevealsData.length > 0">
+          <h4 class="reveals-title">Reveals {{ isPreviewMode ? '(Preview)' : '' }}</h4>
+          <div class="reveals-list">
+            <div
+              v-for="reveal in displayRevealsData"
+              :key="reveal.id"
+              class="reveal-item reveal-clickable"
+              @click="navigateToReveal(reveal)"
             >
-              {{ buttonText }}
-            </button>
+              <span class="reveal-title">{{ reveal.title }}</span>
+              <span class="reveal-progress" :class="getProgressClass(reveal)">
+                {{ reveal.progress }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <button
-              @click="toggleChallengeMode"
-              :class="['challenge-button', { active: isChallengeMode }]"
+      <div class="encounter-controls">
+        <div class="selection-row">
+          <div class="player-selection">
+            <select
+              id="player-select"
+              v-model="selectedPlayerId"
+              class="shared-select"
+              :disabled="isRecording || isProcessing || players.length === 0"
+            >
+              <option v-if="players.length === 0" value="" disabled>No players assigned</option>
+              <option v-else value="">Select a player</option>
+              <option v-for="player in players" :key="player.id" :value="player.id">
+                {{ player.rl_name }}
+              </option>
+            </select>
+          </div>
+
+          <div v-if="isChallengeMode" class="skill-selection">
+            <select
+              id="skill-select"
+              v-model="selectedSkill"
+              class="shared-select"
               :disabled="isRecording || isProcessing"
             >
-              Challenge
-            </button>
+              <option value="">Select a skill</option>
+              <option v-for="skill in skills" :key="skill" :value="skill">
+                {{ skill }}
+              </option>
+            </select>
           </div>
+        </div>
 
-          <div
-            :class="['shared-status-text', { recording: isRecording, processing: isProcessing }]"
+        <div class="control-buttons">
+          <button
+            @click="toggleRecording"
+            :class="['shared-speak-button', { recording: isRecording, processing: isProcessing }]"
+            :disabled="!selectedPlayerId || isProcessing || (isChallengeMode && !selectedSkill)"
           >
-            {{ statusText }}
-          </div>
+            {{ buttonText }}
+          </button>
+
+          <button
+            @click="toggleChallengeMode"
+            :class="['challenge-button', { active: isChallengeMode }]"
+            :disabled="isRecording || isProcessing"
+          >
+            Challenge
+          </button>
+        </div>
+
+        <div :class="['shared-status-text', { recording: isRecording, processing: isProcessing }]">
+          {{ statusText }}
         </div>
       </div>
     </div>
-  </div>
+  </SharedEncounterPopup>
 </template>
 
 <script>
@@ -127,9 +126,13 @@
   import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
   import { useWebSocketAudioHandler } from '../composables/audio/useWebSocketAudioHandler.js'
   import { serializeError } from 'serialize-error'
+  import SharedEncounterPopup from './base/SharedEncounterPopup.vue'
 
   export default {
     name: 'CharacterEncounterPopup',
+    components: {
+      SharedEncounterPopup,
+    },
     props: {
       character: {
         type: Object,
@@ -621,68 +624,6 @@
 </script>
 
 <style scoped>
-  /* Popup overlay and container */
-  .encounter-popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-
-  .encounter-popup {
-    background: white;
-    border-radius: 12px;
-    box-shadow: var(--shadow-card-hover);
-    max-width: 600px;
-    width: 90%;
-    max-height: 90vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .popup-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--gray-100);
-    flex-shrink: 0;
-  }
-
-  .popup-header h3 {
-    margin: 0;
-    color: var(--gray-800);
-    font-size: 1.5em;
-  }
-
-  .close-button {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: var(--gray-500);
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-  }
-
-  .close-button:hover {
-    background: var(--gray-50);
-    color: var(--danger-color);
-  }
-
   /* Import all encounter styles from EncountersPage.vue */
   .encounter-interface {
     max-width: 600px;

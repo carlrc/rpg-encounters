@@ -1,5 +1,5 @@
 <template>
-  <div class="split-view">
+  <div :class="['split-view', { 'split-view-contained': contained }]">
     <!-- Left Pane - Entity List -->
     <div class="list-pane">
       <div class="list-header">
@@ -10,7 +10,7 @@
       <slot name="header-content" />
 
       <!-- Search and Filter Controls -->
-      <div class="filter-controls">
+      <div v-if="showSearch" class="filter-controls">
         <SearchInput :placeholder="`Search ${listTitle.toLowerCase()}...`" @search="handleSearch" />
 
         <!-- Filter toggle button -->
@@ -124,7 +124,7 @@
       },
       createButtonText: {
         type: String,
-        required: true,
+        default: '',
       },
       emptyMessage: {
         type: String,
@@ -149,6 +149,14 @@
       loading: {
         type: Boolean,
         default: false,
+      },
+      contained: {
+        type: Boolean,
+        default: false,
+      },
+      showSearch: {
+        type: Boolean,
+        default: true,
       },
     },
     emits: ['select-item', 'create-item'],
@@ -258,6 +266,11 @@
     max-height: calc(100dvh - var(--header-height));
     gap: 0;
     /* No overflow or min-width rules - let body handle all horizontal scrolling */
+  }
+
+  .split-view-contained {
+    height: 100%;
+    max-height: 100%;
   }
 
   .list-pane {

@@ -38,6 +38,7 @@ const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo, cont
   const encounterStatus = encounterResponse.status()
   if (encounterStatus === 200) {
     await expect(mobilePage).toHaveURL(new RegExp(`/players/${playerId}/encounter$`))
+    await expect(mobilePage.getByRole('button', { name: 'Profile' })).toHaveCount(0)
   }
 
   return { mobileContext, mobilePage, encounterStatus }

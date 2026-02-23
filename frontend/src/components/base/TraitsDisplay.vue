@@ -1,7 +1,9 @@
 <template>
   <div class="traits-display-grid">
     <div v-for="(values, category) in traits" :key="category" class="trait-category-display">
-      <div class="trait-category-title">{{ formatCategoryName(category) }}</div>
+      <div v-if="showCategoryTitle" class="trait-category-title">
+        {{ formatCategoryName(category) }}
+      </div>
       <div class="trait-values-list">
         <span
           v-for="(value, name) in values"
@@ -9,7 +11,7 @@
           class="trait-value-item"
           :class="getValueClass(value, category)"
         >
-          {{ name }}: {{ formatValue(value) }}
+          {{ showTraitNames ? `${name}: ${formatValue(value)}` : formatValue(value) }}
         </span>
       </div>
     </div>
@@ -32,6 +34,18 @@
         type: Function,
         default: null,
       },
+      valueFormatter: {
+        type: Function,
+        default: null,
+      },
+      showCategoryTitle: {
+        type: Boolean,
+        default: true,
+      },
+      showTraitNames: {
+        type: Boolean,
+        default: true,
+      },
     },
     setup(props) {
       const formatCategoryName = (category) => {
@@ -39,6 +53,9 @@
       }
 
       const formatValue = (value) => {
+        if (props.valueFormatter) {
+          return props.valueFormatter(value)
+        }
         const sign = value >= 0 ? '+' : ''
         return `${sign}${value}`
       }
