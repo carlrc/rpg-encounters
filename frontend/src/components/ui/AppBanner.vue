@@ -14,6 +14,8 @@
     display: flex;
     align-items: center;
     gap: clamp(8px, 3vw, var(--spacing-lg));
+    min-width: 0;
+    max-width: 100%;
   }
 
   .logo {
@@ -27,6 +29,8 @@
     font-weight: 600;
     color: var(--color-text-primary);
     margin: 0;
+    min-width: 0;
+    max-width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
