@@ -1,5 +1,7 @@
 RPG encounter's goal is to use AI characters to create interactions that are entertaining for the whole table. It is designed for **in-person sessions**, where the Dungeon Master (DM) - **you** - controls to what extent the players engage with these characters.
 
+**⚠️** Chrome is most stable browser.
+
 <details>
 <summary>Mechanics</summary>
 
@@ -22,39 +24,36 @@ Players can choose to do a Charisma based ability checks and use any charisma ba
 </details>
 
 <details>
-<summary>Devices</summary>
-<br>
-
-ℹ️ **Note:** Chrome is most stable browser.
-
-### DM Controlled
-
-From the encounters screen, you can select and control when and how players interact with the characters.
-
-- **🎤 Bluetooth Mic** - Something that you can pass around, either with an internal speaker (like a conference speaker) or connected to an external speaker, works best. This allows the table to share in the experience.
-
-### Player Controlled
-
-- **📱 Mobile Phone** - You can generate player login codes from the Player Cards, such that players can use their mobile devices as their microphones. This is easiest to setup, but the most difficult to control when/how players use it. From the player screen, they can see all characters assigned to their encounter.
-
-</details>
-
-<details>
 <summary>Playing</summary>
 
-### DM
+### Overview
 
-The application is designed to be used from the encounters screen, where you as the DM can simply click on the character the player wishes to speak to. The layout of the encounters canvas is best used when it matches the map the players are using.
+- The application is designed to be used from the encounters screen. The layout of the encounters canvas is best used when it matches the map the players are using.
+- Actions be either be free-form conversations that build up influence or challenges, which use charisma skill checks combined with a verbal prompt.
 
-### Player
+#### DM Controlled
 
-Players can choose, with your input, whether to spend an action speaking to or doing an ability check (challenge) on a character.
+- You can centralize control of how players speak to characters by controller everything from the encounter screen and using a shared microphone.
+
+#### Player Controlled
+
+- You can generate login links for players so they can freely control their interactions with characters from their mobile devices.
 
 ## Tips
 
 ## How to Manipulate Characters & Gain Influence
 
 - **Make Stuff Up** - Unless a player says something counter to what is set in a characters memories or reveals, there is no way for the AI agent to know what is real or not. That is part of the fun, where you try to make things up to gain influence. If think you are speaking with a **good** character, saying something like, "_well I just came from saving the town over there, and we are on a quest now to save your town - maybe you can help me out?_" Conversely saying something bad to an **evil** character, like, "_I have stolen goods I need help laundering_" might also gain influence.
+
+</details>
+
+<details>
+<summary>Devices</summary>
+<br>
+
+- **🎤 Shared Mic** - DM Controlled - Something that you can pass around or conference speaker works best. This allows the table to share in the experience.
+- **📱 Mobile Phone** - Player Controlled - You can generate player login codes from the Player Cards, such that players can use their mobile devices as their microphones.
+
 </details>
 
 <details>
