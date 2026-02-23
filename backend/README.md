@@ -116,14 +116,14 @@ createdb -h localhost -p 5432 -U postgres 'rpg-encounters'
 createdb -h localhost -p 5432 -U postgres 'rpg-encounters-test'
 ```
 
-Manage db tables
+Apply schema migrations
 
 ```bash
 # Create
-python -m app.db.init_db
+uv run alembic -c alembic.ini upgrade head
 
-# Delete
-python -m app.db.init_db --drop
+# Create migration revision
+uv run alembic -c alembic.ini revision -m "describe_change"
 ```
 
 Create and seed db with fixture data

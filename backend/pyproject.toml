@@ -5,6 +5,7 @@ description = "RPG AI Encounters"
 readme = "README.md"
 requires-python = "==3.11.13"
 dependencies = [
+    "alembic==1.18.4",
     "uvicorn[standard]==0.41.0",
     "fastapi==0.129.0",
     "openai-whisper==20250625",
