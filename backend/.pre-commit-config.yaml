@@ -24,3 +24,9 @@ repos:
         language: system
         files: \.(js|vue|css|html|json)$
         exclude: node_modules/|dist/
+      - id: prettier-infra
+        name: prettier-infra
+        entry: bash -c 'cd infra && npx prettier . --write'
+        language: system
+        files: \.(ts|js|json|md|yml|yaml)$
+        exclude: node_modules/|cdktf.out/|dist/|\.gen/

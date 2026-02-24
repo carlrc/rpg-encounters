@@ -139,22 +139,19 @@ python -m tests.fixtures.seed_data --email <USER_EMAIL>
 sudo docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py
 ```
 
-Launch only the database
-
-```bash
-docker-compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up db
-```
-
 ### Docker Commands
+
+`backend/docker-compose.yml` is production-oriented (RDS, no local `db` service) and includes RedisInsight.
+For local development, always include `backend/docker-compose.dev.yml` (adds local Postgres and Adminer).
 
 Rebuild dev image after dependency changes (e.g., new libs)
 
 ```bash
 # Rebuild the dev image (dependencies stage) without cache
-sudo docker compose -f docker-compose.dev.yml build --no-cache backend
+sudo docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml build --no-cache backend
 
 # Recreate the container using the freshly built image
-sudo docker compose -f docker-compose.dev.yml up --force-recreate
+sudo docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up --force-recreate
 ```
 
 Reset docker env

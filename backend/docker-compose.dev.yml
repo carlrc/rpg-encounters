@@ -10,6 +10,11 @@ services:
     ports:
       - "8000:8000"
     command: [ "/app/.venv/bin/python", "-m", "app.main" ]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     volumes:
       - ./app:/app/app # Mount code for hot reload
       - ./.env:/app/.env:ro # Mount your local .env file
@@ -20,8 +25,35 @@ services:
       - "host.docker.internal:host-gateway"
 
   db:
+    image: postgres:17
+    restart: always
+    container_name: rpg-encounters-data
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data # Use named volume instead of local path
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rpg-network
+
+  adminer:
+    container_name: rpg-encounters-adminer
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - rpg-network
 
 volumes:
   pgdata:

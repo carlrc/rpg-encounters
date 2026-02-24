@@ -16,5 +16,8 @@ npm run dev
 Launch backend services
 
 ```bash
-sudo docker compose -f docker-compose.dev.yml up
+docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up
 ```
+
+Local development uses `backend/docker-compose.dev.yml` to add a local Postgres container and Adminer.
+Production uses only `backend/docker-compose.yml`, connects to RDS, and includes RedisInsight.
