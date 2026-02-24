@@ -1,6 +1,10 @@
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.data.account_store import AccountStore
+from app.data.user_billing_store import UserBillingStore
 from app.db.init_db import create_tables, drop_tables
+from app.models.user_billing import UserBillingUpdate
+from app.services.user_token import UserTokenService
 from app.utils import get_or_throw
 from tests.fixtures.seed_data import seed_user_data, seed_world_data
 
@@ -43,3 +47,34 @@ async def setup_test_database():
 async def teardown_test_database(async_engine):
     """Teardown test database"""
     await drop_tables(engine=async_engine)
+
+
+async def get_user_id_by_email(email: str) -> int:
+    account = await AccountStore(user_id=None).get_by_email(email=email)
+    if not account:
+        raise RuntimeError(
+            f"Account with email '{email}' was not found. Seed test data first."
+        )
+    return account.user_id
+
+
+async def set_user_billing_state(
+    user_id: int,
+    available_tokens: int,
+    last_used_tokens: int,
+    total_used_tokens: int | None = None,
+) -> None:
+    store = UserBillingStore(user_id=user_id)
+    existing = await store.get_or_create(user_id=user_id)
+    next_total_used = (
+        existing.total_used_tokens if total_used_tokens is None else total_used_tokens
+    )
+    await store.update_by_user_id(
+        user_id=user_id,
+        user_billing_update=UserBillingUpdate(
+            available_tokens=available_tokens,
+            last_used_tokens=last_used_tokens,
+            total_used_tokens=next_total_used,
+        ),
+    )
+    await UserTokenService().overwrite_cache_from_db(user_id=user_id)

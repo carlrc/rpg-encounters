@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const BACKEND_ROOT = path.resolve(__dirname, '..', '..', '..', 'backend')
-const bootstrapCommand = ['run', 'python', 'scripts/get_seeded_dm_session.py']
+const bootstrapCommand = ['run', 'python', 'tests/scripts/get_seeded_dm_session.py']
 
 test('AUTH-BOOTSTRAP-01 CLI returns valid JSON contract', async () => {
   const stdout = execFileSync('uv', bootstrapCommand, {
@@ -16,6 +16,7 @@ test('AUTH-BOOTSTRAP-01 CLI returns valid JSON contract', async () => {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: {
       ...process.env,
+      PLAYWRIGHT_SEEDED_DM_EMAIL: process.env.PLAYWRIGHT_SEEDED_DM_EMAIL || 'test1@example.com',
       REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379/0',
     },
   })

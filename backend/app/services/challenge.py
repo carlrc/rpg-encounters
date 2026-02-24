@@ -85,11 +85,13 @@ async def challenge_character(
 ):
     audio_chunks = await get_audio_chunks(websocket=websocket)
     audio_format = websocket.query_params.get("audio_format", "webm")
-    wav_path = await save_chunks_to_wav(audio_chunks, audio_format=audio_format)
+    token_service = UserTokenService()
+    wav_path, sufficient_tokens = await asyncio.gather(
+        save_chunks_to_wav(audio_chunks, audio_format=audio_format),
+        token_service.check_token_balance(user_id=user_id),
+    )
 
     try:
-        token_service = UserTokenService()
-        sufficient_tokens = await token_service.check_token_balance(user_id=user_id)
         if not sufficient_tokens:
             logger.info(
                 f"Insufficient tokens for challenge user={user_id} player={player_id} encounter={encounter_id}"

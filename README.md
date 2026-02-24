@@ -18,3 +18,28 @@ Launch backend services
 ```bash
 docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up
 ```
+
+### Login
+
+Because the application uses magic links in production, locally you need to:
+
+- Set backend env var `LOG_MAGIC_LINK=true`
+- Seed the database with a user and email
+- Request login link
+- Copy login link from backend service logs, which looks something like: `test1@example.com login link: http://localhost:3001/auth?token=e-e6Cs6paxa6H0fmC0gYfrwfLElxWwkeSF0Jb6ck-XY`
+- Paste login link into the same browser session used to request it
+
+### Avoiding Credit Checks
+
+When you set your own API keys locally, you can avoid credit checks by either:
+
+- Setting backend env var `BILLING_IGNORE_BALANCE_CHECK=true` to skip all checks
+- Adjusting token balances with the script in `backend/tests/scripts/set_billing_state.py`:
+
+```python
+cd backend
+REDIS_URL=redis://localhost:6379/0 uv run python tests/scripts/set_billing_state.py \
+  --email test1@example.com \
+  --available 100000 \
+  --last-used 0
+```

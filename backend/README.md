@@ -77,7 +77,7 @@ python -m tests.fixtures.seed_data
 python -m tests.fixtures.seed_data --email <USER_EMAIL>
 ```
 
-Ensure backend and frontend services are running, and verify with `pytest`
+Ensure backend services are running and verify with tests
 
 ```bash
 uv run pytest

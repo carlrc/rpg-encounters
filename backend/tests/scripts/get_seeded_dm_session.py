@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 import asyncio
 import json
-import os
 import sys
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 # Ensure "backend" root is on sys.path when executed as a script.
-BACKEND_ROOT = Path(__file__).resolve().parent.parent
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
@@ -19,8 +18,7 @@ from app.data.world_store import WorldStore  # noqa: E402
 from app.http import DEVICE_NONCE_COOKIE  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models.magic_link import MagicLinkCreate  # noqa: E402
-
-DEFAULT_DM_EMAIL = "test1@example.com"
+from app.utils import get_or_throw  # noqa: E402
 
 
 def _fail(message: str) -> None:
@@ -82,7 +80,7 @@ async def _bootstrap_seeded_dm_session(email: str) -> dict[str, int | str]:
 
 
 def main() -> None:
-    email = os.getenv("PLAYWRIGHT_SEEDED_DM_EMAIL", DEFAULT_DM_EMAIL)
+    email = get_or_throw("PLAYWRIGHT_SEEDED_DM_EMAIL")
     try:
         payload = asyncio.run(_bootstrap_seeded_dm_session(email))
     except SystemExit:

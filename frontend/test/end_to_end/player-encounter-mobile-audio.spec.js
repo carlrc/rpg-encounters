@@ -2,6 +2,7 @@ import { devices, expect, test } from '@playwright/test'
 import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe.js'
 import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle.js'
 import { resolveBaseUrl } from './helpers/baseUrl.js'
+import { setUserBillingState } from './utils.js'
 import {
   closeTrackedContexts,
   createContextRegistry,
@@ -151,6 +152,27 @@ const assertEncounterHasCharactersAndTiles = async (mobilePage, encounterPayload
   }
 }
 
+const openFirstCharacterInteraction = async (mobilePage) => {
+  const characterTiles = mobilePage.locator('.character-tile')
+  await characterTiles.first().click()
+  await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+}
+
+const assertBillingPopupVisibleOrFailFast = async (mobilePage) => {
+  try {
+    await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(mobilePage.getByText('Insufficient tokens.', { exact: true })).toBeVisible()
+  } catch (error) {
+    throw new Error(
+      'Expected billing popup was not shown after zero-credit talk attempt. ' +
+        'Check backend runtime config: BILLING_IGNORE_BALANCE_CHECK must be false. ' +
+        `Root error: ${error.message}`
+    )
+  }
+}
+
 test('PLAYER-MOBILE-TALKING-AUDIO-01 returns audio over websocket and completes processing', async ({
   page,
   browser,
@@ -210,6 +232,94 @@ test('PLAYER-MOBILE-TALKING-AUDIO-01 returns audio over websocket and completes 
         mobileMicPermission,
       })}. Root error: ${error.message}`
     )
+  } finally {
+    await closeTrackedContexts(contextRegistry)
+  }
+})
+
+test('PLAYER-MOBILE-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits', async ({
+  page,
+  browser,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Player mobile audio test runs only in dedicated player mobile audio command.'
+  )
+  test.setTimeout(90_000)
+
+  setUserBillingState({
+    email: process.env.PLAYWRIGHT_SEEDED_DM_EMAIL || 'test1@example.com',
+    availableTokens: 0,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+
+  const contextRegistry = createContextRegistry()
+  try {
+    const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+      page,
+      browser,
+      testInfo,
+      contextRegistry
+    )
+    await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
+    await openFirstCharacterInteraction(mobilePage)
+
+    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
+    await assertBillingPopupVisibleOrFailFast(mobilePage)
+    await mobilePage.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
+  } finally {
+    await closeTrackedContexts(contextRegistry)
+  }
+})
+
+test('PLAYER-MOBILE-BILLING-02 does not show insufficient tokens popup when seeded DM has credits', async ({
+  page,
+  browser,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Player mobile audio test runs only in dedicated player mobile audio command.'
+  )
+  test.setTimeout(90_000)
+
+  setUserBillingState({
+    email: process.env.PLAYWRIGHT_SEEDED_DM_EMAIL || 'test1@example.com',
+    availableTokens: 5000,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+
+  const contextRegistry = createContextRegistry()
+  try {
+    const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+      page,
+      browser,
+      testInfo,
+      contextRegistry
+    )
+    await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
+    await openFirstCharacterInteraction(mobilePage)
+
+    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
+    await assertConversationAudioRoundtrip(mobilePage, {
+      wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+      timeoutMs: 60_000,
+    })
+    await assertReturnedToReadyState(mobilePage, {
+      readyTextPattern: /Tap Speak/,
+      timeoutMs: 60_000,
+    })
+    await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
   } finally {
     await closeTrackedContexts(contextRegistry)
   }

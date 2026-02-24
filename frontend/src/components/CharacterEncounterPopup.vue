@@ -123,6 +123,8 @@
       </div>
     </div>
   </SharedEncounterPopup>
+
+  <BillingErrorPopup :is-open="showBillingErrorPopup" @close="closeBillingErrorPopup" />
 </template>
 
 <script>
@@ -137,11 +139,13 @@
   import { useWebSocketAudioHandler } from '../composables/audio/useWebSocketAudioHandler.js'
   import { serializeError } from 'serialize-error'
   import SharedEncounterPopup from './base/SharedEncounterPopup.vue'
+  import BillingErrorPopup from './ui/BillingErrorPopup.vue'
 
   export default {
     name: 'CharacterEncounterPopup',
     components: {
       SharedEncounterPopup,
+      BillingErrorPopup,
     },
     props: {
       character: {
@@ -179,6 +183,7 @@
 
       const players = computed(() => props.assignedPlayers || [])
       const streamAudio = ref(null)
+      const showBillingErrorPopup = ref(false)
 
       // Encounter state
       const selectedPlayerId = ref('')
@@ -209,6 +214,9 @@
               rawReveals: json.raw_reveals || json.reveals || [],
             }
           }
+        },
+        onBillingError: () => {
+          showBillingErrorPopup.value = true
         },
       })
 
@@ -338,8 +346,13 @@
         isChallengeMode.value = false
         selectedSkill.value = ''
         diceRoll.value = null
+        showBillingErrorPopup.value = false
 
         emit('close')
+      }
+
+      const closeBillingErrorPopup = () => {
+        showBillingErrorPopup.value = false
       }
 
       const resetChallengeState = () => {
@@ -616,6 +629,7 @@
         displayRevealsData,
         isPreviewMode,
         closePopup,
+        closeBillingErrorPopup,
         toggleRecording,
         toggleChallengeMode,
         navigateToCharacter,
@@ -627,6 +641,7 @@
         navigateToReveal,
         fetchConversationData,
         streamAudio,
+        showBillingErrorPopup,
       }
     },
   }

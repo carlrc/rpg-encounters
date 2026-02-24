@@ -45,7 +45,12 @@ const getAudioConfig = () => {
  * Handles websocket connections and audio recording for encounter interactions
  * while maintaining mobile compatibility. Pure audio/websocket handling only.
  */
-export function useWebSocketAudioHandler({ audioElementRef, onConversationData, worldId }) {
+export function useWebSocketAudioHandler({
+  audioElementRef,
+  onConversationData,
+  onBillingError,
+  worldId,
+}) {
   const router = useRouter()
 
   // Internal state
@@ -154,6 +159,11 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
     v && v.type === 'conversation_data' && 'influence' in v && 'reveals' in v
 
   /**
+   * Check if message is billing error
+   */
+  const isBillingError = (v) => v && v.type === 'billing_error' && v.code === 'INSUFFICIENT_TOKENS'
+
+  /**
    * Control handlers for WebSocket messages
    */
   const CONTROL = {
@@ -180,6 +190,7 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
     // Binary audio chunks
     if (data instanceof Blob) {
       processAudioChunk(data)
+      // Binary frame handled. Nothing else to process in this message.
       return
     }
 
@@ -193,6 +204,14 @@ export function useWebSocketAudioHandler({ audioElementRef, onConversationData, 
 
       // Assume it's JSON
       const json = JSON.parse(data)
+
+      if (isBillingError(json)) {
+        isProcessing.value = false
+        closeWebSocket()
+        onBillingError(json)
+        return
+      }
+
       if (isConversationData(json) && onConversationData) {
         onConversationData(json)
       }

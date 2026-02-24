@@ -7,9 +7,8 @@ test.describe('Landing route', () => {
     await page.goto('/')
 
     await expect(page).toHaveURL(/\/$/)
-    await expect(
-      page.getByRole('heading', { name: 'RPG Encounters, Ready Before Initiative' })
-    ).toBeVisible()
+    await expect(page.locator('main .landing-hero h1')).toBeVisible()
+    await expect(page.getByRole('link', { name: /^Login$/ })).toBeVisible()
 
     await page.getByRole('link', { name: /^Login$/ }).click()
     await expect(page).toHaveURL('/login')

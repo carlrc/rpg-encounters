@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe.js'
 import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle.js'
 import { makeScopedSuffix } from './helpers/entityNaming.js'
+import { setSeededDmBilling } from './utils.js'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -215,6 +216,21 @@ const findEncounterNodeWithCharacterAndPlayerOptions = async (page) => {
   }
 
   throw new Error('No encounter popup had both a character tile and selectable players.')
+}
+
+const assertBillingPopupVisibleOrFailFast = async (page) => {
+  try {
+    await expect(page.getByRole('heading', { name: 'Insufficient tokens' })).toBeVisible({
+      timeout: 10_000,
+    })
+    await expect(page.getByText('Insufficient tokens.', { exact: true })).toBeVisible()
+  } catch (error) {
+    throw new Error(
+      'Expected billing popup was not shown after zero-credit talk attempt. ' +
+        'Check backend runtime config: BILLING_IGNORE_BALANCE_CHECK must be false. ' +
+        `Root error: ${error.message}`
+    )
+  }
 }
 
 test('ENCOUNTERS-VIEW-NAV-01 opens encounter popup, navigates to character/reveal pages, and returns to same encounter', async ({
@@ -564,6 +580,11 @@ test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes pro
     'Audio talking test runs only in dedicated encounters audio command.'
   )
   test.setTimeout(90_000)
+  setSeededDmBilling({
+    availableTokens: 5000,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
   await installWebSocketProbe(page)
 
   await page.goto('/encounters')
@@ -594,4 +615,76 @@ test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes pro
       })}. Root error: ${error.message}`
     )
   }
+})
+
+test('ENCOUNTERS-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Audio billing test runs only in dedicated encounters audio command.'
+  )
+  test.setTimeout(90_000)
+  setSeededDmBilling({
+    availableTokens: 0,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+  await installWebSocketProbe(page)
+
+  await page.goto('/encounters')
+  await waitForEncountersGet(page)
+  await expect(page).toHaveURL(/\/encounters/)
+
+  const { firstPlayerOption } = await findEncounterNodeWithCharacterAndPlayerOptions(page)
+  const playerSelect = page.locator('#player-select')
+  await playerSelect.selectOption(firstPlayerOption)
+
+  await runSpeakStopLifecycle(page, { clickWithEvaluate: true })
+  await assertBillingPopupVisibleOrFailFast(page)
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
+})
+
+test('ENCOUNTERS-BILLING-02 does not show insufficient tokens popup when seeded DM has credits', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Audio billing test runs only in dedicated encounters audio command.'
+  )
+  test.setTimeout(90_000)
+  setSeededDmBilling({
+    availableTokens: 5000,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+  await installWebSocketProbe(page)
+
+  await page.goto('/encounters')
+  await waitForEncountersGet(page)
+  await expect(page).toHaveURL(/\/encounters/)
+
+  const { firstPlayerOption } = await findEncounterNodeWithCharacterAndPlayerOptions(page)
+  const playerSelect = page.locator('#player-select')
+  await playerSelect.selectOption(firstPlayerOption)
+
+  await runSpeakStopLifecycle(page, { clickWithEvaluate: true })
+  await assertConversationAudioRoundtrip(page, {
+    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+    timeoutMs: 60_000,
+  })
+  await assertReturnedToReadyState(page, {
+    readyTextPattern: /Click Speak/,
+    timeoutMs: 60_000,
+  })
+  await expect(page.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
 })

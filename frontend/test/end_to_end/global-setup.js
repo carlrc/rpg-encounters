@@ -55,12 +55,13 @@ export default async function globalSetup() {
 
   let stdout
   try {
-    stdout = execFileSync('uv', ['run', 'python', 'scripts/get_seeded_dm_session.py'], {
+    stdout = execFileSync('uv', ['run', 'python', 'tests/scripts/get_seeded_dm_session.py'], {
       cwd: BACKEND_ROOT,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
+        PLAYWRIGHT_SEEDED_DM_EMAIL: process.env.PLAYWRIGHT_SEEDED_DM_EMAIL || 'test1@example.com',
         REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379/0',
       },
     })

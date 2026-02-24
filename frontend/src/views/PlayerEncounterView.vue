@@ -178,6 +178,8 @@
         </div>
       </div>
     </div>
+
+    <BillingErrorPopup :is-open="showBillingErrorPopup" @close="closeBillingErrorPopup" />
   </div>
 </template>
 
@@ -193,9 +195,13 @@
   import { useNotification } from '../composables/useNotification.js'
   import WebSocketStreamPlayer from '../composables/audio/WebSocketStreamPlayer.js'
   import { useWebSocketAudioHandler } from '../composables/audio/useWebSocketAudioHandler.js'
+  import BillingErrorPopup from '../components/ui/BillingErrorPopup.vue'
 
   export default {
     name: 'PlayerEncounterView',
+    components: {
+      BillingErrorPopup,
+    },
     setup() {
       const MOBILE_VIEWPORT_QUERY = '(max-width: 767px)'
       const route = useRoute()
@@ -220,6 +226,7 @@
       const mobileSkillPickerRef = ref(null)
       const diceRoll = ref(null)
       const influenceScore = ref(null)
+      const showBillingErrorPopup = ref(false)
 
       // Local WebSocket progressive audio player
       let streamPlayer = null
@@ -245,6 +252,9 @@
             influenceScore.value = json.influence
           }
           // For conversation mode, players don't see influence scores
+        },
+        onBillingError: () => {
+          showBillingErrorPopup.value = true
         },
       })
 
@@ -323,6 +333,10 @@
         await cleanupAudioHandler(streamPlayer)
         isMobileSkillMenuOpen.value = false
         selectedCharacter.value = null
+      }
+
+      const closeBillingErrorPopup = () => {
+        showBillingErrorPopup.value = false
       }
 
       const toggleMobileSkillMenu = () => {
@@ -475,6 +489,8 @@
         selectMobileSkill,
         toggleChallengeMode,
         toggleRecording,
+        showBillingErrorPopup,
+        closeBillingErrorPopup,
       }
     },
   }
