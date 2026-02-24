@@ -81,7 +81,7 @@ export const getVoiceSample = async (voiceId, ttsProvider) => {
 
 // Helper function to get world ID without circular dependency
 const getCurrentWorldIdFromStore = async () => {
-  const { useWorldStore } = await import('@/stores/world')
+  const { useWorldStore } = await import('../stores/world')
   const worldStore = useWorldStore()
   return worldStore.currentWorldId
 }

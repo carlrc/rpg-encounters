@@ -1,7 +1,7 @@
 /**
  * Shared avatar utility functions
  */
-import { sanitizeDisplayName } from './nameUtils.js'
+import { sanitizeDisplayName } from './nameUtils'
 
 /**
  * Generate initials from a name

@@ -11,7 +11,7 @@
 
 <script setup>
   import { computed } from 'vue'
-  import { getInitials } from '../../utils/avatarUtils.js'
+  import { getInitials } from '../../utils/avatarUtils'
 
   const props = defineProps({
     name: {

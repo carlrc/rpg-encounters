@@ -114,9 +114,9 @@
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
   import RangeSliderControl from './base/RangeSliderControl.vue'
-  import { useRevealValidation } from '../composables/useRevealValidation.js'
-  import { useGameDataStore } from '../stores/gameData.js'
-  import { getDCLabel } from '../utils/dcUtils.js'
+  import { useRevealValidation } from '../composables/useRevealValidation'
+  import { useGameDataStore } from '../stores/gameData'
+  import { getDCLabel } from '../utils/dcUtils'
 
   export default {
     name: 'RevealForm',

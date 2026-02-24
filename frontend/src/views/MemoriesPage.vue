@@ -59,12 +59,12 @@
   import MemoryCard from '../components/MemoryCard.vue'
   import MemoryForm from '../components/MemoryForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useMemoryStore } from '../stores/memories.js'
-  import { useCharacterStore } from '../stores/characters.js'
-  import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import { useGameDataStore } from '../stores/gameData.js'
-  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
-  import { MEMORY_FILTER_TABS, createMemoryFilterState } from '../constants/uiFilters.js'
+  import { useMemoryStore } from '../stores/memories'
+  import { useCharacterStore } from '../stores/characters'
+  import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils'
+  import { useGameDataStore } from '../stores/gameData'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage'
+  import { MEMORY_FILTER_TABS, createMemoryFilterState } from '../constants/uiFilters'
 
   const memoryStore = useMemoryStore()
   const characterStore = useCharacterStore()

@@ -46,8 +46,8 @@
   import { storeToRefs } from 'pinia'
   import FilterTabs from './FilterTabs.vue'
   import FilterMultiSelect from './FilterMultiSelect.vue'
-  import { useGameDataStore } from '../../stores/gameData.js'
-  import { useDropdownOptions } from '../../composables/useDropdownOptions.js'
+  import { useGameDataStore } from '../../stores/gameData'
+  import { useDropdownOptions } from '../../composables/useDropdownOptions'
 
   export default {
     name: 'FilterPanel',

@@ -73,10 +73,10 @@
 <script>
   import { ref, computed } from 'vue'
   import RevealForm from './RevealForm.vue'
-  import { useGameDataStore } from '../stores/gameData.js'
+  import { useGameDataStore } from '../stores/gameData'
   import { storeToRefs } from 'pinia'
-  import { getDCLabel } from '../utils/dcUtils.js'
-  import { getCharacterName } from '../utils/characterUtils.js'
+  import { getDCLabel } from '../utils/dcUtils'
+  import { getCharacterName } from '../utils/characterUtils'
 
   export default {
     name: 'RevealCard',

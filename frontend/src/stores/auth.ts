@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { serializeError } from 'serialize-error'
-import { checkAuth, getWorlds } from '@/services/api'
+import { checkAuth, getWorlds } from '../services/api'
 
 export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         // If authenticated, load worlds and set current world ID
         if (authenticated) {
-          const { useWorldStore } = await import('@/stores/world')
+          const { useWorldStore } = await import('../stores/world')
           const worldStore = useWorldStore()
 
           const worlds = await getWorlds()
@@ -47,12 +47,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const logout = async () => {
-    const { useWorldStore } = await import('@/stores/world')
-    const { useCharacterStore } = await import('@/stores/characters')
-    const { usePlayerStore } = await import('@/stores/players')
-    const { useMemoryStore } = await import('@/stores/memories')
-    const { useRevealStore } = await import('@/stores/reveals')
-    const { useEncounterStore } = await import('@/stores/encounters')
+    const { useWorldStore } = await import('../stores/world')
+    const { useCharacterStore } = await import('../stores/characters')
+    const { usePlayerStore } = await import('../stores/players')
+    const { useMemoryStore } = await import('../stores/memories')
+    const { useRevealStore } = await import('../stores/reveals')
+    const { useEncounterStore } = await import('../stores/encounters')
 
     const worldStore = useWorldStore()
     const characterStore = useCharacterStore()

@@ -47,7 +47,7 @@
   import SharedEncounterPopup from '../base/SharedEncounterPopup.vue'
   import SplitViewLayout from '../layout/SplitViewLayout.vue'
   import ProfileBillingCard from './ProfileBillingCard.vue'
-  import { useProfileBilling } from '@/composables/ui/useProfileBilling'
+  import { useProfileBilling } from '../../composables/ui/useProfileBilling'
 
   const props = defineProps({
     isOpen: {

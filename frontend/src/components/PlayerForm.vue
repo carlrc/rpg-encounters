@@ -101,10 +101,10 @@
 <script>
   import { reactive, computed } from 'vue'
   import { storeToRefs } from 'pinia'
-  import { useFormValidation } from '../utils/useFormValidation.js'
-  import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { sanitizeDisplayName } from '../utils/nameUtils.js'
-  import { useGameDataStore } from '../stores/gameData.js'
+  import { useFormValidation } from '../utils/useFormValidation'
+  import { useDropdownOptions } from '../composables/useDropdownOptions'
+  import { sanitizeDisplayName } from '../utils/nameUtils'
+  import { useGameDataStore } from '../stores/gameData'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import RangeSliderControl from './base/RangeSliderControl.vue'
 

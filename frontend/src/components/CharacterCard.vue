@@ -141,13 +141,13 @@
   import { ref, onMounted, onUnmounted, watch, watchEffect } from 'vue'
   import { storeToRefs } from 'pinia'
   import { serializeError } from 'serialize-error'
-  import { useDropdownOptions } from '../composables/useDropdownOptions.js'
-  import { useGameDataStore } from '../stores/gameData.js'
-  import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer.js'
+  import { useDropdownOptions } from '../composables/useDropdownOptions'
+  import { useGameDataStore } from '../stores/gameData'
+  import HttpAudioPlayer from '../composables/audio/HttpAudioPlayer'
   import CharacterForm from './CharacterForm.vue'
   import AvatarDisplay from './base/AvatarDisplay.vue'
   import TraitsDisplay from './base/TraitsDisplay.vue'
-  import { getVoiceSample } from '../services/api.js'
+  import { getVoiceSample } from '../services/api'
 
   const props = defineProps({
     character: {

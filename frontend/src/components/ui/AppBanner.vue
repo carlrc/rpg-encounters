@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-  import logoUrl from '@/assets/images/logo.png'
+  import logoUrl from '../../assets/images/logo.png'
 </script>
 
 <style scoped>

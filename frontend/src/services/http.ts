@@ -23,7 +23,7 @@ const request = async (method, url, body, { signal } = {}) => {
     authStore.setAuthenticated(false)
     // Use Vue Router for navigation to allow proper component cleanup
     // Lazy load router to avoid circular dependency
-    const router = (await import('@/router')).default
+    const router = (await import('../router')).default
     const currentRoute = router.currentRoute.value
     if (
       currentRoute.path !== '/' &&

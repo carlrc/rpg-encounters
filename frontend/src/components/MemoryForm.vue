@@ -36,7 +36,7 @@
   import { storeToRefs } from 'pinia'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
   import CharacterSelector from './entity/CharacterSelector.vue'
-  import { useGameDataStore } from '../stores/gameData.js'
+  import { useGameDataStore } from '../stores/gameData'
 
   const CONTENT_WORD_LIMIT = 200
 

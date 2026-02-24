@@ -1,5 +1,5 @@
-import { createEntityStore } from '@/composables/useEntityStore'
-import * as api from '@/services/api'
+import { createEntityStore } from '../composables/useEntityStore'
+import * as api from '../services/api'
 
 export const useEncounterStore = createEntityStore('Encounter', {
   getAll: api.getEncounters,

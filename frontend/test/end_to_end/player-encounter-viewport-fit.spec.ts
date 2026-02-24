@@ -1,6 +1,6 @@
 import { devices, expect, test } from '@playwright/test'
-import { resolveBaseUrl } from './helpers/baseUrl.js'
-import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin.js'
+import { resolveBaseUrl } from './helpers/baseUrl'
+import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin'
 
 const TOLERANCE_PX = 2
 const STRICT_TOLERANCE_PX = 1

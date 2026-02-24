@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { serializeError } from 'serialize-error'
 import { getGameData } from '../services/api'
-import { useNotification } from '../composables/useNotification.js'
+import { useNotification } from '../composables/useNotification'
 
 export const useGameDataStore = defineStore('gameData', () => {
   const data = ref(null)

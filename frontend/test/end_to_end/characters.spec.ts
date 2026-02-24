@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { waitForApiResponse } from './helpers/networkAsserts.js'
+import { waitForApiResponse } from './helpers/networkAsserts'
 
 const waitForCharactersGet = async (page, timeout = 30_000) => {
   await waitForApiResponse(page, {

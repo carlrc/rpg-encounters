@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeDisplayName } from '../../src/utils/nameUtils.js'
+import { sanitizeDisplayName } from '../../src/utils/nameUtils'
 
 describe('sanitizeDisplayName', () => {
   it('removes gender symbols and emoji while preserving words', () => {

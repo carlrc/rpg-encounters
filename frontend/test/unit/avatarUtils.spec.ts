@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getInitials } from '../../src/utils/avatarUtils.js'
+import { getInitials } from '../../src/utils/avatarUtils'
 
 describe('getInitials', () => {
   it('skips symbol prefixes and derives clean initials', () => {

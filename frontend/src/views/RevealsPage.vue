@@ -61,12 +61,12 @@
   import RevealCard from '../components/RevealCard.vue'
   import RevealForm from '../components/RevealForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useRevealStore } from '../stores/reveals.js'
-  import { useGameDataStore } from '../stores/gameData.js'
-  import { useCharacterStore } from '../stores/characters.js'
-  import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils.js'
-  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
-  import { REVEAL_FILTER_TABS, createRevealFilterState } from '../constants/uiFilters.js'
+  import { useRevealStore } from '../stores/reveals'
+  import { useGameDataStore } from '../stores/gameData'
+  import { useCharacterStore } from '../stores/characters'
+  import { applyCharacterFilters, applyCharacterAttributeFilters } from '../utils/filterUtils'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage'
+  import { REVEAL_FILTER_TABS, createRevealFilterState } from '../constants/uiFilters'
 
   const route = useRoute()
 

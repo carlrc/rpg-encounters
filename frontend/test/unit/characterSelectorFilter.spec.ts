@@ -3,7 +3,7 @@ import {
   buildVisibleCharacterOptions,
   filterCharactersByAttributes,
   normalizeCharacterIds,
-} from '../../src/utils/characterSelectorFilter.js'
+} from '../../src/utils/characterSelectorFilter'
 
 const characters = [
   { id: 1, name: 'Aria', race: 'Elf', alignment: 'Chaotic Good' },

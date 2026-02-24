@@ -89,12 +89,12 @@
   import { computed, ref } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { serializeError } from 'serialize-error'
-  import { useAuthStore } from '@/stores/auth'
+  import { useAuthStore } from '../../stores/auth'
   import WorldTabs from '../WorldTabs.vue'
   import InstructionsModal from '../ui/InstructionsModal.vue'
   import ProfileModal from '../ui/ProfileModal.vue'
   import AppBanner from '../ui/AppBanner.vue'
-  import { logout } from '@/services/api'
+  import { logout } from '../../services/api'
 
   const router = useRouter()
   const route = useRoute()
@@ -150,7 +150,7 @@
 
   const handleWorldChange = async (worldId) => {
     // Lazy load world store to avoid accessing it on login page
-    const { useWorldStore } = await import('@/stores/world')
+    const { useWorldStore } = await import('../../stores/world')
     const worldStore = useWorldStore()
     worldStore.setCurrentWorldId(worldId)
   }

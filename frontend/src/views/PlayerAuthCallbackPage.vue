@@ -25,8 +25,8 @@
   import { ref, onMounted } from 'vue'
   import { useRoute, useRouter } from 'vue-router'
   import { serializeError } from 'serialize-error'
-  import { consumePlayerLogin } from '../services/api.js'
-  import { useWorldStore } from '../stores/world.js'
+  import { consumePlayerLogin } from '../services/api'
+  import { useWorldStore } from '../stores/world'
 
   export default {
     name: 'PlayerAuthCallbackPage',

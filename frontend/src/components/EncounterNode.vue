@@ -283,8 +283,8 @@
 <script>
   import { ref, nextTick, watch, onMounted, onUnmounted } from 'vue'
   import { Handle } from '@vue-flow/core'
-  import { getInitials } from '../utils/avatarUtils.js'
-  import { sanitizeDisplayName } from '../utils/nameUtils.js'
+  import { getInitials } from '../utils/avatarUtils'
+  import { sanitizeDisplayName } from '../utils/nameUtils'
   import BaseTextareaWithCharacterCounter from './base/BaseTextareaWithCharacterCounter.vue'
 
   export default {

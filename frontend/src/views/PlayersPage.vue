@@ -39,9 +39,9 @@
   import EmptyState from '../components/ui/EmptyState.vue'
   import PlayerCard from '../components/PlayerCard.vue'
   import PlayerForm from '../components/PlayerForm.vue'
-  import { usePlayerStore } from '../stores/players.js'
-  import { useGameDataStore } from '../stores/gameData.js'
-  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
+  import { usePlayerStore } from '../stores/players'
+  import { useGameDataStore } from '../stores/gameData'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage'
 
   const playerStore = usePlayerStore()
   const gameDataStore = useGameDataStore()

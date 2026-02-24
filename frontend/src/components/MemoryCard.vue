@@ -51,7 +51,7 @@
 <script>
   import { ref } from 'vue'
   import MemoryForm from './MemoryForm.vue'
-  import { getCharacterName } from '../utils/characterUtils.js'
+  import { getCharacterName } from '../utils/characterUtils'
 
   const CONTENT_WORD_LIMIT = 200
 

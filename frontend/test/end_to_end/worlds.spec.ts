@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { fillCharacterFormAndSubmit } from './helpers/characterForm.js'
+import { fillCharacterFormAndSubmit } from './helpers/characterForm'
 
 const worldTabs = (page) => page.locator('.world-tab')
 const activeWorldTab = (page) => page.locator('.world-tab.active')

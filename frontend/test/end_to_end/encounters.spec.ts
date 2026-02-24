@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test'
-import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe.js'
-import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle.js'
-import { makeScopedSuffix } from './helpers/entityNaming.js'
-import { setSeededDmBilling } from './utils.js'
+import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe'
+import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle'
+import { makeScopedSuffix } from './helpers/entityNaming'
+import { setSeededDmBilling } from './utils'
 
 test.describe.configure({ mode: 'serial' })
 

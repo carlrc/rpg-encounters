@@ -52,11 +52,11 @@
   import CharacterCard from '../components/CharacterCard.vue'
   import CharacterForm from '../components/CharacterForm.vue'
   import FilterPanel from '../components/filters/FilterPanel.vue'
-  import { useCharacterStore } from '../stores/characters.js'
-  import { useGameDataStore } from '../stores/gameData.js'
-  import { applyFilters } from '../utils/filterUtils.js'
-  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage.js'
-  import { CHARACTER_FILTER_TABS, createCharacterFilterState } from '../constants/uiFilters.js'
+  import { useCharacterStore } from '../stores/characters'
+  import { useGameDataStore } from '../stores/gameData'
+  import { applyFilters } from '../utils/filterUtils'
+  import { useCrudSplitViewPage } from '../composables/ui/useCrudSplitViewPage'
+  import { CHARACTER_FILTER_TABS, createCharacterFilterState } from '../constants/uiFilters'
 
   const route = useRoute()
   const characterStore = useCharacterStore()

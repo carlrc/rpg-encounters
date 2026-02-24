@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { serializeError } from 'serialize-error'
-import { getConversationData } from '@/services/api'
+import { getConversationData } from '../services/api'
 
 export const useConversationDataStore = defineStore('conversationData', () => {
   // Cache conversation data by key: "encounterId-playerId-characterId"

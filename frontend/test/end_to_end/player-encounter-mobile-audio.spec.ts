@@ -1,14 +1,14 @@
 import { devices, expect, test } from '@playwright/test'
-import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe.js'
-import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle.js'
-import { resolveBaseUrl } from './helpers/baseUrl.js'
-import { setUserBillingState } from './utils.js'
+import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe'
+import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle'
+import { resolveBaseUrl } from './helpers/baseUrl'
+import { setUserBillingState } from './utils'
 import {
   closeTrackedContexts,
   createContextRegistry,
   trackContext,
-} from './helpers/contextLifecycle.js'
-import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin.js'
+} from './helpers/contextLifecycle'
+import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin'
 
 const getMicrophonePermissionState = async (page) => {
   try {

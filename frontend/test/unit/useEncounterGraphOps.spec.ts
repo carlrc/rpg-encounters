@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { describe, expect, it } from 'vitest'
-import { useEncounterGraphOps } from '../../src/composables/encounters/useEncounterGraphOps.js'
+import { useEncounterGraphOps } from '../../src/composables/encounters/useEncounterGraphOps'
 
 const countPlayerAssignments = (elements) => {
   const counts = new Map()

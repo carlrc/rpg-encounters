@@ -1,5 +1,5 @@
 import { devices, expect, test } from '@playwright/test'
-import { resolveBaseUrl } from './helpers/baseUrl.js'
+import { resolveBaseUrl } from './helpers/baseUrl'
 import {
   closeTrackedContexts,
   createContextRegistry,

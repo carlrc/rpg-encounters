@@ -1,0 +1,14 @@
+{
+  "extends": ["@tsconfig/node24/tsconfig.json", "@vue/tsconfig/tsconfig.json"],
+  "compilerOptions": {
+    "types": ["node"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    // Optional overrides
+    "strict": false,
+    "skipLibCheck": true,
+    "noImplicitAny": false
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.d.ts", "tests"],
+  "exclude": ["node_modules", "**/*.spec.ts"]
+}

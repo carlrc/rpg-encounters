@@ -16,11 +16,11 @@
 <script>
   import { ref, onMounted } from 'vue'
   import { serializeError } from 'serialize-error'
-  import { getWorlds, createWorld, deleteWorld } from '../services/api.js'
-  import { useWorldStore } from '../stores/world.js'
+  import { getWorlds, createWorld, deleteWorld } from '../services/api'
+  import { useWorldStore } from '../stores/world'
   import { storeToRefs } from 'pinia'
-  import { useNotification } from '../composables/useNotification.js'
-  import { getWorldNumber, getWorldDisplayName } from '../utils/worldUtils.js'
+  import { useNotification } from '../composables/useNotification'
+  import { getWorldNumber, getWorldDisplayName } from '../utils/worldUtils'
 
   export default {
     name: 'WorldTabs',

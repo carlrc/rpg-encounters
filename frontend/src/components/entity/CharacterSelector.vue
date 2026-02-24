@@ -62,11 +62,11 @@
   import { ref, computed } from 'vue'
   import FilterMultiSelect from '../filters/FilterMultiSelect.vue'
   import { storeToRefs } from 'pinia'
-  import { useGameDataStore } from '../../stores/gameData.js'
+  import { useGameDataStore } from '../../stores/gameData'
   import {
     buildVisibleCharacterOptions,
     normalizeCharacterIds,
-  } from '../../utils/characterSelectorFilter.js'
+  } from '../../utils/characterSelectorFilter'
 
   export default {
     name: 'CharacterSelector',

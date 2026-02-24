@@ -33,7 +33,7 @@
 <script setup>
   import { ref } from 'vue'
   import { serializeError } from 'serialize-error'
-  import { requestMagicLink } from '@/services/api'
+  import { requestMagicLink } from '../services/api'
   import '@/components/shared.css'
 
   const email = ref('')
