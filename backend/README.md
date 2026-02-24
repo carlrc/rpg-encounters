@@ -51,13 +51,7 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-If you don't want telemetry with [langfuse](https://github.com/langfuse/langfuse), you can disable using the following `.env` variable
-
-```bash
-LANGFUSE_TRACING_ENABLED=false
-```
-
-Create db
+Create dbs
 
 ```bash
 # Dev db
@@ -67,36 +61,26 @@ createdb -h localhost -p 5432 -U postgres 'rpg-encounters'
 createdb -h localhost -p 5432 -U postgres 'rpg-encounters-test'
 ```
 
-Manage db tables
+Manage db
 
 ```bash
 # Create
 python -m app.db.init_db
-```
 
-Create and seed db with fixture data
+# Migrate 
+uv run alembic -c alembic.ini upgrade head
 
-```bash
-# Seed db with default users
+# Seed defaults
 python -m tests.fixtures.seed_data
+
+# Seed defaults for specific email
+python -m tests.fixtures.seed_data --email <USER_EMAIL>
 ```
 
-## Tests
-
-Verify with `pytest`
+Ensure backend and frontend services are running, and verify with `pytest`
 
 ```bash
-# All
-uv run pytest 
-
-# Unit
-uv run pytest tests/unit
-
-# Integration
-uv run pytest/tests/integration
-
-# End to end
-uv run pytest/tests/end_to_end
+uv run pytest
 ```
 
 ## Admin
@@ -106,52 +90,18 @@ uv run pytest/tests/end_to_end
 
 ### DB Commands
 
-Create db
+Create migration revision
 
 ```bash
-# Dev db
-createdb -h localhost -p 5432 -U postgres 'rpg-encounters'
-
-# Test db
-createdb -h localhost -p 5432 -U postgres 'rpg-encounters-test'
-```
-
-Apply schema migrations
-
-```bash
-# Create
-uv run alembic -c alembic.ini upgrade head
-
-# Create migration revision
 uv run alembic -c alembic.ini revision -m "describe_change"
-```
-
-Create and seed db with fixture data
-
-```bash
-# Seed db with default users
-python -m tests.fixtures.seed_data
-
-# Seed defaults to user
-python -m tests.fixtures.seed_data --email <USER_EMAIL>
-
-# Seed in docker container
-sudo docker exec -it rpg-encounters-backend python tests/fixtures/seed_data.py
 ```
 
 ### Docker Commands
 
-`backend/docker-compose.yml` is production-oriented (RDS, no local `db` service) and includes RedisInsight.
-For local development, always include `backend/docker-compose.dev.yml` (adds local Postgres and Adminer).
-
 Rebuild dev image after dependency changes (e.g., new libs)
 
 ```bash
-# Rebuild the dev image (dependencies stage) without cache
 sudo docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml build --no-cache backend
-
-# Recreate the container using the freshly built image
-sudo docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up --force-recreate
 ```
 
 Reset docker env
