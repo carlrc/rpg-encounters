@@ -29,9 +29,9 @@ Because the application uses magic links in production, locally you need to:
 - Copy login link from backend service logs, which looks something like: `test1@example.com login link: http://localhost:3001/auth?token=e-e6Cs6paxa6H0fmC0gYfrwfLElxWwkeSF0Jb6ck-XY`
 - Paste login link into the same browser session used to request it
 
-### Avoiding Credit Checks
+### Avoiding Token Checks
 
-When you set your own API keys locally, you can avoid credit checks by either:
+When you BYOKs, you can avoid token checks by either:
 
 - Setting backend env var `BILLING_IGNORE_BALANCE_CHECK=true` to skip all checks
 - Adjusting token balances with the script in `backend/tests/scripts/set_billing_state.py`:
@@ -43,3 +43,9 @@ REDIS_URL=redis://localhost:6379/0 uv run python tests/scripts/set_billing_state
   --available 100000 \
   --last-used 0
 ```
+
+### Avoiding Moderation
+
+When you BYOKs, you can avoid moderation by:
+
+- Setting backend env var `SKIP_MODERATION=true`
