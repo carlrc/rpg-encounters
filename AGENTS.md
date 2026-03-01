@@ -1,5 +1,7 @@
 # RPG Encounters Agents Overview
 
+This is an application for DMs to introduce AI RPG characters, with biases, personality and secrets, into in-person sessions.
+
 ## Source Code
 
 - The backend code is in `./backend` directory

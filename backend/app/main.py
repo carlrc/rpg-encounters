@@ -1,5 +1,8 @@
+import importlib
 import logging
+import os
 from contextlib import asynccontextmanager
+from typing import Callable
 
 import uvicorn
 from dotenv import load_dotenv
@@ -45,6 +48,37 @@ async def app_lifespan(app: FastAPI):
         await stop_token_usage_sync_poller(app=app)
 
 
+RegisterFn = Callable[[FastAPI], object]
+
+
+def load_extensions_from_env() -> list[RegisterFn]:
+    spec = os.getenv("EXTENSIONS", "").strip()
+    if not spec:
+        logger.info("No extensions detected")
+        return []
+
+    exts: list[RegisterFn] = []
+    for item in (s.strip() for s in spec.split(",") if s.strip()):
+        mod_name, fn_name = item.split(":", 1)
+
+        try:
+            mod = importlib.import_module(mod_name)
+        except ModuleNotFoundError:
+            logger.error(f"Extension module not found: {mod_name}")
+            raise
+        except Exception as e:
+            logger.error(f"Extension error for {item}. {e}")
+            raise
+
+        fn = getattr(mod, fn_name, None)
+        if not callable(fn):
+            raise ValueError(f"Extension '{item}' is not callable")
+
+        exts.append(fn)
+
+    return exts
+
+
 app = FastAPI(
     title="RPG Encounters",
     docs_url=None,
@@ -83,6 +117,10 @@ app.include_router(canvas.router)
 app.include_router(game.router)
 app.include_router(voices.router)
 app.include_router(worlds.router)
+
+# Add external extensions
+for register in load_extensions_from_env():
+    register(app)
 
 
 @app.get("/internal/health", include_in_schema=False)
