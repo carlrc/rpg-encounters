@@ -1,7 +1,7 @@
 import { computed } from 'vue'
-import { FORM_FIELDS } from '../constants/validation.js'
-import { useGameData } from '../composables/useGameData.js'
-import { getValidationLimit, validateCharacterLimit } from './validationHelpers.js'
+import { FORM_FIELDS } from '../constants/validation'
+import { useGameData } from '../composables/useGameData'
+import { getValidationLimit, validateCharacterLimit } from './validationHelpers'
 
 export function useFormValidation(formData, entityType = 'PLAYER') {
   const { gameData } = useGameData()

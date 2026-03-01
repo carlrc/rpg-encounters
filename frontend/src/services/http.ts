@@ -1,8 +1,16 @@
-import { useWorldStore } from '@/stores/world'
-import { useAuthStore } from '@/stores/auth'
+import { useWorldStore } from '../stores/world'
+import { useAuthStore } from '../stores/auth'
 
-const request = async (method, url, body, { signal } = {}) => {
-  // Get current world ID from store
+type RequestOpts = {
+  signal?: AbortSignal
+}
+
+const request = async <T>(
+  method: string,
+  url: string,
+  body?: unknown,
+  { signal }: RequestOpts = {}
+): Promise<T> => {
   const worldStore = useWorldStore()
   const authStore = useAuthStore()
 
@@ -12,7 +20,7 @@ const request = async (method, url, body, { signal } = {}) => {
     credentials: 'include',
     headers: {
       'content-type': 'application/json',
-      'X-World-Id': worldStore.currentWorldId,
+      'X-World-Id': String(worldStore.currentWorldId),
     },
     body: body ? JSON.stringify(body) : undefined,
   })
@@ -39,13 +47,13 @@ const request = async (method, url, body, { signal } = {}) => {
     throw new Error(`HTTP error! status: ${res.status}`)
   }
 
-  if (res.status === 204) return null
-  return res.json()
+  if (res.status === 204) return null as T
+  return (await res.json()) as T
 }
 
 export const http = {
-  get: (url, opts) => request('GET', url, undefined, opts),
-  post: (url, body, opts) => request('POST', url, body, opts),
-  put: (url, body, opts) => request('PUT', url, body, opts),
-  delete: (url, opts) => request('DELETE', url, undefined, opts),
+  get: <T>(url: string, opts?: RequestOpts) => request<T>('GET', url, undefined, opts),
+  post: <T>(url: string, body?: unknown, opts?: RequestOpts) => request<T>('POST', url, body, opts),
+  put: <T>(url: string, body?: unknown, opts?: RequestOpts) => request<T>('PUT', url, body, opts),
+  delete: <T>(url: string, opts?: RequestOpts) => request<T>('DELETE', url, undefined, opts),
 }

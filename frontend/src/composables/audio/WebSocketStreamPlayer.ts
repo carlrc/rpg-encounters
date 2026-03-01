@@ -1,4 +1,4 @@
-import { useNotification } from '../useNotification.js'
+import { useNotification } from '../useNotification'
 import { serializeError } from 'serialize-error'
 
 /**

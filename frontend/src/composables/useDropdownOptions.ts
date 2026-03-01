@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useGameData } from './useGameData.js'
+import { useGameData } from './useGameData'
 
 /**
  * Centralized dropdown options composable

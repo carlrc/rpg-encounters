@@ -14,7 +14,7 @@ export default defineConfig({
   },
   fullyParallel: false,
   reporter: [['list'], ['html', { open: 'never' }]],
-  globalSetup: path.resolve(__dirname, 'test/end_to_end/global-setup.js'),
+  globalSetup: path.resolve(__dirname, 'test/end_to_end/global-setup.ts'),
   use: {
     baseURL: 'http://localhost:3001',
     storageState: path.resolve(__dirname, 'test/end_to_end/.auth/dm.json'),

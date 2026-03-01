@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { serializeError } from 'serialize-error'
-import { checkAuth } from '../../services/api.js'
+import { checkAuth } from '../../services/api'
 
 // Constants
 const WEBSOCKET_BASE_URL = import.meta.env.VITE_WEBSOCKET_URL

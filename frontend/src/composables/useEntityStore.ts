@@ -3,12 +3,23 @@ import { ref, computed, watch } from 'vue'
 import { useNotificationStore } from '@/stores/notifications'
 import { useWorldStore } from '@/stores/world'
 
-export const createEntityStore = (entityName, apiMethods) => {
+type EntityApi<TEntity extends { id: number }, TCreate, TUpdate> = {
+  getAll: () => Promise<TEntity[]>
+  getOne: (id: number) => Promise<TEntity>
+  create: (data: TCreate) => Promise<TEntity>
+  update: (id: number, data: TUpdate) => Promise<TEntity>
+  delete: (id: number) => Promise<unknown>
+}
+
+export const createEntityStore = <TEntity extends { id: number }, TCreate, TUpdate>(
+  entityName: string,
+  apiMethods: EntityApi<TEntity, TCreate, TUpdate>
+) => {
   return defineStore(`${entityName.toLowerCase()}s`, () => {
-    const entities = ref([])
+    const entities = ref<TEntity[]>([])
     const loading = ref(false)
     const error = ref('')
-    const selectedEntityId = ref(null)
+    const selectedEntityId = ref<number | null>(null)
     const showCreateForm = ref(false)
 
     const notificationStore = useNotificationStore()
@@ -41,7 +52,7 @@ export const createEntityStore = (entityName, apiMethods) => {
       }
     }
 
-    const createEntity = async (entityData) => {
+    const createEntity = async (entityData: TCreate) => {
       try {
         const newEntity = await apiMethods.create(entityData)
         entities.value.push(newEntity)
@@ -58,7 +69,7 @@ export const createEntityStore = (entityName, apiMethods) => {
       }
     }
 
-    const updateEntity = async (entityId, entityData) => {
+    const updateEntity = async (entityId: number, entityData: TUpdate) => {
       try {
         const updatedEntity = await apiMethods.update(entityId, entityData)
         const index = entities.value.findIndex((e) => e.id === entityId)
@@ -76,7 +87,7 @@ export const createEntityStore = (entityName, apiMethods) => {
       }
     }
 
-    const deleteEntity = async (entityId) => {
+    const deleteEntity = async (entityId: number) => {
       try {
         await apiMethods.delete(entityId)
         entities.value = entities.value.filter((e) => e.id !== entityId)
@@ -98,7 +109,7 @@ export const createEntityStore = (entityName, apiMethods) => {
       }
     }
 
-    const selectEntity = (entityId) => {
+    const selectEntity = (entityId: number) => {
       selectedEntityId.value = entityId
       showCreateForm.value = false
     }

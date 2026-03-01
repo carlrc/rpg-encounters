@@ -1,6 +1,6 @@
 import { computed } from 'vue'
-import { useGameData } from './useGameData.js'
-import { getValidationLimit } from '../utils/validationHelpers.js'
+import { useGameData } from './useGameData'
+import { getValidationLimit } from '../utils/validationHelpers'
 
 export function useRevealValidation(form) {
   const { gameData } = useGameData()
