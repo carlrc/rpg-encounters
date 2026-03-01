@@ -9,7 +9,7 @@ encounters_db = [
         description="The ship's command center rises above the main deck, offering a commanding view of the seas. The wheel stands at the stern, brass fittings gleaming. Charts and navigation instruments are secured nearby. Rope ladders provide access to the crow's nest above, while a companionway leads down to the main deck.",
         position_x=500.0,
         position_y=-50.0,
-        character_ids=[5],  # Gregor
+        character_ids=[5, 3],  # Gregor, Finnian 'Finn' Swift
         player_ids=[1, 2],  # Sir Alaric, Thalion
     ),
     # Main Deck
@@ -42,8 +42,8 @@ encounters_db = [
         description="The ship's deepest storage area stretches into shadowy recesses, filled with musty smells of damp wood and goods. Wooden crates and barrels are stacked high against the hull, secured with rope. Water barrels, grain sacks, and spare rope fill every space. In the far corner, one crate wrapped in oilcloth and chains sits isolated, emanating a faint hum.",
         position_x=500.0,
         position_y=1300.0,
-        character_ids=[],
-        player_ids=[]
+        character_ids=[6],  # Lady Seraphina Valerius
+        player_ids=[0],  # Mira (rl_name Sarah)
     ),
     # Crew Quarters
     EncounterCreate(
@@ -53,7 +53,7 @@ encounters_db = [
         description="The cramped living space stretches beneath low beams, barely tall enough to stand. Hammocks swing in tiers from every beam, creating a maze of sleeping spaces. Sea chests line the walls with sailors' possessions. The air is thick with scents of bodies, tobacco, and tar. Personal mementos are scattered about.",
         position_x=1150.0,
         position_y=767.0,
-        character_ids=[3, 4, 6],  # Finnian 'Finn' Swift, Mara, Lady Seraphina Valerius
+        character_ids=[3, 4],  # Finnian 'Finn' Swift, Mara
         player_ids=[0, 2, 3],  # Mira, Thalion, Brynja
     ),
     # Lower Deck

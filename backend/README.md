@@ -51,6 +51,12 @@ pre-commit install
 pre-commit run --all-files
 ```
 
+Create `.env` file and set variables
+
+```bash
+cp .env.example .env
+```
+
 Create dbs
 
 ```bash
@@ -77,7 +83,7 @@ python -m tests.fixtures.seed_data
 python -m tests.fixtures.seed_data --email <USER_EMAIL>
 ```
 
-Ensure backend services are running and verify with tests
+Launch backend services following [usage instructions](../README.md) and verify with tests
 
 ```bash
 uv run pytest
