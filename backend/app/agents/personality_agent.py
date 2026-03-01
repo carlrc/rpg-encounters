@@ -1,10 +1,11 @@
 import logging
+from typing import Union
 
 from pydantic_ai import UnexpectedModelBehavior
 
 from app.agents.base_agent import BaseAgent
 from app.agents.prompts.import_prompts import render_prompt
-from app.models.character import CharacterCreate
+from app.models.character import CharacterCreate, CharacterUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ class PersonalityAgent(BaseAgent):
         super().__init__()
         self.agent = self._generate_agent()
 
-    async def generate(self, character: CharacterCreate) -> str:
+    async def generate(self, character: Union[CharacterCreate, CharacterUpdate]) -> str:
         """Generate personality profile from character attributes"""
         try:
             # Render the Jinja template with character data

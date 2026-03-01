@@ -136,7 +136,7 @@ async def challenge_character(
             )
 
             # Conditionally calculate what reveals are available if not player initiated (e.g., for detailed view or not)
-            reveals = (
+            reveals: list[dict] = (
                 [
                     calculate_reveal_progress(reveal, total_roll)
                     for reveal in ctx.reveals
@@ -148,9 +148,10 @@ async def challenge_character(
             try:
                 await websocket.send_json(
                     ConversationData(
+                        type="conversation_data",
                         influence=total_roll,
                         reveals=reveals,
-                    ).model_dump()
+                    ).model_dump(mode="json")
                 )
             except Exception as e:
                 logger.error(f"Failed to send challenge data: {e}")

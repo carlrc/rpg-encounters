@@ -3,7 +3,7 @@ import random
 import re
 from functools import lru_cache
 from pathlib import Path
-from typing import Union
+from typing import TypeVar
 
 from langfuse import observe
 
@@ -18,6 +18,8 @@ from app.models.character import CharacterCreate, CharacterUpdate
 from app.utils import get_or_throw
 
 logger = logging.getLogger(__name__)
+
+CharacterDataT = TypeVar("CharacterDataT", CharacterCreate, CharacterUpdate)
 
 # Environment variable to skip moderation checks entirely
 SKIP_MODERATION = get_or_throw("SKIP_MODERATION").lower() == "true"
@@ -115,8 +117,8 @@ async def moderate_text(user_id: int, text: str) -> str:
 
 
 async def moderate_character(
-    user_id: int, character_data: Union[CharacterCreate, CharacterUpdate]
-) -> Union[CharacterCreate, CharacterUpdate]:
+    user_id: int, character_data: CharacterDataT
+) -> CharacterDataT:
     # TODO: This should use asyncio.gather in case someone makes an entire inappropriate character
     if character_data.name:
         character_data.name = await moderate_text(

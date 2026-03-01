@@ -76,14 +76,14 @@ class ConversationAgent(BaseAgent):
             )
 
             # User model request
-            model_request = get_latest_user_message(run_result)
+            model_message = get_latest_user_message(run_result)
             # Cannot rely on the built in message history of Pydantic because it contains all the possible messages not only what was chosen
             model_response = ModelResponse(parts=[TextPart(content=selected_response)])
             await self.conversation_store.add_messages(
                 player_id=deps.context.player.id,
                 character_id=deps.context.character.id,
                 encounter_id=deps.context.encounter.id,
-                new_messages=[model_request, model_response],
+                new_messages=[model_message, model_response],
             )
 
             # Add trace and span metadata

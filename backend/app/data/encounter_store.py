@@ -240,7 +240,6 @@ class EncounterStore(BaseStore):
                     )
                 )
                 character_orm = result.scalars().first()
-
                 if not character_orm:
                     return False
 

@@ -12,7 +12,7 @@
 
 - FastAPI entrypoint is `backend/app/main.py`; HTTP surface area is organized as routers in `backend/app/routers/*` (health check at `/internal/health`).
 - Persistence is Postgres with async SQLAlchemy in `backend/app/models` + `backend/app/db`, wired via `DATABASE_URL` (`asyncpg`) and typically run via Docker Compose.
-- AI/voice features live in `backend/app/agents` and `backend/app/services` (Whisper transcription + TTS providers); observability is via optional Langfuse (`backend/app/telemetry.py`).
+- AI/voice features live in `backend/app/agents` and `backend/app/services` (Whisper transcription + TTS providers).
 
 ### Frontend
 

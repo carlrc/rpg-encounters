@@ -26,11 +26,17 @@ class EncounterORM(UnifiedBase):
 
     # Direct many-to-many relationships
     characters: Mapped[List["CharacterORM"]] = relationship(  # noqa: F821
-        secondary=encounter_characters, back_populates="encounters"
+        # Disable sync backrefs to avoid async lazy-loads during relationship back-population (MissingGreenlet errors)
+        secondary=encounter_characters,
+        back_populates="encounters",
+        sync_backref=False,
     )
 
     players: Mapped[List["PlayerORM"]] = relationship(  # noqa: F821
-        secondary=encounter_players, back_populates="encounters"
+        # Disable sync backrefs to avoid async lazy-loads during relationship back-population (MissingGreenlet errors)
+        secondary=encounter_players,
+        back_populates="encounters",
+        sync_backref=False,
     )
 
     # One-to-many relationships with connections

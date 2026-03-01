@@ -153,6 +153,7 @@ class CharacterUpdate(CharacterBase):
     background: str | None = None
     communication_style: str | None = None
     communication_style_type: str | None = None
+    communication_style_examples: List[str] | None = None
     motivation: str | None = None
     personality: str | None = None
     voice_id: str | None = None

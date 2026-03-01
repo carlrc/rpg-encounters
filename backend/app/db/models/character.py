@@ -57,7 +57,10 @@ class CharacterORM(UnifiedBase):
     )
 
     encounters: Mapped[List["EncounterORM"]] = relationship(  # noqa: F821
-        secondary=encounter_characters, back_populates="characters"
+        # Disable sync backrefs to avoid async lazy-loads during relationship back-population (MissingGreenlet errors)
+        secondary=encounter_characters,
+        back_populates="characters",
+        sync_backref=False,
     )
 
     reveals: Mapped[List["RevealORM"]] = relationship(  # noqa: F821
