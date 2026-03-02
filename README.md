@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="frontend/public/logo.png" width="40" style="vertical-align: middle;"/>
+  <img src="frontend/public/logo.png" width="40" style="vertical-align: middle; margin-right: 8px;"/>
   RPG Encounters
 </h1>
 
