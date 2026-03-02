@@ -54,7 +54,7 @@ RegisterFn = Callable[[FastAPI], object]
 def load_extensions_from_env() -> list[RegisterFn]:
     spec = os.getenv("EXTENSIONS", "").strip()
     if not spec:
-        logger.info("No extensions detected")
+        logger.info("No extensions detected...")
         return []
 
     exts: list[RegisterFn] = []
@@ -75,6 +75,8 @@ def load_extensions_from_env() -> list[RegisterFn]:
             raise ValueError(f"Extension '{item}' is not callable")
 
         exts.append(fn)
+
+    logger.info("Extensions loaded...")
 
     return exts
 
