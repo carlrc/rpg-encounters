@@ -1,7 +1,9 @@
-<h1 style="display: flex; align-items: center;">
-  <img src="frontend/public/logo.png" alt="Project Logo" width="50" style="margin-right: 16px;" />
+<div style="display: inline-flex; align-items: center; border-bottom: 1px solid #d0d7de; padding-bottom: 8px;">
+  <img src="frontend/public/logo.png" alt="Project Logo" width="60" style="margin-right: 16px;" />
+  <span style="font-size: 2em; font-weight: 600;">
     RPG Encounters
-</h1>
+  </span>
+</div>
 
 RPG Encounters is a program for adding AI RPG characters into your in-person tabletop sessions. It is designed for DMs, whereby characters can be configure to have biases, memories, trust based secrets that can make your sessions more interactive. It is designed to allow your players to perform free-form role play with any characters you don't wish to impersonate yourself.
 
