@@ -1,6 +1,6 @@
 <p align="center">
     <a href="frontend/public/logo.png">
-        <img src="frontend/public/logo.png" alt="rpg encounters logo" width="10%"/>
+        <img src="frontend/public/logo.png" alt="rpg encounters logo" width="20%"/>
     </a>
 </p>
 
@@ -10,7 +10,18 @@
 
 <div align="center">
 
-RPG Encounters is a program for adding AI RPG characters into your in-person tabletop sessions. It is designed for DMs, whereby characters can be configure to have biases, memories, trust based secrets that can make your sessions more interactive. It is designed to allow your players to perform free-form role play with any characters you don't wish to impersonate yourself.
+[**Setup**](#setup) | [**Getting started**](#getting-started)
+
+</div>
+
+RPG Encounters is a program for adding AI RPG characters into your in-person tabletop sessions. It is designed for DMs to easily create characters with biases, memories, trust based secrets that players can selectively interact with. It is designed to replace encounters where the DM does not want to impersonate characters and instead introduce some variability, and free-form role play.
+
+## Getting Started
+
+- Check out some [media](./frontend/public/landing/assets/images/home/).
+- Read the [game instructions](./frontend/public/instructions.md) to understand the mechanics and the default scenario.
+- Follow the [setup guide](#setup) or use the [paid version](https://rpg-encounters.com).
+- Test out talking to some characters!
 
 ## Setup
 
