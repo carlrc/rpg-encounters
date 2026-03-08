@@ -1,0 +1,96 @@
+[project]
+name = "rpg-encounters"
+version = "0.1.0"
+description = "RPG AI Encounters"
+readme = "README.md"
+requires-python = "==3.11.13"
+dependencies = [
+    "alembic==1.18.4",
+    "uvicorn[standard]==0.41.0",
+    "fastapi==0.129.0",
+    "openai-whisper==20250625",
+    "elevenlabs==2.36.1",
+    "python-dotenv==1.2.1",
+    "pydantic-ai==1.66.0",
+    "pydantic[email]==2.12.5",
+    "pre-commit==4.5.1",
+    "SQLAlchemy[asyncio]==2.0.46",
+    "python-jose[cryptography]==3.5.0",
+    "langfuse==3.14.4",
+    "Jinja2==3.1.6",
+    "httpx==0.28.1",
+    "uvloop==0.22.1",
+    "httptools==0.7.1",
+    "asyncpg==0.31.0",
+    "google-cloud-texttospeech==2.34.0",
+    "itsdangerous==2.2.0",
+    "boto3==1.42.53",
+    "async-lru==2.1.0",
+    "redis==7.2.0",
+]
+
+[project.optional-dependencies]
+cpu = [
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "torchvision==0.23.0"
+]
+gpu = [
+    "torch==2.8.0",
+    "torchaudio==2.8.0",
+    "torchvision==0.23.0"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.25.0",
+    "dirty-equals==0.8.0",
+    "inline-snapshot==0.15.0"
+]
+
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "gpu" },
+  ]
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu129"
+url = "https://download.pytorch.org/whl/cu129"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu129", extra = "gpu" },
+]
+torchvision = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu129", extra = "gpu" },
+]
+torchaudio = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu129", extra = "gpu" },
+]
+
+[pytest]
+timeout = 60
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.isort]
+profile = "black"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

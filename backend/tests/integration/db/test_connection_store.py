@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+
+from app.data.connection_store import ConnectionStore
+from app.data.encounter_store import EncounterStore
+from app.db.connection import get_async_db_session
+from app.models.encounter import EncounterCreate
+from app.models.encounter_connection import (
+    ConnectionCreate,
+    ConnectionHandle,
+    ConnectionUpdate,
+    EdgeType,
+)
+from app.utils import get_or_throw
+
+
+async def test_connection_store():
+    url = get_or_throw("TEST_DATABASE_URL")
+    async with get_async_db_session(url) as session:
+        encounter_store = EncounterStore(user_id=1, world_id=1, session=session)
+
+        encounter1_data = EncounterCreate(
+            name="Test Tavern",
+            description="A cozy tavern",
+            position_x=100.0,
+            position_y=200.0,
+            character_ids=[],
+        )
+
+        encounter2_data = EncounterCreate(
+            name="Test Village Square",
+            description="The heart of the village",
+            position_x=300.0,
+            position_y=200.0,
+            character_ids=[],
+        )
+
+        created_encounter1 = await encounter_store.create(encounter1_data)
+        created_encounter2 = await encounter_store.create(encounter2_data)
+
+        # Now create connection with actual encounter IDs
+        connection_store = ConnectionStore(user_id=1, world_id=1, session=session)
+
+        new_connection_data = ConnectionCreate(
+            source_encounter_id=created_encounter1.id,
+            target_encounter_id=created_encounter2.id,
+            source_handle=ConnectionHandle.RIGHT.value,
+            target_handle=ConnectionHandle.LEFT.value,
+            edge_type=EdgeType.STRAIGHT.value,
+            stroke_color="#007bff",
+            stroke_width=3,
+        )
+
+        created_connection = await connection_store.create(new_connection_data)
+        assert created_connection.source_encounter_id == created_encounter1.id
+        assert created_connection.target_encounter_id == created_encounter2.id
+        assert created_connection.id is not None
+
+        all_connections = await connection_store.get_all()
+        assert len(all_connections) == 1
+
+        retrieved_connection = await connection_store.get_by_id(created_connection.id)
+        assert retrieved_connection is not None
+
+        encounter_connections = await connection_store.get_connections_for_encounter(
+            created_encounter1.id
+        )
+        assert len(encounter_connections) == 1
+
+        update_data = ConnectionUpdate(
+            stroke_color="#28a745",
+            stroke_width=5,
+            edge_type=EdgeType.BEZIER.value,
+        )
+        updated_connection = await connection_store.update(
+            created_connection.id, update_data
+        )
+        assert updated_connection is not None
+        assert updated_connection.stroke_color == update_data.stroke_color
+        assert updated_connection.stroke_width == update_data.stroke_width
+        assert updated_connection.edge_type == update_data.edge_type
+
+        exists = await connection_store.exists(created_connection.id)
+        assert exists is True
+
+        deleted = await connection_store.delete(created_connection.id)
+        assert deleted is True
+
+        exists_after_delete = await connection_store.exists(created_connection.id)
+        assert exists_after_delete is False

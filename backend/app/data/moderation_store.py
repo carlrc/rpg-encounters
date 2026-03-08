@@ -1,0 +1,122 @@
+import logging
+from typing import List
+
+from sqlalchemy import delete, select, update
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.data.base_store import BaseStore
+from app.db.models.moderation import ModerationORM
+from app.models.moderation import Moderation, ModerationCreate, ModerationUpdate
+
+logger = logging.getLogger(__name__)
+
+
+class ModerationStore(BaseStore):
+    def __init__(self, user_id: int, session: AsyncSession | None = None):
+        super().__init__(user_id=user_id, world_id=None, session=session)
+
+    async def create(self, moderation_data: ModerationCreate) -> Moderation:
+        try:
+            async with self.get_session() as session:
+                db_moderation = ModerationORM(**moderation_data.model_dump())
+                session.add(db_moderation)
+                await session.flush()
+                await session.refresh(db_moderation)
+                return Moderation.model_validate(db_moderation)
+        except SQLAlchemyError as e:
+            logger.error(f"Error in create for user {self.user_id}: {e}")
+            raise
+
+    async def get_by_id(self, moderation_id: int) -> Moderation | None:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(ModerationORM).where(ModerationORM.id == moderation_id)
+                )
+                moderation = result.scalar_one_or_none()
+                return Moderation.model_validate(moderation) if moderation else None
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error in get_by_id for user {self.user_id}, moderation {moderation_id}: {e}"
+            )
+            raise
+
+    async def get_moderations_by_user_id(self, user_id: int) -> List[Moderation]:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(ModerationORM)
+                    .where(ModerationORM.user_id == user_id)
+                    .order_by(ModerationORM.created_at.desc())
+                )
+                moderations = result.scalars().all()
+                return [
+                    Moderation.model_validate(moderation) for moderation in moderations
+                ]
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error in get_moderations_by_user_id for user {self.user_id}, target_user {user_id}: {e}"
+            )
+            raise
+
+    async def get_all(self) -> List[Moderation]:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(ModerationORM).order_by(ModerationORM.created_at.desc())
+                )
+                moderations = result.scalars().all()
+                return [
+                    Moderation.model_validate(moderation) for moderation in moderations
+                ]
+        except SQLAlchemyError as e:
+            logger.error(f"Error in get_all for user {self.user_id}: {e}")
+            raise
+
+    async def update(
+        self, moderation_id: int, moderation_update: ModerationUpdate
+    ) -> Moderation | None:
+        try:
+            update_data = moderation_update.model_dump(exclude_unset=True)
+            if not update_data:
+                return await self.get_by_id(moderation_id)
+
+            async with self.get_session() as session:
+                await session.execute(
+                    update(ModerationORM)
+                    .where(ModerationORM.id == moderation_id)
+                    .values(**update_data)
+                )
+            return await self.get_by_id(moderation_id)
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error in update for user {self.user_id}, moderation {moderation_id}: {e}"
+            )
+            raise
+
+    async def delete(self, moderation_id: int) -> bool:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    delete(ModerationORM).where(ModerationORM.id == moderation_id)
+                )
+                return result.rowcount > 0
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error in delete for user {self.user_id}, moderation {moderation_id}: {e}"
+            )
+            raise
+
+    async def exists(self, moderation_id: int) -> bool:
+        try:
+            async with self.get_session() as session:
+                result = await session.execute(
+                    select(ModerationORM.id).where(ModerationORM.id == moderation_id)
+                )
+                return result.scalar_one_or_none() is not None
+        except SQLAlchemyError as e:
+            logger.error(
+                f"Error in exists for user {self.user_id}, moderation {moderation_id}: {e}"
+            )
+            raise

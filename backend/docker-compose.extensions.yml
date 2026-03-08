@@ -1,0 +1,7 @@
+services:
+  backend:
+    environment:
+      - PYTHONPATH=/app:/extensions
+      - EXTENSIONS=${EXTENSIONS}
+    volumes:
+      - ${EXTENSIONS_HOST_PATH}:/extensions:ro

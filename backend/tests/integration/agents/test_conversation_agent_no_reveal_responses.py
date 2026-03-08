@@ -1,0 +1,77 @@
+from unittest.mock import AsyncMock
+
+from app.agents.conversations.conversation_agent import (
+    ConversationAgent,
+    ConversationAgentDeps,
+)
+from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
+from app.agents.prompts.import_prompts import render_prompt
+from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
+from app.models.influence import BASE_INFLUENCE_MAX
+from app.models.reveal import RevealLayer
+from app.services.context import ConvoContext
+from tests.fixtures.generate import (
+    default_character,
+    default_encounter,
+    default_influence,
+    default_player,
+)
+
+# Use default fixtures with modifications for this test scenario
+CHARACTER = default_character()
+PLAYER = default_player()
+INFLUENCE_STATE = default_influence(base=BASE_INFLUENCE_MAX)
+
+CONTEXT = ConvoContext(
+    encounter=default_encounter(),
+    influence=INFLUENCE_STATE,
+    reveals=[],  # No reveals for this test
+    memories=[],  # No memories for this test
+    messages=None,
+    player=PLAYER,
+    character=CHARACTER,
+    elevenlabs_token=None,
+)
+
+DEPENDENCIES = ConversationAgentDeps(
+    player=PLAYER,
+    character=CHARACTER,
+    context=CONTEXT,
+    user_id=1,
+    telemetry=lambda: None,
+)
+
+BASE_TEMPLATE_CONTEXT = {
+    "max_response_length": STANDARD_RESPONSE_WORD_LENGTH,
+    "character": CHARACTER,
+    "memories": [],
+    "reveals": [],
+    "player": PLAYER,
+    "encounter": CONTEXT.encounter,
+}
+
+RENDERED_INSTRUCTIONS = render_prompt("conversation_agent", BASE_TEMPLATE_CONTEXT)
+
+
+async def test_agent_handles_no_reveals():
+    agent = ConversationAgent(
+        instructions=RENDERED_INSTRUCTIONS,
+        conversation_store=AsyncMock(),
+        influence_calculator_agent=InfluenceCalculatorAgent(
+            system_prompt=render_prompt(
+                "influence_scoring_agent",
+                {
+                    "character": CHARACTER,
+                    "player": PLAYER,
+                    "encounter": CONTEXT.encounter,
+                },
+            )
+        ),
+    )
+
+    _, level, _ = await agent.chat(
+        player_transcript="Hi there, I'm wondering if you have any rooms available tonight?",
+        deps=DEPENDENCIES,
+    )
+    # No reveals linked to character should result in standard response
+    assert level == RevealLayer.STANDARD

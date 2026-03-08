@@ -1,0 +1,97 @@
+from enum import Enum
+from typing import List
+
+from pydantic import BaseModel, Field, field_validator
+
+from app.db.limits import REVEAL_CONTENT_LIMIT, TITLE_LIMIT
+
+
+class RevealLayer(Enum):
+    NEGATIVE = 0
+    STANDARD = 1
+    PRIVILEGED = 2
+    EXCLUSIVE = 3
+
+
+class DifficultyClass(Enum):
+    ALWAYS = 0
+    VERY_EASY = 5
+    EASY = 10
+    MEDIUM = 15
+    HARD = 20
+    VERY_HARD = 25
+    NEARLY_IMPOSSIBLE = 30
+
+
+REVEAL_DEFAULT_THRESHOLDS = {
+    RevealLayer.STANDARD: DifficultyClass.ALWAYS.value,
+    RevealLayer.PRIVILEGED: DifficultyClass.MEDIUM.value,
+    RevealLayer.EXCLUSIVE: DifficultyClass.HARD.value,
+}
+
+
+class RevealBase(BaseModel):
+    title: str = Field(..., description="Reveal title", max_length=TITLE_LIMIT)
+    character_ids: List[int]
+    level_1_content: str = Field(
+        ..., description="Standard reveal content", max_length=REVEAL_CONTENT_LIMIT
+    )
+    level_2_content: str | None = Field(
+        None, description="Privileged reveal content", max_length=REVEAL_CONTENT_LIMIT
+    )
+    level_3_content: str | None = Field(
+        None, description="Exclusive reveal content", max_length=REVEAL_CONTENT_LIMIT
+    )
+    standard_threshold: int = Field(
+        REVEAL_DEFAULT_THRESHOLDS[RevealLayer.STANDARD], description="Reveal threshold"
+    )
+    privileged_threshold: int = Field(
+        REVEAL_DEFAULT_THRESHOLDS[RevealLayer.PRIVILEGED],
+        description="Reveal threshold",
+    )
+    exclusive_threshold: int = Field(
+        REVEAL_DEFAULT_THRESHOLDS[RevealLayer.EXCLUSIVE], description="Reveal threshold"
+    )
+
+    @field_validator(
+        "standard_threshold", "privileged_threshold", "exclusive_threshold"
+    )
+    @classmethod
+    def validate_thresholds(cls, v):
+        if v is not None and not (
+            DifficultyClass.ALWAYS.value <= v <= DifficultyClass.NEARLY_IMPOSSIBLE.value
+        ):
+            raise ValueError(
+                f"Thresholds must be between {DifficultyClass.ALWAYS.value} and {DifficultyClass.NEARLY_IMPOSSIBLE.value}"
+            )
+        return v
+
+    def get_threshold(self, layer: RevealLayer) -> int:
+        """Get the effective threshold for a reveal layer, with fallback to defaults"""
+        if layer == RevealLayer.EXCLUSIVE and self.exclusive_threshold is not None:
+            return self.exclusive_threshold
+        elif layer == RevealLayer.PRIVILEGED and self.privileged_threshold is not None:
+            return self.privileged_threshold
+        elif layer == RevealLayer.STANDARD and self.standard_threshold is not None:
+            return self.standard_threshold
+        else:
+            return REVEAL_DEFAULT_THRESHOLDS[layer]
+
+
+class Reveal(RevealBase):
+    id: int
+
+
+class RevealCreate(RevealBase):
+    pass
+
+
+class RevealUpdate(RevealBase):
+    title: str | None = None
+    character_ids: List[int] | None = None
+    level_1_content: str | None = None
+    level_2_content: str | None = None
+    level_3_content: str | None = None
+    standard_threshold: int | None = None
+    privileged_threshold: int | None = None
+    exclusive_threshold: int | None = None

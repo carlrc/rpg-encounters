@@ -1,0 +1,91 @@
+import logging
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from app.auth.session import UserSession, get_session_user_id
+from app.data.world_store import WorldStore
+from app.dependencies import validate_current_user_world
+from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
+from app.models.world import World
+
+router = APIRouter(prefix="/api/worlds", tags=["worlds"])
+
+logger = logging.getLogger(__name__)
+
+
+@router.get("", response_model=List[World])
+async def get_worlds(user_id: int = Depends(get_session_user_id)):
+    """Get all worlds for the current user"""
+    try:
+        return await WorldStore(user_id=user_id).get_all()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get worlds for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.get("/{world_id}", response_model=World)
+async def get_world(
+    world_id: int, session: UserSession = Depends(validate_current_user_world)
+):
+    """Get a specific world by ID"""
+    try:
+        world = await WorldStore(user_id=session.user_id).get_by_id(world_id)
+        if not world:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
+        return world
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get world {world_id} for user {session.user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.post("", response_model=World)
+async def create_world(
+    session: UserSession = Depends(validate_current_user_world),
+):
+    """Create a new world for the current user"""
+    try:
+        return await WorldStore(user_id=session.user_id).create()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create world for user {session.user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.delete("/{world_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_world(
+    world_id: int, session: UserSession = Depends(validate_current_user_world)
+):
+    """Delete a world"""
+    try:
+        success = await WorldStore(user_id=session.user_id).delete(world_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(
+            f"Failed to delete world {world_id} for user {session.user_id}: {e}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )

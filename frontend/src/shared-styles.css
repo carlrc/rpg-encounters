@@ -1,0 +1,63 @@
+/* frontend/src/shared-styles.css */
+
+/* OpenAI-inspired minimal palette adapted for D&D AI app use */
+:root {
+  /* Base */
+  --color-background: #ffffff;
+  /* clean white */
+  --color-text-primary: #080808;
+  /* near-black for max contrast */
+  --color-text-secondary: #666666;
+  /* subdued text */
+  --color-border: #a0a0a0;
+  /* subtle borders/dividers */
+
+  /* Brand Accent - Deep Black for sophisticated D&D feel */
+  --color-accent: #0d0d0d;
+  /* Deep Black */
+
+  /* Alpha variations for hover states and backgrounds */
+  --color-accent-alpha-5: rgba(13, 13, 13, 0.05);
+  --color-accent-alpha-10: rgba(13, 13, 13, 0.1);
+  --color-accent-alpha-30: rgba(13, 13, 13, 0.3);
+  --color-accent-alpha-40: rgba(13, 13, 13, 0.4);
+
+  /* Semantic States */
+  --color-success: #008080;
+  /* Teal */
+  --color-warning: #ffb300;
+  /* Amber */
+  --color-error: #dc143c;
+  /* Crimson */
+
+  /* Optional neutrals */
+  --color-neutral-light: #f5f5f5;
+  --color-neutral-dark: #2f2f2f;
+}
+
+/* Example usage */
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+a,
+button {
+  color: var(--color-accent);
+}
+
+.error {
+  color: var(--color-error);
+}
+
+.warning {
+  color: var(--color-warning);
+}
+
+.success {
+  color: var(--color-success);
+}
+
+.border {
+  border: 1px solid var(--color-border);
+}

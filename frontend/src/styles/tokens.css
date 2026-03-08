@@ -1,0 +1,272 @@
+/* ===== CONSOLIDATED DESIGN TOKENS ===== */
+/* Single source of truth for all design variables */
+
+:root {
+  /* ===== OPENAI-INSPIRED MINIMAL COLOR PALETTE ===== */
+  /* Clean, professional color system with D&D mystical aesthetic */
+
+  /* Primary Colors - Deep Black for sophisticated D&D feel */
+  --color-primary: #0d0d0d;
+  --primary-color: #0d0d0d;
+  /* Legacy support */
+  --primary-light: #1a1a1a;
+  --primary-dark: #080808;
+  --primary-darker: #000000;
+
+  /* Primary Color Alpha Variations - for hover states and backgrounds */
+  --primary-alpha-05: rgba(13, 13, 13, 0.05);
+  --primary-alpha-10: rgba(13, 13, 13, 0.1);
+  --primary-alpha-30: rgba(13, 13, 13, 0.3);
+  --primary-alpha-40: rgba(13, 13, 13, 0.4);
+
+  /* Status Colors - Clean and modern semantic colors */
+  --color-success: #0d0d0d;
+  --success-color: #0d0d0d;
+  /* Legacy support */
+  --success-dark: #080808;
+  --success-darker: #000000;
+
+  --color-danger: #dc143c;
+  --danger-color: #dc143c;
+  /* Legacy support */
+  --danger-dark: #b8102e;
+  --danger-darker: #9e1a2a;
+
+  --color-warning: #c49100; /* Muted amber */
+  --warning-color: #c49100; /* Muted amber */
+  /* Legacy support */
+  --warning-dark: #9a6f00; /* Deeper brass */
+
+  --color-info: #2c2c2c;
+  --info-color: #2c2c2c;
+  /* Legacy support */
+
+  /* Addition Accent - soft green, very transparent variants */
+  --color-addition: #22a66f; /* base green */
+  --addition-color: #22a66f; /* alias */
+  --addition-dark: #1a8a5c; /* deeper green */
+  --addition-alpha-05: rgba(34, 166, 111, 0.05);
+  --addition-alpha-10: rgba(34, 166, 111, 0.1);
+  --addition-alpha-15: rgba(34, 166, 111, 0.15); /* very transparent */
+  --addition-alpha-20: rgba(34, 166, 111, 0.2);
+
+  /* Neutral Colors - Stronger contrast for better hierarchy */
+  --color-secondary: #2f2f2f;
+  --secondary-color: #2f2f2f;
+  /* Legacy support */
+  --secondary-dark: #252525;
+  --secondary-darker: #1a1a1a;
+  /* Light variants for secondary accents */
+  --secondary-light: #cfcfcf; /* light gray for subtle accents */
+  --secondary-lighter: #e6e6e6; /* very light gray backgrounds */
+
+  /* Standardized Gray Scale - Replaces hardcoded grays across components */
+  --gray-50: #f8f9fa;
+  /* Very light backgrounds, input backgrounds */
+  --gray-100: #e9ecef;
+  /* Light borders, disabled states */
+  --gray-200: #dee2e6;
+  /* Default borders */
+  --gray-300: #adb5bd;
+  /* Hover borders */
+  --gray-400: #868e96;
+  /* Muted text, placeholders */
+  --gray-500: #6c757d;
+  /* Secondary text */
+  --gray-600: #495057;
+  /* Primary text alternatives */
+  --gray-700: #383d41;
+  /* Dark text */
+  --gray-800: #2c3e50;
+  /* Very dark text */
+
+  /* Semantic State Colors - Centralized component states */
+  --color-bias-positive: var(--success-color);
+  --color-bias-positive-bg: #d4edda;
+  --color-bias-positive-border: #c3e6cb;
+  --color-bias-positive-text: #155724;
+
+  --color-bias-negative: var(--danger-color);
+  --color-bias-negative-bg: #f8d7da;
+  --color-bias-negative-border: #f5c6cb;
+  --color-bias-negative-text: #721c24;
+
+  --color-bias-neutral: var(--secondary-color);
+  --color-bias-neutral-bg: #e2e3e5;
+  --color-bias-neutral-border: #d6d8db;
+  --color-bias-neutral-text: #383d41;
+
+  /* Voice Selector States */
+  --color-voice-selected: var(--primary-color);
+  --color-voice-selected-bg: var(--primary-alpha-05);
+  --color-voice-hover: var(--primary-alpha-10);
+  --color-voice-add-btn: var(--success-color);
+  --color-voice-add-btn-hover: var(--success-dark);
+
+  /* Encounter States */
+  --color-encounter-active: var(--primary-color);
+  --color-encounter-hover: var(--primary-alpha-05);
+  --color-encounter-focus: var(--primary-alpha-30);
+
+  /* Reveal Progress States */
+  --color-reveal-locked: var(--gray-100);
+  --color-reveal-locked-text: var(--gray-500);
+  --color-reveal-partial: #fff3cd;
+  --color-reveal-partial-text: #856404;
+  --color-reveal-complete: #d4edda;
+  --color-reveal-complete-text: #155724;
+
+  /* Text Colors - High contrast for maximum readability */
+  --text-primary: #080808;
+  --text-secondary: #666666;
+  --text-muted: #666666;
+  --text-label: #080808;
+
+  /* Background Colors - Clean minimal backgrounds */
+  --bg-white: #ffffff;
+  --bg-light: #f5f5f5;
+  --bg-input: #f5f5f5;
+  --bg-tag-display: #f5f5f5;
+
+  /* Border Colors - Unified subtle border system */
+  --border-light: #a0a0a0;
+  --border-default: #a0a0a0;
+  --border-input: #a0a0a0;
+  --border-focus: var(--primary-color);
+  --border-dashed: #a0a0a0;
+
+  /* ===== SHADOWS ===== */
+
+  /* Card Shadows */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 8px 25px rgba(0, 0, 0, 0.12);
+
+  /* Button Shadows - Updated for deep black color palette */
+  --shadow-button: 0 2px 4px var(--primary-alpha-30);
+  --shadow-button-hover: 0 4px 8px var(--primary-alpha-40);
+  --shadow-success: 0 2px 4px rgba(13, 13, 13, 0.3);
+  --shadow-success-hover: 0 4px 8px rgba(13, 13, 13, 0.4);
+  --shadow-danger: 0 2px 4px rgba(220, 20, 60, 0.3);
+  --shadow-danger-hover: 0 4px 8px rgba(220, 20, 60, 0.4);
+  --shadow-secondary: 0 2px 4px rgba(47, 47, 47, 0.3);
+  --shadow-secondary-hover: 0 4px 8px rgba(47, 47, 47, 0.4);
+
+  /* Component-specific shadows using new color system */
+  --shadow-encounter-focus: 0 0 0 2px var(--primary-alpha-30);
+  --shadow-voice-hover: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-reveal-hover: 0 2px 4px var(--primary-alpha-30);
+
+  /* ===== SPACING SCALE ===== */
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-xxl: 24px;
+
+  /* Legacy spacing support */
+  --space-1: 0.25rem;
+  /* 4px */
+  --space-2: 0.5rem;
+  /* 8px */
+  --space-3: 0.75rem;
+  /* 12px */
+  --space-4: 1rem;
+  /* 16px */
+
+  /* ===== BORDER RADIUS SCALE ===== */
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-round: 50%;
+  --radius-pill: 16px;
+
+  /* Legacy radius support */
+  --radius-2: 0.375rem;
+  /* 6px */
+  --radius-3: 0.5rem;
+  /* 8px */
+
+  /* ===== TYPOGRAPHY SCALE ===== */
+
+  /* Font Sizes */
+  --font-size-xs: 0.75rem;
+  /* 12px */
+  --font-size-sm: 0.875rem;
+  /* 14px */
+  --font-size-base: 0.9rem;
+  /* 14.4px */
+  --font-size-md: 0.95rem;
+  /* 15.2px */
+  --font-size-lg: 1rem;
+  /* 16px */
+  --font-size-xl: 1.2rem;
+  /* 19.2px */
+  --font-size-xxl: 1.5rem;
+  /* 24px */
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Font Families */
+  --font-sans: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  /* ===== ANIMATION & TRANSITIONS ===== */
+
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+
+  /* ===== LAYOUT VARIABLES ===== */
+
+  /* Container & Layout */
+  --max-content-width: 1400px;
+  --sidebar-width: 200px;
+  --header-height: 70px;
+
+  /* Z-Index Scale */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 500;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1010;
+  --z-tooltip: 1020;
+
+  /* ===== BREAKPOINT VARIABLES ===== */
+  /* Enhanced breakpoint system for better responsive design */
+  --breakpoint-mobile: 480px;
+  --breakpoint-tablet-portrait: 768px;
+  --breakpoint-tablet-landscape: 1024px;
+  --breakpoint-desktop: 1280px;
+}
+
+/* ===== TABLET-SPECIFIC ENHANCEMENTS ===== */
+
+/* iPad portrait optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+  :root {
+    --spacing-touch-target: 44px;
+    --spacing-tablet: calc(var(--spacing-xl) * 1.2);
+    --tablet-content-padding: calc(var(--spacing-xxl) * 1.2);
+  }
+}
+
+/* iPad landscape + desktop */
+@media (min-width: 1024px) {
+  :root {
+    --spacing-content: calc(var(--spacing-xxl) * 1.5);
+    --desktop-content-spacing: calc(var(--spacing-xxl) * 1.8);
+  }
+}
+
+/* ===== DARK MODE SUPPORT (Future) ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Dark mode tokens can be added here in the future */
+  }
+}

@@ -1,0 +1,37 @@
+from enum import Enum
+
+
+class Class(Enum):
+    BARBARIAN = "Barbarian"
+    BARD = "Bard"
+    CLERIC = "Cleric"
+    COMMONER = "Commoner"
+    DRUID = "Druid"
+    FIGHTER = "Fighter"
+    MONK = "Monk"
+    PALADIN = "Paladin"
+    RANGER = "Ranger"
+    ROGUE = "Rogue"
+    SORCERER = "Sorcerer"
+    WARLOCK = "Warlock"
+    WIZARD = "Wizard"
+
+
+class Abilities(Enum):
+    CHARISMA = "Charisma"
+
+
+class Skills(Enum):
+    DECEPTION = "Deception"
+    INTIMIDATION = "Intimidation"
+    PERFORMANCE = "Performance"
+    PERSUASION = "Persuasion"
+
+
+VALID_CLASSES = [class_name.value for class_name in Class]
+VALID_ABILITIES = [ability.value for ability in Abilities]
+VALID_SKILLS = [skill.value for skill in Skills]
+ABILITY_MODIFIER_MIN = -5
+ABILITY_MODIFIER_MAX = 10
+SKILL_MODIFIER_MIN = -5
+SKILL_MODIFIER_MAX = 25

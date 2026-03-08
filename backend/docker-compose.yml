@@ -1,0 +1,97 @@
+services:
+  backend:
+    image: ${ECR_REPO_URI}
+    container_name: rpg-encounters-backend
+    env_file:
+      - .env
+    environment:
+      # LLMs
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEFAULT_MODEL_TEMP=${DEFAULT_MODEL_TEMP}
+      - DEFAULT_MODEL_NAME=${DEFAULT_MODEL_NAME}
+      # TTS
+      - ELEVENLABS_TTS_API_KEY=${ELEVENLABS_TTS_API_KEY} # Only used for integration testing
+      - GOOGLE_CLOUD_TTS_API_KEY=${GOOGLE_CLOUD_TTS_API_KEY}
+      - DEFAULT_TTS_PROVIDER=${DEFAULT_TTS_PROVIDER}
+      # DB
+      - DATABASE_URL=${DATABASE_URL}
+      # TELEMETRY
+      - LANGFUSE_TRACING_ENABLED=${LANGFUSE_TRACING_ENABLED}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY}
+      - LANGFUSE_HOST=${LANGFUSE_HOST}
+      # System
+      - ENVIRONMENT=${ENVIRONMENT} # local, production
+      - SERVICE=${SERVICE}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - GIT_SHA=${GIT_SHA}
+      - ECR_REPO_URI=${ECR_REPO_URI}
+      - GRPC_VERBOSITY=${GRPC_VERBOSITY}
+      - DISABLE_RATE_LIMITING=${DISABLE_RATE_LIMITING}
+      - AWS_REGION=${AWS_REGION}
+      # Moderation
+      - SKIP_MODERATION=${SKIP_MODERATION}
+      - OPEN_AI_MODERATION_THRESHOLD=${OPEN_AI_MODERATION_THRESHOLD}
+      # Session management
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY}
+      # Cache
+      - REDIS_URL=${REDIS_URL}
+      - BILLING_CACHE_TTL_SECONDS=${BILLING_CACHE_TTL_SECONDS}
+      - BILLING_FLUSH_INTERVAL_SECONDS=${BILLING_FLUSH_INTERVAL_SECONDS}
+      - BILLING_IGNORE_BALANCE_CHECK=${BILLING_IGNORE_BALANCE_CHECK}
+      # HTTPS Configuration (disabled for local development)
+      - USE_HTTPS=${USE_HTTPS}
+      # Transcription
+      - TRANSCRIPTION_POOL_SIZE=${TRANSCRIPTION_POOL_SIZE}
+      # Email
+      - LOG_MAGIC_LINK=${LOG_MAGIC_LINK} # For getting raw login token and avoid email
+      - SEND_EMAIL=${SEND_EMAIL}
+      - SES_IDENTITY=${SES_IDENTITY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rpg-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    container_name: rpg-encounters-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rpg-network
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: rpg-encounters-redis-insight
+    restart: always
+    environment:
+      - RI_REDIS_HOST=redis
+      - RI_REDIS_PORT=6379
+      - RI_REDIS_ALIAS=rpg-encounters-redis
+      - RI_REDIS_DB=0
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight_data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - rpg-network
+
+networks:
+  rpg-network:
+    driver: bridge
+
+volumes:
+  redisinsight_data:
