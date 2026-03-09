@@ -1,5 +1,28 @@
 <template>
   <div class="login-page">
+    <SharedEncounterPopup
+      :is-open="showSignupClosedPopup"
+      title="Registration Closed"
+      close-aria-label="Close signups closed popup"
+      popup-width="90%"
+      popup-max-width="460px"
+      popup-max-height="80vh"
+      @close="closeSignupClosedPopup"
+    >
+      <div class="shared-popup-body">
+        <p class="shared-popup-message">
+          Registration is not open right now. If you already have an account, request a login link
+          below.
+        </p>
+        <button
+          type="button"
+          class="shared-btn shared-btn-primary shared-popup-action"
+          @click="closeSignupClosedPopup"
+        >
+          Close
+        </button>
+      </div>
+    </SharedEncounterPopup>
     <div class="login-container">
       <div class="shared-card">
         <form v-if="!emailSent" @submit.prevent="handleSubmit" class="shared-form">
@@ -22,8 +45,8 @@
         </form>
 
         <div v-else class="success-message">
-          <p>✓ Login link sent!</p>
-          <p>Please check your email and click the link to log in.</p>
+          <p>If an account exists for that email, we'll send a login link shortly.</p>
+          <p>Please check your email.</p>
         </div>
       </div>
     </div>
@@ -34,11 +57,17 @@
   import { ref } from 'vue'
   import { serializeError } from 'serialize-error'
   import { requestMagicLink } from '../services/api'
+  import SharedEncounterPopup from '../components/base/SharedEncounterPopup.vue'
   import '@/components/shared.css'
 
   const email = ref('')
   const loading = ref(false)
   const emailSent = ref(false)
+  const showSignupClosedPopup = ref(true)
+
+  const closeSignupClosedPopup = () => {
+    showSignupClosedPopup.value = false
+  }
 
   const handleSubmit = async () => {
     if (!email.value || loading.value) return

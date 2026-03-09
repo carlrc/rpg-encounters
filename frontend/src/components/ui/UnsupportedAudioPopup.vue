@@ -8,13 +8,11 @@
     popup-max-height="80vh"
     @close="emitClose"
   >
-    <div class="unsupported-audio-body">
-      <p class="unsupported-audio-message">
-        Device not supported. Try updating or switching browsers.
-      </p>
+    <div class="shared-popup-body">
+      <p class="shared-popup-message">Device not supported. Try updating or switching browsers.</p>
       <button
         type="button"
-        class="shared-btn shared-btn-primary unsupported-audio-close"
+        class="shared-btn shared-btn-primary shared-popup-action"
         @click="emitClose"
       >
         Close
@@ -38,21 +36,4 @@
   const emitClose = () => emit('close')
 </script>
 
-<style scoped>
-  .unsupported-audio-body {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .unsupported-audio-message {
-    margin: 0;
-    color: var(--gray-700);
-    line-height: 1.5;
-  }
-
-  .unsupported-audio-close {
-    width: 100%;
-  }
-</style>
+<style scoped></style>

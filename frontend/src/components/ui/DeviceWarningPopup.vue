@@ -1,15 +1,15 @@
 <template>
   <SharedEncounterPopup
     :is-open="isOpen"
-    :title="title"
-    close-aria-label="Close insufficient tokens popup"
+    title="Device Warning"
+    close-aria-label="Close device warning popup"
     popup-width="90%"
     popup-max-width="460px"
     popup-max-height="80vh"
     @close="emitClose"
   >
     <div class="shared-popup-body">
-      <p class="shared-popup-message">{{ message }}</p>
+      <p class="shared-popup-message">The application was designed for tablets and desktops.</p>
       <button
         type="button"
         class="shared-btn shared-btn-primary shared-popup-action"
@@ -28,14 +28,6 @@
     isOpen: {
       type: Boolean,
       default: false,
-    },
-    title: {
-      type: String,
-      default: 'Insufficient Tokens',
-    },
-    message: {
-      type: String,
-      default: 'Purchase more tokens to continue.',
     },
   })
 
