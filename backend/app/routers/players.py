@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.rate_limiter import check_rate_limit
 from app.auth.session import PlayerSession, UserSession
+from app.config import get_public_frontend_url
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
 from app.data.player_magic_link_store import (
@@ -21,7 +22,6 @@ from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.encounter import PlayerEncounterResponse
 from app.models.player import Player, PlayerCreate, PlayerUpdate
 from app.models.player_magic_link import PlayerLoginResponse, PlayerMagicLinkCreate
-from app.config import get_public_frontend_url
 from app.utils import get_or_throw
 
 router = APIRouter(prefix="/api/players", tags=["players"])

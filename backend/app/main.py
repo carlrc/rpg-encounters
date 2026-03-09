@@ -10,8 +10,6 @@ from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-import os
-
 from app.auth.session import IS_LAN, IS_LOCAL, SESSION_CONFIG
 from app.clients.redis_client import validate_redis_connection
 from app.routers import (
