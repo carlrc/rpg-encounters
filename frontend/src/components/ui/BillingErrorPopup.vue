@@ -8,11 +8,11 @@
     popup-max-height="80vh"
     @close="emitClose"
   >
-    <div class="billing-error-body">
-      <p class="billing-error-message">{{ message }}</p>
+    <div class="shared-popup-body">
+      <p class="shared-popup-message">{{ message }}</p>
       <button
         type="button"
-        class="shared-btn shared-btn-primary billing-error-close"
+        class="shared-btn shared-btn-primary shared-popup-action"
         @click="emitClose"
       >
         Close
@@ -44,21 +44,4 @@
   const emitClose = () => emit('close')
 </script>
 
-<style scoped>
-  .billing-error-body {
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .billing-error-message {
-    margin: 0;
-    color: var(--gray-700);
-    line-height: 1.5;
-  }
-
-  .billing-error-close {
-    width: 100%;
-  }
-</style>
+<style scoped></style>
