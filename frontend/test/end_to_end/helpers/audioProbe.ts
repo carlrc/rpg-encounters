@@ -14,6 +14,7 @@ export const installWebSocketProbe = async (page) => {
       inboundBlobCount: 0,
       inboundTextMessages: [],
       closeEvents: [],
+      connections: [],
     }
 
     const NativeWebSocket = window.WebSocket
@@ -21,6 +22,7 @@ export const installWebSocketProbe = async (page) => {
       constructor(url, protocols) {
         super(url, protocols)
         window.__wsProbe.wsUrls.push(String(url))
+        window.__wsProbe.connections.push(this)
         this.addEventListener('message', (event) => {
           if (event.data instanceof Blob) {
             window.__wsProbe.inboundBlobCount += 1
@@ -65,6 +67,28 @@ export const readWebSocketProbe = async (page) => {
     inboundTextMessages: window.__wsProbe?.inboundTextMessages || [],
     closeEvents: window.__wsProbe?.closeEvents || [],
   }))
+}
+
+export const injectWebSocketTextMessage = async (
+  page,
+  { text, wsPathRegex = DEFAULT_CONVERSATION_WS_REGEX } = {}
+) => {
+  return page.evaluate(
+    ({ text, wsPathRegexSource, wsPathRegexFlags }) => {
+      const regex = new RegExp(wsPathRegexSource, wsPathRegexFlags)
+      const connections = window.__wsProbe?.connections || []
+      const targets = connections.filter((ws) => regex.test(String(ws.url)))
+      targets.forEach((ws) => {
+        ws.dispatchEvent(new MessageEvent('message', { data: text }))
+      })
+      return targets.length
+    },
+    {
+      text,
+      wsPathRegexSource: wsPathRegex.source,
+      wsPathRegexFlags: wsPathRegex.flags,
+    }
+  )
 }
 
 export const waitForAudioCompletion = async (

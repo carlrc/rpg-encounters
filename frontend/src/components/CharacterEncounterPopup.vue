@@ -134,12 +134,6 @@
   </SharedEncounterPopup>
 
   <BillingErrorPopup :is-open="showBillingErrorPopup" @close="closeBillingErrorPopup" />
-  <BillingErrorPopup
-    :is-open="showModerationPopup"
-    :title="moderationPopupTitle"
-    :message="moderationPopupMessage"
-    @close="closeModerationPopup"
-  />
 </template>
 
 <script>
@@ -198,9 +192,6 @@
       const players = computed(() => props.assignedPlayers || [])
       const streamAudio = ref(null)
       const showBillingErrorPopup = ref(false)
-      const showModerationPopup = ref(false)
-      const moderationPopupTitle = ref('Moderation Warning')
-      const moderationPopupMessage = ref('Your message was blocked.')
 
       // Encounter state
       const selectedPlayerId = ref('')
@@ -234,11 +225,6 @@
         },
         onBillingError: () => {
           showBillingErrorPopup.value = true
-        },
-        onModeration: (json) => {
-          moderationPopupTitle.value = json.title || 'Moderation Warning'
-          moderationPopupMessage.value = json.message || 'Your message was blocked.'
-          showModerationPopup.value = true
         },
       })
 
@@ -372,17 +358,12 @@
         selectedSkill.value = ''
         diceRoll.value = null
         showBillingErrorPopup.value = false
-        showModerationPopup.value = false
 
         emit('close')
       }
 
       const closeBillingErrorPopup = () => {
         showBillingErrorPopup.value = false
-      }
-
-      const closeModerationPopup = () => {
-        showModerationPopup.value = false
       }
 
       const resetChallengeState = () => {
@@ -633,7 +614,6 @@
         isPreviewMode,
         closePopup,
         closeBillingErrorPopup,
-        closeModerationPopup,
         resetConversationHistory,
         toggleRecording,
         toggleChallengeMode,
@@ -647,9 +627,6 @@
         fetchConversationData,
         streamAudio,
         showBillingErrorPopup,
-        showModerationPopup,
-        moderationPopupTitle,
-        moderationPopupMessage,
       }
     },
   }

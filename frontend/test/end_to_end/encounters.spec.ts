@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe'
+import {
+  assertConversationAudioRoundtrip,
+  injectWebSocketTextMessage,
+  installWebSocketProbe,
+  readWebSocketProbe,
+} from './helpers/audioProbe'
 import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle'
 import { makeScopedSuffix } from './helpers/entityNaming'
 import { applyDmSession, type DmSession } from './helpers/bootstrapDm'
@@ -707,6 +712,120 @@ test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes pro
       })}. Root error: ${error.message}`
     )
   }
+})
+
+test('ENCOUNTERS-LLM-SLOW-01 shows warning toast when llm_slow is received', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Audio talking test runs only in dedicated encounters audio command.'
+  )
+  test.setTimeout(90_000)
+  await setSeededDmBilling({
+    email: dmSession.email,
+    availableTokens: 5000,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+  await installWebSocketProbe(page)
+
+  await page.goto('/encounters')
+  await waitForEncountersGet(page)
+  await expect(page).toHaveURL(/\/encounters/)
+
+  const { firstPlayerOption } = await findEncounterNodeWithCharacterAndPlayerOptions(page)
+  const playerSelect = page.locator('#player-select')
+  await playerSelect.selectOption(firstPlayerOption)
+
+  await runSpeakStopLifecycle(page, { clickWithEvaluate: true })
+
+  await expect
+    .poll(async () => {
+      const probe = await readWebSocketProbe(page)
+      return probe.wsUrls.some((url) => /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/.test(url))
+    })
+    .toBe(true)
+
+  await injectWebSocketTextMessage(page, {
+    text: JSON.stringify({ type: 'llm_slow', model: 'TestModel' }),
+    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+  })
+
+  await expect(page.locator('.notification-warning .notification-message')).toContainText(
+    'Model TestModel is responding slower than usual'
+  )
+
+  await assertConversationAudioRoundtrip(page, {
+    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+    timeoutMs: 60_000,
+  })
+
+  await assertReturnedToReadyState(page, {
+    readyTextPattern: /Tap Speak/,
+    timeoutMs: 60_000,
+  })
+})
+
+test('ENCOUNTERS-MODERATION-WARNING-01 shows warning toast when moderation_blocked is received', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Audio talking test runs only in dedicated encounters audio command.'
+  )
+  test.setTimeout(90_000)
+  await setSeededDmBilling({
+    email: dmSession.email,
+    availableTokens: 5000,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+  await installWebSocketProbe(page)
+
+  await page.goto('/encounters')
+  await waitForEncountersGet(page)
+  await expect(page).toHaveURL(/\/encounters/)
+
+  const { firstPlayerOption } = await findEncounterNodeWithCharacterAndPlayerOptions(page)
+  const playerSelect = page.locator('#player-select')
+  await playerSelect.selectOption(firstPlayerOption)
+
+  await runSpeakStopLifecycle(page, { clickWithEvaluate: true })
+
+  await expect
+    .poll(async () => {
+      const probe = await readWebSocketProbe(page)
+      return probe.wsUrls.some((url) => /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/.test(url))
+    })
+    .toBe(true)
+
+  await injectWebSocketTextMessage(page, {
+    text: JSON.stringify({ type: 'moderation_blocked', message: 'Your message was blocked.' }),
+    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+  })
+
+  await expect(page.locator('.notification-warning .notification-message')).toContainText(
+    'Your message was blocked.'
+  )
+
+  await assertConversationAudioRoundtrip(page, {
+    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+    timeoutMs: 60_000,
+  })
+
+  await assertReturnedToReadyState(page, {
+    readyTextPattern: /Tap Speak/,
+    timeoutMs: 60_000,
+  })
 })
 
 test('ENCOUNTERS-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits', async ({

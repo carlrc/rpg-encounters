@@ -22,6 +22,7 @@ from app.services.ability_challenge import (
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.billing_responses import send_insufficient_tokens_response
 from app.services.context import get_conversation_context
+from app.services.llm_latency import llm_latency_notice
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.transcription import transcribe_and_moderate
 from app.services.user_token import UserTokenService
@@ -157,16 +158,17 @@ async def challenge_character(
             agent = ChallengeAgent(instructions=rendered_instructions)
 
             # Generate LLM response
-            response = await agent.chat(
-                player_transcript=transcription,
-                deps=ChallengeAgentDeps(
-                    encounter=ctx.encounter,
-                    telemetry=lambda: get_client().update_current_span(
-                        name="challenge-agent",
-                        metadata=agent.metadata,
+            async with llm_latency_notice(websocket=websocket):
+                response = await agent.chat(
+                    player_transcript=transcription,
+                    deps=ChallengeAgentDeps(
+                        encounter=ctx.encounter,
+                        telemetry=lambda: get_client().update_current_span(
+                            name="challenge-agent",
+                            metadata=agent.metadata,
+                        ),
                     ),
-                ),
-            )
+                )
 
             # Force overall trace output to be LLM response
             get_client().update_current_trace(output=response)

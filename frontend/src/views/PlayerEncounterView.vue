@@ -180,12 +180,6 @@
     </div>
 
     <BillingErrorPopup :is-open="showBillingErrorPopup" @close="closeBillingErrorPopup" />
-    <BillingErrorPopup
-      :is-open="showModerationPopup"
-      :title="moderationPopupTitle"
-      :message="moderationPopupMessage"
-      @close="closeModerationPopup"
-    />
   </div>
 </template>
 
@@ -232,9 +226,6 @@
       const diceRoll = ref(null)
       const influenceScore = ref(null)
       const showBillingErrorPopup = ref(false)
-      const showModerationPopup = ref(false)
-      const moderationPopupTitle = ref('Moderation Warning')
-      const moderationPopupMessage = ref('Your message was blocked.')
 
       let mobileViewportMediaQuery = null
 
@@ -259,11 +250,6 @@
         },
         onBillingError: () => {
           showBillingErrorPopup.value = true
-        },
-        onModeration: (json) => {
-          moderationPopupTitle.value = json.title || 'Moderation Warning'
-          moderationPopupMessage.value = json.message || 'Your message was blocked.'
-          showModerationPopup.value = true
         },
       })
 
@@ -346,10 +332,6 @@
 
       const closeBillingErrorPopup = () => {
         showBillingErrorPopup.value = false
-      }
-
-      const closeModerationPopup = () => {
-        showModerationPopup.value = false
       }
 
       const toggleMobileSkillMenu = () => {
@@ -484,10 +466,6 @@
         toggleRecording,
         showBillingErrorPopup,
         closeBillingErrorPopup,
-        showModerationPopup,
-        moderationPopupTitle,
-        moderationPopupMessage,
-        closeModerationPopup,
       }
     },
   }

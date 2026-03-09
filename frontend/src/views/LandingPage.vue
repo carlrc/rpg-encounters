@@ -24,7 +24,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              Code
+              Open Source
             </a>
           </div>
 

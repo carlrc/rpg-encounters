@@ -23,6 +23,16 @@ const RECORDER_MIME_CANDIDATES = [
 
 const PLAYBACK_MIME_CANDIDATES = ['audio/mp4; codecs=mp4a.40.2', 'audio/mp4']
 
+type LlmSlowNotice = {
+  type: 'llm_slow'
+  model: string
+}
+
+type ModerationBlockedNotice = {
+  type: 'moderation_blocked'
+  message: string
+}
+
 export const pickRecorderMimeType = () => {
   if (!window.MediaRecorder || typeof MediaRecorder.isTypeSupported !== 'function') return ''
   return RECORDER_MIME_CANDIDATES.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || ''
@@ -48,11 +58,10 @@ export function useWebSocketAudioHandler({
   audioElementRef,
   onConversationData,
   onBillingError,
-  onModeration,
   worldId,
 }) {
   const router = useRouter()
-  const { showError } = useNotification()
+  const { showError, showWarning } = useNotification()
 
   // Internal state
   const isRecording = ref(false)
@@ -63,6 +72,7 @@ export function useWebSocketAudioHandler({
   const mediaStream = ref(null)
   const streamPlayer = ref(null)
   let playbackAudioEl = null
+  let hasShownLlmSlowNotice = false
   const playbackHandlers = {
     pause: () => {
       if (isProcessing.value) {
@@ -154,11 +164,14 @@ export function useWebSocketAudioHandler({
   /**
    * Check if message is moderation warning
    */
-  const isModerationBlocked = (v) =>
-    v &&
-    v.type === 'moderation_blocked' &&
-    typeof v.title === 'string' &&
-    typeof v.message === 'string'
+  const isModerationBlocked = (v): v is ModerationBlockedNotice =>
+    v && v.type === 'moderation_blocked' && typeof v.message === 'string'
+
+  /**
+   * Check if message is LLM slow notice
+   */
+  const isLlmSlowNotice = (v): v is LlmSlowNotice =>
+    v && v.type === 'llm_slow' && typeof v.model === 'string'
 
   /**
    * Control handlers for WebSocket messages
@@ -206,7 +219,7 @@ export function useWebSocketAudioHandler({
       }
 
       // Assume it's JSON
-      let json = null
+      let json: unknown = null
       try {
         json = JSON.parse(data)
       } catch (error) {
@@ -221,8 +234,16 @@ export function useWebSocketAudioHandler({
         return
       }
 
-      if (isModerationBlocked(json) && onModeration) {
-        onModeration(json)
+      if (isModerationBlocked(json)) {
+        showWarning(json.message)
+        return
+      }
+
+      if (isLlmSlowNotice(json)) {
+        if (!hasShownLlmSlowNotice) {
+          showWarning(`Model ${json.model} is responding slower than usual...`)
+          hasShownLlmSlowNotice = true
+        }
         return
       }
 

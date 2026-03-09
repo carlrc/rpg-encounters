@@ -47,14 +47,13 @@ async def handle_moderation_response(
             "moderated_response_model": response.model,
         },
     )
-    # TODO: Choose whether to allow default messages or entirely block
-    # await websocket.send_json(
-    #     {
-    #         "type": "moderation_blocked",
-    #         "title": "Moderation Warning",
-    #         "message": "Your message was blocked.",
-    #     }
-    # )
+
+    await websocket.send_json(
+        {
+            "type": "moderation_blocked",
+            "message": "Your message was blocked due to inappropriate language.",
+        }
+    )
     await stream_tts_audio(
         websocket=websocket,
         tts_provider=create_tts_provider(
