@@ -7,7 +7,7 @@ RPG encounter's goal is to use AI characters to create interactions that are ent
 
 ### 👤 Influence
 
-Players gain and loose influence towards characters based on what they say. These influence adjustments are controlled at character creation time, where you decide what the characters biases are (e.g., they don't like elves) and what their core motivation is (e.g., make money). Whatever a player says is scored based on a variety of factors, resulting in **+/-** in influence.
+Players gain and loose influence towards characters based on what they say. How a character interprets what players say is controlled at character creation time, where you decide what their biases are (e.g., they don't like elves) and what their core motivation is (e.g., make money). Whatever a player says is scored based on a variety of factors, resulting in **+/-** in influence.
 
 ### 🧠 Reveals
 
@@ -19,7 +19,9 @@ The standard method of interacting with a character, which is free-form role pla
 
 ### 🎲 Challenges
 
-Players can choose to do a Charisma based ability checks and use any charisma based skill modifier they have to challenge the character for information. If the roll + modifiers breaches the set reveal thresholds, they will divulge their secrets to the player.
+Players can choose to do a Charisma based ability checks and use any charisma based skill modifier they have to challenge the character for information. If the roll + modifiers breaches the set DC thresholds, they will divulge their secrets to the player.
+
+---
 
 </details>
 
@@ -34,7 +36,7 @@ From the `/players` screen, create player profiles which match the attributes an
 
 From the `/characters` screen, create the characters which players will be able to interact with. Their personality is composed of their `background` and `motivation`, and will dictate how they interpret your players messages. You can control how they speak to players by either setting a `communication style` preset or creating your own.
 
-Most importantly, make sure you set their `character biases`. These biases will control how friendly they are to your players and will influence what reveals are available to players.
+Most importantly, make sure you set their `character biases`. These biases will control how friendly they are to your players and will influence what reveals are available to players. **Characters with a negative perception of a players will treat them quite poorly.** Have fun with it!
 
 ### 🤔 Memory
 
@@ -58,6 +60,8 @@ From the `/encounters` screen, create encounters that match the board of the ses
 
 You can create `worlds` on the left sidebar for distinct players, characters etc.
 
+---
+
 </details>
 
 <details>
@@ -66,18 +70,17 @@ You can create `worlds` on the left sidebar for distinct players, characters etc
 ### Overview
 
 1. Run the session from the `/encounters` screen.
-2. Player actions be either be free-form conversations that build up influence or challenges, which use charisma skill checks combined with a verbal prompt.
-3. You can choose to control of how players speak to characters by controller everything from the `/encounters` screen, using a shared microphone and controlling when players can speak.
-4. You can choose to let players speak freely to characters, by generating login links from the `/players` screen. Players can then use their devices are microphones.
-
-### Devices
-
-- **🎤 Shared Mic** - DM Controlled - Something that you can pass around or conference speaker works best. This allows the table to share in the experience.
-- **📱 Mobile Phone** - Player Controlled - You can generate player login codes from the Player Cards, such that players can use their mobile devices as their microphones.
+2. Player actions be either be free-form conversations that build up influence or challenges, which use charisma skill checks combined with a verbal prompt. It's up to you how much you want to restrict the back-and-forth dialogue between players and characters per turn.
+3. You must decide how you want players to interact with characters:
+   1. **🎤 Shared Mic** - DM Controlled - Something that you can pass around or conference speaker works best. This allows the table to share in the experience. The DM initiates and stops dialogue from the `/encounters` screen.
+   2. **📱 Mobile Phone** - Player Controlled - You can generate player login codes from the `/players` screen, such that players can use their mobile devices as their microphones.
+4. You can reset a players influence towards a character from the `/encounters` screen.
 
 ### Tips
 
 - **Make Stuff Up** - Unless a player says something counter to what is set in a characters memories or reveals, there is no way for the AI agent to know what is real or not. That is part of the fun, where you try to make things up to gain influence. If think you are speaking with a **good** character, saying something like, "_well I just came from saving the town over there, and we are on a quest now to save your town - maybe you can help me out?_" Conversely saying something bad to an **evil** character, like, "_I have stolen goods I need help laundering_" might also gain influence.
+
+---
 
 </details>
 
