@@ -238,6 +238,24 @@ body {
   justify-content: center;
 }
 
+/* ===== SHARED POPUP BODY ===== */
+.shared-popup-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shared-popup-message {
+  margin: 0;
+  color: var(--gray-700);
+  line-height: 1.5;
+}
+
+.shared-popup-action {
+  width: 100%;
+}
+
 /* ===== SHARED AVATAR SYSTEM ===== */
 
 .shared-avatar-section,
