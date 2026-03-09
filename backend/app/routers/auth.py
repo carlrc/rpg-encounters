@@ -11,6 +11,7 @@ from app.auth.session import (
     destroy_session,
 )
 from app.clients.ses import SimpleEmailService
+from app.config import get_public_frontend_url
 from app.data.account_store import AccountStore
 from app.data.magic_link_store import (
     DeviceMismatchError,
@@ -36,9 +37,9 @@ router = APIRouter(prefix="/api/auth", tags=["authentication"])
 logger = logging.getLogger(__name__)
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
+LOGIN_FRONTEND_URL = get_public_frontend_url()
 LOG_MAGIC_LINK = get_or_throw("LOG_MAGIC_LINK").lower() == "true"
 SEND_EMAIL = get_or_throw("SEND_EMAIL").lower() == "true"
-BACKEND_REDIRECT_URL = f"{FRONTEND_URL}/players"
 
 
 @router.post("/request")
@@ -79,7 +80,7 @@ async def request_magic_link(
         raw_token = MagicLinkStore.generate_token()
 
         # Login link
-        magic_link = f"{FRONTEND_URL}/auth?token={raw_token}"
+        magic_link = f"{LOGIN_FRONTEND_URL}/auth?token={raw_token}"
 
         # So you can login manually locally
         if LOG_MAGIC_LINK:

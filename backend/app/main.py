@@ -10,7 +10,9 @@ from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.auth.session import IS_LOCAL, SESSION_CONFIG
+import os
+
+from app.auth.session import IS_LAN, IS_LOCAL, SESSION_CONFIG
 from app.clients.redis_client import validate_redis_connection
 from app.routers import (
     auth,
@@ -91,14 +93,19 @@ app = FastAPI(
 )
 
 FRONTEND_URL = get_or_throw("FRONTEND_URL")
+LAN_PUBLIC_URL = os.getenv("LAN_PUBLIC_URL")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+cors_kwargs = {
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+if IS_LAN and LAN_PUBLIC_URL:
+    cors_kwargs["allow_origins"] = [LAN_PUBLIC_URL]
+else:
+    cors_kwargs["allow_origins"] = [FRONTEND_URL]
+
+app.add_middleware(CORSMiddleware, **cors_kwargs)
 
 # Add session middleware
 app.add_middleware(

@@ -54,7 +54,10 @@ docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml u
 
 ### Microphone
 
-Locally you need to use a shared microphone, where the DM initiates conversations from the `/encounters` screen. A conference microphone is best, so the table can share in the experience, but something you can pass around also works. In the hosted version players can use their personal phones.
+You must decide how you want players to interact with characters. Locally, you are restricted to the shared microphone option unless you setup a [local LAN configuration](#local-lan). In the hosted version, you can choose between:
+
+   1. **🎤 Shared Mic** - DM Controlled - Something that you can pass around or conference speaker works best. This allows the table to share in the experience. The DM initiates and stops dialogue from the `/encounters` screen.
+   2. **📱 Mobile Phone** - Player Controlled - You can generate player login codes from the `/players` screen, such that players can use their mobile devices as their microphones.
 
 ### Login
 
@@ -93,6 +96,21 @@ Provider availability is based on which API keys are set in `backend/.env`:
 - Google `GOOGLE_CLOUD_TTS_API_KEY`
 
 The default provider is set by `DEFAULT_TTS_PROVIDER`.
+
+### Local LAN
+
+If you want players to speak through their own devices locally, you need to setup the LAN configuration.
+
+**WARNING**: This only works if each player uses Chrome desktop. Mobile browsers block microphones on insecure origins.
+
+1. Get IP address `ipconfig getifaddr en0`
+2. Set `LAN_PUBLIC_URL` in `backend/.env` like `http://<IP_ADDRESS>:3001`
+3. Set `VITE_BACKEND_URL` in `frontend/.env` like `http://<IP_ADDRESS>:8000/api`
+4. Set `VITE_WEBSOCKET_URL` in `frontend/.env` like `ws://<IP_ADDRESS>:8000`
+5. Launch backend and frontend services
+6. Login and generate player links from the `/players` screen. Automatic copying to clipboard will fail because of restrictions to Clipboard API locally.
+7. Each player launches Chrome with `open -n -a "Google Chrome" --args --unsafely-treat-insecure-origin-as-secure=http://<IP_ADDRESS>:3001`
+8. Players login with the previously generated login link
 
 ## Support
 

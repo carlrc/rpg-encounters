@@ -1,4 +1,5 @@
 import logging
+import os
 
 from dotenv import load_dotenv
 from fastapi import Request
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 IS_LOCAL = get_or_throw("ENVIRONMENT") == "local"
+IS_LAN = IS_LOCAL and bool(os.getenv("LAN_PUBLIC_URL"))
 
 
 class UserSession(BaseModel):

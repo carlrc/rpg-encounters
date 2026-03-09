@@ -21,13 +21,14 @@ from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.encounter import PlayerEncounterResponse
 from app.models.player import Player, PlayerCreate, PlayerUpdate
 from app.models.player_magic_link import PlayerLoginResponse, PlayerMagicLinkCreate
+from app.config import get_public_frontend_url
 from app.utils import get_or_throw
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 
 logger = logging.getLogger(__name__)
 
-FRONTEND_URL = get_or_throw("FRONTEND_URL")
+LOGIN_FRONTEND_URL = get_public_frontend_url()
 LOG_MAGIC_LINK = get_or_throw("LOG_MAGIC_LINK").lower() == "true"
 
 
@@ -187,7 +188,7 @@ async def request_player_login(
         ).create(player_magic_link_data)
 
         # Login link
-        magic_link = f"{FRONTEND_URL}/players/{player_id}/login?token={raw_token}"
+        magic_link = f"{LOGIN_FRONTEND_URL}/players/{player_id}/login?token={raw_token}"
 
         # So you can see it when running locally
         if LOG_MAGIC_LINK:
