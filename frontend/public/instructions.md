@@ -1,4 +1,6 @@
-RPG encounter's goal is to use AI characters to create interactions that are entertaining for the whole table. It is designed for **in-person sessions**, where the Dungeon Master (DM) - **you** - controls to what extent the players engage with these characters.
+RPG encounter's goal is to use AI characters to create interactions that are entertaining for the whole table. It's designed for **in-person sessions**, where the Dungeon Master (DM) - **you** - controls to what extent the players engage with these characters.
+
+It's designed to replace encounters where the DM does not want to impersonate characters and instead introduce some variability, and free-form role play, in a non-obtrusive way. You can choose to only setup one important character with plot hooks or important items, and keep all other interactions in-person. Or fill your scenarios with as many characters as you want.
 
 **⚠️** Chrome is most stable browser.
 
@@ -91,7 +93,7 @@ You can create `worlds` on the left sidebar for distinct players, characters etc
 ### The Captain's Secret Crate
 
 - A group of players have been contracted to steal an artifact from a crate on a merchant vessel traveling from Neverwinter to Waterdeep.
-- All the players know is that it is somewhere on the ship.
+- All the players know is that it's somewhere on the ship.
 - The scenario, as can be seen on the encounters screen, is the ship itself.
 - The ship has a standard crew (e.g., deckhand, captain, cook etc.).
 - You can see the memories and secrets of the crew in the memories and reveals screens.
