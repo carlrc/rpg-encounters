@@ -20,10 +20,10 @@
     "e2e:audio:all": "npm run e2e:player-mobile:audio && npm run e2e:encounters:audio && npm run e2e:encounters:audio:chromium && npm run e2e:encounters:audio:webkit",
     "e2e:player-mobile:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/player-encounter-mobile-audio.spec.ts --config playwright.audio.config.js",
     "e2e:player-mobile:audio:billing": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/player-encounter-mobile-audio.spec.ts --grep PLAYER-MOBILE-BILLING --config playwright.audio.config.js --project=chromium",
-    "e2e:encounters:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep ENCOUNTERS-TALKING-AUDIO-01 --config playwright.audio.config.js",
+    "e2e:encounters:audio": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep \"ENCOUNTERS-(TALKING-AUDIO-01|LLM-SLOW-01|MODERATION-WARNING-01)\" --config playwright.audio.config.js",
     "e2e:encounters:audio:billing": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep ENCOUNTERS-BILLING --config playwright.audio.config.js --project=chromium",
-    "e2e:encounters:audio:chromium": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep ENCOUNTERS-TALKING-AUDIO-01 --config playwright.audio.config.js --project=chromium",
-    "e2e:encounters:audio:webkit": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep ENCOUNTERS-TALKING-AUDIO-01 --config playwright.audio.config.js --project=webkit"
+    "e2e:encounters:audio:chromium": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep \"ENCOUNTERS-(TALKING-AUDIO-01|LLM-SLOW-01|MODERATION-WARNING-01)\" --config playwright.audio.config.js --project=chromium",
+    "e2e:encounters:audio:webkit": "ENCOUNTERS_AUDIO_TEST=1 playwright test test/end_to_end/encounters.spec.ts --grep \"ENCOUNTERS-(TALKING-AUDIO-01|LLM-SLOW-01|MODERATION-WARNING-01)\" --config playwright.audio.config.js --project=webkit"
   },
   "dependencies": {
     "@vue-flow/background": "^1.3.2",
