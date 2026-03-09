@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from app.clients.redis_client import create_usage_key
 from app.services.user_token import UserTokenService
@@ -68,3 +69,36 @@ async def test_check_token_balance_false_when_available_tokens_is_zero(monkeypat
 
     assert result is False
     hydrate_mock.assert_awaited_once_with(redis=redis, user_id=77)
+
+
+@pytest.mark.asyncio
+async def test_get_token_usage_summary_logs_and_reraises_redis_errors(monkeypatch):
+    service = UserTokenService()
+    redis = SimpleNamespace(
+        hgetall=AsyncMock(side_effect=RuntimeError("boom")),
+    )
+
+    @asynccontextmanager
+    async def session():
+        yield redis
+
+    hydrate_mock = AsyncMock()
+    service._hydrate_from_db_if_missing = hydrate_mock
+    monkeypatch.setattr("app.services.user_token.get_redis_session", session)
+
+    with pytest.raises(RuntimeError):
+        await service.get_token_usage_summary(user_id=77)
+
+
+@pytest.mark.asyncio
+async def test_get_token_usage_summary_logs_and_reraises_validation_errors(monkeypatch):
+    service = UserTokenService()
+    usage_hash = {"available_tokens": "5"}
+    redis_session, _redis = build_redis_session(usage_hash=usage_hash)
+    hydrate_mock = AsyncMock()
+    service._hydrate_from_db_if_missing = hydrate_mock
+
+    monkeypatch.setattr("app.services.user_token.get_redis_session", redis_session)
+
+    with pytest.raises(ValidationError):
+        await service.get_token_usage_summary(user_id=77)
