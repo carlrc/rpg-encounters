@@ -94,8 +94,8 @@ You can create `worlds` on the left sidebar for distinct players, characters etc
 
 - A group of players have been contracted to steal an artifact from a crate on a merchant vessel traveling from Neverwinter to Waterdeep.
 - All the players know is that it's somewhere on the ship.
-- The scenario, as can be seen on the encounters screen, is the ship itself.
+- The scenario, as can be seen on the `/encounters` screen, is the ship itself.
 - The ship has a standard crew (e.g., deckhand, captain, cook etc.).
-- You can see the memories and secrets of the crew in the memories and reveals screens.
+- You can see the memories and secrets of the crew in the `/memories` and `/reveals` screens.
 
 ---
