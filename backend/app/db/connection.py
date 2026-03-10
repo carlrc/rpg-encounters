@@ -47,7 +47,7 @@ async def get_async_db_routes_session() -> AsyncGenerator[AsyncSession, None]:
             yield session
             await session.commit()
         except Exception as e:
-            logger.error(f"Rolling back transaction. {e}")
+            logger.warning(f"Rolling back transaction. {e}")
             await session.rollback()
             raise
         finally:
@@ -68,7 +68,7 @@ async def get_async_db_session(db_url: str | None = None):
             yield session
             await session.commit()
         except Exception as e:
-            logger.error(f"Rolling back transaction. {e}")
+            logger.warning(f"Rolling back transaction. {e}")
             await session.rollback()
             raise
         finally:
