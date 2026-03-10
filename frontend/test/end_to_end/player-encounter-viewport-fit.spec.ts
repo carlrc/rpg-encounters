@@ -1,8 +1,9 @@
-import { devices, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { resolveBaseUrl } from './helpers/baseUrl'
 import { applyDmSession, type DmSession } from './helpers/bootstrapDm'
 import { getSpecDmSession } from './helpers/specDm'
 import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin'
+import { mobileDevices, shouldSkipMobileDevice } from './helpers/mobileDevices'
 
 const STRICT_TOLERANCE_PX = 1
 const CRITICAL_CONTROL_SELECTORS = [
@@ -29,9 +30,9 @@ test.beforeEach(async ({ page }) => {
   await applyDmSession(page, dmSession)
 })
 
-const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo) => {
+const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo, mobileDevice) => {
   const mobileContext = await browser.newContext({
-    ...devices['iPhone 12'],
+    ...mobileDevice.device,
     storageState: undefined,
     baseURL: resolveBaseUrl(testInfo),
   })
@@ -65,13 +66,14 @@ const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo) => {
   return { mobileContext, mobilePage, encounterStatus, playerId }
 }
 
-const getLoginForPlayerWithEncounter = async (page, browser, testInfo) => {
+const getLoginForPlayerWithEncounter = async (page, browser, testInfo, mobileDevice) => {
   const login = await getLoginForEncounterWithPlayersAndCharacters(page, browser, testInfo)
   const { mobileContext, mobilePage, encounterStatus, playerId } = await loginAsPlayerOnMobile(
     browser,
     login.loginUrl,
     login.playerId,
-    testInfo
+    testInfo,
+    mobileDevice
   )
   if (encounterStatus !== 200) {
     await mobileContext.close()
@@ -228,45 +230,63 @@ const assertCriticalControlsFitWithoutScroll = async (page, stageLabel) => {
   }
 }
 
-test('PLAYER-MOBILE-VIEWPORT-FIT-01 player encounter fits iPhone 12 viewport height with and without interaction panel', async ({
-  page,
-  browser,
-}, testInfo) => {
-  let mobileContext
-  let mobilePage
+for (const mobileDevice of mobileDevices) {
+  test.describe(`Player encounter viewport fit (${mobileDevice.name})`, () => {
+    test.use({ ...mobileDevice.device })
 
-  try {
-    const loginResult = await getLoginForPlayerWithEncounter(page, browser, testInfo)
-    mobileContext = loginResult.mobileContext
-    mobilePage = loginResult.mobilePage
+    test.beforeEach(({}, testInfo) => {
+      test.skip(
+        shouldSkipMobileDevice(mobileDevice, testInfo),
+        'Android device emulation runs in Chromium only.'
+      )
+    })
 
-    await expect(mobilePage.locator('.encounter-title')).toBeVisible()
-    const characterTile = mobilePage.locator('.character-tile').first()
-    await expect(characterTile).toBeVisible()
+    test('PLAYER-MOBILE-VIEWPORT-FIT-01 player encounter fits mobile viewport height with and without interaction panel', async ({
+      page,
+      browser,
+    }, testInfo) => {
+      let mobileContext
+      let mobilePage
 
-    await assertViewportHeightFits(mobilePage, 'Initial encounter view')
+      try {
+        const loginResult = await getLoginForPlayerWithEncounter(
+          page,
+          browser,
+          testInfo,
+          mobileDevice
+        )
+        mobileContext = loginResult.mobileContext
+        mobilePage = loginResult.mobilePage
 
-    await characterTile.click()
-    await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+        await expect(mobilePage.locator('.encounter-title')).toBeVisible()
+        const characterTile = mobilePage.locator('.character-tile').first()
+        await expect(characterTile).toBeVisible()
 
-    await assertViewportHeightFits(mobilePage, 'Encounter view with interaction panel')
-    await assertCriticalControlsFitWithoutScroll(
-      mobilePage,
-      'Encounter view with interaction panel'
-    )
-  } catch (error) {
-    if (mobilePage) {
-      const screenshotPath = testInfo.outputPath('player-encounter-viewport-fit-failure.png')
-      await mobilePage.screenshot({ path: screenshotPath, fullPage: true })
-      await testInfo.attach('viewport-fit-failure', {
-        path: screenshotPath,
-        contentType: 'image/png',
-      })
-    }
-    throw error
-  } finally {
-    if (mobileContext) {
-      await mobileContext.close()
-    }
-  }
-})
+        await assertViewportHeightFits(mobilePage, 'Initial encounter view')
+
+        await characterTile.click()
+        await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+
+        await assertViewportHeightFits(mobilePage, 'Encounter view with interaction panel')
+        await assertCriticalControlsFitWithoutScroll(
+          mobilePage,
+          'Encounter view with interaction panel'
+        )
+      } catch (error) {
+        if (mobilePage) {
+          const screenshotPath = testInfo.outputPath('player-encounter-viewport-fit-failure.png')
+          await mobilePage.screenshot({ path: screenshotPath, fullPage: true })
+          await testInfo.attach('viewport-fit-failure', {
+            path: screenshotPath,
+            contentType: 'image/png',
+          })
+        }
+        throw error
+      } finally {
+        if (mobileContext) {
+          await mobileContext.close()
+        }
+      }
+    })
+  })
+}

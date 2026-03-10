@@ -1,4 +1,4 @@
-import { devices, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe'
 import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle'
 import { resolveBaseUrl } from './helpers/baseUrl'
@@ -11,6 +11,7 @@ import {
   trackContext,
 } from './helpers/contextLifecycle'
 import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin'
+import { mobileDevices, shouldSkipMobileDevice } from './helpers/mobileDevices'
 
 const getMicrophonePermissionState = async (page) => {
   try {
@@ -41,12 +42,13 @@ const openPlayerEncounterOnMobile = async (
   loginUrl,
   playerId,
   testInfo,
-  contextRegistry
+  contextRegistry,
+  mobileDevice
 ) => {
   const mobileContext = trackContext(
     contextRegistry,
     await browser.newContext({
-      ...devices['iPhone 12'],
+      ...mobileDevice.device,
       storageState: undefined,
       baseURL: resolveBaseUrl(testInfo),
       permissions: ['microphone'],
@@ -81,7 +83,13 @@ const openPlayerEncounterOnMobile = async (
   return { mobileContext, mobilePage, playerId, encounterPayload, encounterStatus, consumeStatus }
 }
 
-const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRegistry) => {
+const getLoginForPlayerWithEncounter = async (
+  page,
+  browser,
+  testInfo,
+  contextRegistry,
+  mobileDevice
+) => {
   for (let attempt = 0; attempt < 3; attempt++) {
     const fixture = await resolveSeededPlayerEncounterFixture(page, testInfo)
     const playerId = String(fixture.playerId)
@@ -92,7 +100,8 @@ const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRe
       loginUrl,
       playerId,
       testInfo,
-      contextRegistry
+      contextRegistry,
+      mobileDevice
     )
 
     if (mobileResult.consumeStatus === 429) {
@@ -185,154 +194,174 @@ const assertBillingPopupVisibleOrFailFast = async (mobilePage) => {
   }
 }
 
-test('PLAYER-MOBILE-TALKING-AUDIO-01 returns audio over websocket and completes processing', async ({
-  page,
-  browser,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.use?.browserName === 'webkit',
-    'WebKit microphone automation is not reliably supported for this audio flow.'
-  )
-  test.skip(
-    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
-    'Player mobile audio test runs only in dedicated player mobile audio command.'
-  )
-  test.setTimeout(90_000)
+for (const mobileDevice of mobileDevices) {
+  test.describe(`Player mobile audio (${mobileDevice.name})`, () => {
+    test.use({ ...mobileDevice.device })
 
-  const browserName = testInfo.project.use?.browserName || testInfo.project.name
-  const contextRegistry = createContextRegistry()
-  try {
-    const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+    test.beforeEach(({}, testInfo) => {
+      test.skip(
+        shouldSkipMobileDevice(mobileDevice, testInfo),
+        'Android device emulation runs in Chromium only.'
+      )
+    })
+
+    test('PLAYER-MOBILE-TALKING-AUDIO-01 returns audio over websocket and completes processing @audio', async ({
       page,
       browser,
-      testInfo,
-      contextRegistry
-    )
-    await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
-    const characterTiles = mobilePage.locator('.character-tile')
+    }, testInfo) => {
+      test.skip(
+        testInfo.project.use?.browserName === 'webkit',
+        'WebKit microphone automation is not reliably supported for this audio flow.'
+      )
+      test.skip(
+        process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+        'Player mobile audio test runs only in dedicated player mobile audio command.'
+      )
+      test.setTimeout(90_000)
 
-    await characterTiles.first().click()
-    await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+      const browserName = testInfo.project.use?.browserName || testInfo.project.name
+      const contextRegistry = createContextRegistry()
+      try {
+        const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+          page,
+          browser,
+          testInfo,
+          contextRegistry,
+          mobileDevice
+        )
+        await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
+        const characterTiles = mobilePage.locator('.character-tile')
 
-    // Mobile Chromium fake-mic capture can intermittently produce empty WAV payloads with short
-    // recording windows; keep capture open longer so backend transcription gets non-empty audio.
-    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
-    await assertConversationAudioRoundtrip(mobilePage, {
-      wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
-      timeoutMs: 60_000,
-    })
-    await assertReturnedToReadyState(mobilePage, {
-      readyTextPattern: /Tap Speak/,
-      timeoutMs: 60_000,
-    })
-  } catch (error) {
-    const dmMicPermission = await getMicrophonePermissionState(page)
-    let mobileMicPermission = 'unavailable'
-    const trackedContexts = [...contextRegistry]
-    if (trackedContexts.length > 0) {
-      const maybePage = trackedContexts[trackedContexts.length - 1]?.pages?.()[0]
-      if (maybePage) {
-        mobileMicPermission = await getMicrophonePermissionState(maybePage)
+        await characterTiles.first().click()
+        await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+
+        // Mobile Chromium fake-mic capture can intermittently produce empty WAV payloads with short
+        // recording windows; keep capture open longer so backend transcription gets non-empty audio.
+        await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
+        await assertConversationAudioRoundtrip(mobilePage, {
+          wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+          timeoutMs: 60_000,
+        })
+        await assertReturnedToReadyState(mobilePage, {
+          readyTextPattern: /Tap Speak/,
+          timeoutMs: 60_000,
+        })
+      } catch (error) {
+        const dmMicPermission = await getMicrophonePermissionState(page)
+        let mobileMicPermission = 'unavailable'
+        const trackedContexts = [...contextRegistry]
+        if (trackedContexts.length > 0) {
+          const maybePage = trackedContexts[trackedContexts.length - 1]?.pages?.()[0]
+          if (maybePage) {
+            mobileMicPermission = await getMicrophonePermissionState(maybePage)
+          }
+        }
+        throw new Error(
+          `Player mobile audio flow failed in ${browserName}. Diagnostics: ${JSON.stringify({
+            dmUrl: page.url(),
+            mobileUrl:
+              trackedContexts[trackedContexts.length - 1]?.pages?.()[0]?.url?.() || 'unavailable',
+            dmMicPermission,
+            mobileMicPermission,
+          })}. Root error: ${error.message}`
+        )
+      } finally {
+        await closeTrackedContexts(contextRegistry)
       }
-    }
-    throw new Error(
-      `Player mobile audio flow failed in ${browserName}. Diagnostics: ${JSON.stringify({
-        dmUrl: page.url(),
-        mobileUrl:
-          trackedContexts[trackedContexts.length - 1]?.pages?.()[0]?.url?.() || 'unavailable',
-        dmMicPermission,
-        mobileMicPermission,
-      })}. Root error: ${error.message}`
-    )
-  } finally {
-    await closeTrackedContexts(contextRegistry)
-  }
-})
+    })
 
-test('PLAYER-MOBILE-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits', async ({
-  page,
-  browser,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.use?.browserName === 'webkit',
-    'WebKit microphone automation is not reliably supported for this audio flow.'
-  )
-  test.skip(
-    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
-    'Player mobile audio test runs only in dedicated player mobile audio command.'
-  )
-  test.setTimeout(90_000)
-
-  await setUserBillingState({
-    email: dmSession.email,
-    availableTokens: 0,
-    lastUsedTokens: 0,
-    totalUsedTokens: 0,
-  })
-
-  const contextRegistry = createContextRegistry()
-  try {
-    const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+    test('PLAYER-MOBILE-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits @audio', async ({
       page,
       browser,
-      testInfo,
-      contextRegistry
-    )
-    await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
-    await openFirstCharacterInteraction(mobilePage)
+    }, testInfo) => {
+      test.skip(
+        testInfo.project.use?.browserName === 'webkit',
+        'WebKit microphone automation is not reliably supported for this audio flow.'
+      )
+      test.skip(
+        process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+        'Player mobile audio test runs only in dedicated player mobile audio command.'
+      )
+      test.setTimeout(90_000)
 
-    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
-    await assertBillingPopupVisibleOrFailFast(mobilePage)
-    await mobilePage.getByRole('button', { name: 'Close', exact: true }).click()
-    await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
-  } finally {
-    await closeTrackedContexts(contextRegistry)
-  }
-})
+      await setUserBillingState({
+        email: dmSession.email,
+        availableTokens: 0,
+        lastUsedTokens: 0,
+        totalUsedTokens: 0,
+      })
 
-test('PLAYER-MOBILE-BILLING-02 does not show insufficient tokens popup when seeded DM has credits', async ({
-  page,
-  browser,
-}, testInfo) => {
-  test.skip(
-    testInfo.project.use?.browserName === 'webkit',
-    'WebKit microphone automation is not reliably supported for this audio flow.'
-  )
-  test.skip(
-    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
-    'Player mobile audio test runs only in dedicated player mobile audio command.'
-  )
-  test.setTimeout(90_000)
+      const contextRegistry = createContextRegistry()
+      try {
+        const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+          page,
+          browser,
+          testInfo,
+          contextRegistry,
+          mobileDevice
+        )
+        await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
+        await openFirstCharacterInteraction(mobilePage)
 
-  await setUserBillingState({
-    email: dmSession.email,
-    availableTokens: 5000,
-    lastUsedTokens: 0,
-    totalUsedTokens: 0,
-  })
+        await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
+        await assertBillingPopupVisibleOrFailFast(mobilePage)
+        await mobilePage.getByRole('button', { name: 'Close', exact: true }).click()
+        await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(
+          0
+        )
+      } finally {
+        await closeTrackedContexts(contextRegistry)
+      }
+    })
 
-  const contextRegistry = createContextRegistry()
-  try {
-    const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+    test('PLAYER-MOBILE-BILLING-02 does not show insufficient tokens popup when seeded DM has credits @audio', async ({
       page,
       browser,
-      testInfo,
-      contextRegistry
-    )
-    await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
-    await openFirstCharacterInteraction(mobilePage)
+    }, testInfo) => {
+      test.skip(
+        testInfo.project.use?.browserName === 'webkit',
+        'WebKit microphone automation is not reliably supported for this audio flow.'
+      )
+      test.skip(
+        process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+        'Player mobile audio test runs only in dedicated player mobile audio command.'
+      )
+      test.setTimeout(90_000)
 
-    await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
-    await assertConversationAudioRoundtrip(mobilePage, {
-      wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
-      timeoutMs: 60_000,
+      await setUserBillingState({
+        email: dmSession.email,
+        availableTokens: 5000,
+        lastUsedTokens: 0,
+        totalUsedTokens: 0,
+      })
+
+      const contextRegistry = createContextRegistry()
+      try {
+        const { playerId, mobilePage, encounterPayload } = await getLoginForPlayerWithEncounter(
+          page,
+          browser,
+          testInfo,
+          contextRegistry,
+          mobileDevice
+        )
+        await assertEncounterHasCharactersAndTiles(mobilePage, encounterPayload, playerId)
+        await openFirstCharacterInteraction(mobilePage)
+
+        await runSpeakStopLifecycle(mobilePage, { clickWithEvaluate: true, captureMs: 3000 })
+        await assertConversationAudioRoundtrip(mobilePage, {
+          wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+          timeoutMs: 60_000,
+        })
+        await assertReturnedToReadyState(mobilePage, {
+          readyTextPattern: /Tap Speak/,
+          timeoutMs: 60_000,
+        })
+        await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(
+          0
+        )
+      } finally {
+        await closeTrackedContexts(contextRegistry)
+      }
     })
-    await assertReturnedToReadyState(mobilePage, {
-      readyTextPattern: /Tap Speak/,
-      timeoutMs: 60_000,
-    })
-    await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
-  } finally {
-    await closeTrackedContexts(contextRegistry)
-  }
-})
+  })
+}

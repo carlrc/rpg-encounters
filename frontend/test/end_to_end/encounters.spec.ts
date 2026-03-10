@@ -652,7 +652,7 @@ test('ENCOUNTERS-DESCRIPTION-EDIT-01 edits description and persists after save/r
   }
 })
 
-test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes processing', async ({
+test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes processing @audio', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -714,7 +714,7 @@ test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes pro
   }
 })
 
-test('ENCOUNTERS-LLM-SLOW-01 shows warning toast when llm_slow is received', async ({
+test('ENCOUNTERS-LLM-SLOW-01 shows warning toast when llm_slow is received @audio', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -771,7 +771,7 @@ test('ENCOUNTERS-LLM-SLOW-01 shows warning toast when llm_slow is received', asy
   })
 })
 
-test('ENCOUNTERS-MODERATION-WARNING-01 shows warning toast when moderation_blocked is received', async ({
+test('ENCOUNTERS-MODERATION-WARNING-01 shows warning toast when moderation_blocked is received @audio', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -828,7 +828,7 @@ test('ENCOUNTERS-MODERATION-WARNING-01 shows warning toast when moderation_block
   })
 })
 
-test('ENCOUNTERS-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits', async ({
+test('ENCOUNTERS-BILLING-01 shows insufficient tokens popup when seeded DM has zero credits @audio', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -862,7 +862,7 @@ test('ENCOUNTERS-BILLING-01 shows insufficient tokens popup when seeded DM has z
   await expect(page.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
 })
 
-test('ENCOUNTERS-BILLING-02 does not show insufficient tokens popup when seeded DM has credits', async ({
+test('ENCOUNTERS-BILLING-02 does not show insufficient tokens popup when seeded DM has credits @audio', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -895,9 +895,6 @@ test('ENCOUNTERS-BILLING-02 does not show insufficient tokens popup when seeded 
     wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
     timeoutMs: 60_000,
   })
-  await assertReturnedToReadyState(page, {
-    readyTextPattern: /Click Speak/,
-    timeoutMs: 60_000,
-  })
+  await assertReturnedToReadyState(page, { timeoutMs: 60_000 })
   await expect(page.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
 })

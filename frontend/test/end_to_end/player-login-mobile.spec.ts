@@ -1,4 +1,4 @@
-import { devices, expect, test } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { resolveBaseUrl } from './helpers/baseUrl'
 import { applyDmSession, type DmSession } from './helpers/bootstrapDm'
 import { getSpecDmSession } from './helpers/specDm'
@@ -9,12 +9,20 @@ import {
 } from './helpers/contextLifecycle.js'
 import { waitForApiResponse } from './helpers/networkAsserts.js'
 import { resolveSeededPlayerEncounterFixture } from './helpers/playerEncounterLogin.js'
+import { mobileDevices, shouldSkipMobileDevice } from './helpers/mobileDevices'
 
-const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo, contextRegistry) => {
+const loginAsPlayerOnMobile = async (
+  browser,
+  loginUrl,
+  playerId,
+  testInfo,
+  contextRegistry,
+  mobileDevice
+) => {
   const mobileContext = trackContext(
     contextRegistry,
     await browser.newContext({
-      ...devices['iPhone 12'],
+      ...mobileDevice.device,
       storageState: undefined,
       baseURL: resolveBaseUrl(testInfo),
     })
@@ -46,7 +54,13 @@ const loginAsPlayerOnMobile = async (browser, loginUrl, playerId, testInfo, cont
   return { mobileContext, mobilePage, encounterStatus }
 }
 
-const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRegistry) => {
+const getLoginForPlayerWithEncounter = async (
+  page,
+  browser,
+  testInfo,
+  contextRegistry,
+  mobileDevice
+) => {
   const fixture = await resolveSeededPlayerEncounterFixture(page, testInfo)
   const playerId = String(fixture.playerId)
   const loginUrl = fixture.loginUrl
@@ -55,7 +69,8 @@ const getLoginForPlayerWithEncounter = async (page, browser, testInfo, contextRe
     loginUrl,
     playerId,
     testInfo,
-    contextRegistry
+    contextRegistry,
+    mobileDevice
   )
 
   if (encounterStatus !== 200) {
@@ -82,118 +97,133 @@ test.beforeEach(async ({ page }) => {
   await applyDmSession(page, dmSession)
 })
 
-test('PLAYER-LOGIN-MOBILE-01 generates player login link (DM) and consumes it on iPhone 12', async ({
-  page,
-  browser,
-}, testInfo) => {
-  const contextRegistry = createContextRegistry()
-  try {
-    await getLoginForPlayerWithEncounter(page, browser, testInfo, contextRegistry)
-  } finally {
-    await closeTrackedContexts(contextRegistry)
-  }
-})
+for (const mobileDevice of mobileDevices) {
+  test.describe(`Player login mobile (${mobileDevice.name})`, () => {
+    test.use({ ...mobileDevice.device })
 
-test('PLAYER-MOBILE-VIEW-01 player encounter content renders and basic tap flow works on iPhone 12', async ({
-  page,
-  browser,
-}, testInfo) => {
-  const contextRegistry = createContextRegistry()
-  try {
-    const loginResult = await getLoginForPlayerWithEncounter(
+    test.beforeEach(({}, testInfo) => {
+      test.skip(
+        shouldSkipMobileDevice(mobileDevice, testInfo),
+        'Android device emulation runs in Chromium only.'
+      )
+    })
+
+    test('PLAYER-LOGIN-MOBILE-01 generates player login link (DM) and consumes it on mobile', async ({
       page,
       browser,
-      testInfo,
-      contextRegistry
-    )
-    const { mobilePage } = loginResult
-
-    await expect(mobilePage.locator('.encounter-title')).toBeVisible()
-    await expect(mobilePage.locator('.section-title', { hasText: 'Characters' })).toBeVisible()
-
-    const characterTile = mobilePage.locator('.character-tile').first()
-    await expect(characterTile).toBeVisible()
-    await characterTile.click()
-
-    const interactionPanel = mobilePage.locator('.interaction-panel')
-    await expect(interactionPanel).toBeVisible()
-    await expect(interactionPanel.getByText(/Talking with/)).toBeVisible()
-    await expect(mobilePage.getByRole('button', { name: 'Speak' })).toBeVisible()
-    await expect(
-      mobilePage.locator('.shared-status-text').filter({
-        hasText: /Tap Speak to start conversation|Select a skill for challenge/,
-      })
-    ).toBeVisible()
-
-    await mobilePage.locator('.close-btn').click()
-    await expect(interactionPanel).toHaveCount(0)
-
-    const viewportCheck = await mobilePage.evaluate(() => {
-      return {
-        width: window.innerWidth,
-        scrollWidth: document.documentElement.scrollWidth,
+    }, testInfo) => {
+      const contextRegistry = createContextRegistry()
+      try {
+        await getLoginForPlayerWithEncounter(page, browser, testInfo, contextRegistry, mobileDevice)
+      } finally {
+        await closeTrackedContexts(contextRegistry)
       }
     })
-    expect(viewportCheck.scrollWidth).toBeLessThanOrEqual(viewportCheck.width + 2)
-  } finally {
-    await closeTrackedContexts(contextRegistry)
-  }
-})
 
-test('PLAYER-MOBILE-CHALLENGE-SKILL-PICKER-01 challenge skill picker opens, selects, and clears on mobile', async ({
-  page,
-  browser,
-}, testInfo) => {
-  const contextRegistry = createContextRegistry()
-  try {
-    const loginResult = await getLoginForPlayerWithEncounter(
+    test('PLAYER-MOBILE-VIEW-01 player encounter content renders and basic tap flow works on mobile', async ({
       page,
       browser,
-      testInfo,
-      contextRegistry
-    )
-    const { mobilePage } = loginResult
+    }, testInfo) => {
+      const contextRegistry = createContextRegistry()
+      try {
+        const loginResult = await getLoginForPlayerWithEncounter(
+          page,
+          browser,
+          testInfo,
+          contextRegistry,
+          mobileDevice
+        )
+        const { mobilePage } = loginResult
 
-    await mobilePage.locator('.character-tile').first().click()
-    await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+        await expect(mobilePage.locator('.encounter-title')).toBeVisible()
+        await expect(mobilePage.locator('.section-title', { hasText: 'Characters' })).toBeVisible()
 
-    const challengeButton = mobilePage.getByRole('button', { name: 'Challenge' })
-    await challengeButton.click()
+        const characterTile = mobilePage.locator('.character-tile').first()
+        await expect(characterTile).toBeVisible()
+        await characterTile.click()
 
-    const speakButton = mobilePage.getByRole('button', { name: 'Speak' })
-    await expect(speakButton).toBeDisabled()
+        const interactionPanel = mobilePage.locator('.interaction-panel')
+        await expect(interactionPanel).toBeVisible()
+        await expect(interactionPanel.getByText(/Talking with/)).toBeVisible()
+        await expect(mobilePage.getByRole('button', { name: 'Speak' })).toBeVisible()
+        await expect(
+          mobilePage.locator('.shared-status-text').filter({
+            hasText: /Tap Speak to start conversation|Select a skill for challenge/,
+          })
+        ).toBeVisible()
 
-    const skillTrigger = mobilePage.locator('.mobile-skill-trigger')
-    await expect(skillTrigger).toBeVisible()
-    await expect(skillTrigger).toContainText('Select a skill')
-    await expect(skillTrigger).toHaveAttribute('aria-expanded', 'false')
+        await mobilePage.locator('.close-btn').click()
+        await expect(interactionPanel).toHaveCount(0)
 
-    await skillTrigger.click()
-    await expect(skillTrigger).toHaveAttribute('aria-expanded', 'true')
-    const mobileSkillList = mobilePage.locator('.mobile-skill-list')
-    await expect(mobileSkillList).toBeVisible()
-    await expect(
-      mobileSkillList.getByRole('button', { name: 'Select a skill', exact: true })
-    ).toBeVisible()
-    await expect(
-      mobileSkillList.getByRole('button', { name: 'Deception', exact: true })
-    ).toBeVisible()
+        const viewportCheck = await mobilePage.evaluate(() => {
+          return {
+            width: window.innerWidth,
+            scrollWidth: document.documentElement.scrollWidth,
+          }
+        })
+        expect(viewportCheck.scrollWidth).toBeLessThanOrEqual(viewportCheck.width + 2)
+      } finally {
+        await closeTrackedContexts(contextRegistry)
+      }
+    })
 
-    await mobileSkillList.getByRole('button', { name: 'Deception', exact: true }).click()
-    await expect(mobilePage.locator('.mobile-skill-list')).toHaveCount(0)
-    await expect(skillTrigger).toContainText('Deception')
-    await expect(skillTrigger).toHaveAttribute('aria-expanded', 'false')
-    await expect(speakButton).toBeEnabled()
+    test('PLAYER-MOBILE-CHALLENGE-SKILL-PICKER-01 challenge skill picker opens, selects, and clears on mobile', async ({
+      page,
+      browser,
+    }, testInfo) => {
+      const contextRegistry = createContextRegistry()
+      try {
+        const loginResult = await getLoginForPlayerWithEncounter(
+          page,
+          browser,
+          testInfo,
+          contextRegistry,
+          mobileDevice
+        )
+        const { mobilePage } = loginResult
 
-    await skillTrigger.click()
-    await mobilePage
-      .locator('.mobile-skill-list')
-      .getByRole('button', { name: 'Select a skill', exact: true })
-      .click()
-    await expect(mobilePage.locator('.mobile-skill-list')).toHaveCount(0)
-    await expect(skillTrigger).toContainText('Select a skill')
-    await expect(speakButton).toBeDisabled()
-  } finally {
-    await closeTrackedContexts(contextRegistry)
-  }
-})
+        await mobilePage.locator('.character-tile').first().click()
+        await expect(mobilePage.locator('.interaction-panel')).toBeVisible()
+
+        const challengeButton = mobilePage.getByRole('button', { name: 'Challenge' })
+        await challengeButton.click()
+
+        const speakButton = mobilePage.getByRole('button', { name: 'Speak' })
+        await expect(speakButton).toBeDisabled()
+
+        const skillTrigger = mobilePage.locator('.mobile-skill-trigger')
+        await expect(skillTrigger).toBeVisible()
+        await expect(skillTrigger).toContainText('Select a skill')
+        await expect(skillTrigger).toHaveAttribute('aria-expanded', 'false')
+
+        await skillTrigger.click()
+        await expect(skillTrigger).toHaveAttribute('aria-expanded', 'true')
+        const mobileSkillList = mobilePage.locator('.mobile-skill-list')
+        await expect(mobileSkillList).toBeVisible()
+        await expect(
+          mobileSkillList.getByRole('button', { name: 'Select a skill', exact: true })
+        ).toBeVisible()
+        await expect(
+          mobileSkillList.getByRole('button', { name: 'Deception', exact: true })
+        ).toBeVisible()
+
+        await mobileSkillList.getByRole('button', { name: 'Deception', exact: true }).click()
+        await expect(mobilePage.locator('.mobile-skill-list')).toHaveCount(0)
+        await expect(skillTrigger).toContainText('Deception')
+        await expect(skillTrigger).toHaveAttribute('aria-expanded', 'false')
+        await expect(speakButton).toBeEnabled()
+
+        await skillTrigger.click()
+        await mobilePage
+          .locator('.mobile-skill-list')
+          .getByRole('button', { name: 'Select a skill', exact: true })
+          .click()
+        await expect(mobilePage.locator('.mobile-skill-list')).toHaveCount(0)
+        await expect(skillTrigger).toContainText('Select a skill')
+        await expect(speakButton).toBeDisabled()
+      } finally {
+        await closeTrackedContexts(contextRegistry)
+      }
+    })
+  })
+}
