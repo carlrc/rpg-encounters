@@ -1,6 +1,6 @@
 <template>
   <div class="brand-section">
-    <img :src="logoUrl" alt="RPG Encounters Logo" class="logo" />
+    <img :src="logoUrl" alt="RPG Encounters Logo" width="579" height="672" class="logo" />
     <h1 class="brand-title">RPG Encounters</h1>
   </div>
 </template>

@@ -121,6 +121,8 @@
             v-if="player.avatar"
             :src="player.avatar"
             :alt="sanitizeName(player.rl_name || player.name) || 'Unknown Player'"
+            width="32"
+            height="32"
             class="avatar-image"
           />
           <div v-else class="avatar-placeholder">
@@ -173,6 +175,8 @@
                 v-if="player.avatar"
                 :src="player.avatar"
                 :alt="sanitizeName(player.rl_name || player.name) || 'Unknown Player'"
+                width="24"
+                height="24"
                 class="option-avatar-image"
               />
               <div v-else class="option-avatar-placeholder">
@@ -213,6 +217,8 @@
             v-if="character.avatar"
             :src="character.avatar"
             :alt="sanitizeName(character.name)"
+            width="32"
+            height="32"
             class="avatar-image"
           />
           <div v-else class="avatar-placeholder">
@@ -261,6 +267,8 @@
                 v-if="character.avatar"
                 :src="character.avatar"
                 :alt="sanitizeName(character.name)"
+                width="24"
+                height="24"
                 class="option-avatar-image"
               />
               <div v-else class="option-avatar-placeholder">

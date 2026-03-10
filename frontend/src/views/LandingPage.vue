@@ -34,6 +34,8 @@
             <img
               src="/landing/assets/images/home/session.jpeg"
               alt="Landing showcase"
+              width="1536"
+              height="1024"
               class="landing-hero-image"
             />
           </div>
@@ -64,7 +66,13 @@
         <div class="landing-gallery-list">
           <article v-for="item in galleryItems" :key="item.title" class="landing-gallery-item">
             <div class="landing-gallery-media">
-              <img :src="item.src" :alt="item.alt" class="landing-gallery-image" />
+              <img
+                :src="item.src"
+                :alt="item.alt"
+                :width="item.width"
+                :height="item.height"
+                class="landing-gallery-image"
+              />
             </div>
             <div class="landing-gallery-copy">
               <h3>{{ item.title }}</h3>
@@ -87,12 +95,16 @@
       title: 'Visually manage encounters',
       description:
         'Assign characters and players to encounters that match the board in front of you.',
+      width: 1400,
+      height: 1024,
     },
     {
       src: '/landing/assets/images/home/player-screen.png',
       alt: 'Player popup',
       title: 'Players can speak through their phone',
       description: 'Generate player links so they can talk to NPCs from their phones.',
+      width: 1400,
+      height: 1110,
     },
     {
       src: '/landing/assets/images/home/encounter-popup.png',
@@ -100,6 +112,8 @@
       title: 'Secrets that are unlocked with influence or ability checks',
       description:
         'Players can choose to free-form role play to gain influence or challenge characters with a charisma based ability check.',
+      width: 1800,
+      height: 1377,
     },
     {
       src: '/landing/assets/images/home/character-screen.png',
@@ -107,6 +121,8 @@
       title: 'Characters with attitude',
       description:
         'Configure characters with clear motivation and biases, dramatically changing how they respond to certain players.',
+      width: 1400,
+      height: 1184,
     },
   ]
 </script>

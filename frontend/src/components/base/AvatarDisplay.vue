@@ -1,7 +1,14 @@
 <template>
   <div class="shared-avatar-section">
     <div class="shared-avatar-container">
-      <img v-if="avatar" :src="avatar" :alt="resolvedAlt" class="shared-avatar-image" />
+      <img
+        v-if="avatar"
+        :src="avatar"
+        :alt="resolvedAlt"
+        width="100"
+        height="80"
+        class="shared-avatar-image"
+      />
       <div v-else class="shared-avatar-placeholder">
         <span class="shared-avatar-initials">{{ initials }}</span>
       </div>

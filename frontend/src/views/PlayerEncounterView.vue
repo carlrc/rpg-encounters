@@ -41,6 +41,8 @@
                 v-if="character.avatar"
                 :src="character.avatar"
                 :alt="character.name"
+                width="56"
+                height="56"
                 class="avatar-image"
               />
               <div v-else class="avatar-placeholder">

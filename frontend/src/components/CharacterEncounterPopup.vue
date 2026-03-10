@@ -17,6 +17,8 @@
             v-if="character?.avatar"
             :src="character.avatar"
             :alt="character.name"
+            width="80"
+            height="80"
             class="avatar-image"
           />
           <div v-else class="avatar-placeholder">
