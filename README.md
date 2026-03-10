@@ -33,6 +33,16 @@ It's designed to replace encounters where the DM does not want to impersonate ch
 | <img src="frontend/public/landing/assets/images/home/player-screen.png" alt="Player popup" width="220" /> | **Players can speak through their phone**<br/>Generate login links for players and let them control the conversation. |
 | <img src="frontend/public/landing/assets/images/home/character-screen.png" alt="Character screen" width="220" /> | **Characters with personality**<br/>Create characters with biases, motivations and trust based secrets, which dictate how they respond. |
 
+## 👨‍💻 Demos
+
+### DM Demo
+
+<video controls src="https://rpg-encounters.com/videos/dm-centric-demo.mp4" width="640"></video>
+
+### Player Demo
+
+<video controls src="https://rpg-encounters.com/videos/player-centric-demo.mp4" width="640"></video>
+
 ## 🔌 Setup
 
 - Follow `backend` [setup guide](./backend/README.md)
