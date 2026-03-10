@@ -15,6 +15,10 @@ from app.utils import get_or_throw
 logger = logging.getLogger(__name__)
 
 
+class TranscriptionError(Exception):
+    pass
+
+
 @observe
 async def transcribe_and_moderate(
     user_id: int, wav_file_path: str
@@ -71,10 +75,10 @@ class WhisperTranscriptionService:
         Returns:
             Transcribed text
         """
-        if not os.path.exists(wav_file_path):
-            raise FileNotFoundError(f"Audio file not found: {wav_file_path}")
-
         try:
+            if not os.path.exists(wav_file_path):
+                raise FileNotFoundError(f"Audio file not found: {wav_file_path}")
+
             # Run transcription in thread pool to avoid blocking
             loop = asyncio.get_running_loop()
             result = await loop.run_in_executor(
@@ -94,7 +98,7 @@ class WhisperTranscriptionService:
 
         except Exception as e:
             logger.error(f"Transcription failed for {wav_file_path}: {e}")
-            raise
+            raise TranscriptionError("Transcription failed") from e
 
 
 @functools.lru_cache(maxsize=1)

@@ -33,6 +33,11 @@ type ModerationBlockedNotice = {
   message: string
 }
 
+type WarningNotice = {
+  type: 'warning'
+  message: string
+}
+
 export const pickRecorderMimeType = () => {
   if (!window.MediaRecorder || typeof MediaRecorder.isTypeSupported !== 'function') return ''
   return RECORDER_MIME_CANDIDATES.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || ''
@@ -168,6 +173,12 @@ export function useWebSocketAudioHandler({
     v && v.type === 'moderation_blocked' && typeof v.message === 'string'
 
   /**
+   * Check if message is warning notice
+   */
+  const isWarningNotice = (v): v is WarningNotice =>
+    v && v.type === 'warning' && typeof v.message === 'string'
+
+  /**
    * Check if message is LLM slow notice
    */
   const isLlmSlowNotice = (v): v is LlmSlowNotice =>
@@ -231,6 +242,11 @@ export function useWebSocketAudioHandler({
         isProcessing.value = false
         closeWebSocket()
         onBillingError(json)
+        return
+      }
+
+      if (isWarningNotice(json)) {
+        showError(json.message)
         return
       }
 

@@ -3,7 +3,7 @@ import logging
 from langfuse import observe
 from pydantic_ai import UnexpectedModelBehavior
 
-from app.agents.base_agent import AgentDeps, BaseAgent
+from app.agents.base_agent import AgentDeps, AgentGenerationError, BaseAgent
 from app.models.encounter import Encounter
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,8 @@ class ChallengeAgent(BaseAgent):
 
             return run_result.output
         except UnexpectedModelBehavior as e:
-            logger.error(f"Agent failure. {e.message}")
-            raise
+            logger.error(f"Agent model failure. {e.message}")
+            raise AgentGenerationError("Agent model failure") from e
         except Exception as e:
             logger.error(f"Agent response generation failed. {e}")
-            raise
+            raise AgentGenerationError("Agent response generation failed") from e

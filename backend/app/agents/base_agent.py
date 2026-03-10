@@ -27,6 +27,12 @@ class AgentHistoryError(RuntimeError):
     pass
 
 
+class AgentGenerationError(RuntimeError):
+    """LLM generation or processing failure."""
+
+    pass
+
+
 def get_latest_user_message(run_result: AgentRunResult) -> ModelMessage:
     """Get the latest user message, handling pydantic bug where new_messages() can be empty."""
     # Try new_messages() first (normal case)

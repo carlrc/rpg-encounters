@@ -5,7 +5,12 @@ from langfuse import observe
 from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.messages import ModelResponse, TextPart
 
-from app.agents.base_agent import AgentDeps, BaseAgent, get_latest_user_message
+from app.agents.base_agent import (
+    AgentDeps,
+    AgentGenerationError,
+    BaseAgent,
+    get_latest_user_message,
+)
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.data.conversation_store import ConversationStore
 from app.models.influence import Influence
@@ -50,11 +55,11 @@ class NegativeConvoAgent(BaseAgent):
             )
             self.last_total_tokens = run_result.usage().total_tokens
         except UnexpectedModelBehavior as e:
-            logger.error(f"Agent failure. {e.message}")
-            raise
+            logger.error(f"Agent model failure. {e.message}")
+            raise AgentGenerationError("Agent model failure") from e
         except Exception as e:
             logger.error(f"Agent response generation failed. {e}")
-            raise
+            raise AgentGenerationError("Agent response generation failed") from e
 
         try:
             # Add to running earned total
@@ -77,4 +82,4 @@ class NegativeConvoAgent(BaseAgent):
             return run_result.output, deps.context.influence
         except Exception as e:
             logger.error(f"Could not process agent response. {e}")
-            raise
+            raise AgentGenerationError("Agent response processing failed") from e

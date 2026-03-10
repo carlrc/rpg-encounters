@@ -4,6 +4,7 @@ import logging
 from fastapi import WebSocket
 from langfuse import get_client, observe
 
+from app.agents.base_agent import AgentGenerationError
 from app.agents.conversations.conversation_agent import (
     ConversationAgent,
     ConversationAgentDeps,
@@ -15,7 +16,7 @@ from app.agents.conversations.negative_conversation_agent import (
 from app.agents.influence_scoring_agent import InfluenceCalculatorAgent
 from app.agents.prompts.import_prompts import render_prompt
 from app.agents.prompts.limits import STANDARD_RESPONSE_WORD_LENGTH
-from app.clients.tts import create_tts_provider
+from app.clients.tts import TtsGenerationError, create_tts_provider
 from app.data.conversation_store import ConversationStore
 from app.data.influence_store import InfluenceStore
 from app.db.connection import get_async_db_session
@@ -27,9 +28,16 @@ from app.services.billing_responses import send_insufficient_tokens_response
 from app.services.context import get_conversation_context
 from app.services.llm_latency import llm_latency_notice
 from app.services.reveal_progress import calculate_reveal_progress
-from app.services.transcription import transcribe_and_moderate
+from app.services.transcription import TranscriptionError, transcribe_and_moderate
 from app.services.user_token import UserTokenService
-from app.services.websocket import get_audio_chunks, stream_tts_audio
+from app.services.websocket import (
+    WARNING_MESSAGE_LLM_FAILED,
+    WARNING_MESSAGE_TRANSCRIPTION_FAILED,
+    WARNING_MESSAGE_TTS_FAILED,
+    get_audio_chunks,
+    send_warning_and_close,
+    stream_tts_audio,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +205,21 @@ async def have_conversation(
                 voice_id=ctx.character.voice_id,
             )
 
+    except TranscriptionError:
+        return await send_warning_and_close(
+            websocket=websocket,
+            message=WARNING_MESSAGE_TRANSCRIPTION_FAILED,
+        )
+    except AgentGenerationError:
+        return await send_warning_and_close(
+            websocket=websocket,
+            message=WARNING_MESSAGE_LLM_FAILED,
+        )
+    except TtsGenerationError:
+        return await send_warning_and_close(
+            websocket=websocket,
+            message=WARNING_MESSAGE_TTS_FAILED,
+        )
     except Exception as e:
         logger.error(f"Processing conversation failed: {e}")
         raise

@@ -49,3 +49,7 @@ def create_tts_provider(provider: str) -> TTSProvider:
         return ElevenLabs(api_key=ELEVENLABS_API_KEY)
 
     raise RuntimeError(f"Unsupported TTS provider: {provider}")
+
+
+class TtsGenerationError(Exception):
+    pass

@@ -2,9 +2,14 @@ import logging
 
 from fastapi import WebSocket, WebSocketDisconnect
 
-from app.clients.tts import TTSProvider
+from app.clients.tts import TtsGenerationError, TTSProvider
 
 logger = logging.getLogger(__name__)
+
+
+WARNING_MESSAGE_TRANSCRIPTION_FAILED = "Transcription failed. Please try again..."
+WARNING_MESSAGE_LLM_FAILED = "LLM response generation failed. Please try again..."
+WARNING_MESSAGE_TTS_FAILED = "Generating audio failed. Please try again..."
 
 
 async def safe_close(websocket: WebSocket) -> None:
@@ -12,6 +17,28 @@ async def safe_close(websocket: WebSocket) -> None:
         await websocket.close(code=1000, reason="end_of_stream")
     except Exception as e:
         logger.error(f"Failed to send websocket close signal: {e}")
+
+
+async def send_audio_complete(websocket: WebSocket) -> None:
+    try:
+        await websocket.send_text("AUDIO_COMPLETE")
+    except Exception as e:
+        logger.error(f"Failed to send websocket completion signal: {e}")
+
+
+async def send_warning_and_close(websocket: WebSocket, message: str) -> None:
+    try:
+        await websocket.send_json(
+            {
+                "type": "warning",
+                "message": message,
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to send warning payload: {e}")
+
+    await send_audio_complete(websocket=websocket)
+    await safe_close(websocket=websocket)
 
 
 async def get_audio_chunks(websocket: WebSocket):
@@ -66,20 +93,19 @@ async def stream_tts_audio(
         voice_id: The voice ID to use for TTS
     """
     # Use TTS provider's MP4 stream method
-    async for audio_chunk in tts_provider.text_to_speech_mp4_stream(
-        text=text, voice_id=voice_id
-    ):
-        try:
-            await websocket.send_bytes(audio_chunk)
-        except Exception as e:
-            logger.error(f"Failed to send audio chunk: {e}")
-            break
+    try:
+        async for audio_chunk in tts_provider.text_to_speech_mp4_stream(
+            text=text, voice_id=voice_id
+        ):
+            try:
+                await websocket.send_bytes(audio_chunk)
+            except Exception as e:
+                logger.error(f"Failed to send audio chunk: {e}")
+                break
+    except Exception as e:
+        logger.error(f"TTS streaming failed: {e}")
+        raise TtsGenerationError("TTS generation failed") from e
 
     # Send completion signal
-    try:
-        await websocket.send_text("AUDIO_COMPLETE")
-    except Exception as e:
-        logger.error(f"Failed to send websocket completion signal: {e}")
-        return
-
+    await send_audio_complete(websocket=websocket)
     await safe_close(websocket=websocket)
