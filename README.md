@@ -35,13 +35,13 @@ It's designed to replace encounters where the DM does not want to impersonate ch
 
 ## 👨‍💻 Demos
 
-### DM Demo
+### DM Experience Demo
 
-<video controls src="https://rpg-encounters.com/videos/dm-centric-demo.mp4" width="640"></video>
+<video src="https://rpg-encounters.com/videos/dm-centric-demo.mp4"></video>
 
-### Player Demo
+### Player Experience Demo
 
-<video controls src="https://rpg-encounters.com/videos/player-centric-demo.mp4" width="640"></video>
+<video src="https://rpg-encounters.com/videos/player-centric-demo.mp4"></video>
 
 ## 🔌 Setup
 
