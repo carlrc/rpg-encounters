@@ -13,23 +13,25 @@
 
     <div class="profile-modal-body">
       <SplitViewLayout
-        :items="billingItems"
+        :items="profileItems"
         :selected-item-id="selectedItemId"
         list-title="Profile"
         :show-search="false"
         :contained="true"
         create-button-text=""
-        empty-message="No billing items"
+        empty-message="No profile items"
         @select-item="selectItem"
       >
         <template #detail-content>
           <ProfileBillingCard
+            v-if="selectedItemId === 'billing'"
             :loading="loading"
             :error="error"
             :title="selectedItemTitle"
             :token-traits="tokenTraits"
             :format-token-value="formatTokenValue"
           />
+          <ProfileSettingsCard v-else @delete="handleDeleteAccount" />
         </template>
 
         <template #footer-actions>
@@ -47,6 +49,8 @@
   import SharedEncounterPopup from '../base/SharedEncounterPopup.vue'
   import SplitViewLayout from '../layout/SplitViewLayout.vue'
   import ProfileBillingCard from './ProfileBillingCard.vue'
+  import ProfileSettingsCard from './ProfileSettingsCard.vue'
+  import { deleteAccount } from '../../services/api'
   import { useProfileBilling } from '../../composables/ui/useProfileBilling'
 
   const props = defineProps({
@@ -59,7 +63,7 @@
   const emit = defineEmits(['close', 'logout'])
 
   const {
-    billingItems,
+    profileItems,
     selectedItemId,
     loading,
     error,
@@ -71,6 +75,21 @@
   } = useProfileBilling()
 
   const closeModal = () => emit('close')
+  const handleDeleteAccount = async () => {
+    const confirmMessage = 'Are you sure you want to delete your account? This cannot be undone.'
+    if (!confirm(confirmMessage)) {
+      return
+    }
+
+    try {
+      await deleteAccount()
+      closeModal()
+      emit('logout')
+    } catch (err) {
+      console.error('Failed to delete account:', err)
+      alert('Failed to delete account. Please try again.')
+    }
+  }
 
   watch(
     () => props.isOpen,

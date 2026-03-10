@@ -35,3 +35,21 @@ test('PROFILE-BILLING-POPUP-01 opens profile popup and shows billing tokens', as
   await expect(popup.locator('.shared-field-label', { hasText: 'Available Tokens' })).toHaveCount(1)
   await expect(popup.getByRole('button', { name: 'Logout' })).toBeVisible()
 })
+
+test('PROFILE-SETTINGS-POPUP-01 shows danger zone delete account action', async ({ page }) => {
+  await page.goto('/characters')
+
+  const profileButton = page.getByRole('button', { name: 'Profile' })
+  await expect(profileButton).toBeVisible()
+
+  await profileButton.click()
+
+  const popup = page.locator('.encounter-popup').first()
+  await expect(popup).toBeVisible()
+
+  await popup.locator('.list-content .list-item', { hasText: 'Settings' }).click()
+
+  await expect(popup.locator('.shared-title', { hasText: 'Settings' })).toHaveCount(1)
+  await expect(popup.locator('.shared-field-label', { hasText: 'Danger Zone' })).toHaveCount(1)
+  await expect(popup.getByRole('button', { name: 'Delete Account' })).toBeVisible()
+})

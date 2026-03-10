@@ -112,6 +112,7 @@ export const getWorlds = () => http.get<GetWorldsResponse>('/worlds')
 export const createWorld = () => http.post<CreateWorldResponse>('/worlds')
 export const deleteWorld = (worldId: number) => http.delete<null>(`/worlds/${worldId}`)
 export const getProfile = () => http.get<GetProfileResponse>('/profile')
+export const deleteAccount = () => http.delete<null>('/profile')
 
 // Voice operations
 export const getTTSProviders = () => http.get<GetTTSProvidersResponse>('/voices/tts_providers')

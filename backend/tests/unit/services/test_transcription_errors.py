@@ -10,7 +10,9 @@ async def test_transcribe_audio_missing_file_raises_transcription_error(monkeypa
     monkeypatch.setattr(WhisperTranscriptionService, "_load_model", lambda self: None)
     service = WhisperTranscriptionService()
     service.model = Mock()
-    monkeypatch.setattr("app.services.transcription.os.path.exists", lambda _path: False)
+    monkeypatch.setattr(
+        "app.services.transcription.os.path.exists", lambda _path: False
+    )
 
     with pytest.raises(TranscriptionError, match="Transcription failed"):
         await service.transcribe_audio("missing.wav")

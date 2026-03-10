@@ -1,10 +1,13 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from app.dependencies import validate_current_user_id
+from app.auth.session import UserSession, destroy_session
+from app.data.user_store import UserStore
+from app.dependencies import validate_current_user_id, validate_current_user_world
 from app.http import INTERNAL_SERVER_ERROR
 from app.models.user_billing import UserBillingBase
+from app.services.redis import flush_user_token_usage
 from app.services.user_token import UserTokenService
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
@@ -27,6 +30,39 @@ async def get_profile(session_user_id: int = Depends(validate_current_user_id)):
         raise
     except Exception as e:
         logger.error(f"Failed to get profile for user {session_user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=INTERNAL_SERVER_ERROR,
+        )
+
+
+@router.delete("")
+async def delete_account(
+    request: Request,
+    session: UserSession = Depends(validate_current_user_world),
+):
+    user_id = session.user_id
+    try:
+        try:
+            await flush_user_token_usage(user_id=user_id)
+        except Exception as e:
+            logger.error(
+                f"Failed to flush billing usage before delete for user {user_id}: {e}"
+            )
+            raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        await UserTokenService().clear_cache(user_id=user_id)
+
+        deleted = await UserStore(user_id=user_id).delete()
+        if not deleted:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+        destroy_session(request)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete account for user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=INTERNAL_SERVER_ERROR,

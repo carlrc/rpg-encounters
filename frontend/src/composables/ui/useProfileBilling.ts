@@ -3,7 +3,10 @@ import { serializeError } from 'serialize-error'
 import { getProfile } from '@/services/api'
 
 export function useProfileBilling() {
-  const billingItems = [{ id: 'billing', name: 'Billing' }]
+  const profileItems = [
+    { id: 'billing', name: 'Billing' },
+    { id: 'settings', name: 'Settings' },
+  ]
   const selectedItemId = ref('billing')
   const loading = ref(false)
   const error = ref('')
@@ -11,7 +14,7 @@ export function useProfileBilling() {
 
   const availableTokens = computed(() => profile.value?.available_tokens ?? 0)
   const selectedItemTitle = computed(() => {
-    const selectedItem = billingItems.find((item) => item.id === selectedItemId.value)
+    const selectedItem = profileItems.find((item) => item.id === selectedItemId.value)
     return selectedItem?.name || ''
   })
 
@@ -45,7 +48,7 @@ export function useProfileBilling() {
   }
 
   return {
-    billingItems,
+    profileItems,
     selectedItemId,
     loading,
     error,
