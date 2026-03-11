@@ -20,7 +20,7 @@ It's designed to replace encounters where the DM does not want to impersonate ch
 
 ## 🚀 Getting Started
 
-1. Read the [game instructions](./frontend/public/instructions.md) and [features](#-core-features), and watch the [demos](#-demos) to understand the mechanics.
+1. Read the [game instructions](./frontend/public/instructions.md) and [features](#-core-features), and watch the [demo videos](#-demos) to understand the mechanics.
 2. Follow the [setup guide](#-setup) and [usage instructions](#-usage) or use the [hosted version](https://rpg-encounters.com).
 3. Talk to some characters in the [default scenario](./frontend/public/instructions.md#the-captains-secret-crate)!
 
