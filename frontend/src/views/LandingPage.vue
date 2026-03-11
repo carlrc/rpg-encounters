@@ -20,6 +20,7 @@
 
           <div class="landing-hero-actions">
             <a href="#features" class="shared-btn shared-btn-primary landing-btn">Features</a>
+            <a href="#demo" class="shared-btn shared-btn-secondary landing-btn">Demos</a>
             <a
               href="https://github.com/carlrc/rpg-encounters"
               class="shared-btn shared-btn-secondary landing-btn"
@@ -81,6 +82,23 @@
           </article>
         </div>
       </section>
+
+      <section class="landing-section" id="demo">
+        <h2 class="landing-section-title">Demos</h2>
+        <div class="landing-feature-grid">
+          <a
+            v-for="item in demoItems"
+            :key="item.title"
+            :href="item.href"
+            class="landing-feature-card landing-demo-card"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.description }}</p>
+          </a>
+        </div>
+      </section>
     </main>
   </div>
 </template>
@@ -123,6 +141,19 @@
         'Configure characters with clear motivation and biases, dramatically changing how they respond to certain players.',
       width: 1400,
       height: 1184,
+    },
+  ]
+
+  const demoItems = [
+    {
+      title: 'DM Perspective',
+      description: 'See how the DM controls a full NPC conversation.',
+      href: 'https://rpg-encounters.com/videos/dm-centric-demo.mp4',
+    },
+    {
+      title: 'Player Perspective',
+      description: 'Watch players talk to NPCs from their phones.',
+      href: 'https://rpg-encounters.com/videos/player-centric-demo.mp4',
     },
   ]
 </script>
