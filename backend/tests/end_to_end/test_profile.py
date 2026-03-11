@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
+import base64
+import json
+
 from fastapi.testclient import TestClient
 
+from app.auth.session import SESSION_CONFIG
 from app.clients.redis_client import create_usage_key, get_redis_session
 from app.data.account_store import AccountStore
 from app.data.user_billing_store import UserBillingStore
@@ -119,3 +123,29 @@ async def test_delete_profile_deletes_user_and_related_records():
             usage_key
         )  # pyright: ignore[reportGeneralTypeIssues]
     assert cached == 0
+
+
+async def test_delete_profile_rejects_tampered_session_user_id():
+    client, user_a, _, _ = await create_authenticated_client()
+    _, user_b, _, _ = await create_authenticated_client()
+
+    session_cookie = client.cookies.get(SESSION_CONFIG.session_cookie_name)
+    assert session_cookie
+
+    payload, signature = session_cookie.split(".", 1)
+    data = json.loads(base64.b64decode(payload.encode("utf-8")))
+    data["user_id"] = user_b.id
+    tampered_payload = base64.b64encode(json.dumps(data).encode("utf-8")).decode(
+        "utf-8"
+    )
+    tampered_cookie = f"{tampered_payload}.{signature}"
+
+    client.cookies.clear()
+    client.cookies.set(SESSION_CONFIG.session_cookie_name, tampered_cookie)
+    assert client.cookies.get(SESSION_CONFIG.session_cookie_name) == tampered_cookie
+
+    response = client.delete("/api/profile")
+    assert response.status_code == 401
+
+    assert await UserStore().exists(user_a.id)
+    assert await UserStore().exists(user_b.id)

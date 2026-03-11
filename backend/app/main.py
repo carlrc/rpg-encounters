@@ -112,6 +112,7 @@ app.add_middleware(
     session_cookie=SESSION_CONFIG.session_cookie_name,
     max_age=SESSION_CONFIG.max_age,
     https_only=SESSION_CONFIG.secure,
+    same_site=SESSION_CONFIG.same_site,
 )
 
 app.include_router(auth.router)

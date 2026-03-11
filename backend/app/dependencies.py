@@ -6,6 +6,7 @@ from app.auth.session import (
     get_session_player_id,
     get_session_user_id,
     get_session_world_id,
+    get_websocket_session_ids,
 )
 
 
@@ -39,31 +40,23 @@ def validate_current_user_world(
     return user_session
 
 
-async def get_websocket_user_world(websocket: WebSocket) -> UserSession:
-    """Get user ID and world ID from WebSocket connection."""
+async def validate_websocket_session(
+    websocket: WebSocket,
+) -> UserSession | PlayerSession | None:
+    """Get session IDs from WebSocket connection and return a typed session or None."""
+    user_id, world_id, player_id = get_websocket_session_ids(websocket)
+    # Assert on standard session elements
+    if not user_id or not world_id:
+        return None
 
-    # User Id should be present in all sessions
-    user_id = websocket.session.get("user_id")
-    if not user_id:
-        await websocket.close(code=1008)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-
-    # Check if this is a player session
-    player_id = websocket.session.get("player_id")
     if player_id:
-        # World Id is set in session for players because they are tied to a single world
-        world_id = websocket.session.get("world_id")
-        if not world_id:
-            await websocket.close(code=1008)
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+        return PlayerSession(
+            user_id=int(user_id),
+            world_id=int(world_id),
+            player_id=int(player_id),
+        )
     else:
-        # World Id is set in query params for users because they can switch worlds
-        world_id = websocket.query_params.get("world_id")
-        if not world_id:
-            await websocket.close(code=1008)
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-
-    return UserSession(user_id=int(user_id), world_id=int(world_id))
+        return UserSession(user_id=int(user_id), world_id=int(world_id))
 
 
 def validate_current_player(request: Request) -> PlayerSession:
@@ -83,6 +76,7 @@ def validate_current_player(request: Request) -> PlayerSession:
 def validate_current_player_or_user(
     request: Request, x_world_id: str = Header(None)
 ) -> UserSession | PlayerSession:
+    """Validate player or user session."""
     # If player validate player session
     if get_session_player_id(request=request):
         return validate_current_player(request=request)
@@ -92,7 +86,11 @@ def validate_current_player_or_user(
 
 
 def validate_current_user_id(request: Request) -> int:
+    """Validate user session only."""
     user_id = get_session_user_id(request=request)
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    # Endpoints which include players should use different validation fn
+    if get_session_player_id(request=request):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     return int(user_id)

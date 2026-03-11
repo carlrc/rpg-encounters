@@ -77,7 +77,7 @@ class EncounterStore(BaseStore):
             )
             raise
 
-    async def create(self, encounter_data: EncounterCreate) -> Encounter:
+    async def create(self, encounter_data: EncounterCreate) -> Encounter | None:
         """Create a new encounter"""
         try:
             async with self.get_session() as session:
@@ -91,12 +91,26 @@ class EncounterStore(BaseStore):
 
                 # Automatic association handling - always set characters to avoid lazy loading
                 if encounter_data.character_ids:
+                    requested_character_ids = encounter_data.character_ids
+                    # Use a set only for the existence check to avoid false negatives when the input list contains duplicates.
+                    unique_character_ids = set(requested_character_ids)
                     result = await session.execute(
                         select(CharacterORM).where(
-                            CharacterORM.id.in_(encounter_data.character_ids)
+                            CharacterORM.id.in_(requested_character_ids),
+                            CharacterORM.user_id == self.user_id,
+                            CharacterORM.world_id == self.world_id,
                         )
                     )
                     characters = result.scalars().all()
+                    # If any requested IDs are out-of-scope (other user/world, deleted, or invalid),
+                    # the scoped query will return fewer rows. Treat as not found to avoid leaking.
+                    if len(characters) != len(unique_character_ids):
+                        logger.warning(
+                            "Encounter create rejected: character IDs out of scope "
+                            f"(user={self.user_id}, world={self.world_id}, "
+                            f"requested={requested_character_ids})"
+                        )
+                        return None
                     encounter_orm.characters = characters
                 else:
                     encounter_orm.characters = (
@@ -104,12 +118,26 @@ class EncounterStore(BaseStore):
                     )  # Set empty list to avoid lazy loading
 
                 if encounter_data.player_ids:
+                    requested_player_ids = encounter_data.player_ids
+                    # Use a set only for the existence check to avoid false negatives when the input list contains duplicates.
+                    unique_player_ids = set(requested_player_ids)
                     result = await session.execute(
                         select(PlayerORM).where(
-                            PlayerORM.id.in_(encounter_data.player_ids)
+                            PlayerORM.id.in_(requested_player_ids),
+                            PlayerORM.user_id == self.user_id,
+                            PlayerORM.world_id == self.world_id,
                         )
                     )
                     players = result.scalars().all()
+                    # If any requested IDs are out-of-scope (other user/world, deleted, or invalid),
+                    # the scoped query will return fewer rows. Treat as not found to avoid leaking.
+                    if len(players) != len(unique_player_ids):
+                        logger.warning(
+                            "Encounter create rejected: player IDs out of scope "
+                            f"(user={self.user_id}, world={self.world_id}, "
+                            f"requested={requested_player_ids})"
+                        )
+                        return None
                     encounter_orm.players = players
                 else:
                     encounter_orm.players = []
@@ -156,22 +184,50 @@ class EncounterStore(BaseStore):
 
                 # Update character relationships
                 if encounter_update.character_ids is not None:
+                    requested_character_ids = encounter_update.character_ids
+                    # Use a set only for the existence check to avoid false negatives when the input list contains duplicates.
+                    unique_character_ids = set(requested_character_ids)
                     result = await session.execute(
                         select(CharacterORM).where(
-                            CharacterORM.id.in_(encounter_update.character_ids)
+                            CharacterORM.id.in_(requested_character_ids),
+                            CharacterORM.user_id == self.user_id,
+                            CharacterORM.world_id == self.world_id,
                         )
                     )
                     characters = result.scalars().all()
+                    # If any requested IDs are out-of-scope (other user/world, deleted, or invalid),
+                    # the scoped query will return fewer rows. Treat as not found to avoid leaking.
+                    if len(characters) != len(unique_character_ids):
+                        logger.warning(
+                            "Encounter update rejected: character IDs out of scope "
+                            f"(user={self.user_id}, world={self.world_id}, "
+                            f"requested={requested_character_ids})"
+                        )
+                        return None
                     encounter_orm.characters = characters
 
                 # Update player relationships
                 if encounter_update.player_ids is not None:
+                    requested_player_ids = encounter_update.player_ids
+                    # Use a set only for the existence check to avoid false negatives when the input list contains duplicates.
+                    unique_player_ids = set(requested_player_ids)
                     result = await session.execute(
                         select(PlayerORM).where(
-                            PlayerORM.id.in_(encounter_update.player_ids)
+                            PlayerORM.id.in_(requested_player_ids),
+                            PlayerORM.user_id == self.user_id,
+                            PlayerORM.world_id == self.world_id,
                         )
                     )
                     players = result.scalars().all()
+                    # If any requested IDs are out-of-scope (other user/world, deleted, or invalid),
+                    # the scoped query will return fewer rows. Treat as not found to avoid leaking.
+                    if len(players) != len(unique_player_ids):
+                        logger.warning(
+                            "Encounter update rejected: player IDs out of scope "
+                            f"(user={self.user_id}, world={self.world_id}, "
+                            f"requested={requested_player_ids})"
+                        )
+                        return None
                     encounter_orm.players = players
 
                 await session.flush()

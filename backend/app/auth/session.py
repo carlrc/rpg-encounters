@@ -2,7 +2,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import Request
+from fastapi import Request, WebSocket
 from pydantic import BaseModel, Field
 
 from app.http import SESSION_COOKIE
@@ -37,6 +37,7 @@ class SessionConfig(BaseModel):
     max_age: int = Field(default=60 * 60 * 2, frozen=True)  # 2 hours
     secure: bool = Field(default=not IS_LOCAL, frozen=True)
     httponly: bool = Field(default=not IS_LOCAL, frozen=True)
+    same_site: str = Field(default="lax", frozen=True)
 
 
 # Global config instance
@@ -67,3 +68,18 @@ def get_session_world_id(request: Request) -> str | None:
     Get world_id from session if it exists.
     """
     return request.session.get("world_id")
+
+
+def get_websocket_session_ids(
+    websocket: WebSocket,
+) -> tuple[str | None, str | None, str | None]:
+    """Parse IDs from websocket session/query params without asserting."""
+    user_id = websocket.session.get("user_id")
+    player_id = websocket.session.get("player_id")
+    if player_id:
+        # Player sessions is tied to a world
+        world_id = websocket.session.get("world_id")
+    else:
+        # User sessions are not tied to a world
+        world_id = websocket.query_params.get("world_id")
+    return user_id, world_id, player_id

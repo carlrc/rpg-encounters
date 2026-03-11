@@ -10,11 +10,12 @@ logger = logging.getLogger(__name__)
 WARNING_MESSAGE_TRANSCRIPTION_FAILED = "Transcription failed. Please try again..."
 WARNING_MESSAGE_LLM_FAILED = "LLM response generation failed. Please try again..."
 WARNING_MESSAGE_TTS_FAILED = "Generating audio failed. Please try again..."
+WARNING_MESSAGE_PROCESSING_FAILED = "Could not process request. Please try again..."
 
 
-async def safe_close(websocket: WebSocket) -> None:
+async def safe_close(websocket: WebSocket, code=1000, reason="end_of_stream") -> None:
     try:
-        await websocket.close(code=1000, reason="end_of_stream")
+        await websocket.close(code=code, reason=reason)
     except Exception as e:
         logger.error(f"Failed to send websocket close signal: {e}")
 
@@ -26,7 +27,7 @@ async def send_audio_complete(websocket: WebSocket) -> None:
         logger.error(f"Failed to send websocket completion signal: {e}")
 
 
-async def send_warning_and_close(websocket: WebSocket, message: str) -> None:
+async def send_warning(websocket: WebSocket, message: str) -> None:
     try:
         await websocket.send_json(
             {
@@ -37,8 +38,11 @@ async def send_warning_and_close(websocket: WebSocket, message: str) -> None:
     except Exception as e:
         logger.error(f"Failed to send warning payload: {e}")
 
+
+async def send_warning_and_close(websocket: WebSocket, message: str, code=1011) -> None:
+    await send_warning(websocket=websocket, message=message)
     await send_audio_complete(websocket=websocket)
-    await safe_close(websocket=websocket)
+    await safe_close(websocket=websocket, code=code)
 
 
 async def get_audio_chunks(websocket: WebSocket):

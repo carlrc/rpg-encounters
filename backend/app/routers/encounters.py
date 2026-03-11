@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List
+from typing import Dict, List, cast
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, status
 from langfuse import get_client, observe
@@ -11,7 +11,10 @@ from app.data.conversation_store import ConversationStore
 from app.data.encounter_store import EncounterStore
 from app.data.influence_store import InfluenceStore
 from app.db.connection import get_async_db_routes_session
-from app.dependencies import get_websocket_user_world, validate_current_user_world
+from app.dependencies import (
+    validate_current_user_world,
+    validate_websocket_session,
+)
 from app.http import ENTITY_NOT_FOUND, INTERNAL_SERVER_ERROR
 from app.models.conversation import ConversationData
 from app.models.encounter import Encounter, EncounterCreate, EncounterUpdate
@@ -67,9 +70,14 @@ async def create_encounter(
     """Create a new encounter"""
     user_id, world_id = session.user_id, session.world_id
     try:
-        return await EncounterStore(user_id=user_id, world_id=world_id).create(
+        encounter = await EncounterStore(user_id=user_id, world_id=world_id).create(
             encounter_data
         )
+        if not encounter:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+            )
+        return encounter
     except HTTPException:
         raise
     except Exception as e:
@@ -91,8 +99,6 @@ async def update_encounter(
     """Update an existing encounter"""
     user_id, world_id = session.user_id, session.world_id
     try:
-        # Override the ID from the URL path
-        encounter_update.id = encounter_id
         encounter = await EncounterStore(user_id=user_id, world_id=world_id).update(
             encounter_id, encounter_update
         )
@@ -398,13 +404,17 @@ async def websocket_convo_endpoint(
     character_id: int,
 ):
     # Get context
-    session = await get_websocket_user_world(websocket)
-    user_id, world_id = session.user_id, session.world_id
-    player_initiated = (
-        websocket.query_params.get("player_init", "false").lower() == "true"
-    )
+    session = await validate_websocket_session(websocket)
+    if not session:
+        logger.warning(
+            f"Invalid conversation WS session for encounter {encounter_id}..."
+        )
+        await websocket.close(code=1008)
+    validated_user_session = cast(UserSession, session)
+    user_id, world_id = validated_user_session.user_id, validated_user_session.world_id
+    # Ignore query param for who initiated so it can't be tampered with
+    player_initiated = bool(getattr(session, "player_id", None))
 
-    # Update trace
     get_client().update_current_trace(
         user_id=user_id,
         tags=["conversation"],
@@ -435,15 +445,17 @@ async def websocket_challenge_endpoint(
     character_id: int,
 ):
     # Get context
-    session = await get_websocket_user_world(websocket)
-    user_id, world_id = session.user_id, session.world_id
+    session = await validate_websocket_session(websocket)
+    if not session:
+        logger.warning(f"Invalid challenge WS session for encounter {encounter_id}...")
+        await websocket.close(code=1008)
+    validated_user_session = cast(UserSession, session)
+    user_id, world_id = validated_user_session.user_id, validated_user_session.world_id
     skill = websocket.query_params.get("skill")
     d20_roll = websocket.query_params.get("d20_roll")
-    player_initiated = (
-        websocket.query_params.get("player_init", "false").lower() == "true"
-    )
+    # Ignore query param for who initiated so it can't be tampered with
+    player_initiated = bool(getattr(session, "player_id", None))
 
-    # Update trace
     get_client().update_current_trace(
         user_id=user_id,
         tags=["challenge"],

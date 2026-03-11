@@ -2,9 +2,9 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from app.auth.session import UserSession, destroy_session
+from app.auth.session import destroy_session
 from app.data.user_store import UserStore
-from app.dependencies import validate_current_user_id, validate_current_user_world
+from app.dependencies import validate_current_user_id
 from app.http import INTERNAL_SERVER_ERROR
 from app.models.user_billing import UserBillingBase
 from app.services.redis import flush_user_token_usage
@@ -39,9 +39,8 @@ async def get_profile(session_user_id: int = Depends(validate_current_user_id)):
 @router.delete("")
 async def delete_account(
     request: Request,
-    session: UserSession = Depends(validate_current_user_world),
+    user_id: int = Depends(validate_current_user_id),
 ):
-    user_id = session.user_id
     try:
         try:
             await flush_user_token_usage(user_id=user_id)

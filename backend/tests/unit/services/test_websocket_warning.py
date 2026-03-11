@@ -20,4 +20,4 @@ async def test_send_warning_and_close_sends_payload_and_closes():
         {"type": "warning", "message": "Warning message"}
     )
     websocket.send_text.assert_awaited_once_with("AUDIO_COMPLETE")
-    websocket.close.assert_awaited_once_with(code=1000, reason="end_of_stream")
+    websocket.close.assert_awaited_once_with(code=1011, reason="end_of_stream")

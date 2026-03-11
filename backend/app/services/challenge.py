@@ -22,16 +22,23 @@ from app.services.ability_challenge import (
 )
 from app.services.audio_processor import cleanup_files, save_chunks_to_wav
 from app.services.billing_responses import send_insufficient_tokens_response
-from app.services.context import get_conversation_context
+from app.services.context import (
+    ContextError,
+    get_conversation_context,
+    validate_encounter_ctx,
+)
 from app.services.llm_latency import llm_latency_notice
 from app.services.reveal_progress import calculate_reveal_progress
 from app.services.transcription import TranscriptionError, transcribe_and_moderate
 from app.services.user_token import UserTokenService
 from app.services.websocket import (
     WARNING_MESSAGE_LLM_FAILED,
+    WARNING_MESSAGE_PROCESSING_FAILED,
     WARNING_MESSAGE_TRANSCRIPTION_FAILED,
     WARNING_MESSAGE_TTS_FAILED,
     get_audio_chunks,
+    safe_close,
+    send_warning,
     send_warning_and_close,
     stream_tts_audio,
 )
@@ -115,6 +122,21 @@ async def challenge_character(
                 ),
                 transcribe_and_moderate(user_id=user_id, wav_file_path=wav_path),
             )
+
+            if not validate_encounter_ctx(
+                ctx=ctx,
+                encounter_id=encounter_id,
+                player_id=player_id,
+                character_id=character_id,
+            ):
+                logger.warning(f"User {user_id} tampering with challenge WS URL...")
+                await send_warning(
+                    websocket=websocket,
+                    message="Please stop tampering with the URL params...",
+                )
+                return await safe_close(
+                    websocket=websocket, code=1008, reason="invalid_params"
+                )
 
             # If flagged, fallback to default reply
             if is_blocked:
@@ -211,9 +233,12 @@ async def challenge_character(
             websocket=websocket,
             message=WARNING_MESSAGE_TTS_FAILED,
         )
-    except Exception as e:
+    except (ContextError, Exception) as e:
         logger.error(f"Processing challenge failed: {e}")
-        raise
+        return await send_warning_and_close(
+            websocket=websocket,
+            message=WARNING_MESSAGE_PROCESSING_FAILED,
+        )
     finally:
         try:
             # Clean up temporary files

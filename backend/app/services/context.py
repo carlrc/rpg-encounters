@@ -1,7 +1,6 @@
 import logging
 from typing import List
 
-from fastapi import HTTPException
 from langfuse import observe
 from pydantic import BaseModel
 from pydantic_ai.messages import ModelMessage
@@ -27,6 +26,10 @@ from app.models.reveal import Reveal
 from app.services.influence_calculator import calculate_base_influence
 
 logger = logging.getLogger(__name__)
+
+
+class ContextError(Exception):
+    pass
 
 
 class ConvoContext(BaseModel):
@@ -85,17 +88,18 @@ async def get_conversation_context(
         user_account = await account_store.get_account_by_user_id(user_id=user_id)
 
         if not character or not player or not user_account:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise ContextError(ENTITY_NOT_FOUND)
 
         base_influence = calculate_base_influence(character=character, player=player)
 
         # Get encounter
         encounter = await encounter_store.get_by_id(encounter_id)
         if not encounter:
-            raise HTTPException(status_code=404, detail=ENTITY_NOT_FOUND)
+            raise ContextError(ENTITY_NOT_FOUND)
 
         # Auto-add character to encounter if not already present (e.g., canvas not saved but character added)
-        if character_id not in encounter.character_ids:
+        character_ids = encounter.character_ids or []
+        if character_id not in character_ids:
             await encounter_store.add_character_to_encounter(encounter_id, character_id)
             # Refresh encounter data after adding character
             encounter = await encounter_store.get_by_id(encounter_id)
@@ -139,4 +143,24 @@ async def get_conversation_context(
         )
     except Exception as e:
         logger.error(f"Failed to get conversation context: {e}")
-        raise e
+        raise ContextError("Could not get convo context") from e
+
+
+def validate_encounter_ctx(
+    ctx: ConvoContext,
+    encounter_id: int,
+    player_id: int,
+    character_id: int,
+) -> bool:
+    """Validate encounter/player/character association within the same encounter."""
+    player_ids = ctx.encounter.player_ids or []
+    character_ids = ctx.encounter.character_ids or []
+
+    if (
+        (ctx.encounter.id != encounter_id)
+        or (player_id not in player_ids)
+        or (character_id not in character_ids)
+    ):
+        return False
+    else:
+        return True

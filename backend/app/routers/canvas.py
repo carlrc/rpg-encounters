@@ -96,6 +96,10 @@ async def save_canvas(
             )
 
             created = await encounter_store.create(encounter_create)
+            if not created:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail=ENTITY_NOT_FOUND
+                )
             all_encounters.append(created)
             # Map temp ID to real database ID
             encounter_id_map[temp_id] = created.id
