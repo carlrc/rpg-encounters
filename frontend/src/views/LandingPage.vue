@@ -31,15 +31,13 @@
             </a>
           </div>
 
-          <div class="landing-hero-image-wrap">
-            <img
-              src="/landing/assets/images/home/session.jpeg"
-              alt="Landing showcase"
-              width="1536"
-              height="1024"
-              class="landing-hero-image"
-            />
-          </div>
+          <img
+            src="/landing/assets/images/home/session.jpeg"
+            alt="Landing showcase"
+            width="1536"
+            height="1024"
+            class="landing-hero-image"
+          />
         </div>
       </section>
 
@@ -147,12 +145,12 @@
   const demoItems = [
     {
       title: 'DM Perspective',
-      description: 'See how the DM controls a full NPC conversation.',
+      description: 'Click to see how the DM controls a full NPC conversation.',
       href: 'https://rpg-encounters.com/videos/dm-centric-demo.mp4',
     },
     {
       title: 'Player Perspective',
-      description: 'Watch players talk to NPCs from their phones.',
+      description: 'Click to watch how players talk to NPCs from their phones.',
       href: 'https://rpg-encounters.com/videos/player-centric-demo.mp4',
     },
   ]
