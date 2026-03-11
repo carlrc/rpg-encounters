@@ -46,7 +46,9 @@ from app.services.websocket import (
 logger = logging.getLogger(__name__)
 
 
-def render_challenge_prompts(ctx, d20_roll: int, filtered_reveals) -> str:
+def render_challenge_prompts(
+    ctx, d20_roll: int, filtered_reveals, total_roll: int
+) -> str:
     """Render challenge prompts based on D20 roll outcome."""
 
     # Construct context for all prompts
@@ -71,7 +73,8 @@ def render_challenge_prompts(ctx, d20_roll: int, filtered_reveals) -> str:
         rendered_instructions = render_prompt(
             "challenge_agent_critical_success", template_ctx
         )
-    elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value:
+    # If someone has such high negative influence or charisma their total roll is below zero it should also be a critical failure
+    elif d20_roll == D20Outcomes.CRITICAL_FAILURE.value or total_roll < 0:
         # Critical failures should not share any information so set reveals and memories to None
         rendered_instructions = render_prompt(
             "challenge_agent_critical_failure",
@@ -183,7 +186,12 @@ async def challenge_character(
 
             # Filter out reveals which are below the total roll score (e.g., prioritize high level reveals) and render agent prompt
             rendered_instructions = render_challenge_prompts(
-                ctx, d20_roll, filter_reveals_by_roll(ctx.reveals, total_roll)
+                ctx=ctx,
+                d20_roll=d20_roll,
+                filtered_reveals=filter_reveals_by_roll(
+                    reveals=ctx.reveals, total_roll=total_roll
+                ),
+                total_roll=total_roll,
             )
             agent = ChallengeAgent(instructions=rendered_instructions)
 

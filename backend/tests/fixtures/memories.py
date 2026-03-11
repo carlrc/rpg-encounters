@@ -26,13 +26,6 @@ memories_db = [
     MemoryCreate(
         user_id=1,
         world_id=1,
-        title="Whispers in the Rigging",
-        content="Word is the captain's been acting more secretive than usual this voyage. Keeps checking on a particular crate in the hold, won't let anyone near it. Mara heard from the quartermaster that we're getting triple rates for this run, which ain't normal for textiles and spices.",
-        character_ids=[0, 1, 2, 3, 4, 5, 6]  # All crew members
-    ),
-    MemoryCreate(
-        user_id=1,
-        world_id=1,
         title="Time at Sea",
         content="Most of us have been sailing together for at least two years now, except young Finn who joined us six months back in Neverwinter. The captain's had this ship for five years, and Barthus has been with him since the beginning. Old Salty's been on these waters for thirty years, though only the last three with us.",
         character_ids=[0, 1, 2, 3, 4, 5, 6]  # All crew members
