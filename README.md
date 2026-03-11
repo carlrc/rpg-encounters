@@ -14,9 +14,7 @@
 
 </div>
 
-RPG encounter's goal is to use AI characters to create interactions that are entertaining for the whole table. It's designed for **in-person sessions**, where the Dungeon Master (DM) - **you** - controls to what extent the players engage with these characters.
-
-It's designed to replace encounters where the DM does not want to impersonate characters and instead introduce some variability, and free-form role play, in a non-obtrusive way. You can choose to only setup one important character with plot hooks or important items, and keep all other interactions in-person. Or fill your scenarios with as many characters as you want.
+RPG encounter's goal is to bring real-time voice NPCs to **in-person** tabletop sessions. It's designed to replace encounters where the DM - **you** - does not want to impersonate characters and instead introduce some variability, and free-form role play in a non-obtrusive way. You can choose to only setup one important character with plot hooks or important items and keep all other interactions in-person. Or fill your scenarios with as many characters as you want.
 
 ## 🚀 Getting Started
 
