@@ -33,7 +33,7 @@ It's designed to replace encounters where the DM does not want to impersonate ch
 | <img src="frontend/public/landing/assets/images/home/player-screen.png" alt="Player popup" width="220" /> | **Players can speak through their phone**<br/>Generate login links for players and let them control the conversation. |
 | <img src="frontend/public/landing/assets/images/home/character-screen.png" alt="Character screen" width="220" /> | **Characters with personality**<br/>Create characters with biases, motivations and trust based secrets, which dictate how they respond. |
 
-## 👨‍💻 Demos
+## 🍿 Demos
 
 ### DM Perspective
 
@@ -47,20 +47,6 @@ It's designed to replace encounters where the DM does not want to impersonate ch
 
 - Follow `backend` [setup guide](./backend/README.md)
 - Follow `frontend` [setup guide](./frontend/README.md)
-
-## 💻 Usage
-
-Launch frontend
-
-```bash
-npm run dev
-```
-
-Launch backend services
-
-```bash
-docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up
-```
 
 ### Microphone
 
@@ -121,6 +107,26 @@ If you want players to speak through their own devices locally, you need to setu
 6. Login and generate player links from the `/players` screen. Automatic copying to clipboard will fail because of restrictions to Clipboard API locally.
 7. Each player launches Chrome with `open -n -a "Google Chrome" --args --unsafely-treat-insecure-origin-as-secure=http://<IP_ADDRESS>:3001`
 8. Players login with the previously generated login link
+
+## 💻 Usage
+
+Start frontend
+
+```bash
+npm run dev
+```
+
+Ensure you have set all the required `backend/.env` variables in [setup](#-setup) and start backend services
+
+```bash
+docker compose -f backend/docker-compose.yml -f backend/docker-compose.dev.yml up
+```
+
+Navigate to the login page and generate a magic link
+
+```bash
+open -a "Google Chrome" "http://localhost:3001/login"
+```
 
 ## Support
 
