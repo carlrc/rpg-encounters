@@ -45,8 +45,18 @@
       <div class="header-content custom-header-content">
         <AppBanner />
         <div class="header-actions">
-          <button class="instructions-button" @click="showInstructions = true">Instructions</button>
-          <button class="profile-button" @click="showProfile = true">Profile</button>
+          <button
+            class="shared-btn shared-btn-secondary instructions-button"
+            @click="showInstructions = true"
+          >
+            Instructions
+          </button>
+          <button
+            class="shared-btn shared-btn-secondary profile-button"
+            @click="showProfile = true"
+          >
+            Profile
+          </button>
         </div>
       </div>
     </header>
@@ -187,7 +197,7 @@
     height: 100dvh; /* Dynamic viewport height for iOS */
     display: flex;
     flex-direction: column;
-    background: var(--bg-primary);
+    background: var(--bg-light);
   }
 
   .player-content-area {
@@ -207,64 +217,48 @@
     justify-content: space-between !important;
     margin: 0 !important;
     max-width: none !important;
-    padding-left: var(--spacing-md) !important;
-    padding-right: var(--spacing-md) !important;
+    padding-left: var(--spacing-xxl) !important;
+    padding-right: var(--spacing-xxl) !important;
   }
 
   .header-actions {
     display: flex;
     align-items: center;
+    gap: 1rem;
+  }
+
+  .header-actions .shared-btn {
+    width: auto;
+    min-width: 0;
+    padding: 0.42rem 0.75rem;
+    font-size: var(--font-size-nav);
+    line-height: 1;
+    white-space: nowrap;
   }
 
   .instructions-button {
-    background: none;
-    border: none;
-    color: var(--color-text-primary);
-    font-size: 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
     margin: 0;
-    white-space: nowrap;
-    transition: color 0.2s ease;
-  }
-
-  .instructions-button:hover {
-    color: var(--color-text-secondary);
   }
 
   .logout-button {
     background: none;
     border: none;
-    color: var(--color-text-primary);
-    font-size: 1rem;
-    font-weight: 600;
+    color: var(--dev-text-secondary);
+    font-size: var(--font-size-nav);
+    font-weight: var(--font-weight-medium);
     cursor: pointer;
     padding: 0;
-    margin-left: var(--spacing-lg);
+    margin-left: 0;
     white-space: nowrap;
-    transition: color 0.2s ease;
+    transition: color 140ms ease;
   }
 
   .logout-button:hover {
-    color: var(--danger-color);
+    color: var(--dev-text-primary);
   }
 
   .profile-button {
-    background: none;
-    border: none;
-    color: var(--color-text-primary);
-    font-size: 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-    margin-left: var(--spacing-lg);
-    white-space: nowrap;
-    transition: color 0.2s ease;
-  }
-
-  .profile-button:hover {
-    color: var(--color-text-secondary);
+    margin-left: 0;
   }
 
   .content-area.full-width {
@@ -282,13 +276,17 @@
 
   /* Mobile: Stack layout */
   @media (max-width: 767px) {
-    .instructions-button {
-      font-size: 1rem;
+    .header-actions {
+      gap: 0.5rem;
+    }
+
+    .header-actions .shared-btn {
+      padding: 0.36rem 0.6rem;
     }
   }
 
   .player-app-container .page-header {
-    padding: 0 var(--spacing-lg) !important;
+    padding: 0 var(--spacing-xxl) !important;
   }
 
   .player-app-container .header-content {

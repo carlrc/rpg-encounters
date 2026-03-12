@@ -2,11 +2,28 @@
   <div class="landing-page">
     <header class="landing-header page-header">
       <div class="landing-header-inner header-content">
-        <AppBanner />
+        <div class="landing-header-left">
+          <AppBanner />
+        </div>
 
-        <router-link to="/login" class="shared-btn shared-btn-primary landing-login-btn">
-          Login
-        </router-link>
+        <nav class="landing-nav" aria-label="Landing sections">
+          <a href="#features" class="landing-nav-link">Features</a>
+          <a href="#demo" class="landing-nav-link">Demos</a>
+          <a
+            href="https://github.com/carlrc/rpg-encounters"
+            class="landing-nav-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+        </nav>
+
+        <div class="landing-header-right">
+          <router-link to="/login" class="shared-btn shared-btn-secondary landing-login-btn">
+            Login
+          </router-link>
+        </div>
       </div>
     </header>
 
@@ -19,7 +36,7 @@
           </p>
 
           <div class="landing-hero-actions">
-            <a href="#features" class="shared-btn shared-btn-primary landing-btn">Features</a>
+            <a href="#features" class="shared-btn shared-btn-secondary landing-btn">Features</a>
             <a href="#demo" class="shared-btn shared-btn-secondary landing-btn">Demos</a>
             <a
               href="https://github.com/carlrc/rpg-encounters"
@@ -27,7 +44,7 @@
               target="_blank"
               rel="noopener noreferrer"
             >
-              Open Source
+              GitHub
             </a>
           </div>
 
@@ -43,7 +60,7 @@
 
       <section class="landing-section" id="highlights">
         <h2 class="landing-section-title">Built for voice at the table</h2>
-        <div class="landing-feature-grid">
+        <div class="landing-feature-grid landing-feature-grid-centered">
           <article class="landing-feature-card">
             <h3>DM Centric</h3>
             <p>
@@ -83,7 +100,7 @@
 
       <section class="landing-section" id="demo">
         <h2 class="landing-section-title">Demos</h2>
-        <div class="landing-feature-grid">
+        <div class="landing-feature-grid landing-feature-grid-centered">
           <a
             v-for="item in demoItems"
             :key="item.title"

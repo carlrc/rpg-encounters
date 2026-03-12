@@ -32,9 +32,10 @@ body {
   background: var(--bg-white);
   border-radius: var(--radius-xl);
   padding: var(--spacing-xxl);
-  box-shadow: var(--shadow-card);
   border: 1px solid var(--border-light);
-  transition: all var(--transition-normal);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
   text-align: left;
   display: flex;
   flex-direction: column;
@@ -46,8 +47,8 @@ body {
 }
 
 .shared-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-card-hover);
+  border-color: var(--gray-300);
+  background: #fcfcfd;
 }
 
 /* ===== SHARED TYPOGRAPHY ===== */
@@ -58,7 +59,7 @@ body {
   font-size: var(--font-size-xxl);
   font-weight: var(--font-weight-bold);
   text-align: center;
-  border-bottom: 3px solid var(--primary-color);
+  border-bottom: 1px solid var(--border-default);
   padding-bottom: var(--spacing-sm);
 }
 
@@ -157,74 +158,83 @@ body {
 
 .shared-btn {
   padding: var(--spacing-sm) var(--spacing-xl);
-  border: none;
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
   cursor: pointer;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
-  transition: all var(--transition-fast);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
   min-width: 80px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-sm);
   text-decoration: none;
+  background: var(--bg-white);
+  color: var(--text-primary);
+}
+
+.shared-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-alpha-10);
+}
+
+.shared-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .shared-btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  background: var(--dev-accent);
+  border-color: var(--dev-accent);
   color: white;
-  box-shadow: var(--shadow-button);
 }
 
 .shared-btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary-darker));
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-button-hover);
+  background: #1b1b1b;
+  border-color: #1b1b1b;
 }
 
 .shared-btn-success {
-  background: linear-gradient(135deg, var(--success-color), var(--success-dark));
+  background: var(--dev-accent);
+  border-color: var(--dev-accent);
   color: white;
-  box-shadow: var(--shadow-success);
 }
 
 .shared-btn-success:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--success-dark), var(--success-darker));
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-success-hover);
+  background: #1b1b1b;
+  border-color: #1b1b1b;
 }
 
 .shared-btn-success:disabled {
-  background: var(--secondary-color);
-  cursor: not-allowed;
-  opacity: 0.6;
-  transform: none;
-  box-shadow: none;
+  background: var(--gray-400);
+  border-color: var(--gray-400);
 }
 
 .shared-btn-danger {
-  background: linear-gradient(135deg, var(--danger-color), var(--danger-dark));
+  background: var(--danger-color);
+  border-color: var(--danger-color);
   color: white;
-  box-shadow: var(--shadow-danger);
 }
 
 .shared-btn-danger:hover {
-  background: linear-gradient(135deg, var(--danger-dark), var(--danger-darker));
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-danger-hover);
+  background: var(--danger-dark);
+  border-color: var(--danger-dark);
 }
 
 .shared-btn-secondary {
-  background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
-  color: white;
-  box-shadow: var(--shadow-secondary);
+  background: var(--dev-surface);
+  border-color: var(--dev-border);
+  color: var(--dev-text-secondary);
 }
 
 .shared-btn-secondary:hover {
-  background: linear-gradient(135deg, var(--secondary-dark), var(--secondary-darker));
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-secondary-hover);
+  background: var(--dev-surface-hover);
+  border-color: #c9ccd3;
+  color: var(--dev-text-primary);
 }
 
 /* ===== SHARED ACTIONS ===== */
@@ -240,16 +250,17 @@ body {
 
 /* ===== SHARED POPUP BODY ===== */
 .shared-popup-body {
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .shared-popup-message {
   margin: 0;
-  color: var(--gray-700);
-  line-height: 1.5;
+  color: var(--dev-text-secondary);
+  line-height: var(--line-height-body);
+  font-size: var(--font-size-body);
 }
 
 .shared-popup-action {
@@ -411,10 +422,9 @@ body {
 }
 
 .page-header {
-  background: var(--bg-white);
-  border-bottom: 2px solid var(--border-default);
+  background: var(--dev-background);
+  border-bottom: 1px solid var(--dev-border);
   padding: 0 var(--spacing-xxl);
-  box-shadow: var(--shadow-card);
   position: sticky;
   top: 0;
   z-index: var(--z-sticky);
@@ -426,7 +436,7 @@ body {
   align-items: center;
   width: 100%;
   margin: 0 auto;
-  height: var(--header-height);
+  height: 60px;
 }
 
 /* Desktop only: limit header content width */
@@ -440,11 +450,7 @@ body {
   margin: 0;
   font-size: var(--font-size-xxl);
   font-weight: var(--font-weight-bold);
-  color: var(--text-label);
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--dev-text-primary);
 }
 
 .main-layout {

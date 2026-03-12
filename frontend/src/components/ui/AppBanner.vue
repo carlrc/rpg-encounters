@@ -25,9 +25,9 @@
   }
 
   .brand-title {
-    font-size: clamp(1rem, 4vw, 1.35rem);
+    font-size: clamp(0.95rem, 2.4vw, 1.1rem);
     font-weight: 600;
-    color: var(--color-text-primary);
+    color: var(--dev-text-primary);
     margin: 0;
     min-width: 0;
     max-width: 100%;

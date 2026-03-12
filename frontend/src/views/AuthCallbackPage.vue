@@ -17,7 +17,6 @@
   import { serializeError } from 'serialize-error'
   import { useAuthStore } from '../stores/auth'
   import { consumeMagicLink } from '../services/api'
-  import '@/components/shared.css'
 
   const route = useRoute()
   const router = useRouter()

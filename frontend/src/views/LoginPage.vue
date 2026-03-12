@@ -10,13 +10,10 @@
       @close="closeSignupClosedPopup"
     >
       <div class="shared-popup-body">
-        <p class="shared-popup-message">
-          Registration is not open right now. If you already have an account, request a login link
-          below.
-        </p>
+        <p class="shared-popup-message">Registration is not open right now.</p>
         <button
           type="button"
-          class="shared-btn shared-btn-primary shared-popup-action"
+          class="shared-btn shared-btn-secondary shared-popup-action"
           @click="closeSignupClosedPopup"
         >
           Close
@@ -58,7 +55,6 @@
   import { serializeError } from 'serialize-error'
   import { requestMagicLink } from '../services/api'
   import SharedEncounterPopup from '../components/base/SharedEncounterPopup.vue'
-  import '@/components/shared.css'
 
   const email = ref('')
   const loading = ref(false)

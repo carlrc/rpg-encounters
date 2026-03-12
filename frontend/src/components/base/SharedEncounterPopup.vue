@@ -84,55 +84,62 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(4, 5, 7, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: var(--z-modal);
+    padding: 16px;
   }
 
   .encounter-popup {
-    background: white;
+    background: var(--dev-surface);
+    border: 1px solid var(--dev-border);
     border-radius: 12px;
-    box-shadow: var(--shadow-card-hover);
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    color: var(--dev-text-primary);
   }
 
   .popup-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--gray-100);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--dev-border);
     flex-shrink: 0;
   }
 
   .popup-header h3 {
     margin: 0;
-    color: var(--gray-800);
-    font-size: 1.5em;
+    color: var(--dev-text-primary);
+    font-size: 1.25rem;
+    line-height: 1.2;
   }
 
   .close-button {
-    background: none;
-    border: none;
-    font-size: 24px;
+    background: transparent;
+    border: 1px solid var(--dev-border);
+    font-size: 20px;
     cursor: pointer;
-    color: var(--gray-500);
+    color: var(--dev-text-secondary);
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s ease;
+    border-radius: 8px;
+    transition:
+      color 140ms ease,
+      border-color 140ms ease,
+      background-color 140ms ease;
   }
 
   .close-button:hover {
-    background: var(--gray-50);
-    color: var(--danger-color);
+    background: var(--dev-surface-hover);
+    border-color: #c9ccd3;
+    color: var(--dev-text-primary);
   }
 </style>

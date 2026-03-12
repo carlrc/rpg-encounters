@@ -55,41 +55,42 @@
     padding: var(--spacing-xl);
     overflow-y: auto;
     flex: 1;
-    line-height: 1.6;
+    line-height: var(--line-height-body);
+    color: var(--dev-text-secondary);
   }
 
   /* Markdown content styles using same variables as encounter popup */
   .modal-body :deep(h1) {
-    color: var(--gray-800);
-    font-size: 2rem;
-    font-weight: 700;
+    color: var(--dev-text-primary);
+    font-size: var(--font-size-section);
+    font-weight: var(--font-weight-semibold);
     margin: 0 0 24px 0;
     padding-bottom: 12px;
-    border-bottom: 2px solid var(--gray-200);
+    border-bottom: 1px solid var(--dev-border);
   }
 
   .modal-body :deep(h2) {
-    color: var(--gray-800);
+    color: var(--dev-text-primary);
     font-size: 1.5rem;
     font-weight: 600;
     margin: 32px 0 16px 0;
   }
 
   .modal-body :deep(h3) {
-    color: var(--gray-800);
+    color: var(--dev-text-primary);
     font-size: 1.25rem;
     font-weight: 600;
     margin: 24px 0 12px 0;
   }
 
   .modal-body :deep(p) {
-    color: var(--gray-800);
+    color: var(--dev-text-secondary);
     margin: 0 0 var(--spacing-lg) 0;
   }
 
   .modal-body :deep(ul),
   .modal-body :deep(ol) {
-    color: var(--gray-800);
+    color: var(--dev-text-secondary);
     margin: 0 0 var(--spacing-lg) 0;
     padding-left: var(--spacing-xxl);
   }
@@ -100,25 +101,27 @@
 
   .modal-body :deep(strong) {
     font-weight: 600;
-    color: var(--gray-800);
+    color: var(--dev-text-primary);
   }
 
   .modal-body :deep(code) {
-    background-color: var(--gray-100);
-    padding: 2px var(--spacing-xs);
+    background-color: var(--dev-background);
+    color: var(--dev-text-primary);
+    padding: 2px 6px;
     border-radius: var(--radius-sm);
-    font-family: 'Courier New', monospace;
-    font-size: 0.9em;
+    border: 1px solid var(--dev-border);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-code);
   }
 
   .modal-body :deep(hr) {
     border: none;
-    border-top: 1px solid var(--gray-200);
+    border-top: 1px solid var(--dev-border);
     margin: var(--spacing-xxl) 0;
   }
 
   .modal-body :deep(em) {
-    color: var(--gray-600);
+    color: var(--dev-text-secondary);
     font-style: italic;
   }
 

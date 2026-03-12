@@ -100,7 +100,7 @@
 
     <!-- Actions -->
     <div class="shared-actions">
-      <button @click="handleSave" class="shared-btn shared-btn-success" :disabled="!isFormValid">
+      <button @click="handleSave" class="shared-btn shared-btn-primary" :disabled="!isFormValid">
         {{ isEditing ? 'Save' : 'Create' }}
       </button>
       <button @click="handleCancel" class="shared-btn shared-btn-secondary">Cancel</button>
