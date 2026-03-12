@@ -16,7 +16,7 @@ from app.telemetry import TelemetryFunc
 from app.utils import get_or_throw
 
 # TODO: Set arbitrarily high to avoid trimming issue (_keep_recent_messages doesn't work). Should be based on tokens in the future anyways.
-MAX_MESSAGE_HISTORY = 20
+MAX_MESSAGE_HISTORY = 40
 
 MAX_RETRIES = 3
 
