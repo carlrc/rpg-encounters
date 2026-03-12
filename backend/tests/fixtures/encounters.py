@@ -10,7 +10,7 @@ encounters_db = [
         position_x=500.0,
         position_y=-50.0,
         character_ids=[5, 3],  # Gregor, Finnian 'Finn' Swift
-        player_ids=[1, 2],  # Sir Alaric, Thalion
+        player_ids=[1],  # Sir Alaric
     ),
     # Main Deck
     EncounterCreate(
@@ -21,7 +21,7 @@ encounters_db = [
         position_x=500.0,
         position_y=400.0,
         character_ids=[1],  # Barthus
-        player_ids=[0, 3],  # Mira, Brynja
+        player_ids=[0],  # Mira
     ),
     # Captain's Quarters
     EncounterCreate(
@@ -32,7 +32,7 @@ encounters_db = [
         position_x=1150.0,
         position_y=400.0,
         character_ids=[0],  # Captain
-        player_ids=[4],  # Elaris
+        player_ids=[],  # No players in Captain's Quarters
     ),
     # The Hold
     EncounterCreate(
@@ -43,7 +43,7 @@ encounters_db = [
         position_x=500.0,
         position_y=1300.0,
         character_ids=[6],  # Lady Seraphina Valerius
-        player_ids=[0],  # Mira (rl_name Sarah)
+        player_ids=[4],  # Elaris (rl_name James)
     ),
     # Crew Quarters
     EncounterCreate(
@@ -54,7 +54,7 @@ encounters_db = [
         position_x=1150.0,
         position_y=767.0,
         character_ids=[3, 4],  # Finnian 'Finn' Swift, Mara
-        player_ids=[0, 2, 3],  # Mira, Thalion, Brynja
+        player_ids=[2],  # Thalion
     ),
     # Lower Deck
     EncounterCreate(
@@ -65,6 +65,6 @@ encounters_db = [
         position_x=500.0,
         position_y=830.0,
         character_ids=[2],  # Silas
-        player_ids=[1, 4],  # Sir Alaric, Elaris
+        player_ids=[3],  # Brynja
     )
 ]
