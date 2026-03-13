@@ -43,6 +43,7 @@ import type {
   UpdatePlayerResponse,
   UpdateRevealResponse,
 } from '../types'
+import type { AuthCheckResponse } from '../types/auth'
 
 // Player CRUD operations
 export const getPlayers = () => http.get<GetPlayersResponse>('/players')
@@ -172,7 +173,16 @@ export const checkAuth = async (): Promise<boolean> => {
     },
   })
 
-  return res.ok
+  if (!res.ok) {
+    return false
+  }
+
+  try {
+    const payload: AuthCheckResponse = await res.json()
+    return payload.authenticated
+  } catch {
+    return false
+  }
 }
 
 export const requestMagicLink = async (email: string) => {

@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { assertConversationAudioRoundtrip, installWebSocketProbe } from './helpers/audioProbe'
+import {
+  assertConversationAudioRoundtrip,
+  installWebSocketProbe,
+  readWebSocketProbe,
+} from './helpers/audioProbe'
 import { assertReturnedToReadyState, runSpeakStopLifecycle } from './helpers/audioLifecycle'
 import { resolveBaseUrl } from './helpers/baseUrl'
 import { setUserBillingState } from './utils'
@@ -309,6 +313,16 @@ for (const mobileDevice of mobileDevices) {
         await expect(mobilePage.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(
           0
         )
+        // Ensure the server closes the conversation socket after the billing response
+        // to avoid send-after-close errors in backend logs.
+        await expect
+          .poll(async () => {
+            const probe = await readWebSocketProbe(mobilePage)
+            return probe.closeEvents.some((event) =>
+              /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/.test(event.url)
+            )
+          })
+          .toBe(true)
       } finally {
         await closeTrackedContexts(contextRegistry)
       }

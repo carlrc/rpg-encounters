@@ -1,7 +1,8 @@
-import { ref } from 'vue'
+import { ref, toValue } from 'vue'
 import { useRouter } from 'vue-router'
 import { serializeError } from 'serialize-error'
 import { checkAuth } from '../../services/api'
+import { useAuthStore } from '../../stores/auth'
 import { createWebSocketStreamPlayer } from './createWebSocketStreamPlayer'
 import { UnsupportedStreamingError } from './streamErrors'
 import { useNotification } from '../useNotification'
@@ -38,6 +39,18 @@ type WarningNotice = {
   message: string
 }
 
+type ConnectWebSocketParams = {
+  encounterId: number | string
+  selectedPlayerId: number | string
+  characterId: number | string
+  resolvedWorldId: number
+  isChallengeMode?: boolean
+  selectedSkill?: string
+  diceRoll?: number | null
+  playerInitiated?: boolean
+  audioFormatParam: string
+}
+
 export const pickRecorderMimeType = () => {
   if (!window.MediaRecorder || typeof MediaRecorder.isTypeSupported !== 'function') return ''
   return RECORDER_MIME_CANDIDATES.find((mimeType) => MediaRecorder.isTypeSupported(mimeType)) || ''
@@ -66,6 +79,7 @@ export function useWebSocketAudioHandler({
   worldId,
 }) {
   const router = useRouter()
+  const authStore = useAuthStore()
   const { showError, showWarning } = useNotification()
 
   // Internal state
@@ -129,13 +143,33 @@ export function useWebSocketAudioHandler({
   }
 
   /**
-   * Check authentication status and redirect to login if expired
+   * Validate auth session and route to login if it is no longer valid.
    */
-  const checkAuthAndRedirect = async () => {
-    const isAuthenticated = await checkAuth()
+  const validateAuthAndRouteToLogin = async (): Promise<void> => {
+    let isAuthenticated = false
+    try {
+      isAuthenticated = await checkAuth()
+    } catch {
+      // Treat auth-check failures as invalid session and route to login.
+      isAuthenticated = false
+    }
     if (!isAuthenticated) {
+      authStore.setAuthenticated(false)
       router.push('/login')
     }
+  }
+
+  const resolveWorldId = (): number | null => {
+    // `worldId` is passed by callers from `worldStore.currentWorldId` (Pinia) in DM/player views.
+    // `toValue` unwraps ref/computed/plain values; during hydration this can be `number|string|null`.
+    // Normalize to a strict positive integer for WS URLs.
+    // World IDs are auto-increment DB primary keys, so `0` is not a valid value.
+    const rawWorldId = toValue(worldId)
+    const normalizedWorldId = Number(rawWorldId)
+    if (!Number.isInteger(normalizedWorldId) || normalizedWorldId <= 0) {
+      return null
+    }
+    return normalizedWorldId
   }
 
   const stopActiveStream = () => {
@@ -149,8 +183,12 @@ export function useWebSocketAudioHandler({
    * Close WebSocket connection
    */
   const closeWebSocket = () => {
-    if (websocket.value && websocket.value.readyState === WebSocket.OPEN) {
-      websocket.value.close()
+    if (websocket.value && websocket.value.readyState !== WebSocket.CLOSED) {
+      try {
+        websocket.value.close()
+      } catch (error) {
+        console.warn('Failed to close websocket', JSON.stringify(serializeError(error)))
+      }
     }
     websocket.value = null
   }
@@ -207,7 +245,7 @@ export function useWebSocketAudioHandler({
   /**
    * Handle WebSocket messages
    */
-  const handleWSMessage = (data) => {
+  const handleWSMessage = (data: unknown): void => {
     // Binary audio chunks
     if (data instanceof Blob || data instanceof ArrayBuffer || ArrayBuffer.isView(data)) {
       void streamPlayer.value?.append(data).catch((error) => {
@@ -280,23 +318,21 @@ export function useWebSocketAudioHandler({
     encounterId,
     selectedPlayerId,
     characterId,
+    resolvedWorldId,
     isChallengeMode = false,
-    selectedSkill = '',
+    selectedSkill,
     diceRoll = null,
     playerInitiated = false,
     audioFormatParam = 'webm',
-  }) => {
-    if (!selectedPlayerId || !characterId) return
-
-    if (isChallengeMode && (!selectedSkill || diceRoll === null)) {
-      return
-    }
-
+  }: ConnectWebSocketParams): Promise<boolean> => {
     const wsUrl = isChallengeMode
-      ? `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/challenge/${selectedPlayerId}/${characterId}?skill=${selectedSkill}&d20_roll=${diceRoll}&world_id=${worldId}&player_init=${playerInitiated}&audio_format=${audioFormatParam}`
-      : `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/conversation/${selectedPlayerId}/${characterId}?world_id=${worldId}&player_init=${playerInitiated}&audio_format=${audioFormatParam}`
+      ? `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/challenge/${selectedPlayerId}/${characterId}?skill=${selectedSkill}&d20_roll=${diceRoll}&world_id=${resolvedWorldId}&player_init=${playerInitiated}&audio_format=${audioFormatParam}`
+      : `${WEBSOCKET_BASE_URL}/api/encounters/${encounterId}/conversation/${selectedPlayerId}/${characterId}?world_id=${resolvedWorldId}&player_init=${playerInitiated}&audio_format=${audioFormatParam}`
 
-    return new Promise((resolve, reject) => {
+    return new Promise<boolean>((resolve, reject) => {
+      // This promise models startup handshake only: resolve(true) once socket opens,
+      // resolve(false) if the socket closes/errors before open.
+      let opened = false
       try {
         websocket.value = new WebSocket(wsUrl)
 
@@ -304,6 +340,7 @@ export function useWebSocketAudioHandler({
         websocket.value.binaryType = 'blob'
 
         websocket.value.onopen = () => {
+          opened = true
           resolve(true)
         }
 
@@ -314,18 +351,28 @@ export function useWebSocketAudioHandler({
           isProcessing.value = false
           isRecording.value = false
           closeWebSocket()
-          reject(error)
+          if (!opened) {
+            // Startup failed before the handshake completed.
+            resolve(false)
+          }
         }
 
-        websocket.value.onclose = async (event) => {
-          // Code 1008 policy violation
+        websocket.value.onclose = (event) => {
           if (event.code === 1008) {
-            // Check inf session is still valid and redirect if not
-            await checkAuthAndRedirect()
+            // Check if session is still valid and redirect if not.
+            void validateAuthAndRouteToLogin()
           }
-          clearProcessingIfPlaybackComplete()
-          isRecording.value = false
-          websocket.value = null
+          if (!opened) {
+            console.error('WebSocket closed before connection was established')
+            websocket.value = null
+            resolve(false)
+          } else {
+            // `onclose` still fires after a successful open; this is runtime teardown.
+            // The startup promise was already settled in `onopen`, so only cleanup here.
+            clearProcessingIfPlaybackComplete()
+            isRecording.value = false
+            websocket.value = null
+          }
         }
       } catch (error) {
         console.error('WebSocket creation failed', JSON.stringify(serializeError(error)))
@@ -365,13 +412,21 @@ export function useWebSocketAudioHandler({
     selectedPlayerId,
     characterId,
     isChallengeMode = false,
-    selectedSkill = '',
+    selectedSkill,
     diceRoll = null,
     playerInitiated = false,
-  }) => {
+  }): Promise<boolean> => {
     if (isRecording.value || isProcessing.value) return false
     isUnsupported.value = false
     ensurePlaybackListeners()
+
+    const resolvedWorldId = resolveWorldId()
+    if (!resolvedWorldId || !selectedPlayerId || !characterId) {
+      return false
+    }
+    if (isChallengeMode && (!selectedSkill || diceRoll === null)) {
+      return false
+    }
 
     if (!window.MediaRecorder) {
       showError('Audio not supported in this browser.')
@@ -444,16 +499,21 @@ export function useWebSocketAudioHandler({
 
       const audioFormatParam = inferFormatParam(mediaRecorder.value.mimeType)
 
-      await connectWebSocket({
+      const connected = await connectWebSocket({
         encounterId,
         selectedPlayerId,
         characterId,
+        resolvedWorldId,
         isChallengeMode,
         selectedSkill,
         diceRoll,
         playerInitiated,
         audioFormatParam,
       })
+      if (!connected) {
+        await cleanup()
+        return false
+      }
 
       mediaRecorder.value.start(MEDIA_RECORDER_TIMESLICE)
       isRecording.value = true

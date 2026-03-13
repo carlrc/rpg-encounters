@@ -91,6 +91,57 @@ export const injectWebSocketTextMessage = async (
   )
 }
 
+export const forceWebSocketClose = async (
+  page,
+  { code = 1000, reason = '', wsPathRegex = DEFAULT_CONVERSATION_WS_REGEX } = {}
+) => {
+  // In Playwright probes, native `ws.close()` is not always observable by app-level handlers.
+  // This helper targets the most recent matching socket and synthesizes a close callback/event.
+  // Each Playwright worker has its own browser context, so sockets are already isolated per test.
+  // We still pick the latest matching connection to avoid touching non-audio sockets on the page.
+  return page.evaluate(
+    ({ code, reason, wsPathRegexSource, wsPathRegexFlags }) => {
+      const regex = new RegExp(wsPathRegexSource, wsPathRegexFlags)
+      const connections = window.__wsProbe?.connections || []
+      const targets = connections.filter((ws) => regex.test(String(ws.url)))
+      const latestTarget = targets[targets.length - 1]
+      const closableTargets = latestTarget ? [latestTarget] : []
+      closableTargets.forEach((ws) => {
+        const triggerCloseEvent = () => {
+          if (typeof ws.onclose === 'function') {
+            ws.onclose({ code, reason, wasClean: true })
+          } else {
+            const closeEvent = new CloseEvent('close', {
+              code,
+              reason,
+              wasClean: true,
+            })
+            ws.dispatchEvent(closeEvent)
+          }
+        }
+        const syntheticClose = () =>
+          triggerCloseEvent()
+        try {
+          ws.close(code, reason)
+          // `ws.close()` does not always deliver an observable close callback in this
+          // probe setup, so we emit a synthetic close event for deterministic client handling.
+          syntheticClose()
+        } catch {
+          // In some timing states `close()` throws; still deliver the policy-close event.
+          syntheticClose()
+        }
+      })
+      return closableTargets.length
+    },
+    {
+      code,
+      reason,
+      wsPathRegexSource: wsPathRegex.source,
+      wsPathRegexFlags: wsPathRegex.flags,
+    }
+  )
+}
+
 export const waitForAudioCompletion = async (
   page,
   { wsPathRegex = DEFAULT_CONVERSATION_WS_REGEX, timeoutMs = 60_000 } = {}

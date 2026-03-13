@@ -15,6 +15,12 @@ test.describe('Route redirects (unauthenticated)', () => {
     await expect(page).toHaveURL('/login')
     await expect(page.getByRole('button', { name: 'Request Login Link' })).toBeVisible()
   })
+
+  test('REDIRECTS-UNAUTH-03 /auth without token redirects to /login', async ({ page }) => {
+    await page.goto('/auth')
+    await expect(page).toHaveURL('/login')
+    await expect(page.getByRole('button', { name: 'Request Login Link' })).toBeVisible()
+  })
 })
 
 let dmSession: DmSession

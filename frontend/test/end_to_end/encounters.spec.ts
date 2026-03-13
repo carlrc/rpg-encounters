@@ -10,6 +10,7 @@ import { makeScopedSuffix } from './helpers/entityNaming'
 import { applyDmSession, type DmSession } from './helpers/bootstrapDm'
 import { getSpecDmSession } from './helpers/specDm'
 import { setSeededDmBilling } from './utils'
+import type { AuthCheckResponse } from '../src/types/auth'
 
 test.describe.configure({ mode: 'serial' })
 let dmSession: DmSession
@@ -45,6 +46,7 @@ const getEncounterCharacterTile = (encounterNode) =>
   encounterNode.locator('.characters-section .character-avatar:not(.add-character-tile)').first()
 const CLEAN_NAME_REGEX = /^[\p{L}\p{N}\s'-]+$/u
 const CLEAN_INITIALS_REGEX = /^[\p{L}\p{N}]{1,2}$/u
+const BACKEND_API_BASE_URL = process.env.VITE_BACKEND_URL || 'http://localhost:8000/api'
 
 const MUTABLE_ENCOUNTERS = [
   "The Captain's Quarters",
@@ -415,6 +417,40 @@ test('ENCOUNTERS-VIEW-RESET-HISTORY-01 resets conversation history from influenc
   await expect(page.locator('.reset-history-button')).toHaveCount(0)
 })
 
+test('ENCOUNTERS-CHALLENGE-SKILL-GATE-01 disables Speak until challenge skill is selected', async ({
+  page,
+}) => {
+  await page.goto('/encounters')
+  await waitForEncountersGet(page)
+  await expect(page).toHaveURL(/\/encounters/)
+
+  const { firstPlayerOption } = await findEncounterNodeWithCharacterAndPlayerOptions(page)
+  await expect(page.locator('.encounter-popup')).toBeVisible()
+
+  const playerSelect = page.locator('#player-select')
+  await expect(playerSelect).toBeVisible()
+  await playerSelect.selectOption(firstPlayerOption)
+
+  const challengeButton = page.locator('.shared-encounter-challenge-button')
+  await clickWhenActionable(challengeButton)
+
+  const speakButton = page.locator('.shared-speak-button')
+  await expect(speakButton).toBeDisabled()
+
+  const skillSelect = page.locator('#skill-select')
+  await expect(skillSelect).toBeVisible()
+  const skillOptions = await skillSelect
+    .locator('option')
+    .evaluateAll((options) => options.map((option) => option.value).filter((value) => value))
+  expect(skillOptions.length).toBeGreaterThan(0)
+
+  await skillSelect.selectOption(skillOptions[0])
+  await expect(speakButton).toBeEnabled()
+
+  await skillSelect.selectOption('')
+  await expect(speakButton).toBeDisabled()
+})
+
 test('ENCOUNTERS-VIEW-DESCRIPTION-01 toggles encounter description open and closed', async ({
   page,
 }) => {
@@ -714,6 +750,101 @@ test('ENCOUNTERS-TALKING-AUDIO-01 returns audio over websocket and completes pro
   }
 })
 
+test('ENCOUNTERS-AUTH-EXPIRE-01 redirects to login on websocket 1008 without stuck processing @audio', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.use?.browserName === 'webkit',
+    'WebKit microphone automation is not reliably supported for this audio flow.'
+  )
+  test.skip(
+    process.env.ENCOUNTERS_AUDIO_TEST !== '1',
+    'Audio auth-expiry test runs only in dedicated encounters audio command.'
+  )
+  test.setTimeout(90_000)
+  await setSeededDmBilling({
+    email: dmSession.email,
+    availableTokens: 5000,
+    lastUsedTokens: 0,
+    totalUsedTokens: 0,
+  })
+  await installWebSocketProbe(page)
+
+  await page.goto('/encounters')
+  await waitForEncountersGet(page)
+  await expect(page).toHaveURL(/\/encounters/)
+
+  const { firstPlayerOption } = await findEncounterNodeWithCharacterAndPlayerOptions(page)
+  const playerSelect = page.locator('#player-select')
+  const initialConversationResponsePromise = page.waitForResponse((response) => {
+    return (
+      /\/api\/encounters\/\d+\/conversation\/\d+\/\d+$/.test(response.url()) &&
+      response.request().method() === 'GET'
+    )
+  })
+  await playerSelect.selectOption(firstPlayerOption)
+  const initialConversationResponse = await initialConversationResponsePromise
+  expect(initialConversationResponse.status()).toBe(200)
+
+  const speakButton = page.locator('.shared-speak-button')
+  await expect(speakButton).toBeEnabled()
+  await speakButton.evaluate((element) => element.click())
+  await expect(page.locator('.shared-status-text')).toContainText('Listening')
+  await speakButton.evaluate((element) => element.click())
+  await assertConversationAudioRoundtrip(page, {
+    wsPathRegex: /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/,
+    timeoutMs: 60_000,
+  })
+
+  const logoutStatus = await page.evaluate(async ({ worldId, backendApiBaseUrl }) => {
+    const response = await fetch(`${backendApiBaseUrl}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'X-World-Id': String(worldId),
+      },
+    })
+    return response.status
+  }, { worldId: dmSession.world_id, backendApiBaseUrl: BACKEND_API_BASE_URL })
+  expect(logoutStatus).toBe(204)
+  await expect
+    .poll(async () => {
+      return await page.evaluate(async (backendApiBaseUrl) => {
+        const response = await fetch(`${backendApiBaseUrl}/auth/check`, {
+          method: 'GET',
+          credentials: 'include',
+          headers: {
+            'content-type': 'application/json',
+          },
+        })
+        if (!response.ok) return true
+        const payload: AuthCheckResponse = await response.json()
+        return payload.authenticated
+      }, BACKEND_API_BASE_URL)
+    })
+    .toBe(false)
+
+  const triggeredPolicyClose = await page.evaluate(() => {
+    const connections = window.__wsProbe?.connections || []
+    const target = [...connections]
+      .reverse()
+      .find(
+        (ws) =>
+          String(ws.url).includes('/api/encounters/') && String(ws.url).includes('/conversation/')
+      )
+    if (!target || typeof target.onclose !== 'function') {
+      return false
+    }
+    target.onclose({ code: 1008, reason: 'forced-policy-close', wasClean: true })
+    return true
+  })
+  expect(triggeredPolicyClose).toBe(true)
+
+  await expect(page).toHaveURL('/login')
+  await expect(page.getByRole('button', { name: 'Request Login Link' })).toBeVisible()
+  await expect(page.locator('.shared-speak-button')).toHaveCount(0)
+})
+
 test('ENCOUNTERS-LLM-SLOW-01 shows warning toast when llm_slow is received @audio', async ({
   page,
 }, testInfo) => {
@@ -920,6 +1051,14 @@ test('ENCOUNTERS-BILLING-01 shows insufficient tokens popup when seeded DM has z
   await assertBillingPopupVisibleOrFailFast(page)
   await page.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Insufficient tokens' })).toHaveCount(0)
+  await expect
+    .poll(async () => {
+      const probe = await readWebSocketProbe(page)
+      return probe.closeEvents.some((event) =>
+        /\/api\/encounters\/\d+\/conversation\/\d+\/\d+/.test(event.url)
+      )
+    })
+    .toBe(true)
 })
 
 test('ENCOUNTERS-BILLING-02 does not show insufficient tokens popup when seeded DM has credits @audio', async ({
