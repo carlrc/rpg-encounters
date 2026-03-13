@@ -3,6 +3,7 @@ from app.models.alignment import Alignment
 from app.models.character import Character
 from app.models.class_traits import Abilities, Class, Skills
 from app.models.encounter import Encounter
+from app.models.encounter_connection import ConnectionCreate, ConnectionHandle, EdgeType
 from app.models.influence import BASE_INFLUENCE_MAX, Influence
 from app.models.memory import Memory
 from app.models.player import Player
@@ -145,6 +146,22 @@ def create_test_encounter(
         player_ids=player_ids,
     )
 
+
+def create_test_connection(
+    source_encounter_id: int | str,
+    target_encounter_id: int | str,
+) -> ConnectionCreate:
+    """Create a basic test connection."""
+    return ConnectionCreate(
+        source_encounter_id=source_encounter_id,
+        target_encounter_id=target_encounter_id,
+        source_handle=ConnectionHandle.RIGHT.value,
+        target_handle=ConnectionHandle.LEFT.value,
+        edge_type=EdgeType.STRAIGHT.value,
+        stroke_color="#007bff",
+        stroke_width=3,
+    )
+
 # Lambda factories for creating default instances with custom IDs
 default_character = lambda character_id=100: create_default_innkeeper_character(character_id=character_id)
 default_player = lambda player_id=100: create_default_bard_player(player_id=player_id)
@@ -152,6 +169,7 @@ default_reveals = lambda character_id=100: [create_inn_secrets_reveal(character_
 default_memories = lambda character_id=100: [create_inn_memory(character_id=character_id)]
 default_influence = lambda character_id=100, player_id=100, base=BASE_INFLUENCE_MAX - 2, earned=0: create_default_influence(character_id=character_id, player_id=player_id, base=base, earned=earned)
 default_encounter = lambda encounter_id=1, character_id=100, player_id=None: create_test_encounter(encounter_id=encounter_id, character_id=character_id, player_id=player_id)
+default_connection = lambda source_encounter_id=1, target_encounter_id=2: create_test_connection(source_encounter_id=source_encounter_id, target_encounter_id=target_encounter_id)
 
 # Pre-created default instances
 DEFAULT_CHARACTER = default_character()

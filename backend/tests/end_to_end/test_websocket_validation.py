@@ -3,11 +3,13 @@ import os
 import tempfile
 
 import pytest
+from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from app.data.character_store import CharacterStore
 from app.data.encounter_store import EncounterStore
 from app.data.player_store import PlayerStore
+from app.main import app
 from app.models.character import CharacterCreate
 from app.models.encounter import EncounterCreate
 from app.models.player import PlayerCreate
@@ -48,6 +50,16 @@ def _patch_audio_and_tokens(monkeypatch):
     monkeypatch.setattr(
         UserTokenService, "check_token_balance", _fake_check_token_balance
     )
+
+
+def _expect_ws_close_1008(connect_ws):
+    try:
+        with connect_ws() as ws:
+            with pytest.raises(WebSocketDisconnect) as exc:
+                ws.receive_text()
+            assert exc.value.code == 1008
+    except WebSocketDisconnect as exc:
+        assert exc.code == 1008
 
 
 async def test_conversation_ws_rejects_player_not_in_encounter(monkeypatch):
@@ -145,3 +157,34 @@ async def test_challenge_ws_rejects_player_not_in_encounter(monkeypatch):
         with pytest.raises(WebSocketDisconnect) as exc:
             ws.receive_json()
         assert exc.value.code == 1008
+
+
+async def test_challenge_ws_rejects_invalid_d20_roll():
+    client, _, _, world = await create_authenticated_client()
+
+    ws_url = (
+        f"/api/encounters/1/challenge/1/1"
+        f"?world_id={world.id}&skill=persuasion&d20_roll=not-a-number"
+    )
+    _expect_ws_close_1008(lambda: client.websocket_connect(ws_url))
+
+
+async def test_challenge_ws_rejects_missing_skill():
+    client, _, _, world = await create_authenticated_client()
+
+    ws_url = f"/api/encounters/1/challenge/1/1?world_id={world.id}&d20_roll=10"
+    _expect_ws_close_1008(lambda: client.websocket_connect(ws_url))
+
+
+async def test_conversation_ws_rejects_missing_session():
+    client = TestClient(app)
+    ws_url = "/api/encounters/1/conversation/1/1?world_id=1"
+
+    _expect_ws_close_1008(lambda: client.websocket_connect(ws_url))
+
+
+async def test_challenge_ws_rejects_missing_session():
+    client = TestClient(app)
+    ws_url = "/api/encounters/1/challenge/1/1?world_id=1&skill=persuasion&d20_roll=10"
+
+    _expect_ws_close_1008(lambda: client.websocket_connect(ws_url))

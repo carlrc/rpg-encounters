@@ -277,7 +277,7 @@ async def get_encounter_connections(
     user_id, world_id = session.user_id, session.world_id
     try:
         encounter_store = EncounterStore(
-            user_id=user_id, world_id=world_id, session=session
+            user_id=user_id, world_id=world_id, session=db_session
         )
         connection_store = ConnectionStore(
             user_id=user_id, world_id=world_id, session=db_session
@@ -409,14 +409,14 @@ async def websocket_convo_endpoint(
         logger.warning(
             f"Invalid conversation WS session for encounter {encounter_id}..."
         )
-        await websocket.close(code=1008)
+        return await websocket.close(code=1008)
     validated_user_session = cast(UserSession, session)
     user_id, world_id = validated_user_session.user_id, validated_user_session.world_id
     # Ignore query param for who initiated so it can't be tampered with
     player_initiated = bool(getattr(session, "player_id", None))
 
     get_client().update_current_trace(
-        user_id=user_id,
+        user_id=str(user_id),
         tags=["conversation"],
         metadata={
             "service": get_or_throw("SERVICE"),
@@ -448,16 +448,25 @@ async def websocket_challenge_endpoint(
     session = await validate_websocket_session(websocket)
     if not session:
         logger.warning(f"Invalid challenge WS session for encounter {encounter_id}...")
-        await websocket.close(code=1008)
+        return await websocket.close(code=1008)
     validated_user_session = cast(UserSession, session)
     user_id, world_id = validated_user_session.user_id, validated_user_session.world_id
     skill = websocket.query_params.get("skill")
     d20_roll = websocket.query_params.get("d20_roll")
+    if not skill or not d20_roll:
+        return await websocket.close(code=1008)
+
+    if not d20_roll.isdigit():
+        logger.warning(
+            f"Invalid challenge d20_roll '{d20_roll}' for encounter {encounter_id}, player {player_id}"
+        )
+        return await websocket.close(code=1008)
+    parsed_d20_roll = int(d20_roll)
     # Ignore query param for who initiated so it can't be tampered with
     player_initiated = bool(getattr(session, "player_id", None))
 
     get_client().update_current_trace(
-        user_id=user_id,
+        user_id=str(user_id),
         tags=["challenge"],
         metadata={
             "service": get_or_throw("SERVICE"),
@@ -474,6 +483,6 @@ async def websocket_challenge_endpoint(
         player_id=player_id,
         character_id=character_id,
         skill=skill,
-        d20_roll=int(d20_roll),
+        d20_roll=parsed_d20_roll,
         player_initiated=player_initiated,
     )
