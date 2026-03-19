@@ -133,6 +133,7 @@ async def request_magic_link(
 async def consume_magic_link(
     token: str,
     request: Request,
+    # TODO: We should not be creating the session before validation
     db_session: AsyncSession = Depends(get_async_db_routes_session),
 ):
     """
