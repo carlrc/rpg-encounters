@@ -796,16 +796,19 @@ test('ENCOUNTERS-AUTH-EXPIRE-01 redirects to login on websocket 1008 without stu
     timeoutMs: 60_000,
   })
 
-  const logoutStatus = await page.evaluate(async ({ worldId, backendApiBaseUrl }) => {
-    const response = await fetch(`${backendApiBaseUrl}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'X-World-Id': String(worldId),
-      },
-    })
-    return response.status
-  }, { worldId: dmSession.world_id, backendApiBaseUrl: BACKEND_API_BASE_URL })
+  const logoutStatus = await page.evaluate(
+    async ({ worldId, backendApiBaseUrl }) => {
+      const response = await fetch(`${backendApiBaseUrl}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-World-Id': String(worldId),
+        },
+      })
+      return response.status
+    },
+    { worldId: dmSession.world_id, backendApiBaseUrl: BACKEND_API_BASE_URL }
+  )
   expect(logoutStatus).toBe(204)
   await expect
     .poll(async () => {

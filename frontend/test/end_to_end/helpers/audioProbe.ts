@@ -119,8 +119,7 @@ export const forceWebSocketClose = async (
             ws.dispatchEvent(closeEvent)
           }
         }
-        const syntheticClose = () =>
-          triggerCloseEvent()
+        const syntheticClose = () => triggerCloseEvent()
         try {
           ws.close(code, reason)
           // `ws.close()` does not always deliver an observable close callback in this

@@ -22,10 +22,11 @@ describe('createEntityStore world switch and errors', () => {
       delete: vi.fn(),
     }
 
-    const useTestStore = createEntityStore<{ id: number; name: string }, { name: string }, { name: string }>(
-      'TestEntity',
-      apiMethods
-    )
+    const useTestStore = createEntityStore<
+      { id: number; name: string },
+      { name: string },
+      { name: string }
+    >('TestEntity', apiMethods)
 
     const worldStore = useWorldStore()
     const store = useTestStore()
@@ -59,10 +60,11 @@ describe('createEntityStore world switch and errors', () => {
       delete: vi.fn(),
     }
 
-    const useTestStore = createEntityStore<{ id: number; name: string }, { name: string }, { name: string }>(
-      'TestEntity',
-      apiMethods
-    )
+    const useTestStore = createEntityStore<
+      { id: number; name: string },
+      { name: string },
+      { name: string }
+    >('TestEntity', apiMethods)
 
     const store = useTestStore()
     const notifications = useNotificationStore()

@@ -39,7 +39,6 @@ describe('http auth flow', () => {
     const worldStore = useWorldStore()
     const authStore = useAuthStore()
     worldStore.setCurrentWorldId(42)
-
     ;(global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       status: 200,
@@ -61,7 +60,6 @@ describe('http auth flow', () => {
   it('clears auth and redirects to /login on 401 from protected route', async () => {
     const authStore = useAuthStore()
     authStore.setAuthenticated(true)
-
     ;(global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 401,
@@ -76,7 +74,6 @@ describe('http auth flow', () => {
 
   it('does not redirect on 403 when already on /login', async () => {
     currentRoute.value.path = '/login'
-
     ;(global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 403,
@@ -90,7 +87,6 @@ describe('http auth flow', () => {
   it('throws on 500 without forcing auth false or redirect', async () => {
     const authStore = useAuthStore()
     authStore.setAuthenticated(true)
-
     ;(global.fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: false,
       status: 500,
