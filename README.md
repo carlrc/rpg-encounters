@@ -19,7 +19,7 @@ RPG encounter's goal is to bring real-time voice NPCs to **in-person** tabletop 
 ## 🚀 Getting Started
 
 1. Read the [game instructions](./frontend/public/instructions.md) and [features](#-core-features), and watch the [demo videos](#-demos) to understand the mechanics.
-2. Follow the [setup guide](#-setup) and [usage instructions](#-usage) or use the [hosted version](https://rpg-encounters.com).
+2. Follow the [setup guide](#-setup) and [usage instructions](#-usage).
 3. Talk to some characters in the [default scenario](./frontend/public/instructions.md#the-captains-secret-crate)!
 
 ## ✨ Core Features
@@ -35,11 +35,11 @@ RPG encounter's goal is to bring real-time voice NPCs to **in-person** tabletop 
 
 ### DM Perspective
 
-[![Watch the demo](./docs/images/dm-centric-demo-image.png)](https://rpg-encounters.com/videos/dm-centric-demo.mp4)
+[![Watch the demo](./docs/images/dm-centric-demo-image.png)](./docs/demos/dm-centric-demo.mp4)
 
 ### Player Perspective
 
-[![Watch the demo](./docs/images/player-centric-demo-image.png)](https://rpg-encounters.com/videos/player-centric-demo.mp4)
+[![Watch the demo](./docs/images/player-centric-demo-image.png)](./docs/demos/player-centric-demo.mp4)
 
 ## 🔌 Setup
 
